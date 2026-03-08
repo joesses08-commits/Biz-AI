@@ -53,7 +53,7 @@ export async function computeMetrics(): Promise<BusinessMetrics | null> {
     costsByMonth[m] = (costsByMonth[m] || 0) + Number(r.amount);
   });
 
-  const allMonths = [...new Set([...Object.keys(revenueByMonth), ...Object.keys(costsByMonth)])]
+  const allMonths = Array.from(new Set([...Object.keys(revenueByMonth), ...Object.keys(costsByMonth)]))
     .filter(m => m !== "Unknown")
     .sort();
 
