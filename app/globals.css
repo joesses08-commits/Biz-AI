@@ -1,0 +1,146 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "Syne", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #08090e;
+  color: #eef0f6;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0e0f18;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2d45;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3f60;
+}
+
+/* Selection */
+::selection {
+  background: #4f6ef730;
+  color: #eef0f6;
+}
+
+/* ── Reusable component classes ───────────────────────────────────────────── */
+
+@layer components {
+  /* Cards */
+  .card {
+    @apply bg-bg-surface border border-bg-border rounded-xl p-5;
+  }
+  .card-elevated {
+    @apply bg-bg-elevated border border-bg-border rounded-xl p-5;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-white
+           font-semibold text-sm px-5 py-2.5 rounded-lg transition-all duration-150
+           active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 text-text-secondary hover:text-text-primary
+           hover:bg-bg-hover text-sm px-4 py-2 rounded-lg transition-all duration-150;
+  }
+  .btn-outline {
+    @apply inline-flex items-center gap-2 border border-bg-border hover:border-accent-border
+           text-text-secondary hover:text-text-primary text-sm px-4 py-2.5 rounded-lg
+           transition-all duration-150;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full bg-bg-elevated border border-bg-border rounded-lg px-4 py-2.5
+           text-sm text-text-primary placeholder:text-text-muted
+           focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30
+           transition-colors duration-150;
+  }
+
+  /* Nav item */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
+           text-text-secondary hover:text-text-primary hover:bg-bg-hover
+           transition-all duration-150 cursor-pointer;
+  }
+  .nav-item.active {
+    @apply text-text-primary bg-accent/10 border border-accent/20;
+  }
+
+  /* Status badge */
+  .badge {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-md;
+  }
+  .badge-green {
+    @apply badge bg-emerald-glow/15 text-emerald-400;
+  }
+  .badge-red {
+    @apply badge bg-red-500/15 text-red-400;
+  }
+  .badge-yellow {
+    @apply badge bg-yellow-500/15 text-yellow-400;
+  }
+  .badge-blue {
+    @apply badge bg-accent/20 text-blue-400;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply rounded-lg bg-gradient-to-r from-bg-elevated via-bg-hover to-bg-elevated
+           bg-[length:200%_100%] animate-shimmer;
+  }
+}
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+
+.animate-in {
+  animation: fadeUp 0.35s ease forwards;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+
+/* Glow effect for accent elements */
+.glow-accent {
+  box-shadow: 0 0 20px #4f6ef720, 0 0 60px #4f6ef708;
+}
