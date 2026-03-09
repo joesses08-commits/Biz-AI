@@ -200,7 +200,7 @@ export default function Uploader() {
           Data Upload
         </h1>
         <p className="text-text-secondary text-sm mt-1">
-          Import your company CSV files. Sales data is required — everything else is optional but improves analysis.
+          Import your company CSV or Excel files. Sales data is required — everything else is optional but improves analysis.
         </p>
       </div>
 
