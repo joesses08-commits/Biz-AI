@@ -55,7 +55,7 @@ function UploadZone({ type, label, description, columns, onUpload, status, rowCo
     )}>
       <input
         type="file"
-        accept=".csv"
+        accept="*"
         onChange={onInputChange}
         className="absolute inset-0 opacity-0 cursor-pointer z-10"
         disabled={isUploading}
