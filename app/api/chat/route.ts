@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     // Stream the response from Claude
     const stream = await anthropic.messages.stream({
-      model: "claude-sonnet-4-20250514",
+     model: "claude-sonnet-4-5",
       max_tokens: 1500,
       system: systemPrompt,
       messages: messages.map((m: { role: string; content: string }) => ({
