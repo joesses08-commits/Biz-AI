@@ -16,14 +16,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Load live business metrics
-    const metrics = await computeMetrics();
-    if (!metrics) {
-      return NextResponse.json(
-        { error: "No business data found. Please upload CSV files first." },
-        { status: 404 }
-      );
-    }
-
+   const metrics = await computeMetrics();
+if (!metrics) {
+  return NextResponse.json(
+    { error: "No business data found. Please upload CSV files first." },
+    { status: 400 }
+  );
+}
     // Build the data-aware system prompt
     const systemPrompt = buildSystemPrompt(metrics);
 
