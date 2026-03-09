@@ -19,16 +19,28 @@ function UploadZone({ type, label, description, columns, onUpload, status, rowCo
   const [dragging, setDragging] = useState(false);
 
   const handleFile = useCallback((file: File) => {
-    if (!file.name.endsWith(".csv")) return;
+    const isCSV = file.name.endsWith(".csv");
+    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+    if (!isCSV && !isExcel) return;
     const reader = new FileReader();
     reader.onload = (e) => {
-      const text = e.target?.result as string;
-      import("papaparse").then(({ default: Papa }) => {
-        const result = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: true });
-        onUpload(type, file, result.data as Record<string, unknown>[]);
-      });
+      const data = e.target?.result;
+      if (isCSV) {
+        import("papaparse").then(({ default: Papa }) => {
+          const result = Papa.parse(data as string, { header: true, skipEmptyLines: true, dynamicTyping: true });
+          onUpload(type, file, result.data as Record<string, unknown>[]);
+        });
+      } else {
+        import("xlsx").then((XLSX) => {
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+          onUpload(type, file, rows as Record<string, unknown>[]);
+        });
+      }
     };
-    reader.readAsText(file);
+    if (isCSV) reader.readAsText(file);
+    else reader.readAsArrayBuffer(file);
   }, [type, onUpload]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
