@@ -27,43 +27,15 @@ if (!metrics) {
     const systemPrompt = buildSystemPrompt(metrics);
 
     // Stream the response from Claude
-    const stream = await anthropic.messages.stream({
-     model: "claude-sonnet-4-5",
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
+const response = await anthropic.messages.create({
+  model: "claude-sonnet-4-5",
+  max_tokens: 1500,
+  system: systemPrompt,
+  messages: messages.map((m: { role: string; content: string }) => ({
+    role: m.role,
+    content: m.content,
+  })),
+});
 
-    // Return as a streaming text response
-    const encoder = new TextEncoder();
-    const readable = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of stream) {
-          if (
-            chunk.type === "content_block_delta" &&
-            chunk.delta.type === "text_delta"
-          ) {
-            controller.enqueue(encoder.encode(chunk.delta.text));
-          }
-        }
-        controller.close();
-      },
-    });
-
-    return new Response(readable, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Transfer-Encoding": "chunked",
-      },
-    });
-  } catch (err) {
-    console.error("Chat error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Chat failed" },
-      { status: 500 }
-    );
-  }
-}
+const text = response.content[0].type === "text" ? response.content[0].text : "";
+return NextResponse.json({ response: text });

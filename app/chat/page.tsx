@@ -130,23 +130,14 @@ export default function ChatPage() {
         throw new Error(data.error || "Chat failed");
       }
 
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value);
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === assistantMsg.id
-                ? { ...m, content: m.content + chunk }
-                : m
-            )
-          );
-        }
-      }
+      const data = await res.json();
+setMessages(prev =>
+  prev.map(m =>
+    m.id === assistantMsg.id
+      ? { ...m, content: data.response }
+      : m
+  )
+);
     } catch (err) {
       setMessages(prev =>
         prev.map(m =>
