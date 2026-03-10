@@ -17,7 +17,11 @@ export default function LoginPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const handleSubmit = async () => {
+  async function handleSubmit() {
+    if (!email || !password) {
+      setMessage("Please enter your email and password.");
+      return;
+    }
     setLoading(true);
     setMessage("");
 
@@ -26,7 +30,7 @@ export default function LoginPage() {
         email,
         password,
         options: {
-          emailRedirectTo: `https://biz-ai-pi.vercel.app/auth/callback`,
+          emailRedirectTo: "https://biz-ai-pi.vercel.app/auth/callback",
         },
       });
       if (error) {
@@ -43,10 +47,11 @@ export default function LoginPage() {
         setMessage(error.message);
       } else {
         router.push("/dashboard");
+        router.refresh();
       }
     }
     setLoading(false);
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
@@ -76,6 +81,7 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-violet-500"
               placeholder="••••••••"
             />
@@ -88,14 +94,14 @@ export default function LoginPage() {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50"
+            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50 cursor-pointer"
           >
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
           </button>
 
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full text-sm text-gray-400 hover:text-white transition"
+            className="w-full text-sm text-gray-400 hover:text-white transition cursor-pointer"
           >
             {isSignUp
               ? "Already have an account? Sign in"
