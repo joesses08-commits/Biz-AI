@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { computeMetrics } from "@/lib/metrics";
 import { buildSystemPrompt } from "@/lib/prompt";
 
@@ -9,13 +11,33 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const { messages } = await req.json();
     if (!messages?.length) {
       return NextResponse.json({ error: "No messages provided" }, { status: 400 });
     }
 
-    const metrics = await computeMetrics();
+    const metrics = await computeMetrics(user.id);
     if (!metrics) {
       return NextResponse.json(
         { error: "No business data found. Please upload CSV files first." },

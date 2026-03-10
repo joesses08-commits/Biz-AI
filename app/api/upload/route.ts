@@ -1,10 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createServerClient as createSupabaseClient } from "@supabase/ssr";
 import { createServerClient } from "@/lib/supabase";
+import { cookies } from "next/headers";
 import { parseNum } from "@/lib/utils";
 import { DatasetType } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
+    const cookieStore = cookies();
+    const authClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return cookieStore.getAll(); },
+          setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
+
+    const { data: { user } } = await authClient.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const { type, filename, rows } = await req.json() as {
       type: DatasetType;
       filename: string;
@@ -16,9 +39,8 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServerClient();
-    const userId = "demo-user"; // No auth for prototype
+    const userId = user.id;
 
-    // 1. Delete any existing upload of same type (replace strategy)
     const { data: existing } = await supabase
       .from("uploads")
       .select("id")
@@ -29,7 +51,6 @@ export async function POST(req: NextRequest) {
       await supabase.from("uploads").delete().eq("user_id", userId).eq("type", type);
     }
 
-    // 2. Create upload record
     const { data: upload, error: uploadError } = await supabase
       .from("uploads")
       .insert({ user_id: userId, type, filename, row_count: rows.length })
@@ -38,7 +59,6 @@ export async function POST(req: NextRequest) {
 
     if (uploadError) throw uploadError;
 
-    // 3. Insert rows into the right table
     const uploadId = upload.id;
 
     if (type === "sales") {
@@ -109,7 +129,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// Helper: find a value by trying multiple possible column names
 function findVal(row: Record<string, unknown>, keys: string[]): unknown {
   for (const key of keys) {
     if (row[key] !== undefined && row[key] !== null && row[key] !== "") {

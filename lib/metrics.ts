@@ -2,11 +2,9 @@ import { createServerClient } from "./supabase";
 import { BusinessMetrics, ProductMetric, CustomerMetric, CostCategory, MonthlyDataPoint } from "@/types";
 import { toYearMonth } from "./utils";
 
-export async function computeMetrics(): Promise<BusinessMetrics | null> {
+export async function computeMetrics(userId: string): Promise<BusinessMetrics | null> {
   const supabase = createServerClient();
-  const userId = "demo-user";
 
-  // Get latest upload IDs for each type
   const { data: uploads } = await supabase
     .from("uploads")
     .select("id, type")
@@ -21,7 +19,6 @@ export async function computeMetrics(): Promise<BusinessMetrics | null> {
 
   if (!salesId) return null;
 
-  // ── Sales ──────────────────────────────────────────────────────────────────
   const { data: salesRows } = await supabase
     .from("sales_rows")
     .select("*")
@@ -34,13 +31,11 @@ export async function computeMetrics(): Promise<BusinessMetrics | null> {
   const sales = salesRows || [];
   const costs = costRows || [];
 
-  // Top-line metrics
   const totalRevenue = sales.reduce((s, r) => s + Number(r.revenue), 0);
   const totalCosts = costs.reduce((s, r) => s + Number(r.amount), 0);
   const grossProfit = totalRevenue - totalCosts;
   const grossMarginPct = totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0;
 
-  // ── Monthly trend ─────────────────────────────────────────────────────────
   const revenueByMonth: Record<string, number> = {};
   const costsByMonth: Record<string, number> = {};
 
@@ -63,7 +58,6 @@ export async function computeMetrics(): Promise<BusinessMetrics | null> {
     return { month, revenue: rev, costs: cost, profit: rev - cost };
   });
 
-  // MoM change (last 2 months)
   let momRevenueChange: number | null = null;
   let momMarginChange: number | null = null;
   if (monthlyTrend.length >= 2) {
@@ -75,7 +69,6 @@ export async function computeMetrics(): Promise<BusinessMetrics | null> {
     momMarginChange = lastMargin - prevMargin;
   }
 
-  // ── Top products ──────────────────────────────────────────────────────────
   const productMap: Record<string, ProductMetric> = {};
   sales.forEach(r => {
     const id = r.product_id || r.product_name || "Unknown";
@@ -88,7 +81,6 @@ export async function computeMetrics(): Promise<BusinessMetrics | null> {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
 
-  // ── Top customers ─────────────────────────────────────────────────────────
   const customerMap: Record<string, CustomerMetric> = {};
   sales.forEach(r => {
     const id = r.customer_name || r.customer_id || "Unknown";
@@ -100,7 +92,6 @@ export async function computeMetrics(): Promise<BusinessMetrics | null> {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5);
 
-  // ── Cost breakdown ────────────────────────────────────────────────────────
   const costMap: Record<string, number> = {};
   costs.forEach(r => {
     const cat = r.category || "Other";
