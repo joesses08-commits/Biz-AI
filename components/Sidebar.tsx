@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   UploadCloud,
   LayoutDashboard,
@@ -9,7 +9,9 @@ import {
   Zap,
   Settings,
   HelpCircle,
+  LogOut,
 } from "lucide-react";
+import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -40,6 +42,18 @@ const bottomItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <aside className="w-[220px] flex-shrink-0 flex flex-col h-screen bg-bg-surface border-r border-bg-border">
@@ -117,6 +131,11 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        <button onClick={handleSignOut} className="nav-item w-full text-left">
+          <LogOut size={15} className="text-text-muted flex-shrink-0" />
+          <span className="text-[13px]">Sign Out</span>
+        </button>
 
         {/* Version badge */}
         <div className="px-3 pt-2">
