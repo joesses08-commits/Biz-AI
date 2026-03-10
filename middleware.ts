@@ -17,8 +17,8 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+        setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           response = NextResponse.next({
@@ -34,12 +34,10 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // If user is not logged in and trying to access a protected page, redirect to login
   if (!user && !request.nextUrl.pathname.startsWith("/login") && !request.nextUrl.pathname.startsWith("/auth")) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If user is logged in and tries to go to /login, redirect to dashboard
   if (user && request.nextUrl.pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
