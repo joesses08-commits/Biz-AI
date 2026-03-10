@@ -31,15 +31,3 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(new URL("/dashboard", request.url));
 }
 ```
-
-6. Press **Command + S**
-
-Then in Terminal:
-```
-git add .
-```
-```
-git commit -m "fix TypeScript type error in auth callback"
-```
-```
-git push
