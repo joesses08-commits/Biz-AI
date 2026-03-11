@@ -49,33 +49,14 @@ export default function GmailPage() {
     setAnalyzing(true);
     setAnalysis("");
     try {
-      const emailSummary = emails.map(e =>
-        `From: ${e.from}\nSubject: ${e.subject}\nPreview: ${e.snippet}`
-      ).join("\n\n");
-
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/gmail/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{
-            role: "user",
-            content: `You are my AI COO. Analyze these recent emails from my inbox and give me a business intelligence briefing. Identify: 1) Key action items I need to respond to, 2) Important business conversations, 3) Any issues or alerts I should know about, 4) What to prioritize today. Here are my recent emails:\n\n${emailSummary}`
-          }]
-        }),
+        body: JSON.stringify({ emails }),
       });
       const data = await res.json();
-      
-      let result = "";
-      if (typeof data === "string") result = data;
-      else if (data.content) result = data.content;
-      else if (data.message) result = data.message;
-      else if (data.reply) result = data.reply;
-      else if (data.text) result = data.text;
-      else if (Array.isArray(data)) result = data.map((d: {text?: string}) => d.text || "").join("");
-      else result = JSON.stringify(data);
-      
-      setAnalysis(result);
-    } catch (err) {
+      setAnalysis(data.analysis || "No analysis available");
+    } catch {
       setAnalysis("Failed to analyze emails. Please try again.");
     }
     setAnalyzing(false);
