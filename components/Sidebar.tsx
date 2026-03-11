@@ -10,6 +10,7 @@ import {
   Settings,
   HelpCircle,
   LogOut,
+  Plug,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,12 @@ const navItems = [
     icon: MessageSquare,
     label: "AI Analyst",
     description: "Ask questions",
+  },
+  {
+    href: "/integrations",
+    icon: Plug,
+    label: "Integrations",
+    description: "Connect your tools",
   },
 ];
 
