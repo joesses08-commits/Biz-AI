@@ -3,10 +3,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/api/gmail")) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   });
 
   const supabase = createServerClient(
@@ -14,19 +16,11 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
+        getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          response = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({ request });
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
     }
@@ -46,5 +40,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/chat/:path*", "/upload/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/chat/:path*", "/settings/:path*", "/integrations/:path*", "/gmail/:path*", "/login", "/api/gmail/:path*"],
 };
