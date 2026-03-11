@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  UploadCloud,
   LayoutDashboard,
   MessageSquare,
   Zap,
@@ -17,10 +16,10 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   {
-    href: "/upload",
-    icon: UploadCloud,
-    label: "Data Upload",
-    description: "Import CSV files",
+    href: "/integrations",
+    icon: Plug,
+    label: "Integrations",
+    description: "Connect your tools",
   },
   {
     href: "/dashboard",
@@ -33,12 +32,6 @@ const navItems = [
     icon: MessageSquare,
     label: "AI Analyst",
     description: "Ask questions",
-  },
-  {
-    href: "/integrations",
-    icon: Plug,
-    label: "Integrations",
-    description: "Connect your tools",
   },
 ];
 
@@ -95,12 +88,7 @@ export default function Sidebar() {
           const Icon = item.icon;
           return (
             <Link key={item.href} href={item.href}>
-              <div
-                className={cn(
-                  "nav-item group",
-                  isActive && "active"
-                )}
-              >
+              <div className={cn("nav-item group", isActive && "active")}>
                 <Icon
                   size={16}
                   className={cn(
@@ -144,7 +132,6 @@ export default function Sidebar() {
           <span className="text-[13px]">Sign Out</span>
         </button>
 
-        {/* Version badge */}
         <div className="px-3 pt-2">
           <div className="text-[10px] text-text-muted">
             Prototype v0.1 · Claude Sonnet
