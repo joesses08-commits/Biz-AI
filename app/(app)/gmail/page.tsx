@@ -49,21 +49,34 @@ export default function GmailPage() {
     setAnalyzing(true);
     setAnalysis("");
     try {
-      const emailSummary = emails.map(e => 
-        `From: ${e.from}\nSubject: ${e.subject}\nSnippet: ${e.snippet}`
+      const emailSummary = emails.map(e =>
+        `From: ${e.from}\nSubject: ${e.subject}\nPreview: ${e.snippet}`
       ).join("\n\n");
 
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: `Analyze these emails from my inbox and give me a business intelligence summary. What are the key action items, important conversations, and anything I should prioritize? Here are my recent emails:\n\n${emailSummary}` }]
+          messages: [{
+            role: "user",
+            content: `You are my AI COO. Analyze these recent emails from my inbox and give me a business intelligence briefing. Identify: 1) Key action items I need to respond to, 2) Important business conversations, 3) Any issues or alerts I should know about, 4) What to prioritize today. Here are my recent emails:\n\n${emailSummary}`
+          }]
         }),
       });
       const data = await res.json();
-      setAnalysis(data.content || data.message || "No analysis available");
-    } catch {
-      setAnalysis("Failed to analyze emails");
+      
+      let result = "";
+      if (typeof data === "string") result = data;
+      else if (data.content) result = data.content;
+      else if (data.message) result = data.message;
+      else if (data.reply) result = data.reply;
+      else if (data.text) result = data.text;
+      else if (Array.isArray(data)) result = data.map((d: {text?: string}) => d.text || "").join("");
+      else result = JSON.stringify(data);
+      
+      setAnalysis(result);
+    } catch (err) {
+      setAnalysis("Failed to analyze emails. Please try again.");
     }
     setAnalyzing(false);
   };
@@ -79,6 +92,7 @@ export default function GmailPage() {
       const now = new Date();
       const diff = now.getTime() - d.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
+      if (hours < 1) return "Just now";
       if (hours < 24) return `${hours}h ago`;
       const days = Math.floor(hours / 24);
       if (days < 7) return `${days}d ago`;
@@ -92,7 +106,6 @@ export default function GmailPage() {
     <div className="min-h-screen bg-[#080b12] text-white p-8">
       <div className="max-w-6xl mx-auto">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
@@ -114,11 +127,10 @@ export default function GmailPage() {
           </div>
         </div>
 
-        {/* AI Analysis */}
         {analysis && (
           <div className="bg-blue-600/10 border border-blue-500/30 rounded-2xl p-6 mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-blue-400 font-semibold text-sm">✨ AI COO Email Analysis</span>
+              <span className="text-blue-400 font-semibold text-sm">✨ AI COO Email Briefing</span>
             </div>
             <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">{analysis}</p>
           </div>
@@ -132,8 +144,6 @@ export default function GmailPage() {
           <div className="text-red-400 text-sm">{error}</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-            {/* Email List */}
             <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
               <div className="px-5 py-4 border-b border-white/10">
                 <h2 className="text-sm font-semibold text-white/70">Recent Emails</h2>
@@ -164,7 +174,6 @@ export default function GmailPage() {
               </div>
             </div>
 
-            {/* Email Detail */}
             <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
               {selected ? (
                 <div className="p-6">
@@ -190,7 +199,6 @@ export default function GmailPage() {
                 </div>
               )}
             </div>
-
           </div>
         )}
       </div>
