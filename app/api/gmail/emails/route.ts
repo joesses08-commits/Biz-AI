@@ -56,12 +56,18 @@ export async function GET() {
     }
 
     const listResponse = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=in:inbox",
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20",
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const listData = await listResponse.json();
 
-    if (!listData.messages) return NextResponse.json({ emails: [], total: 0 });
+    if (listData.error) {
+      return NextResponse.json({ error: listData.error.message, debug: listData }, { status: 400 });
+    }
+
+    if (!listData.messages || listData.messages.length === 0) {
+      return NextResponse.json({ emails: [], total: 0, debug: listData });
+    }
 
     const emails = await Promise.all(
       listData.messages.slice(0, 10).map(async (msg: { id: string }) => {
@@ -81,6 +87,6 @@ export async function GET() {
 
     return NextResponse.json({ emails, total: listData.resultSizeEstimate, connectedEmail: connection.email });
   } catch (err) {
-    return NextResponse.json({ error: "Failed to fetch emails" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch emails", details: String(err) }, { status: 500 });
   }
 }
