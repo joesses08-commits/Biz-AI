@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 ## BUSINESS METRICS (from uploaded data)
 - Total Revenue: $${metrics.totalRevenue?.toLocaleString() ?? "N/A"}
 - Total Profit: $${metrics.grossProfit?.toLocaleString() ?? "N/A"}
-- Total Orders: ${metrics.totalOrders ?? "N/A"}
+- Total Orders: ${metrics.topCustomers?.length ?? "N/A"}
 - Top Products: ${metrics.topProducts?.slice(0,3).map((p: {name: string; revenue: number}) => `${p.name} ($${p.revenue.toLocaleString()})`).join(", ") ?? "N/A"}
 - Top Customers: ${metrics.topCustomers?.slice(0,3).map((c: {name: string; revenue: number}) => `${c.name} ($${c.revenue.toLocaleString()})`).join(", ") ?? "N/A"}
 `;
