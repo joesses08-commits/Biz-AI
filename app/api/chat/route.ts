@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { computeMetrics } from "@/lib/metrics";
+import Stripe from "stripe";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No messages provided" }, { status: 400 });
     }
 
-    // Try to get business metrics — but don't block if none exist
+    // Try to get business metrics
     let metricsSection = "";
     try {
       const metrics = await computeMetrics(user.id);
@@ -45,13 +46,12 @@ export async function POST(req: NextRequest) {
 ## BUSINESS METRICS (from uploaded data)
 - Total Revenue: $${metrics.totalRevenue?.toLocaleString() ?? "N/A"}
 - Total Profit: $${metrics.grossProfit?.toLocaleString() ?? "N/A"}
-- Total Orders: ${metrics.topCustomers?.length ?? "N/A"}
 - Top Products: ${metrics.topProducts?.slice(0,3).map((p: {name: string; revenue: number}) => `${p.name} ($${p.revenue.toLocaleString()})`).join(", ") ?? "N/A"}
 - Top Customers: ${metrics.topCustomers?.slice(0,3).map((c: {name: string; revenue: number}) => `${c.name} ($${c.revenue.toLocaleString()})`).join(", ") ?? "N/A"}
 `;
       }
     } catch {
-      // No metrics available — that's fine
+      // No metrics available
     }
 
     // Try to get Gmail data
@@ -66,7 +66,6 @@ export async function POST(req: NextRequest) {
       if (gmailConn?.access_token) {
         let accessToken = gmailConn.access_token;
 
-        // Refresh token if expired
         if (new Date(gmailConn.token_expiry) < new Date()) {
           const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
             method: "POST",
@@ -88,7 +87,6 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Fetch recent emails
         const listRes = await fetch(
           "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20",
           { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -118,19 +116,71 @@ ${emails.join("\n")}
         }
       }
     } catch {
-      // Gmail not connected — that's fine
+      // Gmail not connected
     }
 
-    const hasData = metricsSection || gmailSection;
+    // Try to get Stripe data
+    let stripeSection = "";
+    try {
+      if (process.env.STRIPE_SECRET_KEY) {
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+          apiVersion: "2026-02-25.acacia",
+        });
+
+        const [charges, subscriptions, customers, balance] = await Promise.all([
+          stripe.charges.list({ limit: 20 }),
+          stripe.subscriptions.list({ limit: 20, status: "active" }),
+          stripe.customers.list({ limit: 10 }),
+          stripe.balance.retrieve(),
+        ]);
+
+        const totalRevenue = charges.data
+          .filter(c => c.paid && !c.refunded)
+          .reduce((sum, c) => sum + c.amount, 0) / 100;
+
+        const mrr = subscriptions.data.reduce((sum, s) => {
+          const item = s.items.data[0];
+          if (!item?.price) return sum;
+          const amount = (item.price.unit_amount || 0) / 100;
+          if (item.price.recurring?.interval === "year") return sum + amount / 12;
+          return sum + amount;
+        }, 0);
+
+        const availableBalance = balance.available.reduce((sum, b) => sum + b.amount, 0) / 100;
+
+        const recentCharges = charges.data.slice(0, 5).map(c => {
+          const date = new Date(c.created * 1000).toLocaleDateString();
+          const amount = (c.amount / 100).toFixed(2);
+          const status = c.paid ? "paid" : "failed";
+          return `- $${amount} | ${status} | ${c.description || c.billing_details?.name || "charge"} | ${date}`;
+        });
+
+        stripeSection = `
+## STRIPE FINANCIAL DATA
+- Total Revenue (last 20 charges): $${totalRevenue.toLocaleString()}
+- Monthly Recurring Revenue (MRR): $${mrr.toLocaleString()}
+- Active Subscriptions: ${subscriptions.data.length}
+- Total Customers: ${customers.data.length}
+- Available Balance: $${availableBalance.toLocaleString()}
+- Recent Transactions:
+${recentCharges.length > 0 ? recentCharges.join("\n") : "  No transactions yet"}
+`;
+      }
+    } catch {
+      // Stripe not available
+    }
+
+    const hasData = metricsSection || gmailSection || stripeSection;
 
     const systemPrompt = `You are an AI COO — a genius business intelligence assistant. You are direct, smart, and give actionable insights. You speak like a trusted advisor, not a generic chatbot.
 
 ${hasData ? `Here is the live data you have access to right now:
 
 ${metricsSection}
+${stripeSection}
 ${gmailSection}
 
-Use this data to give specific, accurate answers. Reference real names, numbers, and emails when relevant.` : `You don't have any business data connected yet. Be helpful and explain what the user can connect to get the most out of BizAI. Encourage them to connect Gmail, Stripe, or QuickBooks from the Integrations page.`}
+Use this data to give specific, accurate answers. Reference real numbers, transactions, and emails when relevant. Look for trends, anomalies, and opportunities. When revenue is $0, acknowledge it and give advice on getting first customers.` : `You don't have any business data connected yet. Be helpful and explain what the user can connect to get the most out of BizAI. Encourage them to connect Gmail, Stripe, or QuickBooks from the Integrations page.`}
 
 Always be concise and actionable. When you see emails, identify business-relevant ones and ignore marketing/spam. When you see revenue data, look for trends and anomalies. You are the smartest person in the room.`;
 
