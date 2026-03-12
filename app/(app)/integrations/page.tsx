@@ -51,7 +51,7 @@ function LogoImage({ src, name }: { src: string; name: string }) {
           target.style.display = "none";
           const parent = target.parentElement;
           if (parent) parent.innerHTML = `<span style="font-size:18px;font-weight:700;color:#333">${name[0]}</span>`;
-        }}
+    }
       />
     </div>
   );
@@ -75,9 +75,9 @@ export default function IntegrationsPage() {
     if (params.get("success") === "gmail") {
       checkConnections();
       window.history.replaceState({}, "", "/integrations");
-    } else {
+ else {
       checkConnections();
-    }
+
   }, []);
 
   const checkConnections = async () => {
@@ -92,13 +92,13 @@ export default function IntegrationsPage() {
     if (gmail) {
       setGmailConnected(true);
       setGmailEmail(gmail.email);
-    }
 
-    const stripeRes = await fetch("/api/stripe/data");
-    if (stripeRes.ok) {
-      const stripeData = await stripeRes.json();
-      if (!stripeData.error) setStripeConnected(true);
-    }
+
+
+
+
+
+
   };
 
   const handleConnectGmail = () => {
@@ -131,14 +131,14 @@ export default function IntegrationsPage() {
             ✓ Connected — Click to disconnect
           </button>
         );
-      }
+  
       return (
         <button onClick={handleConnectGmail} disabled={connecting === "gmail"}
           className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
           {connecting === "gmail" ? "Connecting..." : "Connect Gmail"}
         </button>
       );
-    }
+
 
     if (integration.id === "stripe") {
       if (stripeConnected) {
@@ -148,14 +148,14 @@ export default function IntegrationsPage() {
             ✓ Connected — View Dashboard
           </button>
         );
-      }
+  
       return (
         <button onClick={() => window.location.href = "/stripe"}
           className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition">
           Connect Stripe
         </button>
       );
-    }
+
 
     return (
       <button onClick={() => setNotified((prev) => [...prev, integration.id])}
