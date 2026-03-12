@@ -11,35 +11,17 @@ import {
   LogOut,
   Plug,
   Mail,
+  CreditCard,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  {
-    href: "/integrations",
-    icon: Plug,
-    label: "Integrations",
-    description: "Connect your tools",
-  },
-  {
-    href: "/dashboard",
-    icon: LayoutDashboard,
-    label: "Dashboard",
-    description: "Business metrics",
-  },
-  {
-    href: "/chat",
-    icon: MessageSquare,
-    label: "AI Analyst",
-    description: "Ask questions",
-  },
-  {
-    href: "/gmail",
-    icon: Mail,
-    label: "Gmail",
-    description: "Email intelligence",
-  },
+  { href: "/integrations", icon: Plug, label: "Integrations", description: "Connect your tools" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", description: "Business metrics" },
+  { href: "/chat", icon: MessageSquare, label: "AI Analyst", description: "Ask questions" },
+  { href: "/gmail", icon: Mail, label: "Gmail", description: "Email intelligence" },
+  { href: "/stripe", icon: CreditCard, label: "Stripe", description: "Revenue & payments" },
 ];
 
 const bottomItems = [
@@ -70,18 +52,14 @@ export default function Sidebar() {
             <Zap size={14} className="text-white" fill="white" />
           </div>
           <div>
-            <div className="text-sm font-bold text-text-primary leading-none" style={{ fontFamily: "var(--font-display)" }}>
-              BizAI
-            </div>
+            <div className="text-sm font-bold text-text-primary leading-none" style={{ fontFamily: "var(--font-display)" }}>BizAI</div>
             <div className="text-[10px] text-text-muted mt-0.5 leading-none">Intelligence Platform</div>
           </div>
         </div>
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mb-3">
-          Workspace
-        </div>
+        <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mb-3">Workspace</div>
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
