@@ -124,7 +124,7 @@ ${emails.join("\n")}
     try {
       if (process.env.STRIPE_SECRET_KEY) {
         const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-          apiVersion: "2026-02-25.acacia",
+          apiVersion: "2026-02-25.clover",
         });
 
         const [charges, subscriptions, customers, balance] = await Promise.all([
