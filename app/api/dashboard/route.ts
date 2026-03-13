@@ -30,8 +30,11 @@ export async function GET() {
 
     // Stripe
     try {
-      if (process.env.STRIPE_SECRET_KEY) {
-        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      // Get user connected Stripe token
+      const { data: stripeConn } = await supabase.from("stripe_connections").select("access_token").eq("user_id", user.id).single();
+      const stripeToken = stripeConn?.access_token || process.env.STRIPE_SECRET_KEY;
+      if (stripeToken) {
+        const stripe = new Stripe(stripeToken!, {
           apiVersion: "2026-02-25.clover",
         });
 
