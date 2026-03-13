@@ -2,43 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@/lib/supabase";
 import { buildSystemPrompt } from "@/lib/prompt";
+import { getBusinessMetrics } from "@/lib/metrics";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
-async function getGmailData(userId: string) {
-  try {
-    const supabase = createServerClient();
-    const { data } = await supabase
-      .from("gmail_connections")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-    if (!data) return null;
-
-    const gmailRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/gmail-fetch`, {
-      headers: { Authorization: `Bearer ${data.access_token}` },
-    });
-    if (!gmailRes.ok) return null;
-    return gmailRes.json();
-  } catch {
-    return null;
-  }
-}
-
-async function getStripeData(userId: string) {
-  try {
-    const supabase = createServerClient();
-    const { data } = await supabase
-      .from("stripe_connections")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-    if (!data) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
 
 async function getQuickBooksData(userId: string) {
   try {
@@ -62,7 +28,6 @@ async function getQuickBooksData(userId: string) {
     );
     const invoiceData = await invoiceRes.json();
     const invoices = invoiceData?.QueryResponse?.Invoice || [];
-
     const unpaid = invoices.filter((inv: any) => inv.Balance > 0);
     const totalUnpaid = unpaid.reduce((sum: number, inv: any) => sum + inv.Balance, 0);
 
@@ -72,11 +37,26 @@ async function getQuickBooksData(userId: string) {
   }
 }
 
+async function getStripeData(userId: string) {
+  try {
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from("stripe_connections")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const { messages } = await request.json();
   const userId = "demo-user";
 
-  const systemPrompt = await buildSystemPrompt(userId);
+  const metrics = await getBusinessMetrics(userId);
+  const systemPrompt = buildSystemPrompt(metrics);
 
   const [stripeData, qbData] = await Promise.all([
     getStripeData(userId),
