@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
   const userId = "demo-user";
 
   const metrics = await computeMetrics(userId);
+  if (!metrics) return NextResponse.json({ message: "Unable to load business data." });
   const systemPrompt = buildSystemPrompt(metrics);
 
   const [stripeData, qbData] = await Promise.all([
