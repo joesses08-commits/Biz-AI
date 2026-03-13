@@ -19,7 +19,7 @@ const integrations: Integration[] = [
   { id: "zoom", name: "Zoom", description: "Transcribe meetings, extract action items, and track follow-ups automatically.", category: "Meetings", logo: "https://upload.wikimedia.org/wikipedia/commons/1/11/Zoom_Logo_2022.svg" },
   { id: "quickbooks", name: "QuickBooks", description: "Sync invoices, expenses, P&L, and cash flow directly into your AI COO.", category: "Accounting", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Intuit_QuickBooks_logo.svg/320px-Intuit_QuickBooks_logo.svg.png" },
   { id: "xero", name: "Xero", description: "Connect your Xero accounting data for real-time financial insights.", category: "Accounting", logo: "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Xero_software_logo.svg/320px-Xero_software_logo.svg.png" },
-  { id: "stripe", name: "Stripe", description: "Track revenue, subscriptions, failed payments, and MRR in real time.", category: "Payments", logo: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" },
+  { id: "stripe", name: "Stripe", description: "Track revenue, subscriptions, failed payments, and MRR in real time.", category: "Payments", logo: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg", live: true },
   { id: "square", name: "Square", description: "Monitor point-of-sale transactions, refunds, and daily sales summaries.", category: "Payments", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Square%2C_Inc._logo.svg/320px-Square%2C_Inc._logo.svg.png" },
   { id: "hubspot", name: "HubSpot", description: "Monitor your sales pipeline, deal stages, and CRM activity.", category: "CRM", logo: "https://upload.wikimedia.org/wikipedia/commons/3/3f/HubSpot_Logo.svg" },
   { id: "salesforce", name: "Salesforce", description: "Sync your CRM data, opportunities, and customer activity.", category: "CRM", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg" },
@@ -62,7 +62,8 @@ export default function IntegrationsPage() {
   const [notified, setNotified] = useState<string[]>([]);
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailEmail, setGmailEmail] = useState("");
-  const [connecting, setConnecting] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [connecting, setConnecting] = useState("");
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -71,30 +72,38 @@ export default function IntegrationsPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("success") === "gmail") {
-      checkGmailConnection();
+    if (params.get("success") === "gmail" || params.get("success") === "stripe") {
+      checkConnections();
       window.history.replaceState({}, "", "/integrations");
     } else {
-      checkGmailConnection();
+      checkConnections();
     }
   }, []);
 
-  const checkGmailConnection = async () => {
+  const checkConnections = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data } = await supabase
+
+    const { data: gmail } = await supabase
       .from("gmail_connections")
       .select("email")
       .eq("user_id", user.id)
       .single();
-    if (data) {
+    if (gmail) {
       setGmailConnected(true);
-      setGmailEmail(data.email);
+      setGmailEmail(gmail.email);
     }
+
+    const { data: stripe } = await supabase
+      .from("stripe_connections")
+      .select("stripe_user_id")
+      .eq("user_id", user.id)
+      .single();
+    if (stripe) setStripeConnected(true);
   };
 
   const handleConnectGmail = () => {
-    setConnecting(true);
+    setConnecting("gmail");
     window.location.href = "/api/gmail/connect";
   };
 
@@ -106,7 +115,63 @@ export default function IntegrationsPage() {
     setGmailEmail("");
   };
 
+  const handleConnectStripe = () => {
+    setConnecting("stripe");
+    window.location.href = "/api/stripe/connect";
+  };
+
+  const handleDisconnectStripe = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("stripe_connections").delete().eq("user_id", user.id);
+    setStripeConnected(false);
+  };
+
   const filtered = activeCategory === "All" ? integrations : integrations.filter((i) => i.category === activeCategory);
+
+  const getButton = (integration: Integration) => {
+    if (integration.id === "gmail") {
+      if (gmailConnected) {
+        return (
+          <button onClick={handleDisconnectGmail}
+            className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
+            ✓ Connected — Click to disconnect
+          </button>
+        );
+      }
+      return (
+        <button onClick={handleConnectGmail} disabled={connecting === "gmail"}
+          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
+          {connecting === "gmail" ? "Connecting..." : "Connect Gmail"}
+        </button>
+      );
+    }
+
+    if (integration.id === "stripe") {
+      if (stripeConnected) {
+        return (
+          <button onClick={handleDisconnectStripe}
+            className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
+            ✓ Connected — Click to disconnect
+          </button>
+        );
+      }
+      return (
+        <button onClick={handleConnectStripe} disabled={connecting === "stripe"}
+          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
+          {connecting === "stripe" ? "Connecting..." : "Connect Stripe"}
+        </button>
+      );
+    }
+
+    return (
+      <button onClick={() => setNotified((prev) => [...prev, integration.id])}
+        disabled={notified.includes(integration.id)}
+        className={`w-full py-2 rounded-xl text-xs font-semibold transition ${notified.includes(integration.id) ? "bg-green-600/20 text-green-400 border border-green-500/20 cursor-default" : "bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white"}`}>
+        {notified.includes(integration.id) ? "✓ You'll be notified" : "Notify Me"}
+      </button>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#080b12] text-white p-8">
@@ -117,7 +182,7 @@ export default function IntegrationsPage() {
         </div>
 
         {gmailConnected && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl px-6 py-4 mb-6 flex items-center gap-4">
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl px-6 py-4 mb-4 flex items-center gap-4">
             <span className="text-2xl">✅</span>
             <div>
               <p className="text-green-400 font-semibold text-sm">Gmail Connected</p>
@@ -127,11 +192,22 @@ export default function IntegrationsPage() {
           </div>
         )}
 
+        {stripeConnected && (
+          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl px-6 py-4 mb-4 flex items-center gap-4">
+            <span className="text-2xl">✅</span>
+            <div>
+              <p className="text-green-400 font-semibold text-sm">Stripe Connected</p>
+              <p className="text-white/40 text-xs mt-0.5">Your AI COO can now track your revenue, subscriptions, and payments in real time</p>
+            </div>
+            <button onClick={handleDisconnectStripe} className="ml-auto text-xs text-white/30 hover:text-red-400 transition">Disconnect</button>
+          </div>
+        )}
+
         <div className="bg-blue-600/10 border border-blue-500/30 rounded-2xl px-6 py-4 mb-8 flex items-center gap-4">
           <span className="text-2xl">🚀</span>
           <div>
             <p className="text-blue-400 font-semibold text-sm">More integrations coming in Phase 1</p>
-            <p className="text-white/40 text-xs mt-0.5">QuickBooks and Stripe are launching next. Click "Notify Me" to get early access.</p>
+            <p className="text-white/40 text-xs mt-0.5">QuickBooks launching next. Click "Notify Me" to get early access.</p>
           </div>
           <div className="ml-auto text-white/30 text-xs font-medium">{integrations.length} integrations</div>
         </div>
@@ -147,7 +223,7 @@ export default function IntegrationsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((integration) => (
-            <div key={integration.id} className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-3 hover:border-white/20 transition">
+            <div key={integration.id} className={`bg-white/5 border rounded-2xl p-5 flex flex-col gap-3 hover:border-white/20 transition ${(integration.id === "gmail" && gmailConnected) || (integration.id === "stripe" && stripeConnected) ? "border-green-500/20" : "border-white/10"}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <LogoImage src={integration.logo} name={integration.name} />
@@ -156,7 +232,7 @@ export default function IntegrationsPage() {
                     <span className="text-[10px] text-white/30">{integration.category}</span>
                   </div>
                 </div>
-                {integration.id === "gmail" && gmailConnected ? (
+                {(integration.id === "gmail" && gmailConnected) || (integration.id === "stripe" && stripeConnected) ? (
                   <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full">Connected</span>
                 ) : integration.live ? (
                   <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">Live</span>
@@ -164,28 +240,8 @@ export default function IntegrationsPage() {
                   <span className="text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded-full">Coming Soon</span>
                 )}
               </div>
-
               <p className="text-white/40 text-xs leading-relaxed flex-1">{integration.description}</p>
-
-              {integration.id === "gmail" ? (
-                gmailConnected ? (
-                  <button onClick={handleDisconnectGmail}
-                    className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
-                    ✓ Connected — Click to disconnect
-                  </button>
-                ) : (
-                  <button onClick={handleConnectGmail} disabled={connecting}
-                    className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
-                    {connecting ? "Connecting..." : "Connect Gmail"}
-                  </button>
-                )
-              ) : (
-                <button onClick={() => setNotified((prev) => [...prev, integration.id])}
-                  disabled={notified.includes(integration.id)}
-                  className={`w-full py-2 rounded-xl text-xs font-semibold transition ${notified.includes(integration.id) ? "bg-green-600/20 text-green-400 border border-green-500/20 cursor-default" : "bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white"}`}>
-                  {notified.includes(integration.id) ? "✓ You'll be notified" : "Notify Me"}
-                </button>
-              )}
+              {getButton(integration)}
             </div>
           ))}
         </div>
