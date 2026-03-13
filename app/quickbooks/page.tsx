@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 interface Invoice {
   Id: string;
@@ -22,9 +22,9 @@ export default function QuickBooksPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/quickbooks/data')
-      .then(r => r.json())
-      .then(d => {
+    fetch("/api/quickbooks/data")
+      .then((r) => r.json())
+      .then((d) => {
         setData(d);
         setLoading(false);
       });
@@ -63,11 +63,11 @@ export default function QuickBooksPage() {
   plRows.forEach((row: any) => {
     const summary = row.Summary;
     if (!summary) return;
-    const val = parseFloat(summary.ColData?.[1]?.value || '0');
-    const label = (summary.ColData?.[0]?.value || '').toLowerCase();
-    if (label.includes('income')) totalIncome = val;
-    if (label.includes('expense')) totalExpenses = val;
-    if (label.includes('net')) netIncome = val;
+    const val = parseFloat(summary.ColData?.[1]?.value || "0");
+    const label = (summary.ColData?.[0]?.value || "").toLowerCase();
+    if (label.includes("income")) totalIncome = val;
+    if (label.includes("expense")) totalExpenses = val;
+    if (label.includes("net")) netIncome = val;
   });
 
   const invoices = data.invoices || [];
@@ -98,7 +98,7 @@ export default function QuickBooksPage() {
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <p className="text-gray-400 text-sm mb-1">Net Income</p>
-            <p className={`text-3xl font-bold ${netIncome >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            <p className={`text-3xl font-bold ${netIncome >= 0 ? "text-green-400" : "text-red-400"}`}>
               ${netIncome.toLocaleString()}
             </p>
           </div>
@@ -116,7 +116,7 @@ export default function QuickBooksPage() {
               {unpaidInvoices.map((inv: Invoice) => (
                 <div key={inv.Id} className="flex justify-between items-center border-b border-gray-800 pb-3">
                   <div>
-                    <p className="font-medium">{inv.CustomerRef?.name || 'Unknown Customer'}</p>
+                    <p className="font-medium">{inv.CustomerRef?.name || "Unknown Customer"}</p>
                     <p className="text-gray-400 text-sm">Invoice #{inv.DocNumber} · {inv.TxnDate}</p>
                   </div>
                   <div className="text-right">
@@ -138,13 +138,13 @@ export default function QuickBooksPage() {
               {invoices.map((inv: Invoice) => (
                 <div key={inv.Id} className="flex justify-between items-center border-b border-gray-800 pb-3">
                   <div>
-                    <p className="font-medium">{inv.CustomerRef?.name || 'Unknown Customer'}</p>
+                    <p className="font-medium">{inv.CustomerRef?.name || "Unknown Customer"}</p>
                     <p className="text-gray-400 text-sm">Invoice #{inv.DocNumber} · {inv.TxnDate}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold">${inv.TotalAmt.toLocaleString()}</p>
-                    <p className={inv.Balance > 0 ? 'text-yellow-400 text-sm' : 'text-green-400 text-sm'}>
-                      {inv.Balance > 0 ? `$${inv.Balance.toLocaleString()} due` : 'Paid'}
+                    <p className={inv.Balance > 0 ? "text-yellow-400 text-sm" : "text-green-400 text-sm"}>
+                      {inv.Balance > 0 ? `$${inv.Balance.toLocaleString()} due` : "Paid"}
                     </p>
                   </div>
                 </div>
