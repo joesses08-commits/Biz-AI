@@ -6,13 +6,18 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const realmId = searchParams.get("realmId");
 
+  console.log("QB Callback hit - code:", code ? "present" : "missing", "realmId:", realmId);
+
   if (!code || !realmId) {
-    return NextResponse.redirect(new URL("/integrations?error=qb_failed", request.url));
+    console.log("Missing code or realmId");
+    return NextResponse.redirect(new URL("/quickbooks?error=missing_params", request.url));
   }
 
   const clientId = process.env.QUICKBOOKS_CLIENT_ID!;
   const clientSecret = process.env.QUICKBOOKS_CLIENT_SECRET!;
   const redirectUri = process.env.QUICKBOOKS_REDIRECT_URI!;
+
+  console.log("ClientId present:", !!clientId, "Secret present:", !!clientSecret);
 
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
@@ -30,20 +35,23 @@ export async function GET(request: NextRequest) {
   });
 
   const tokens = await tokenRes.json();
+  console.log("Token response:", JSON.stringify(tokens));
 
   if (!tokens.access_token) {
-    return NextResponse.redirect(new URL("/integrations?error=qb_token_failed", request.url));
+    return NextResponse.redirect(new URL("/quickbooks?error=no_token", request.url));
   }
 
   const supabase = createServerClient();
 
-  await supabase.from("quickbooks_connections").upsert({
+  const { error } = await supabase.from("quickbooks_connections").upsert({
     user_id: "demo-user",
     realm_id: realmId,
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
   });
+
+  console.log("Supabase upsert error:", error);
 
   return NextResponse.redirect(new URL("/quickbooks?connected=true", request.url));
 }
