@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@/lib/supabase";
 import { buildSystemPrompt } from "@/lib/prompt";
-import { getBusinessMetrics } from "@/lib/metrics";
+import { computeMetrics } from "@/lib/metrics";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   const { messages } = await request.json();
   const userId = "demo-user";
 
-  const metrics = await getBusinessMetrics(userId);
+  const metrics = await computeMetrics(userId);
   const systemPrompt = buildSystemPrompt(metrics);
 
   const [stripeData, qbData] = await Promise.all([
