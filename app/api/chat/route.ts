@@ -1,210 +1,113 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-import { computeMetrics } from "@/lib/metrics";
-import Stripe from "stripe";
+import { createServerClient } from "@/lib/supabase";
+import { buildSystemPrompt } from "@/lib/prompt";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-export async function POST(req: NextRequest) {
+async function getGmailData(userId: string) {
   try {
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from("gmail_connections")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+    if (!data) return null;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const { messages } = await req.json();
-    if (!messages?.length) {
-      return NextResponse.json({ error: "No messages provided" }, { status: 400 });
-    }
-
-    // Try to get business metrics
-    let metricsSection = "";
-    try {
-      const metrics = await computeMetrics(user.id);
-      if (metrics) {
-        metricsSection = `
-## BUSINESS METRICS (from uploaded data)
-- Total Revenue: $${metrics.totalRevenue?.toLocaleString() ?? "N/A"}
-- Total Profit: $${metrics.grossProfit?.toLocaleString() ?? "N/A"}
-- Top Products: ${metrics.topProducts?.slice(0,3).map((p: {name: string; revenue: number}) => `${p.name} ($${p.revenue.toLocaleString()})`).join(", ") ?? "N/A"}
-- Top Customers: ${metrics.topCustomers?.slice(0,3).map((c: {name: string; revenue: number}) => `${c.name} ($${c.revenue.toLocaleString()})`).join(", ") ?? "N/A"}
-`;
-      }
-    } catch {
-      // No metrics available
-    }
-
-    // Try to get Gmail data
-    let gmailSection = "";
-    try {
-      const { data: gmailConn } = await supabase
-        .from("gmail_connections")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (gmailConn?.access_token) {
-        let accessToken = gmailConn.access_token;
-
-        if (new Date(gmailConn.token_expiry) < new Date()) {
-          const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-              refresh_token: gmailConn.refresh_token,
-              client_id: process.env.GOOGLE_CLIENT_ID!,
-              client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-              grant_type: "refresh_token",
-            }),
-          });
-          const refreshData = await refreshRes.json();
-          if (refreshData.access_token) {
-            accessToken = refreshData.access_token;
-            await supabase.from("gmail_connections").update({
-              access_token: accessToken,
-              token_expiry: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
-            }).eq("user_id", user.id);
-          }
-        }
-
-        const listRes = await fetch(
-          "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20",
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        const listData = await listRes.json();
-
-        if (listData.messages?.length) {
-          const emails = await Promise.all(
-            listData.messages.slice(0, 15).map(async (msg: { id: string }) => {
-              const msgRes = await fetch(
-                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              );
-              const msgData = await msgRes.json();
-              const headers = msgData.payload?.headers || [];
-              const subject = headers.find((h: {name: string; value: string}) => h.name === "Subject")?.value || "(No subject)";
-              const from = headers.find((h: {name: string; value: string}) => h.name === "From")?.value || "Unknown";
-              const date = headers.find((h: {name: string; value: string}) => h.name === "Date")?.value || "";
-              const isUnread = msgData.labelIds?.includes("UNREAD");
-              return `- ${isUnread ? "[UNREAD] " : ""}From: ${from} | Subject: ${subject} | Date: ${date} | Preview: ${msgData.snippet || ""}`;
-            })
-          );
-          gmailSection = `
-## GMAIL INBOX (${gmailConn.email})
-${emails.join("\n")}
-`;
-        }
-      }
-    } catch {
-      // Gmail not connected
-    }
-
-    // Try to get Stripe data
-    let stripeSection = "";
-    try {
-      // Get user connected Stripe token
-      const { data: stripeConn } = await supabase.from("stripe_connections").select("access_token").eq("user_id", user.id).single();
-      const stripeToken = stripeConn?.access_token || process.env.STRIPE_SECRET_KEY;
-      if (stripeToken) {
-        const stripe = new Stripe(stripeToken!, {
-          apiVersion: "2026-02-25.clover",
-        });
-
-        const [charges, subscriptions, customers, balance] = await Promise.all([
-          stripe.charges.list({ limit: 20 }),
-          stripe.subscriptions.list({ limit: 20, status: "active" }),
-          stripe.customers.list({ limit: 10 }),
-          stripe.balance.retrieve(),
-        ]);
-
-        const totalRevenue = charges.data
-          .filter(c => c.paid && !c.refunded)
-          .reduce((sum, c) => sum + c.amount, 0) / 100;
-
-        const mrr = subscriptions.data.reduce((sum, s) => {
-          const item = s.items.data[0];
-          if (!item?.price) return sum;
-          const amount = (item.price.unit_amount || 0) / 100;
-          if (item.price.recurring?.interval === "year") return sum + amount / 12;
-          return sum + amount;
-        }, 0);
-
-        const availableBalance = balance.available.reduce((sum, b) => sum + b.amount, 0) / 100;
-
-        const recentCharges = charges.data.slice(0, 5).map(c => {
-          const date = new Date(c.created * 1000).toLocaleDateString();
-          const amount = (c.amount / 100).toFixed(2);
-          const status = c.paid ? "paid" : "failed";
-          return `- $${amount} | ${status} | ${c.description || c.billing_details?.name || "charge"} | ${date}`;
-        });
-
-        stripeSection = `
-## STRIPE FINANCIAL DATA
-- Total Revenue (last 20 charges): $${totalRevenue.toLocaleString()}
-- Monthly Recurring Revenue (MRR): $${mrr.toLocaleString()}
-- Active Subscriptions: ${subscriptions.data.length}
-- Total Customers: ${customers.data.length}
-- Available Balance: $${availableBalance.toLocaleString()}
-- Recent Transactions:
-${recentCharges.length > 0 ? recentCharges.join("\n") : "  No transactions yet"}
-`;
-      }
-    } catch {
-      // Stripe not available
-    }
-
-    const hasData = metricsSection || gmailSection || stripeSection;
-
-    const systemPrompt = `You are an AI COO — a genius business intelligence assistant. You are direct, smart, and give actionable insights. You speak like a trusted advisor, not a generic chatbot.
-
-${hasData ? `Here is the live data you have access to right now:
-
-${metricsSection}
-${stripeSection}
-${gmailSection}
-
-Use this data to give specific, accurate answers. Reference real numbers, transactions, and emails when relevant. Look for trends, anomalies, and opportunities. When revenue is $0, acknowledge it and give advice on getting first customers.` : `You don't have any business data connected yet. Be helpful and explain what the user can connect to get the most out of BizAI. Encourage them to connect Gmail, Stripe, or QuickBooks from the Integrations page.`}
-
-Always be concise and actionable. When you see emails, identify business-relevant ones and ignore marketing/spam. When you see revenue data, look for trends and anomalies. You are the smartest person in the room.`;
-
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role,
-        content: m.content,
-      })),
+    const gmailRes = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/gmail-fetch`, {
+      headers: { Authorization: `Bearer ${data.access_token}` },
     });
-
-    const text = response.content[0].type === "text" ? response.content[0].text : "";
-    return NextResponse.json({ response: text });
-
-  } catch (err) {
-    console.error("Chat error:", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Chat failed" },
-      { status: 500 }
-    );
+    if (!gmailRes.ok) return null;
+    return gmailRes.json();
+  } catch {
+    return null;
   }
+}
+
+async function getStripeData(userId: string) {
+  try {
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from("stripe_connections")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+    if (!data) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function getQuickBooksData(userId: string) {
+  try {
+    const supabase = createServerClient();
+    const { data: conn } = await supabase
+      .from("quickbooks_connections")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+    if (!conn) return null;
+
+    const baseUrl = `https://sandbox-quickbooks.api.intuit.com/v3/company/${conn.realm_id}`;
+    const headers = {
+      Authorization: `Bearer ${conn.access_token}`,
+      Accept: "application/json",
+    };
+
+    const invoiceRes = await fetch(
+      `${baseUrl}/query?query=SELECT * FROM Invoice ORDER BY MetaData.LastUpdatedTime DESC MAXRESULTS 10`,
+      { headers }
+    );
+    const invoiceData = await invoiceRes.json();
+    const invoices = invoiceData?.QueryResponse?.Invoice || [];
+
+    const unpaid = invoices.filter((inv: any) => inv.Balance > 0);
+    const totalUnpaid = unpaid.reduce((sum: number, inv: any) => sum + inv.Balance, 0);
+
+    return { invoices, totalUnpaid, unpaidCount: unpaid.length };
+  } catch {
+    return null;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const { messages } = await request.json();
+  const userId = "demo-user";
+
+  const systemPrompt = await buildSystemPrompt(userId);
+
+  const [stripeData, qbData] = await Promise.all([
+    getStripeData(userId),
+    getQuickBooksData(userId),
+  ]);
+
+  let extraContext = "";
+
+  if (stripeData) {
+    extraContext += `\nSTRIPE PAYMENTS\n- Connected: yes\n- Account: ${stripeData.stripe_user_id}\n`;
+  }
+
+  if (qbData) {
+    extraContext += `\nQUICKBOOKS FINANCIALS\n- Total unpaid invoices: $${qbData.totalUnpaid.toLocaleString()}\n- Number of unpaid invoices: ${qbData.unpaidCount}\n`;
+    if (qbData.invoices.length > 0) {
+      extraContext += `- Recent invoices:\n`;
+      qbData.invoices.slice(0, 5).forEach((inv: any) => {
+        extraContext += `  • ${inv.CustomerRef?.name} — $${inv.TotalAmt} (${inv.Balance > 0 ? `$${inv.Balance} due` : "paid"})\n`;
+      });
+    }
+  }
+
+  const fullSystemPrompt = systemPrompt + extraContext;
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-5",
+    max_tokens: 1000,
+    system: fullSystemPrompt,
+    messages,
+  });
+
+  const text = response.content[0].type === "text" ? response.content[0].text : "";
+  return NextResponse.json({ message: text });
 }

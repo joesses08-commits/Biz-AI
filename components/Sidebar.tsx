@@ -12,6 +12,7 @@ import {
   Plug,
   Mail,
   CreditCard,
+  BookOpen,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/chat", icon: MessageSquare, label: "AI Analyst", description: "Ask questions" },
   { href: "/gmail", icon: Mail, label: "Gmail", description: "Email intelligence" },
   { href: "/stripe", icon: CreditCard, label: "Stripe", description: "Revenue & payments" },
+  { href: "/quickbooks", icon: BookOpen, label: "QuickBooks", description: "Invoices & financials" },
 ];
 
 const bottomItems = [
