@@ -38,7 +38,7 @@ export default function QuickBooksPage() {
     );
   }
 
-  if (!data?.connected) {
+  if (!data || !data.connected) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
@@ -55,26 +55,24 @@ export default function QuickBooksPage() {
     );
   }
 
-  // Parse P&L data
   const plRows = data.profitAndLoss?.Rows?.Row || [];
   let totalIncome = 0;
   let totalExpenses = 0;
   let netIncome = 0;
 
   plRows.forEach((row: any) => {
-    const type = row.type;
     const summary = row.Summary;
     if (!summary) return;
     const val = parseFloat(summary.ColData?.[1]?.value || '0');
-    const label = summary.ColData?.[0]?.value || '';
-    if (label.toLowerCase().includes('income')) totalIncome = val;
-    if (label.toLowerCase().includes('expense')) totalExpenses = val;
-    if (label.toLowerCase().includes('net')) netIncome = val;
+    const label = (summary.ColData?.[0]?.value || '').toLowerCase();
+    if (label.includes('income')) totalIncome = val;
+    if (label.includes('expense')) totalExpenses = val;
+    if (label.includes('net')) netIncome = val;
   });
 
   const invoices = data.invoices || [];
-  const unpaidInvoices = invoices.filter(inv => inv.Balance > 0);
-  const totalUnpaid = unpaidInvoices.reduce((sum, inv) => sum + inv.Balance, 0);
+  const unpaidInvoices = invoices.filter((inv: Invoice) => inv.Balance > 0);
+  const totalUnpaid = unpaidInvoices.reduce((sum: number, inv: Invoice) => sum + inv.Balance, 0);
 
   return (
     <div className="min-h-screen bg-black text-white p-8">
@@ -85,23 +83,18 @@ export default function QuickBooksPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold">QuickBooks</h1>
-            <p className="text-green-400 text-sm">● Connected</p>
+            <p className="text-green-400 text-sm">Connected</p>
           </div>
         </div>
 
-        {/* P&L Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <p className="text-gray-400 text-sm mb-1">Total Income</p>
-            <p className="text-3xl font-bold text-green-400">
-              ${totalIncome.toLocaleString()}
-            </p>
+            <p className="text-3xl font-bold text-green-400">${totalIncome.toLocaleString()}</p>
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <p className="text-gray-400 text-sm mb-1">Total Expenses</p>
-            <p className="text-3xl font-bold text-red-400">
-              ${totalExpenses.toLocaleString()}
-            </p>
+            <p className="text-3xl font-bold text-red-400">${totalExpenses.toLocaleString()}</p>
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <p className="text-gray-400 text-sm mb-1">Net Income</p>
@@ -111,7 +104,6 @@ export default function QuickBooksPage() {
           </div>
         </div>
 
-        {/* Unpaid Invoices */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Outstanding Invoices</h2>
@@ -121,7 +113,7 @@ export default function QuickBooksPage() {
             <p className="text-gray-400">No outstanding invoices.</p>
           ) : (
             <div className="space-y-3">
-              {unpaidInvoices.map(inv => (
+              {unpaidInvoices.map((inv: Invoice) => (
                 <div key={inv.Id} className="flex justify-between items-center border-b border-gray-800 pb-3">
                   <div>
                     <p className="font-medium">{inv.CustomerRef?.name || 'Unknown Customer'}</p>
@@ -137,14 +129,13 @@ export default function QuickBooksPage() {
           )}
         </div>
 
-        {/* Recent Invoices */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
           <h2 className="text-xl font-bold mb-4">Recent Invoices</h2>
           {invoices.length === 0 ? (
             <p className="text-gray-400">No invoices found.</p>
           ) : (
             <div className="space-y-3">
-              {invoices.map(inv => (
+              {invoices.map((inv: Invoice) => (
                 <div key={inv.Id} className="flex justify-between items-center border-b border-gray-800 pb-3">
                   <div>
                     <p className="font-medium">{inv.CustomerRef?.name || 'Unknown Customer'}</p>
