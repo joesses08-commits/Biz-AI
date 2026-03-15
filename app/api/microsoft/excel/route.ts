@@ -8,14 +8,12 @@ export async function GET() {
 
   try {
     const res = await fetch(
-      "https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$select=id,name,size,lastModifiedDateTime,parentReference&$top=50",
+      "https://graph.microsoft.com/v1.0/me/drive/search(q='.xlsx')?$select=id,name,size,lastModifiedDateTime,parentReference&$top=50",
       { headers: { Authorization: `Bearer ${conn.access_token}` } }
     );
     const data = await res.json();
-    console.log("Excel search result:", JSON.stringify(data).slice(0, 500));
-    return NextResponse.json({ connected: true, files: data.value || [] });
+    return NextResponse.json({ connected: true, files: data.value || [], raw: data });
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ connected: true, files: [] });
+    return NextResponse.json({ connected: true, files: [], error: String(e) });
   }
 }
