@@ -64,6 +64,7 @@ export default function IntegrationsPage() {
   const [gmailEmail, setGmailEmail] = useState("");
   const [stripeConnected, setStripeConnected] = useState(false);
   const [qbConnected, setQbConnected] = useState(false);
+  const [msConnected, setMsConnected] = useState(false);
   const [connecting, setConnecting] = useState("");
 
   const supabase = createBrowserClient(
@@ -123,6 +124,18 @@ export default function IntegrationsPage() {
     setGmailEmail("");
   };
 
+  const handleConnectMicrosoft = () => {
+    setConnecting("microsoft");
+    window.location.href = "/api/microsoft/connect";
+  };
+
+  const handleDisconnectMicrosoft = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("microsoft_connections").delete().eq("user_id", user.id);
+    setMsConnected(false);
+  };
+
   const handleConnectQuickBooks = () => {
     setConnecting("quickbooks");
     window.location.href = "/api/quickbooks/connect";
@@ -163,6 +176,23 @@ export default function IntegrationsPage() {
         <button onClick={handleConnectGmail} disabled={connecting === "gmail"}
           className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
           {connecting === "gmail" ? "Connecting..." : "Connect Gmail"}
+        </button>
+      );
+    }
+
+    if (integration.id === "microsoft365") {
+      if (msConnected) {
+        return (
+          <button onClick={handleDisconnectMicrosoft}
+            className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
+            ✓ Connected — Click to disconnect
+          </button>
+        );
+      }
+      return (
+        <button onClick={handleConnectMicrosoft} disabled={connecting === "microsoft"}
+          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
+          {connecting === "microsoft" ? "Connecting..." : "Connect Microsoft 365"}
         </button>
       );
     }

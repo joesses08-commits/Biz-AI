@@ -6,6 +6,9 @@ import Link from "next/link";
 export default function ExcelPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<any>(null);
+  const [fileData, setFileData] = useState<any>(null);
+  const [fileLoading, setFileLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/microsoft/excel")
@@ -15,6 +18,15 @@ export default function ExcelPage() {
         setLoading(false);
       });
   }, []);
+
+  const openFile = async (file: any) => {
+    setSelectedFile(file);
+    setFileLoading(true);
+    const res = await fetch(`/api/microsoft/excel-data?fileId=${file.id}`);
+    const d = await res.json();
+    setFileData(d);
+    setFileLoading(false);
+  };
 
   if (loading) {
     return (
@@ -42,26 +54,56 @@ export default function ExcelPage() {
           </div>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h2 className="text-xl font-bold mb-4">Your Excel Files</h2>
-          {files.length === 0 ? (
-            <p className="text-gray-400">No Excel files found in your OneDrive.</p>
-          ) : (
-            <div className="space-y-3">
-              {files.map((file: any) => (
-                <div key={file.id} className="flex justify-between items-center border-b border-gray-800 pb-3">
-                  <div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h2 className="text-xl font-bold mb-4">Your Excel Files</h2>
+            {files.length === 0 ? (
+              <p className="text-gray-400">No Excel files found in your OneDrive.</p>
+            ) : (
+              <div className="space-y-2">
+                {files.map((file: any) => (
+                  <button
+                    key={file.id}
+                    onClick={() => openFile(file)}
+                    className={`w-full text-left p-3 rounded-lg border transition ${selectedFile?.id === file.id ? "border-green-500 bg-green-500/10" : "border-gray-700 hover:border-gray-500"}`}
+                  >
                     <p className="font-medium text-green-400">{file.name}</p>
-                    <p className="text-gray-400 text-sm">{file.parentReference?.path?.replace("/drive/root:", "") || "OneDrive"}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-gray-400 text-sm">{file.lastModifiedDateTime ? new Date(file.lastModifiedDateTime).toLocaleDateString() : ""}</p>
-                    <p className="text-gray-500 text-xs">{file.size ? `${Math.round(file.size / 1024)} KB` : ""}</p>
-                  </div>
+                    <p className="text-gray-500 text-xs">{file.lastModifiedDateTime ? new Date(file.lastModifiedDateTime).toLocaleDateString() : ""} · {file.size ? `${Math.round(file.size / 1024)} KB` : ""}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <h2 className="text-xl font-bold mb-4">
+              {selectedFile ? selectedFile.name : "Select a file to preview"}
+            </h2>
+            {!selectedFile && <p className="text-gray-400">Click any Excel file on the left to preview its data.</p>}
+            {fileLoading && <p className="text-gray-400">Loading file data...</p>}
+            {fileData && !fileLoading && (
+              fileData.error ? (
+                <p className="text-red-400">{fileData.error}</p>
+              ) : (
+                <div className="overflow-auto max-h-96">
+                  <table className="w-full text-xs">
+                    <tbody>
+                      {fileData.data?.slice(0, 20).map((row: any[], rowIndex: number) => (
+                        <tr key={rowIndex} className={rowIndex === 0 ? "bg-gray-800" : "border-b border-gray-800"}>
+                          {row.map((cell, cellIndex) => (
+                            <td key={cellIndex} className={`px-2 py-1 ${rowIndex === 0 ? "font-bold text-white" : "text-gray-300"}`}>
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="text-gray-500 text-xs mt-2">{fileData.rowCount} rows total</p>
                 </div>
-              ))}
-            </div>
-          )}
+              )
+            )}
+          </div>
         </div>
       </div>
     </div>
