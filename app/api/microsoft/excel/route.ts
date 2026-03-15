@@ -8,11 +8,14 @@ export async function GET() {
 
   try {
     const res = await fetch(
-      "https://graph.microsoft.com/v1.0/me/drive/root/children?$top=50&$select=id,name,size,lastModifiedDateTime,file",
+      "https://graph.microsoft.com/v1.0/me/drive/root/children?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference",
       { headers: { Authorization: `Bearer ${conn.access_token}` } }
     );
     const data = await res.json();
-    return NextResponse.json({ connected: true, files: data.value || [] });
+    const excelFiles = (data.value || []).filter((f: any) =>
+      f.name?.endsWith(".xlsx") || f.name?.endsWith(".xls")
+    );
+    return NextResponse.json({ connected: true, files: excelFiles });
   } catch (e) {
     return NextResponse.json({ connected: true, files: [], error: String(e) });
   }
