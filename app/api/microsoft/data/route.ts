@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
-  const supabase = createServerClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
-  const { data: conn } = await supabase
+  const { data: conn, error } = await supabase
     .from("microsoft_connections")
     .select("*")
     .eq("user_id", "demo-user")
     .single();
+
+  console.log("Microsoft conn:", conn, "error:", error);
 
   if (!conn) {
     return NextResponse.json({ connected: false });
@@ -28,6 +33,8 @@ export async function GET() {
     const emails = await emailsRes.json();
     const events = await eventsRes.json();
 
+    console.log("Emails response:", JSON.stringify(emails).slice(0, 200));
+
     return NextResponse.json({
       connected: true,
       email: conn.email,
@@ -36,6 +43,7 @@ export async function GET() {
       events: events.value || [],
     });
   } catch (error) {
+    console.error("Microsoft Graph error:", error);
     return NextResponse.json({ connected: true, email: conn.email, emails: [], events: [] });
   }
 }
