@@ -9,10 +9,10 @@ export async function GET() {
 
   const { data } = await supabase
     .from("gmail_connections")
-    .select("email")
-    .eq("user_id", "demo-user")
+    .select("email, user_id")
+    .limit(1)
     .single();
 
   if (!data) return NextResponse.json({ connected: false });
-  return NextResponse.json({ connected: true, email: data.email });
+  return NextResponse.json({ connected: true, email: data.email, userId: data.user_id });
 }
