@@ -14,6 +14,7 @@ import {
   CreditCard,
   BookOpen,
   Monitor,
+  Globe,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", description: "Business metrics" },
   { href: "/chat", icon: MessageSquare, label: "AI Analyst", description: "Ask questions" },
   { href: "/gmail", icon: Mail, label: "Gmail", description: "Email intelligence" },
+  { href: "/google", icon: Globe, label: "Google", description: "Sheets, Drive & more" },
   { href: "/microsoft", icon: Monitor, label: "Microsoft 365", description: "Outlook & calendar" },
   { href: "/stripe", icon: CreditCard, label: "Stripe", description: "Revenue & payments" },
   { href: "/quickbooks", icon: BookOpen, label: "QuickBooks", description: "Invoices & financials" },
