@@ -7,9 +7,10 @@ export async function GET() {
   if (!conn) return NextResponse.json({ connected: false });
 
   try {
-    const res = await fetch("https://graph.microsoft.com/v1.0/me/drive/search(q='.xlsx')?$select=id,name,size,lastModifiedDateTime,parentReference", {
-      headers: { Authorization: `Bearer ${conn.access_token}` },
-    });
+    const res = await fetch(
+      "https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$select=id,name,size,lastModifiedDateTime,parentReference",
+      { headers: { Authorization: `Bearer ${conn.access_token}` } }
+    );
     const data = await res.json();
     return NextResponse.json({ connected: true, files: data.value || [] });
   } catch {
