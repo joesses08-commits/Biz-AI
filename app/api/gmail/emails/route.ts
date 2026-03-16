@@ -66,27 +66,25 @@ export async function GET() {
     let accessToken = connection.access_token;
     const expiry = new Date(connection.token_expiry);
 
-    // Always try to refresh token
-    const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        refresh_token: connection.refresh_token,
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        grant_type: "refresh_token",
-      }),
-    });
-    const refreshData = await refreshResponse.json();
-
-    if (refreshData.access_token) {
-      accessToken = refreshData.access_token;
-      await supabase.from("gmail_connections").update({
-        access_token: accessToken,
-        token_expiry: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
-      }).eq("user_id", user.id);
-    } else {
-      return NextResponse.json({ error: "Token refresh failed", refresh_error: refreshData }, { status: 401 });
+    if (expiry < new Date()) {
+      const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          refresh_token: connection.refresh_token,
+          client_id: process.env.GOOGLE_CLIENT_ID!,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+          grant_type: "refresh_token",
+        }),
+      });
+      const refreshData = await refreshResponse.json();
+      if (refreshData.access_token) {
+        accessToken = refreshData.access_token;
+        await supabase.from("gmail_connections").update({
+          access_token: accessToken,
+          token_expiry: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
+        }).eq("user_id", user.id);
+      }
     }
 
     const listResponse = await fetch(
@@ -96,27 +94,38 @@ export async function GET() {
     const listData = await listResponse.json();
 
     if (listData.error) {
-      return NextResponse.json({ error: listData.error.message, list_error: listData }, { status: 400 });
+      return NextResponse.json({ error: listData.error.message }, { status: 400 });
     }
 
     if (!listData.messages || listData.messages.length === 0) {
       return NextResponse.json({ emails: [], total: 0 });
     }
 
-    // DEBUG: fetch first message and return full raw response
-    const firstMsgResponse = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${listData.messages[0].id}?format=full`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+    const emails = await Promise.all(
+      listData.messages.map(async (msg: { id: string }) => {
+        const msgResponse = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const msgData = await msgResponse.json();
+        const headers = msgData.payload?.headers || [];
+
+        const subject = getHeader(headers, "subject") || "(No subject)";
+        const from = getHeader(headers, "from") || "Unknown";
+        const to = getHeader(headers, "to") || "";
+        const date = getHeader(headers, "date") || "";
+        const isUnread = msgData.labelIds?.includes("UNREAD") ?? false;
+        const body = extractBody(msgData.payload);
+
+        return { id: msg.id, subject, from, to, date, isUnread, snippet: msgData.snippet || "", body };
+      })
     );
-    const firstMsg = await firstMsgResponse.json();
 
     return NextResponse.json({
-      debug: true,
-      first_msg_raw: firstMsg,
-      token_expiry_was: expiry.toISOString(),
-      refresh_succeeded: !!refreshData.access_token,
+      emails,
+      total: listData.resultSizeEstimate,
+      connectedEmail: connection.email,
     });
-
   } catch (err) {
     return NextResponse.json({ error: "Failed to fetch emails", details: String(err) }, { status: 500 });
   }
