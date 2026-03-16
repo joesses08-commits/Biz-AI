@@ -1,71 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
-type Integration = {
+interface Integration {
   id: string;
   name: string;
   description: string;
   category: string;
-  logo: string;
-  live?: boolean;
-};
-
-const integrations: Integration[] = [
-  { id: "gmail", name: "Gmail", description: "Read emails, track leads, monitor client communication and flag action items.", category: "Communication", logo: "https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg", live: true },
-  { id: "microsoft365", name: "Microsoft 365", description: "Connect Outlook, Teams, and calendar for full communication intelligence.", category: "Communication", logo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" },
-  { id: "slack", name: "Slack", description: "Get AI COO briefings and alerts delivered directly to your Slack channels.", category: "Communication", logo: "https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" },
-  { id: "zoom", name: "Zoom", description: "Transcribe meetings, extract action items, and track follow-ups automatically.", category: "Meetings", logo: "https://upload.wikimedia.org/wikipedia/commons/1/11/Zoom_Logo_2022.svg" },
-  { id: "quickbooks", name: "QuickBooks", description: "Sync invoices, expenses, P&L, and cash flow directly into your AI COO.", category: "Accounting", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Intuit_QuickBooks_logo.svg/320px-Intuit_QuickBooks_logo.svg.png" },
-  { id: "xero", name: "Xero", description: "Connect your Xero accounting data for real-time financial insights.", category: "Accounting", logo: "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/Xero_software_logo.svg/320px-Xero_software_logo.svg.png" },
-  { id: "stripe", name: "Stripe", description: "Track revenue, subscriptions, failed payments, and MRR in real time.", category: "Payments", logo: "https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg", live: true },
-  { id: "square", name: "Square", description: "Monitor point-of-sale transactions, refunds, and daily sales summaries.", category: "Payments", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Square%2C_Inc._logo.svg/320px-Square%2C_Inc._logo.svg.png" },
-  { id: "hubspot", name: "HubSpot", description: "Monitor your sales pipeline, deal stages, and CRM activity.", category: "CRM", logo: "https://upload.wikimedia.org/wikipedia/commons/3/3f/HubSpot_Logo.svg" },
-  { id: "salesforce", name: "Salesforce", description: "Sync your CRM data, opportunities, and customer activity.", category: "CRM", logo: "https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg" },
-  { id: "shopify", name: "Shopify", description: "Track orders, inventory, product performance, and store revenue.", category: "E-commerce", logo: "https://upload.wikimedia.org/wikipedia/commons/0/0e/Shopify_logo_2018.svg" },
-  { id: "woocommerce", name: "WooCommerce", description: "Connect your WordPress store to track sales and inventory.", category: "E-commerce", logo: "https://upload.wikimedia.org/wikipedia/commons/2/2a/WooCommerce_logo.svg" },
-  { id: "chase", name: "Chase Business", description: "Monitor your Chase business bank account, transactions, and cash flow.", category: "Banking", logo: "https://upload.wikimedia.org/wikipedia/commons/a/af/J_P_Morgan_Logo_2008_1.svg" },
-  { id: "bankofamerica", name: "Bank of America", description: "Connect your BofA business account for real-time balance and transaction tracking.", category: "Banking", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Bank_of_America_logo.svg/320px-Bank_of_America_logo.svg.png" },
-  { id: "wellsfargo", name: "Wells Fargo", description: "Sync Wells Fargo business accounts for cash flow monitoring.", category: "Banking", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Wells_Fargo_Bank.svg/320px-Wells_Fargo_Bank.svg.png" },
-  { id: "appfolio", name: "AppFolio", description: "Sync property management data, rent rolls, maintenance, and financials.", category: "Property Management", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/AppFolio_logo.svg/320px-AppFolio_logo.svg.png" },
-  { id: "buildium", name: "Buildium", description: "Track rental income, expenses, vacancies, and tenant communications.", category: "Property Management", logo: "https://www.buildium.com/wp-content/uploads/2021/10/buildium-logo.svg" },
-  { id: "asana", name: "Asana", description: "Monitor team projects, task completion rates, and deadlines.", category: "Project Management", logo: "https://upload.wikimedia.org/wikipedia/commons/3/3b/Asana_logo.svg" },
-  { id: "monday", name: "Monday.com", description: "Sync project boards, team workload, and milestone tracking.", category: "Project Management", logo: "https://upload.wikimedia.org/wikipedia/commons/c/c9/Monday.com_logo_%282019%29.svg" },
-  { id: "gusto", name: "Gusto", description: "Track payroll, headcount, benefits costs, and compensation trends.", category: "HR & Payroll", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Gusto_logo_2017.svg/320px-Gusto_logo_2017.svg.png" },
-  { id: "adp", name: "ADP", description: "Sync payroll runs, employee data, and labor cost reporting.", category: "HR & Payroll", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9d/ADP_Logo.svg/320px-ADP_Logo.svg.png" },
-  { id: "googleanalytics", name: "Google Analytics", description: "Track website traffic, conversions, and marketing performance.", category: "Marketing", logo: "https://upload.wikimedia.org/wikipedia/commons/8/89/Logo_Google_Analytics.svg" },
-  { id: "mailchimp", name: "Mailchimp", description: "Monitor email campaign performance, open rates, and subscriber growth.", category: "Marketing", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Freddie_and_Co_2018_icon.svg/240px-Freddie_and_Co_2018_icon.svg.png" },
-  { id: "servicetitan", name: "ServiceTitan", description: "Track jobs, technician performance, revenue, and service agreements.", category: "Field Service", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/ServiceTitan_Logo.svg/320px-ServiceTitan_Logo.svg.png" },
-  { id: "zendesk", name: "Zendesk", description: "Monitor support ticket volume, resolution times, and customer satisfaction.", category: "Customer Support", logo: "https://upload.wikimedia.org/wikipedia/commons/c/c8/Zendesk_logo.svg" },
-];
-
-const categories = ["All", ...Array.from(new Set(integrations.map((i) => i.category)))];
-
-function LogoImage({ src, name }: { src: string; name: string }) {
-  return (
-    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0 overflow-hidden p-1.5">
-      <img src={src} alt={name} className="w-full h-full object-contain"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.style.display = "none";
-          const parent = target.parentElement;
-          if (parent) parent.innerHTML = `<span style="font-size:18px;font-weight:700;color:#333">${name[0]}</span>`;
-        }}
-      />
-    </div>
-  );
+  connected: boolean;
+  connectHref?: string;
+  dashboardHref?: string;
+  comingSoon?: boolean;
+  logo: React.ReactNode;
 }
 
 export default function IntegrationsPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [notified, setNotified] = useState<string[]>([]);
   const [gmailConnected, setGmailConnected] = useState(false);
-  const [gmailEmail, setGmailEmail] = useState("");
   const [stripeConnected, setStripeConnected] = useState(false);
   const [qbConnected, setQbConnected] = useState(false);
   const [msConnected, setMsConnected] = useState(false);
   const [connecting, setConnecting] = useState("");
+  const [notified, setNotified] = useState<string[]>([]);
+  const router = useRouter();
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,250 +31,205 @@ export default function IntegrationsPage() {
   );
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("success") === "gmail" || params.get("success") === "stripe") {
-      checkConnections();
-      window.history.replaceState({}, "", "/integrations");
-    } else {
-      checkConnections();
-    }
+    checkConnections();
   }, []);
 
   const checkConnections = async () => {
+    fetch("/api/gmail/status").then(r => r.json()).then(d => setGmailConnected(d.connected)).catch(() => {});
+    fetch("/api/stripe/status").then(r => r.json()).then(d => setStripeConnected(d.connected)).catch(() => {});
+    fetch("/api/quickbooks/data").then(r => r.json()).then(d => setQbConnected(d.connected)).catch(() => {});
+    fetch("/api/microsoft/data").then(r => r.json()).then(d => setMsConnected(d.connected)).catch(() => {});
+  };
+
+  const disconnect = async (integration: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
-    const { data: gmail } = await supabase
-      .from("gmail_connections")
-      .select("email")
-      .eq("user_id", user.id)
-      .single();
-    if (gmail) {
-      setGmailConnected(true);
-      setGmailEmail(gmail.email);
+    const tables: Record<string, string> = {
+      gmail: "gmail_connections",
+      stripe: "stripe_connections",
+      quickbooks: "quickbooks_connections",
+      microsoft: "microsoft_connections",
+    };
+    if (tables[integration]) {
+      await supabase.from(tables[integration]).delete().eq("user_id", user.id);
+      checkConnections();
     }
-
-    const { data: stripe } = await supabase
-      .from("stripe_connections")
-      .select("stripe_user_id")
-      .eq("user_id", user.id)
-      .single();
-    if (stripe) setStripeConnected(true);
-
-    const { data: qb } = await supabase
-      .from("quickbooks_connections")
-      .select("realm_id")
-      .eq("user_id", user.id)
-      .single();
-    if (qb) setQbConnected(true);
   };
 
-  const handleConnectGmail = () => {
-    setConnecting("gmail");
-    window.location.href = "/api/gmail/connect";
-  };
+  const GoogleLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+  );
 
-  const handleDisconnectGmail = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("gmail_connections").delete().eq("user_id", user.id);
-    setGmailConnected(false);
-    setGmailEmail("");
-  };
+  const MicrosoftLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 23 23">
+      <path fill="#f35325" d="M1 1h10v10H1z"/>
+      <path fill="#81bc06" d="M12 1h10v10H12z"/>
+      <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+      <path fill="#ffba08" d="M12 12h10v10H12z"/>
+    </svg>
+  );
 
-  const handleConnectMicrosoft = () => {
-    setConnecting("microsoft");
-    window.location.href = "/api/microsoft/connect";
-  };
+  const StripeLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <path fill="#635BFF" d="M13.976 9.15c-2.172-.806-3.361-1.426-3.361-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
+    </svg>
+  );
 
-  const handleDisconnectMicrosoft = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("microsoft_connections").delete().eq("user_id", user.id);
-    setMsConnected(false);
-  };
+  const QBLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="12" fill="#2CA01C"/>
+      <path fill="white" d="M12 4.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-7.5a3 3 0 100 6 3 3 0 000-6z"/>
+    </svg>
+  );
 
-  const handleConnectQuickBooks = () => {
-    setConnecting("quickbooks");
-    window.location.href = "/api/quickbooks/connect";
-  };
+  const SlackLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <path fill="#E01E5A" d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z"/>
+      <path fill="#E01E5A" d="M6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z"/>
+      <path fill="#36C5F0" d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834z"/>
+      <path fill="#36C5F0" d="M8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z"/>
+      <path fill="#2EB67D" d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834z"/>
+      <path fill="#2EB67D" d="M17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z"/>
+      <path fill="#ECB22E" d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52z"/>
+      <path fill="#ECB22E" d="M15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+    </svg>
+  );
 
-  const handleDisconnectQuickBooks = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("quickbooks_connections").delete().eq("user_id", user.id);
-    setQbConnected(false);
-  };
+  const HubSpotLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <path fill="#FF7A59" d="M18.164 7.93V5.084a2.198 2.198 0 0 0 1.267-1.978V3.06A2.2 2.2 0 0 0 17.235.862h-.046a2.2 2.2 0 0 0-2.196 2.197v.046a2.198 2.198 0 0 0 1.267 1.978V7.93a6.232 6.232 0 0 0-2.962 1.301L5.57 3.842a2.45 2.45 0 1 0-1.304 1.44l7.532 5.24a6.232 6.232 0 0 0 .48 8.144 6.235 6.235 0 1 0 5.886-10.736zm-1.022 9.586a3.13 3.13 0 1 1 0-6.26 3.13 3.13 0 0 1 0 6.26z"/>
+    </svg>
+  );
 
-  const handleConnectStripe = () => {
-    setConnecting("stripe");
-    window.location.href = "/api/stripe/connect";
-  };
+  const ShopifyLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <path fill="#96BF48" d="M15.337.524s-.27.08-.717.217c-.078-.25-.195-.554-.39-.855C13.634-.81 12.83-.984 12.4-.984c-.024 0-.047 0-.07.002-.13-.156-.284-.3-.46-.424C11.33-1.87 10.534-2 9.874-2 7.6-2 6.47-.265 6.08 1.01c-1.1.34-1.874.58-1.975.612C3.512 1.84 3.48 1.87 3.456 2.44L2.5 17.863 15.956 20.4 21 18.72 15.337.524zM12.8 1.47l-1.834.567c0-.07.002-.14.002-.212 0-.653-.09-1.185-.234-1.61.578.07.962.698 1.067 1.255h-.001zm-2.38-.9c.15.415.234.99.234 1.75v.115l-1.788.553c.346-1.33 1-1.97 1.554-2.418zm-.71-.423c.076 0 .152.004.226.012-.752.575-1.484 1.55-1.797 3.186l-1.35.417c.377-1.515 1.432-3.615 2.92-3.615z"/>
+    </svg>
+  );
 
-  const handleDisconnectStripe = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("stripe_connections").delete().eq("user_id", user.id);
-    setStripeConnected(false);
-  };
+  const ZoomLogo = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <path fill="#2D8CFF" d="M24 12c0 6.627-5.373 12-12 12S0 18.627 0 12 5.373 0 12 0s12 5.373 12 12zM10.218 7.93H6.375C5.476 7.93 5 8.408 5 9.308v5.46l1.563-.9v-4.5h3.655c.9 0 1.376-.476 1.376-1.376v-.063zm2.718 0h-1.876v8.14h1.876V7.93zm4.688 0h-3.654c0 .9.476 1.376 1.375 1.376h1.313v4.5l1.563.9V9.308c0-.9-.476-1.378-1.375-1.378h-.001v.1-.1z"/>
+    </svg>
+  );
 
-  const filtered = activeCategory === "All" ? integrations : integrations.filter((i) => i.category === activeCategory);
+  const integrations = [
+    { id: "gmail", name: "Google Workspace", description: "Gmail, Sheets, Drive, Calendar — full Google integration", category: "Productivity", connected: gmailConnected, connectHref: "/api/gmail/connect", dashboardHref: "/google", logo: <GoogleLogo /> },
+    { id: "microsoft", name: "Microsoft 365", description: "Outlook, Excel, OneDrive, Teams — full Microsoft integration", category: "Productivity", connected: msConnected, connectHref: "/api/microsoft/connect", dashboardHref: "/microsoft", logo: <MicrosoftLogo /> },
+    { id: "stripe", name: "Stripe", description: "Revenue, subscriptions, failed payments, and MRR in real time", category: "Payments", connected: stripeConnected, connectHref: "/api/stripe/connect", dashboardHref: "/stripe", logo: <StripeLogo /> },
+    { id: "quickbooks", name: "QuickBooks", description: "P&L, invoices, expenses, cash flow, and payroll", category: "Accounting", connected: qbConnected, connectHref: "/api/quickbooks/connect", dashboardHref: "/quickbooks", logo: <QBLogo /> },
+    { id: "slack", name: "Slack", description: "Team communication, project activity, and response patterns", category: "Communication", comingSoon: true, logo: <SlackLogo /> },
+    { id: "hubspot", name: "HubSpot", description: "Leads, deals, pipeline, and customer lifecycle", category: "CRM", comingSoon: true, logo: <HubSpotLogo /> },
+    { id: "shopify", name: "Shopify", description: "E-commerce sales, inventory, returns, and customer data", category: "E-commerce", comingSoon: true, logo: <ShopifyLogo /> },
+    { id: "zoom", name: "Zoom", description: "Meeting transcripts, attendance, and meeting intelligence", category: "Communication", comingSoon: true, logo: <ZoomLogo /> },
+  ];
 
-  const getButton = (integration: Integration) => {
-    if (integration.id === "gmail") {
-      if (gmailConnected) {
-        return (
-          <button onClick={handleDisconnectGmail}
-            className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
-            ✓ Connected — Click to disconnect
+  const connected = integrations.filter(i => i.connected);
+  const available = integrations.filter(i => !i.connected && !i.comingSoon);
+  const comingSoon = integrations.filter(i => i.comingSoon);
+
+  const Card = ({ integration }: { integration: typeof integrations[0] }) => (
+    <div className={`bg-bg-surface border rounded-2xl p-6 transition ${integration.connected ? "border-green-500/30" : "border-bg-border"}`}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="w-12 h-12 rounded-xl bg-white/5 border border-bg-border flex items-center justify-center">
+          {integration.logo}
+        </div>
+        {integration.connected && (
+          <span className="flex items-center gap-1.5 text-xs text-green-400 font-medium bg-green-500/10 border border-green-500/20 px-2.5 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
+            Connected
+          </span>
+        )}
+        {integration.comingSoon && (
+          <span className="text-xs text-text-muted font-medium bg-white/5 border border-bg-border px-2.5 py-1 rounded-full">
+            Coming Soon
+          </span>
+        )}
+      </div>
+
+      <h3 className="font-semibold text-text-primary mb-1">{integration.name}</h3>
+      <p className="text-text-muted text-sm leading-relaxed mb-4">{integration.description}</p>
+
+      {integration.connected ? (
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push(integration.dashboardHref!)}
+            className="flex-1 py-2 rounded-lg bg-white text-black text-xs font-semibold hover:bg-gray-100 transition"
+          >
+            View Dashboard
           </button>
-        );
-      }
-      return (
-        <button onClick={handleConnectGmail} disabled={connecting === "gmail"}
-          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
-          {connecting === "gmail" ? "Connecting..." : "Connect Gmail"}
-        </button>
-      );
-    }
-
-    if (integration.id === "microsoft365") {
-      if (msConnected) {
-        return (
-          <button onClick={handleDisconnectMicrosoft}
-            className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
-            ✓ Connected — Click to disconnect
+          <button
+            onClick={() => router.push(integration.connectHref!)}
+            className="px-3 py-2 rounded-lg bg-white/5 border border-bg-border text-text-muted text-xs font-medium hover:bg-white/10 transition"
+          >
+            Reconnect
           </button>
-        );
-      }
-      return (
-        <button onClick={handleConnectMicrosoft} disabled={connecting === "microsoft"}
-          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
-          {connecting === "microsoft" ? "Connecting..." : "Connect Microsoft 365"}
-        </button>
-      );
-    }
-
-    if (integration.id === "quickbooks") {
-      if (qbConnected) {
-        return (
-          <button onClick={handleDisconnectQuickBooks}
-            className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
-            ✓ Connected — Click to disconnect
+          <button
+            onClick={() => disconnect(integration.id)}
+            className="px-3 py-2 rounded-lg bg-white/5 border border-bg-border text-red-400 text-xs font-medium hover:bg-red-500/10 transition"
+          >
+            Disconnect
           </button>
-        );
-      }
-      return (
-        <button onClick={handleConnectQuickBooks} disabled={connecting === "quickbooks"}
-          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
-          {connecting === "quickbooks" ? "Connecting..." : "Connect QuickBooks"}
+        </div>
+      ) : integration.comingSoon ? (
+        <button
+          onClick={() => setNotified(prev => [...prev, integration.id])}
+          disabled={notified.includes(integration.id)}
+          className="w-full py-2 rounded-lg bg-white/5 border border-bg-border text-text-muted text-xs font-medium hover:bg-white/10 transition disabled:opacity-50"
+        >
+          {notified.includes(integration.id) ? "Notified" : "Notify Me"}
         </button>
-      );
-    }
-
-    if (integration.id === "stripe") {
-      if (stripeConnected) {
-        return (
-          <button onClick={handleDisconnectStripe}
-            className="w-full py-2 rounded-xl text-xs font-semibold bg-green-600/20 text-green-400 border border-green-500/20 hover:bg-red-600/20 hover:text-red-400 hover:border-red-500/20 transition">
-            ✓ Connected — Click to disconnect
-          </button>
-        );
-      }
-      return (
-        <button onClick={handleConnectStripe} disabled={connecting === "stripe"}
-          className="w-full py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition disabled:opacity-50">
-          {connecting === "stripe" ? "Connecting..." : "Connect Stripe"}
+      ) : (
+        <button
+          onClick={() => { setConnecting(integration.id); window.location.href = integration.connectHref!; }}
+          disabled={connecting === integration.id}
+          className="w-full py-2 rounded-lg bg-white text-black text-xs font-semibold hover:bg-gray-100 transition disabled:opacity-50"
+        >
+          {connecting === integration.id ? "Connecting..." : "Connect"}
         </button>
-      );
-    }
-
-    return (
-      <button onClick={() => setNotified((prev) => [...prev, integration.id])}
-        disabled={notified.includes(integration.id)}
-        className={`w-full py-2 rounded-xl text-xs font-semibold transition ${notified.includes(integration.id) ? "bg-green-600/20 text-green-400 border border-green-500/20 cursor-default" : "bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white"}`}>
-        {notified.includes(integration.id) ? "✓ You'll be notified" : "Notify Me"}
-      </button>
-    );
-  };
+      )}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#080b12] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-text-primary p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
-          <p className="text-white/40 mt-1 text-sm">Connect your business tools so your AI COO has full visibility across your company.</p>
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Integrations</h1>
+          <p className="text-text-muted">Connect your business tools so BizAI has full visibility across your company.</p>
         </div>
 
-        {gmailConnected && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl px-6 py-4 mb-4 flex items-center gap-4">
-            <span className="text-2xl">✅</span>
-            <div>
-              <p className="text-green-400 font-semibold text-sm">Gmail Connected</p>
-              <p className="text-white/40 text-xs mt-0.5">{gmailEmail} — your AI COO can now read and analyze your emails</p>
+        {connected.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Connected · {connected.length}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {connected.map(i => <Card key={i.id} integration={i} />)}
             </div>
-            <button onClick={handleDisconnectGmail} className="ml-auto text-xs text-white/30 hover:text-red-400 transition">Disconnect</button>
           </div>
         )}
 
-        {stripeConnected && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-2xl px-6 py-4 mb-4 flex items-center gap-4">
-            <span className="text-2xl">✅</span>
-            <div>
-              <p className="text-green-400 font-semibold text-sm">Stripe Connected</p>
-              <p className="text-white/40 text-xs mt-0.5">Your AI COO can now track your revenue, subscriptions, and payments in real time</p>
+        {available.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Available</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {available.map(i => <Card key={i.id} integration={i} />)}
             </div>
-            <button onClick={handleDisconnectStripe} className="ml-auto text-xs text-white/30 hover:text-red-400 transition">Disconnect</button>
           </div>
         )}
 
-        <div className="bg-blue-600/10 border border-blue-500/30 rounded-2xl px-6 py-4 mb-8 flex items-center gap-4">
-          <span className="text-2xl">🚀</span>
+        {comingSoon.length > 0 && (
           <div>
-            <p className="text-blue-400 font-semibold text-sm">More integrations coming in Phase 1</p>
-            <p className="text-white/40 text-xs mt-0.5">QuickBooks launching next. Click "Notify Me" to get early access.</p>
-          </div>
-          <div className="ml-auto text-white/30 text-xs font-medium">{integrations.length} integrations</div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map((cat) => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${activeCategory === cat ? "bg-blue-600 text-white" : "bg-white/5 text-white/50 hover:text-white hover:bg-white/10"}`}>
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map((integration) => (
-            <div key={integration.id} className={`bg-white/5 border rounded-2xl p-5 flex flex-col gap-3 hover:border-white/20 transition ${(integration.id === "gmail" && gmailConnected) || (integration.id === "stripe" && stripeConnected) ? "border-green-500/20" : "border-white/10"}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <LogoImage src={integration.logo} name={integration.name} />
-                  <div>
-                    <h3 className="font-semibold text-white text-sm leading-tight">{integration.name}</h3>
-                    <span className="text-[10px] text-white/30">{integration.category}</span>
-                  </div>
-                </div>
-                {(integration.id === "gmail" && gmailConnected) || (integration.id === "stripe" && stripeConnected) ? (
-                  <span className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/20 px-2 py-0.5 rounded-full">Connected</span>
-                ) : integration.live ? (
-                  <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full">Live</span>
-                ) : (
-                  <span className="text-[10px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded-full">Coming Soon</span>
-                )}
-              </div>
-              <p className="text-white/40 text-xs leading-relaxed flex-1">{integration.description}</p>
-              {getButton(integration)}
+            <h2 className="text-xs font-semibold text-text-muted uppercase tracking-widest mb-4">Coming Soon</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {comingSoon.map(i => <Card key={i.id} integration={i} />)}
             </div>
-          ))}
-        </div>
-
-        <p className="text-center text-white/20 text-xs mt-12">
-          Don't see an integration you need?{" "}
-          <span className="text-blue-400 cursor-pointer hover:underline">Let us know</span>
-        </p>
+          </div>
+        )}
       </div>
     </div>
   );
