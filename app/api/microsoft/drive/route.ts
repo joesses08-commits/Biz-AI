@@ -50,23 +50,25 @@ export async function GET() {
     let token = conn.access_token;
     if (new Date(conn.token_expiry) < new Date()) token = await refreshToken(conn, supabase);
 
-    // Search all of OneDrive recursively
-    const [rootRes, searchDocRes, searchXlsRes, searchPptRes] = await Promise.all([
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/children?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.docx')?$top=30&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$top=30&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers: { Authorization: `Bearer ${token}` } }),
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.pptx')?$top=30&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers: { Authorization: `Bearer ${token}` } }),
+    const headers = { Authorization: `Bearer ${token}` };
+
+    // Search entire drive for all file types
+    const [allRes, xlsRes, docRes, pptRes] = await Promise.all([
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='')??$top=100&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.docx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.pptx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
     ]);
 
-    const [rootData, docData, xlsData, pptData] = await Promise.all([
-      rootRes.json(), searchDocRes.json(), searchXlsRes.json(), searchPptRes.json()
+    const [allData, xlsData, docData, pptData] = await Promise.all([
+      allRes.json(), xlsRes.json(), docRes.json(), pptRes.json()
     ]);
 
-    // Merge and deduplicate
+    // Merge and deduplicate all files
     const allFiles = [
-      ...(rootData.value || []),
-      ...(docData.value || []),
+      ...(allData.value || []),
       ...(xlsData.value || []),
+      ...(docData.value || []),
       ...(pptData.value || []),
     ].filter(f => f.file); // only files not folders
 

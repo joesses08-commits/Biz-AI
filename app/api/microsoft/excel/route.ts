@@ -50,15 +50,26 @@ export async function GET() {
     let token = conn.access_token;
     if (new Date(conn.token_expiry) < new Date()) token = await refreshToken(conn, supabase);
 
-    // Search entire OneDrive for Excel files
-    const searchRes = await fetch(
-      "https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$top=20&$select=id,name,lastModifiedDateTime,size,parentReference",
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const searchData = await searchRes.json();
-    const excelFiles = (searchData.value || []).filter((f: any) =>
-      f.name?.endsWith(".xlsx") || f.name?.endsWith(".xls")
-    );
+    const headers = { Authorization: `Bearer ${token}` };
+
+    // Search entire drive for Excel files
+    const [xlsxRes, xlsRes] = await Promise.all([
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xls')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+    ]);
+
+    const [xlsxData, xlsData] = await Promise.all([xlsxRes.json(), xlsRes.json()]);
+
+    const seen = new Set();
+    const excelFiles = [
+      ...(xlsxData.value || []),
+      ...(xlsData.value || []),
+    ].filter(f => {
+      if (!f.file) return false;
+      if (seen.has(f.id)) return false;
+      seen.add(f.id);
+      return true;
+    });
 
     if (!excelFiles.length) return NextResponse.json({ connected: true, files: [], sheets: [] });
 
@@ -68,15 +79,12 @@ export async function GET() {
       try {
         const sessionRes = await fetch(
           `https://graph.microsoft.com/v1.0/me/drive/items/${file.id}/workbook/createSession`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ persistChanges: false }),
-          }
+          { method: "POST", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify({ persistChanges: false }) }
         );
         const session = await sessionRes.json();
-        const sessionHeaders = { Authorization: `Bearer ${token}`, "workbook-session-id": session.id || "" };
+        if (!session.id) continue;
 
+        const sessionHeaders = { ...headers, "workbook-session-id": session.id };
         const worksheetsRes = await fetch(
           `https://graph.microsoft.com/v1.0/me/drive/items/${file.id}/workbook/worksheets`,
           { headers: sessionHeaders }
