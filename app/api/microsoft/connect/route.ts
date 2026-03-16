@@ -12,6 +12,7 @@ export async function GET() {
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("scope", scope);
   authUrl.searchParams.set("response_mode", "query");
+  authUrl.searchParams.set("prompt", "consent");
 
   return NextResponse.redirect(authUrl.toString());
 }
