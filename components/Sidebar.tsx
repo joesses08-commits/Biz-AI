@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, usePathname, useRouter } from "next/navigation";
-import { Shield,
+import { usePathname, useRouter } from "next/navigation";
+import {
   LayoutDashboard,
   MessageSquare,
   Zap,
@@ -16,11 +16,10 @@ import { Shield,
   Monitor,
   Globe,
 } from "lucide-react";
-import { Shield, createBrowserClient } from "@supabase/ssr";
-import { Shield, cn } from "@/lib/utils";
+import { createBrowserClient } from "@supabase/ssr";
+import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/admin", icon: Shield, label: "Admin", description: "Customers & billing" },
   { href: "/integrations", icon: Plug, label: "Integrations", description: "Connect your tools" },
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", description: "Business metrics" },
   { href: "/chat", icon: MessageSquare, label: "AI Analyst", description: "Ask questions" },
