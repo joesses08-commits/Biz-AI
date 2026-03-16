@@ -60,7 +60,7 @@ DATA RULES:
 - Data named "model", "template", "example", "demo", "test", "sample", "class project", "hypothetical" = HYPOTHETICAL, label it clearly
 - Never present old data as current without stating the date
 
-CRITICAL: Return ONLY a raw JSON object. No markdown. No backticks. No code fences. Start with { and end with }. Nothing before { and nothing after }.
+CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks shows invoices, list them with exact dollar amounts. Never say $0 if QuickBooks has data. Return ONLY a raw JSON object. No markdown. No backticks. No code fences. Start with { and end with }. Nothing before { and nothing after }.
 
 {
   "business_type": "precise description",
