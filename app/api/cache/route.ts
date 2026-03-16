@@ -19,7 +19,12 @@ export async function DELETE() {
     );
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    await supabase.from("context_cache").delete().eq("user_id", user.id);
+
+    await Promise.all([
+      supabase.from("context_cache").delete().eq("user_id", user.id),
+      supabase.from("dashboard_cache").delete().eq("user_id", user.id),
+    ]);
+
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
