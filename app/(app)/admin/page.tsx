@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createBrowserClient } from "@supabase/ssr";
+
+const ADMIN_EMAIL = "jo.esses08@gmail.com";
 
 interface Customer {
   id: string;
@@ -16,14 +19,30 @@ interface Customer {
 export default function AdminPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", company: "", plan: "starter" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   useEffect(() => {
-    loadCustomers();
+    checkAuth();
   }, []);
+
+  async function checkAuth() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email === ADMIN_EMAIL) {
+      setAuthorized(true);
+      loadCustomers();
+    } else {
+      setLoading(false);
+    }
+  }
 
   async function loadCustomers() {
     const res = await fetch("/api/admin/customers");
@@ -65,7 +84,7 @@ export default function AdminPage() {
     const data = await res.json();
     if (data.url) {
       navigator.clipboard.writeText(data.url);
-      setMessage(`Payment link copied to clipboard for ${customer.name}`);
+      setMessage(`Payment link copied for ${customer.name}`);
     } else {
       setMessage("Failed to create payment link.");
     }
@@ -78,6 +97,17 @@ export default function AdminPage() {
       body: JSON.stringify({ customerId, status }),
     });
     loadCustomers();
+  }
+
+  if (!loading && !authorized) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-xl font-bold">Access Denied</p>
+          <p className="text-gray-400 mt-2">You don't have permission to view this page.</p>
+        </div>
+      </div>
+    );
   }
 
   const planPrice: Record<string, string> = {
@@ -231,7 +261,7 @@ export default function AdminPage() {
                       {customer.company && <p className="text-gray-500 text-xs">{customer.company}</p>}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-medium">{customer.plan}</span>
+                      <span className="text-sm font-medium capitalize">{customer.plan}</span>
                       <p className="text-gray-400 text-xs">{planPrice[customer.plan]}</p>
                     </td>
                     <td className="px-6 py-4">
