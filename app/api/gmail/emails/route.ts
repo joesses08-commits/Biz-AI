@@ -29,7 +29,9 @@ function extractBody(payload: any): string {
 }
 
 function getHeader(headers: any[], name: string): string {
-  return headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
+  if (!headers || !Array.isArray(headers)) return "";
+  const found = headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase());
+  return found?.value || "";
 }
 
 export async function GET() {
@@ -99,31 +101,22 @@ export async function GET() {
       return NextResponse.json({ emails: [], total: 0 });
     }
 
-    const emails = await Promise.all(
-      listData.messages.map(async (msg: { id: string }) => {
-        const msgResponse = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        const msgData = await msgResponse.json();
-        const headers = msgData.payload?.headers || [];
-
-        const subject = getHeader(headers, "subject") || "(No subject)";
-        const from = getHeader(headers, "from") || "Unknown";
-        const to = getHeader(headers, "to") || "";
-        const date = getHeader(headers, "date") || "";
-        const isUnread = msgData.labelIds?.includes("UNREAD") ?? false;
-        const body = extractBody(msgData.payload);
-
-        return { id: msg.id, subject, from, to, date, isUnread, snippet: msgData.snippet || "", body };
-      })
+    // DEBUG: fetch first message and return raw structure
+    const firstMsgResponse = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${listData.messages[0].id}?format=full`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
     );
+    const firstMsg = await firstMsgResponse.json();
 
     return NextResponse.json({
-      emails,
-      total: listData.resultSizeEstimate,
-      connectedEmail: connection.email,
+      debug: true,
+      raw_keys: Object.keys(firstMsg),
+      payload_keys: firstMsg.payload ? Object.keys(firstMsg.payload) : "NO PAYLOAD",
+      headers_sample: firstMsg.payload?.headers?.slice(0, 5) || "NO HEADERS",
+      snippet: firstMsg.snippet,
+      labelIds: firstMsg.labelIds,
     });
+
   } catch (err) {
     return NextResponse.json({ error: "Failed to fetch emails", details: String(err) }, { status: 500 });
   }
