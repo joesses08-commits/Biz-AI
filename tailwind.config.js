@@ -14,11 +14,11 @@ module.exports = {
       },
       colors: {
         bg: {
-          base: "#08090e",
-          surface: "#0e0f18",
-          elevated: "#141520",
-          border: "#1e2035",
-          hover: "#1a1b2e",
+          base: "#060608",
+          surface: "#0c0c10",
+          elevated: "#111116",
+          border: "#1c1c24",
+          hover: "#16161e",
         },
         accent: {
           DEFAULT: "#4f6ef7",
@@ -26,25 +26,26 @@ module.exports = {
           border: "#4f6ef740",
           hover: "#6b85f8",
         },
-        emerald: {
-          glow: "#10b981",
-          dim: "#10b98115",
-        },
         text: {
-          primary: "#eef0f6",
-          secondary: "#8892b0",
-          muted: "#4a5168",
+          primary: "#f4f4f8",
+          secondary: "#8888a8",
+          muted: "#404058",
         },
       },
       animation: {
         "fade-up": "fadeUp 0.4s ease forwards",
         "pulse-slow": "pulse 3s ease-in-out infinite",
         shimmer: "shimmer 2s linear infinite",
+        "in": "fadeIn 0.3s ease forwards",
       },
       keyframes: {
         fadeUp: {
           from: { opacity: 0, transform: "translateY(12px)" },
           to: { opacity: 1, transform: "translateY(0)" },
+        },
+        fadeIn: {
+          from: { opacity: 0 },
+          to: { opacity: 1 },
         },
         shimmer: {
           from: { backgroundPosition: "-200% 0" },

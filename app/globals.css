@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,141 +6,137 @@
 
 :root {
   --font-display: "Syne", system-ui, sans-serif;
-  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background: #08090e;
-  color: #eef0f6;
+  background: #060608;
+  color: #f4f4f8;
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
 /* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #0e0f18;
-}
-::-webkit-scrollbar-thumb {
-  background: #2a2d45;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3a3f60;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1c1c24; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #2a2a38; }
 
-/* Selection */
-::selection {
-  background: #4f6ef730;
-  color: #eef0f6;
-}
-
-/* ── Reusable component classes ───────────────────────────────────────────── */
+::selection { background: #4f6ef730; color: #f4f4f8; }
 
 @layer components {
-  /* Cards */
   .card {
-    @apply bg-bg-surface border border-bg-border rounded-xl p-5;
+    @apply bg-bg-surface border border-bg-border rounded-2xl p-5;
   }
   .card-elevated {
-    @apply bg-bg-elevated border border-bg-border rounded-xl p-5;
+    @apply bg-bg-elevated border border-bg-border rounded-2xl p-5;
   }
 
-  /* Buttons */
   .btn-primary {
     @apply inline-flex items-center gap-2 bg-accent hover:bg-accent-hover text-white
-           font-semibold text-sm px-5 py-2.5 rounded-lg transition-all duration-150
-           active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+           font-semibold text-sm px-5 py-2.5 rounded-xl transition-all duration-150
+           active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-accent/20;
   }
   .btn-ghost {
     @apply inline-flex items-center gap-2 text-text-secondary hover:text-text-primary
-           hover:bg-bg-hover text-sm px-4 py-2 rounded-lg transition-all duration-150;
+           hover:bg-bg-hover text-sm px-4 py-2 rounded-xl transition-all duration-150;
   }
   .btn-outline {
-    @apply inline-flex items-center gap-2 border border-bg-border hover:border-accent-border
-           text-text-secondary hover:text-text-primary text-sm px-4 py-2.5 rounded-lg
+    @apply inline-flex items-center gap-2 border border-bg-border hover:border-white/20
+           text-text-secondary hover:text-text-primary text-sm px-4 py-2.5 rounded-xl
            transition-all duration-150;
   }
 
-  /* Inputs */
   .input {
-    @apply w-full bg-bg-elevated border border-bg-border rounded-lg px-4 py-2.5
+    @apply w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-2.5
            text-sm text-text-primary placeholder:text-text-muted
-           focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30
-           transition-colors duration-150;
+           focus:outline-none focus:border-accent/40 transition-colors duration-150;
   }
 
-  /* Nav item */
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
-           text-text-secondary hover:text-text-primary hover:bg-bg-hover
-           transition-all duration-150 cursor-pointer;
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer
+           transition-all duration-150 text-text-secondary hover:text-text-primary hover:bg-bg-hover;
   }
   .nav-item.active {
-    @apply text-text-primary bg-accent/10 border border-accent/20;
+    @apply bg-bg-elevated text-text-primary border border-bg-border;
   }
 
-  /* Status badge */
-  .badge {
-    @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-md;
-  }
-  .badge-green {
-    @apply badge bg-emerald-glow/15 text-emerald-400;
-  }
-  .badge-red {
-    @apply badge bg-red-500/15 text-red-400;
-  }
-  .badge-yellow {
-    @apply badge bg-yellow-500/15 text-yellow-400;
-  }
-  .badge-blue {
-    @apply badge bg-accent/20 text-blue-400;
-  }
-
-  /* Skeleton loader */
   .skeleton {
-    @apply rounded-lg bg-gradient-to-r from-bg-elevated via-bg-hover to-bg-elevated
-           bg-[length:200%_100%] animate-shimmer;
+    @apply bg-bg-elevated rounded-lg animate-pulse;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider
+           px-2 py-0.5 rounded-full;
+  }
+  .badge-green { @apply bg-emerald-500/10 text-emerald-400 border border-emerald-500/20; }
+  .badge-accent { @apply bg-accent/10 text-accent border border-accent/20; }
+  .badge-muted { @apply bg-white/5 text-text-muted border border-bg-border; }
+
+  .section-label {
+    @apply text-[10px] font-bold text-text-muted uppercase tracking-widest;
+  }
+
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(79, 110, 247, 0.3);
+  }
+
+  .animate-in {
+    animation: fadeUp 0.3s ease forwards;
   }
 }
 
-/* ── Animations ───────────────────────────────────────────────────────────── */
+/* Glass morphism effect */
+.glass {
+  background: rgba(12, 12, 16, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
 
-.animate-in {
-  animation: fadeUp 0.35s ease forwards;
+/* Premium gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #f4f4f8 0%, #8888a8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Noise texture overlay for depth */
+.noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Subtle inner glow on cards */
+.card-glow {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 @keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-/* Glow effect for accent elements */
-.glow-accent {
-  box-shadow: 0 0 20px #4f6ef720, 0 0 60px #4f6ef708;
+/* Prose overrides for chat */
+.prose-invert {
+  --tw-prose-body: #8888a8;
+  --tw-prose-headings: #f4f4f8;
+  --tw-prose-bold: #f4f4f8;
 }
