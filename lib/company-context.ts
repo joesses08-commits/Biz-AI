@@ -428,7 +428,7 @@ DATA FRESHNESS RULES:
     .filter(Boolean)
     .join("\n");
 
-  saveContextCache(userId, context).catch(() => {});
+  await saveContextCache(userId, context);
 
   return context;
 }
