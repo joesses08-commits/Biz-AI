@@ -19,35 +19,28 @@ export async function GET() {
     );
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Not authenticated", note: "No user session" }, { status: 401 });
 
     const { data: conn } = await supabase.from("microsoft_connections").select("*").eq("user_id", user.id).single();
-    if (!conn) return NextResponse.json({ connected: false });
+    if (!conn) return NextResponse.json({ error: "No Microsoft connection found", user_id: user.id });
 
     const headers = { Authorization: `Bearer ${conn.access_token}` };
 
-    const [meRes, mailRes, driveRes, eventsRes] = await Promise.all([
+    const [meRes, mailRes, driveRes] = await Promise.all([
       fetch("https://graph.microsoft.com/v1.0/me", { headers }),
-      fetch("https://graph.microsoft.com/v1.0/me/messages?$top=5", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/messages?$top=3", { headers }),
       fetch("https://graph.microsoft.com/v1.0/me/drive/root/children?$top=5", { headers }),
-      fetch("https://graph.microsoft.com/v1.0/me/events?$top=5", { headers }),
     ]);
 
-    const [me, mail, drive, events] = await Promise.all([
-      meRes.json(), mailRes.json(), driveRes.json(), eventsRes.json()
-    ]);
+    const [me, mail, drive] = await Promise.all([meRes.json(), mailRes.json(), driveRes.json()]);
 
     return NextResponse.json({
-      me_error: me.error || null,
-      me_email: me.mail || me.userPrincipalName,
-      mail_error: mail.error || null,
-      mail_count: mail.value?.length,
-      drive_error: drive.error || null,
-      drive_count: drive.value?.length,
-      drive_files: drive.value?.map((f: any) => f.name),
-      events_error: events.error || null,
-      events_count: events.value?.length,
-      token_expiry: conn.token_expiry,
+      bizai_user_id: user.id,
+      connection_user_id: conn.user_id,
+      token_preview: conn.access_token?.slice(0, 50),
+      me_result: me.error || { email: me.mail || me.userPrincipalName, name: me.displayName },
+      mail_result: mail.error || { count: mail.value?.length },
+      drive_result: drive.error || { count: drive.value?.length, files: drive.value?.map((f: any) => f.name) },
     });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
