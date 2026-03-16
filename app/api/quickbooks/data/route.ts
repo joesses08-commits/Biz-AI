@@ -1,3 +1,4 @@
+import { getUserId } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 
@@ -27,7 +28,7 @@ export async function GET() {
   const { data: conn } = await supabase
     .from("quickbooks_connections")
     .select("*")
-    .eq("user_id", "demo-user")
+    .eq("user_id", await getUserId())
     .single();
 
   if (!conn) {
@@ -41,7 +42,7 @@ export async function GET() {
     if (newTokens.access_token) {
       accessToken = newTokens.access_token;
       await supabase.from("quickbooks_connections").upsert({
-        user_id: "demo-user",
+        user_id: await getUserId(),
         realm_id: conn.realm_id,
         access_token: newTokens.access_token,
         refresh_token: newTokens.refresh_token,

@@ -1,3 +1,4 @@
+import { getUserId } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,7 +11,7 @@ export async function GET() {
   const { data: conn, error } = await supabase
     .from("microsoft_connections")
     .select("*")
-    .eq("user_id", "demo-user")
+    .eq("user_id", await getUserId())
     .single();
 
   console.log("Microsoft conn:", conn, "error:", error);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+import { getUserId } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -26,9 +27,7 @@ export async function GET(request: NextRequest) {
   });
 
   const tokens = await tokenRes.json();
-
   if (!tokens.access_token) {
-    console.error("Microsoft token error:", tokens);
     return NextResponse.redirect(new URL("/integrations?error=microsoft_token_failed", request.url));
   }
 
@@ -37,10 +36,11 @@ export async function GET(request: NextRequest) {
   });
   const userData = await userRes.json();
 
-  const supabase = createServerClient();
+  const userId = await getUserId();
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   await supabase.from("microsoft_connections").upsert({
-    user_id: "demo-user",
+    user_id: userId,
     email: userData.mail || userData.userPrincipalName,
     display_name: userData.displayName,
     access_token: tokens.access_token,

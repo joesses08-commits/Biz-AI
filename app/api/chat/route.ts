@@ -1,3 +1,4 @@
+import { getUserId } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
@@ -8,7 +9,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 async function getMicrosoftExcelData() {
   try {
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-    const { data: conn } = await supabase.from("microsoft_connections").select("*").eq("user_id", "demo-user").single();
+    const { data: conn } = await supabase.from("microsoft_connections").select("*").eq("user_id", await getUserId()).single();
     if (!conn) return null;
 
     const headers = { Authorization: `Bearer ${conn.access_token}` };
@@ -79,7 +80,7 @@ async function getStripeData(userId: string) {
 
 export async function POST(request: NextRequest) {
   const { messages } = await request.json();
-  const userId = "demo-user";
+  const userId = await getUserId();
 
   const [stripeConn, excelData] = await Promise.all([
     getStripeData(userId),
