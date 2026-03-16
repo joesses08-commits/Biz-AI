@@ -28,6 +28,10 @@ function extractBody(payload: any): string {
   return "";
 }
 
+function getHeader(headers: any[], name: string): string {
+  return headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
+}
+
 export async function GET() {
   try {
     const cookieStore = cookies();
@@ -103,17 +107,23 @@ export async function GET() {
         );
         const msgData = await msgResponse.json();
         const headers = msgData.payload?.headers || [];
-        const subject = headers.find((h: any) => h.name === "Subject")?.value || "(No subject)";
-        const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
-        const to = headers.find((h: any) => h.name === "To")?.value || "";
-        const date = headers.find((h: any) => h.name === "Date")?.value || "";
-        const isUnread = msgData.labelIds?.includes("UNREAD");
+
+        const subject = getHeader(headers, "subject") || "(No subject)";
+        const from = getHeader(headers, "from") || "Unknown";
+        const to = getHeader(headers, "to") || "";
+        const date = getHeader(headers, "date") || "";
+        const isUnread = msgData.labelIds?.includes("UNREAD") ?? false;
         const body = extractBody(msgData.payload);
-        return { id: msg.id, subject, from, to, date, isUnread, snippet: msgData.snippet, body };
+
+        return { id: msg.id, subject, from, to, date, isUnread, snippet: msgData.snippet || "", body };
       })
     );
 
-    return NextResponse.json({ emails, total: listData.resultSizeEstimate, connectedEmail: connection.email });
+    return NextResponse.json({
+      emails,
+      total: listData.resultSizeEstimate,
+      connectedEmail: connection.email,
+    });
   } catch (err) {
     return NextResponse.json({ error: "Failed to fetch emails", details: String(err) }, { status: 500 });
   }
