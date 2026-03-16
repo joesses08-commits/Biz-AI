@@ -347,6 +347,31 @@ export async function updateCompanyBrain(userId: string, newContext: string) {
   } catch {}
 }
 
+// ─── CACHE ────────────────────────────────────────────────────────────────────
+const CACHE_MINUTES = 45;
+
+async function getCachedContext(userId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from("context_cache").select("*").eq("user_id", userId).single();
+    if (!data) return null;
+    const cachedAt = new Date(data.cached_at);
+    const ageMinutes = (Date.now() - cachedAt.getTime()) / (1000 * 60);
+    if (ageMinutes > CACHE_MINUTES) return null;
+    return data.context;
+  } catch { return null; }
+}
+
+async function saveContextCache(userId: string, context: string) {
+  try {
+    await supabase.from("context_cache").upsert({
+      user_id: userId,
+      context,
+      cached_at: new Date().toISOString(),
+    });
+  } catch {}
+}
+
+// ─── MASTER CONTEXT BUILDER ───────────────────────────────────────────────────
 export async function buildFullCompanyContext(userId: string): Promise<string> {
   const cached = await getCachedContext(userId);
   if (cached) return cached;
@@ -379,28 +404,4 @@ DATA FRESHNESS RULES:
   saveContextCache(userId, context).catch(() => {});
 
   return context;
-}
-
-// ─── CACHE ────────────────────────────────────────────────────────────────────
-const CACHE_MINUTES = 45;
-
-export async function getCachedContext(userId: string): Promise<string | null> {
-  try {
-    const { data } = await supabase.from("context_cache").select("*").eq("user_id", userId).single();
-    if (!data) return null;
-    const cachedAt = new Date(data.cached_at);
-    const ageMinutes = (Date.now() - cachedAt.getTime()) / (1000 * 60);
-    if (ageMinutes > CACHE_MINUTES) return null;
-    return data.context;
-  } catch { return null; }
-}
-
-async function saveContextCache(userId: string, context: string) {
-  try {
-    await supabase.from("context_cache").upsert({
-      user_id: userId,
-      context,
-      cached_at: new Date().toISOString(),
-    });
-  } catch {}
 }
