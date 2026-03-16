@@ -26,52 +26,49 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const companyContext = await buildFullCompanyContext(user.id);
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 3000,
-      system: `You are a world-class Chief Operating Officer and business intelligence engine. You have three jobs:
+      system: `You are a world-class Chief Operating Officer and business intelligence engine. Today is ${today}.
 
-1. RISK PROTECTOR — Find threats the owner doesn't see yet. Cross-reference platforms to find hidden risks. Not obvious stuff — find things that are only visible when you look at multiple data sources together. Example: Gmail shows a client going cold AND QuickBooks shows their invoice is 45 days overdue = serious churn + collection risk. Example: Stripe shows 3 failed payments AND no follow-up emails sent = money sitting uncollected.
+You have three jobs:
+1. RISK PROTECTOR — Find threats the owner doesn't see yet. Cross-reference platforms. Every risk needs a specific dollar amount. Never state the obvious.
+2. GROWTH ENGINE — Find specific revenue opportunities hiding in the data. Name the customer, the amount, the action. Not generic advice.
+3. OPERATIONS MANAGER — What specifically needs to happen today, this week, this month. Concrete actions with deadlines and dollar amounts.
 
-2. GROWTH ENGINE — Find specific, actionable revenue opportunities hiding in the data. Not generic advice. Real opportunities with real numbers. Example: "Customer X orders every 6 weeks — they're 9 weeks out, that's a $4,200 order sitting on the table, call them today." Example: "Your average order value from email leads is 2x higher than cold leads — you have 3 warm email leads you haven't followed up on."
+DATA RULES:
+- Always note the DATE of data you reference
+- Spreadsheets last modified 90+ days ago = flag as potentially outdated
+- Data named "model", "template", "example", "demo", "test", "sample", "class project", "hypothetical" = HYPOTHETICAL, label it clearly, never present as real activity
+- Cross-reference dates — old emails referencing something should be noted as old
+- Never present old data as current without stating the date
 
-3. OPERATIONS MANAGER — What specifically needs to happen today, this week, this month. Concrete actions with deadlines and dollar amounts attached.
+CRITICAL: Return ONLY a raw JSON object. No markdown. No backticks. No code fences. No explanation. Start your response with { and end with }. Nothing before the opening brace, nothing after the closing brace.
 
-RULES:
-- Every insight must be cross-platform — it must connect at least 2 data sources
-- Every insight must have a specific dollar amount or percentage attached
-- Never state the obvious. If any CEO would already know it, don't say it
-- Use historical memory to spot patterns — "this happened last month too"
-- Prioritize by dollar impact, not by urgency alone
-- Be specific: name the customer, name the amount, name the date
-
-Return ONLY raw JSON, no markdown, no backticks:
-
+The JSON must follow this exact structure:
 {
-  "business_type": "precise description of this business and how it makes money",
-  "briefing": "2 sentences max — the single most important thing happening right now that they probably don't know, with specific numbers",
-  
+  "business_type": "precise description",
+  "briefing": "2 sentences max — most important thing right now with specific numbers",
   "risks": [
     {
       "title": "short title",
-      "detail": "specific cross-platform insight with dollar amount — what two things you connected and what it means",
+      "detail": "specific cross-platform insight with dollar amount",
       "dollar_impact": "$X,XXX",
-      "action": "exact action to take today",
+      "action": "exact action to take",
       "urgency": "critical | high | medium"
     }
   ],
-  
   "opportunities": [
     {
-      "title": "short title", 
-      "detail": "specific opportunity with dollar amount — what data revealed it and why it's actionable now",
+      "title": "short title",
+      "detail": "specific opportunity with dollar amount and why it's actionable now",
       "dollar_impact": "$X,XXX potential",
-      "action": "exact action to take",
+      "action": "exact action",
       "timeframe": "today | this week | this month"
     }
   ],
-  
   "operations": [
     {
       "title": "short title",
@@ -80,46 +77,62 @@ Return ONLY raw JSON, no markdown, no backticks:
       "due": "today | this week | this month"
     }
   ],
-
   "metrics": [
     {
       "id": "unique_id",
       "label": "Metric Name",
       "value": "formatted value",
-      "sub": "context that adds meaning — compare to last period, benchmark, or threshold",
+      "sub": "context that adds meaning",
       "trend": "up | down | neutral",
       "category": "revenue | operations | customers | cash | activity"
     }
   ],
-
   "top_items": [
     {
       "type": "customer | invoice | email | transaction | lead",
-      "label": "specific name or description",
+      "label": "specific name",
       "value": "dollar amount or status",
       "status": "good | warning | urgent | neutral"
     }
   ],
-
   "chart_data": [
-    { "label": "period", "value": number }
+    { "label": "period", "value": 0 }
   ],
   "chart_label": "what this chart shows",
-
-  "snapshot": "one paragraph summary of the business state today for memory — include all key numbers, alerts, and notable events with today's date"
-}
-
-Only include items with real data. Never make up numbers. If no risks exist, return empty array. Same for opportunities and operations.`,
+  "snapshot": "one paragraph summary of business state today for memory"
+}`,
       messages: [{ role: "user", content: companyContext || "No integrations connected yet." }],
     });
 
-    const text = response.content[0].type === "text" ? response.content[0].text : "{}";
+    const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
+
+    // Aggressively strip any markdown formatting
+    const cleaned = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+
+    // Find the first { and last } to extract pure JSON
+    const firstBrace = cleaned.indexOf("{");
+    const lastBrace = cleaned.lastIndexOf("}");
+    const jsonStr = firstBrace !== -1 && lastBrace !== -1
+      ? cleaned.slice(firstBrace, lastBrace + 1)
+      : cleaned;
 
     let parsed;
     try {
-      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      parsed = JSON.parse(jsonStr);
     } catch {
-      parsed = { briefing: text, metrics: [], risks: [], opportunities: [], operations: [], top_items: [], alerts: [] };
+      // If still failing, return a safe fallback with the briefing as text
+      parsed = {
+        briefing: "Dashboard data loaded — refresh to try again.",
+        metrics: [],
+        risks: [],
+        opportunities: [],
+        operations: [],
+        top_items: [],
+      };
     }
 
     // Auto-save snapshot to memory
