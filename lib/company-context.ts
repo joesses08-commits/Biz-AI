@@ -348,6 +348,9 @@ export async function updateCompanyBrain(userId: string, newContext: string) {
 }
 
 export async function buildFullCompanyContext(userId: string): Promise<string> {
+  const cached = await getCachedContext(userId);
+  if (cached) return cached;
+
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
   const header = `TODAY'S DATE: ${today}
@@ -369,7 +372,35 @@ DATA FRESHNESS RULES:
     getQuickBooksContext(userId),
   ]);
 
-  return [header, profile, memory, gmail, sheets, outlook, excel, stripe, quickbooks]
+  const context = [header, profile, memory, gmail, sheets, outlook, excel, stripe, quickbooks]
     .filter(Boolean)
     .join("\n");
+
+  saveContextCache(userId, context).catch(() => {});
+
+  return context;
+}
+
+// ─── CACHE ────────────────────────────────────────────────────────────────────
+const CACHE_MINUTES = 45;
+
+export async function getCachedContext(userId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from("context_cache").select("*").eq("user_id", userId).single();
+    if (!data) return null;
+    const cachedAt = new Date(data.cached_at);
+    const ageMinutes = (Date.now() - cachedAt.getTime()) / (1000 * 60);
+    if (ageMinutes > CACHE_MINUTES) return null;
+    return data.context;
+  } catch { return null; }
+}
+
+async function saveContextCache(userId: string, context: string) {
+  try {
+    await supabase.from("context_cache").upsert({
+      user_id: userId,
+      context,
+      cached_at: new Date().toISOString(),
+    });
+  } catch {}
 }

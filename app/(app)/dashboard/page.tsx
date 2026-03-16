@@ -170,6 +170,11 @@ export default function DashboardPage() {
   const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
+  const clearAndReload = async () => {
+    await fetch("/api/cache", { method: "DELETE" });
+    load();
+  };
+
   const load = async () => {
     setLoading(true);
     try {
@@ -203,7 +208,7 @@ export default function DashboardPage() {
           {data?.business_type && <p className="text-white/25 text-xs mt-1">{data.business_type}</p>}
           {lastUpdated && <p className="text-white/15 text-xs mt-0.5">Updated {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
         </div>
-        <button onClick={load} className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition px-4 py-2.5 rounded-xl border border-white/[0.06] hover:border-white/20 bg-white/[0.02]">
+        <button onClick={clearAndReload} className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition px-4 py-2.5 rounded-xl border border-white/[0.06] hover:border-white/20 bg-white/[0.02]">
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           Refresh
         </button>
