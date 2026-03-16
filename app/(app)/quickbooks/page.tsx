@@ -9,23 +9,32 @@ export default function QuickBooksPage() {
   useEffect(() => {
     fetch("/api/quickbooks/data")
       .then((r) => r.json())
-      .then((d) => {
-        setData(d);
-        setLoading(false);
-      });
+      .then((d) => { setData(d); setLoading(false); });
   }, []);
 
   if (loading) {
-    return <div className="min-h-screen bg-black flex items-center justify-center"><p className="text-white text-lg">Loading QuickBooks data...</p></div>;
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
   }
 
   if (!data || !data.connected) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-white text-3xl font-bold mb-4">QuickBooks Not Connected</h1>
-          <p className="text-gray-400 mb-8">Connect your QuickBooks account to see your financial data.</p>
-          <a href="/api/quickbooks/connect" className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg text-lg">Connect QuickBooks</a>
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[#2CA01C]/10 border border-[#2CA01C]/20 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none">
+              <circle cx="12" cy="12" r="11" fill="#2CA01C" fillOpacity="0.2" stroke="#2CA01C" strokeWidth="1.5"/>
+              <path d="M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0zm4-2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="#2CA01C"/>
+            </svg>
+          </div>
+          <h1 className="text-white text-2xl font-semibold mb-3">Connect QuickBooks</h1>
+          <p className="text-white/40 text-sm mb-8 leading-relaxed">Connect your QuickBooks account to see invoices, P&L, and cash flow.</p>
+          <a href="/api/quickbooks/connect" className="inline-flex items-center gap-2 bg-white text-black font-medium py-2.5 px-6 rounded-xl text-sm hover:bg-white/90 transition">
+            Connect QuickBooks
+          </a>
         </div>
       </div>
     );
@@ -33,65 +42,101 @@ export default function QuickBooksPage() {
 
   const invoices = data.invoices || [];
   const unpaidInvoices = invoices.filter((inv: any) => inv.Balance > 0);
+  const paidInvoices = invoices.filter((inv: any) => inv.Balance === 0);
   const totalUnpaid = unpaidInvoices.reduce((sum: number, inv: any) => sum + inv.Balance, 0);
+  const totalRevenue = invoices.reduce((sum: number, inv: any) => sum + inv.TotalAmt, 0);
+
+  const fmt = (n: number) => `$${Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">Q</span>
+    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+      <div className="max-w-4xl mx-auto">
+
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-10">
+          <div className="w-12 h-12 rounded-2xl bg-[#2CA01C]/10 border border-[#2CA01C]/20 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
+              <circle cx="12" cy="12" r="11" fill="#2CA01C" fillOpacity="0.15" stroke="#2CA01C" strokeWidth="1.5"/>
+              <path d="M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0zm4-2a2 2 0 1 1 0 4 2 2 0 0 1 0-4z" fill="#2CA01C"/>
+            </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-bold">QuickBooks</h1>
-            <p className="text-green-400 text-sm">Connected</p>
+            <h1 className="text-xl font-semibold tracking-tight">QuickBooks</h1>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-white/40 text-xs">Connected</span>
+            </div>
           </div>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Outstanding Invoices</h2>
-            <span className="text-yellow-400 font-bold">${totalUnpaid.toLocaleString()} unpaid</span>
-          </div>
-          {unpaidInvoices.length === 0 ? (
-            <p className="text-gray-400">No outstanding invoices.</p>
-          ) : (
-            <div className="space-y-3">
+
+        {/* Summary cards */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { label: "Total Invoiced", value: fmt(totalRevenue), sub: `${invoices.length} invoices` },
+            { label: "Outstanding", value: fmt(totalUnpaid), sub: `${unpaidInvoices.length} unpaid`, accent: totalUnpaid > 0 },
+            { label: "Collected", value: fmt(totalRevenue - totalUnpaid), sub: `${paidInvoices.length} paid` },
+          ].map((m) => (
+            <div key={m.label} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
+              <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3">{m.label}</div>
+              <div className={`text-2xl font-bold font-mono mb-1 ${m.accent ? "text-amber-400" : "text-white"}`}>{m.value}</div>
+              <div className="text-[10px] text-white/25">{m.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Outstanding invoices */}
+        {unpaidInvoices.length > 0 && (
+          <div className="bg-white/[0.03] border border-amber-500/20 rounded-2xl overflow-hidden mb-4">
+            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white/70">Outstanding Invoices</h2>
+              <span className="text-[10px] text-amber-400">{fmt(totalUnpaid)} due</span>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
               {unpaidInvoices.map((inv: any) => (
-                <div key={inv.Id} className="flex justify-between items-center border-b border-gray-800 pb-3">
+                <div key={inv.Id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition">
                   <div>
-                    <p className="font-medium">{inv.CustomerRef?.name || "Unknown Customer"}</p>
-                    <p className="text-gray-400 text-sm">Invoice #{inv.DocNumber} · {inv.TxnDate}</p>
+                    <p className="text-sm text-white/80 font-medium">{inv.CustomerRef?.name || "Unknown Customer"}</p>
+                    <p className="text-[11px] text-white/30 mt-0.5">Invoice #{inv.DocNumber} · {inv.TxnDate}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-yellow-400 font-bold">${inv.Balance.toLocaleString()} due</p>
-                    <p className="text-gray-400 text-sm">Total: ${inv.TotalAmt.toLocaleString()}</p>
+                    <p className="text-sm font-mono font-semibold text-amber-400">{fmt(inv.Balance)} due</p>
+                    <p className="text-[10px] text-white/25 mt-0.5">Total {fmt(inv.TotalAmt)}</p>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h2 className="text-xl font-bold mb-4">Recent Invoices</h2>
-          {invoices.length === 0 ? (
-            <p className="text-gray-400">No invoices found.</p>
-          ) : (
-            <div className="space-y-3">
-              {invoices.map((inv: any) => (
-                <div key={inv.Id} className="flex justify-between items-center border-b border-gray-800 pb-3">
+          </div>
+        )}
+
+        {/* All invoices */}
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white/70">All Invoices</h2>
+            <span className="text-[10px] text-white/25">{invoices.length} total</span>
+          </div>
+          <div className="divide-y divide-white/[0.04]">
+            {invoices.length === 0 ? (
+              <div className="px-6 py-10 text-center text-white/20 text-sm">No invoices found</div>
+            ) : invoices.map((inv: any) => (
+              <div key={inv.Id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition">
+                <div className="flex items-center gap-3">
+                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${inv.Balance > 0 ? "bg-amber-400" : "bg-emerald-400"}`} />
                   <div>
-                    <p className="font-medium">{inv.CustomerRef?.name || "Unknown Customer"}</p>
-                    <p className="text-gray-400 text-sm">Invoice #{inv.DocNumber} · {inv.TxnDate}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold">${inv.TotalAmt.toLocaleString()}</p>
-                    <p className={inv.Balance > 0 ? "text-yellow-400 text-sm" : "text-green-400 text-sm"}>{inv.Balance > 0 ? `$${inv.Balance.toLocaleString()} due` : "Paid"}</p>
+                    <p className="text-sm text-white/80">{inv.CustomerRef?.name || "Unknown Customer"}</p>
+                    <p className="text-[11px] text-white/30 mt-0.5">#{inv.DocNumber} · {inv.TxnDate}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="text-right">
+                  <p className="text-sm font-mono font-semibold text-white/80">{fmt(inv.TotalAmt)}</p>
+                  <p className={`text-[10px] mt-0.5 ${inv.Balance > 0 ? "text-amber-400/70" : "text-emerald-400/70"}`}>
+                    {inv.Balance > 0 ? `${fmt(inv.Balance)} due` : "Paid"}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
       </div>
     </div>
   );

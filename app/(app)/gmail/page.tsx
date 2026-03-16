@@ -7,9 +7,11 @@ type Email = {
   id: string;
   subject: string;
   from: string;
+  to: string;
   date: string;
   isUnread: boolean;
   snippet: string;
+  body: string;
 };
 
 export default function GmailPage() {
@@ -22,26 +24,21 @@ export default function GmailPage() {
   const [selected, setSelected] = useState<Email | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState("");
+  const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    fetchEmails();
-  }, []);
+  useEffect(() => { fetchEmails(); }, []);
 
   const fetchEmails = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/gmail/emails");
       const data = await res.json();
-      if (data.error === "Gmail not connected") {
-        router.push("/integrations");
-        return;
-      }
+      if (data.error === "Gmail not connected") { router.push("/integrations"); return; }
       setEmails(data.emails || []);
       setTotal(data.total || 0);
       setConnectedEmail(data.connectedEmail || "");
-    } catch {
-      setError("Failed to load emails");
-    }
+      if (data.emails?.length > 0) setSelected(data.emails[0]);
+    } catch { setError("Failed to load emails"); }
     setLoading(false);
   };
 
@@ -56,15 +53,18 @@ export default function GmailPage() {
       });
       const data = await res.json();
       setAnalysis(data.analysis || "No analysis available");
-    } catch {
-      setAnalysis("Failed to analyze emails. Please try again.");
-    }
+    } catch { setAnalysis("Failed to analyze emails."); }
     setAnalyzing(false);
   };
 
   const formatFrom = (from: string) => {
     const match = from.match(/^(.*?)\s*</);
     return match ? match[1].trim().replace(/"/g, "") : from.split("@")[0];
+  };
+
+  const formatFromEmail = (from: string) => {
+    const match = from.match(/<(.+?)>/);
+    return match ? match[1] : from;
   };
 
   const formatDate = (date: string) => {
@@ -77,112 +77,131 @@ export default function GmailPage() {
       if (hours < 24) return `${hours}h ago`;
       const days = Math.floor(hours / 24);
       if (days < 7) return `${days}d ago`;
-      return d.toLocaleDateString();
-    } catch {
-      return date;
-    }
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    } catch { return date; }
   };
 
+  const formatFullDate = (date: string) => {
+    try {
+      return new Date(date).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    } catch { return date; }
+  };
+
+  const filtered = emails.filter(e =>
+    e.subject.toLowerCase().includes(search.toLowerCase()) ||
+    e.from.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="min-h-screen bg-[#080b12] text-white p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="h-screen bg-[#0a0a0a] text-white flex flex-col overflow-hidden">
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg" className="w-7 h-7" alt="Gmail" />
-              <h1 className="text-3xl font-bold tracking-tight">Gmail</h1>
-            </div>
-            <p className="text-white/40 text-sm">
-              {connectedEmail && `Connected as ${connectedEmail} · `}{total > 0 && `${total} emails in inbox`}
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={fetchEmails} className="bg-white/5 border border-white/10 text-white/60 hover:text-white px-4 py-2 rounded-xl text-sm transition">
-              ↻ Refresh
-            </button>
-            <button onClick={analyzeEmails} disabled={analyzing || emails.length === 0}
-              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold px-5 py-2 rounded-xl text-sm transition">
-              {analyzing ? "Analyzing..." : "✨ AI Analysis"}
-            </button>
-          </div>
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+            <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.364l-6.545-4.636v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.273l6.545-4.636 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
+          </svg>
+          <span className="text-sm font-semibold">Gmail</span>
+          {connectedEmail && <span className="text-white/30 text-xs">{connectedEmail}</span>}
+          {total > 0 && <span className="text-white/20 text-xs">{total} messages</span>}
         </div>
-
-        {analysis && (
-          <div className="bg-blue-600/10 border border-blue-500/30 rounded-2xl p-6 mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-blue-400 font-semibold text-sm">✨ AI COO Email Briefing</span>
-            </div>
-            <p className="text-white/70 text-sm leading-relaxed whitespace-pre-wrap">{analysis}</p>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-white/40 text-sm">Loading your emails...</div>
-          </div>
-        ) : error ? (
-          <div className="text-red-400 text-sm">{error}</div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/10">
-                <h2 className="text-sm font-semibold text-white/70">Recent Emails</h2>
-              </div>
-              <div className="divide-y divide-white/5">
-                {emails.length === 0 ? (
-                  <div className="px-5 py-8 text-center text-white/30 text-sm">No emails found</div>
-                ) : (
-                  emails.map((email) => (
-                    <div key={email.id} onClick={() => setSelected(email)}
-                      className={`px-5 py-4 cursor-pointer hover:bg-white/5 transition ${selected?.id === email.id ? "bg-white/10" : ""}`}>
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          {email.isUnread && <div className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0" />}
-                          <span className={`text-sm truncate ${email.isUnread ? "font-semibold text-white" : "text-white/70"}`}>
-                            {formatFrom(email.from)}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-white/30 flex-shrink-0">{formatDate(email.date)}</span>
-                      </div>
-                      <p className={`text-xs truncate mb-1 ${email.isUnread ? "text-white/80" : "text-white/50"}`}>
-                        {email.subject}
-                      </p>
-                      <p className="text-[11px] text-white/30 truncate">{email.snippet}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-              {selected ? (
-                <div className="p-6">
-                  <div className="mb-4">
-                    <h3 className="font-semibold text-white text-base mb-2">{selected.subject}</h3>
-                    <div className="text-xs text-white/40 space-y-1">
-                      <p><span className="text-white/60">From:</span> {selected.from}</p>
-                      <p><span className="text-white/60">Date:</span> {selected.date}</p>
-                    </div>
-                  </div>
-                  <div className="border-t border-white/10 pt-4">
-                    <p className="text-sm text-white/60 leading-relaxed">{selected.snippet}</p>
-                  </div>
-                  {selected.isUnread && (
-                    <div className="mt-4">
-                      <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-1 rounded-full">Unread</span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full py-20">
-                  <p className="text-white/20 text-sm">Click an email to preview it</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <button onClick={fetchEmails} className="text-white/40 hover:text-white/80 text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 transition">
+            Refresh
+          </button>
+          <button onClick={analyzeEmails} disabled={analyzing || emails.length === 0}
+            className="bg-white text-black text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-white/90 disabled:opacity-40 transition">
+            {analyzing ? "Analyzing..." : "AI Briefing"}
+          </button>
+        </div>
       </div>
+
+      {analysis && (
+        <div className="mx-6 mt-4 bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex-shrink-0">
+          <p className="text-xs font-semibold text-blue-400 mb-2">AI Email Briefing</p>
+          <p className="text-white/60 text-xs leading-relaxed whitespace-pre-wrap">{analysis}</p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+
+          {/* Email list */}
+          <div className="w-80 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden">
+            <div className="px-4 py-3 border-b border-white/[0.06]">
+              <input
+                type="text"
+                placeholder="Search emails..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/30 outline-none focus:border-white/20"
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {filtered.length === 0 ? (
+                <div className="p-8 text-center text-white/20 text-xs">No emails found</div>
+              ) : filtered.map((email) => (
+                <div key={email.id} onClick={() => setSelected(email)}
+                  className={`px-4 py-3.5 cursor-pointer border-b border-white/[0.04] hover:bg-white/[0.03] transition ${selected?.id === email.id ? "bg-white/[0.06]" : ""}`}>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {email.isUnread && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />}
+                      <span className={`text-xs truncate ${email.isUnread ? "font-semibold text-white" : "text-white/60"}`}>
+                        {formatFrom(email.from)}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-white/25 flex-shrink-0">{formatDate(email.date)}</span>
+                  </div>
+                  <p className={`text-[11px] truncate mb-0.5 ${email.isUnread ? "text-white/80 font-medium" : "text-white/40"}`}>
+                    {email.subject}
+                  </p>
+                  <p className="text-[10px] text-white/25 truncate">{email.snippet}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Email body */}
+          <div className="flex-1 overflow-y-auto">
+            {selected ? (
+              <div className="p-8 max-w-3xl">
+                <h2 className="text-lg font-semibold text-white mb-4 leading-snug">{selected.subject}</h2>
+                <div className="flex flex-col gap-1 mb-6 pb-6 border-b border-white/[0.06]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                      {formatFrom(selected.from).charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{formatFrom(selected.from)}</p>
+                      <p className="text-[11px] text-white/30">{formatFromEmail(selected.from)}</p>
+                    </div>
+                  </div>
+                  <div className="ml-10 space-y-0.5">
+                    {selected.to && <p className="text-[11px] text-white/30"><span className="text-white/40">To:</span> {selected.to}</p>}
+                    <p className="text-[11px] text-white/30">{formatFullDate(selected.date)}</p>
+                  </div>
+                </div>
+                <div className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+                  {selected.body || selected.snippet}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-white/20 text-sm">Select an email to read it</p>
+              </div>
+            )}
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }

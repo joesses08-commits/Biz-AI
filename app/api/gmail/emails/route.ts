@@ -33,7 +33,7 @@ export async function GET() {
 
     let accessToken = connection.access_token;
     const expiry = new Date(connection.token_expiry);
-    
+
     if (expiry < new Date()) {
       const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -56,32 +56,60 @@ export async function GET() {
     }
 
     const listResponse = await fetch(
-      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20",
+      "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50",
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const listData = await listResponse.json();
 
     if (listData.error) {
-      return NextResponse.json({ error: listData.error.message, debug: listData }, { status: 400 });
+      return NextResponse.json({ error: listData.error.message }, { status: 400 });
     }
 
     if (!listData.messages || listData.messages.length === 0) {
-      return NextResponse.json({ emails: [], total: 0, debug: listData });
+      return NextResponse.json({ emails: [], total: 0 });
+    }
+
+    function decodeBase64(str: string) {
+      try {
+        return Buffer.from(str.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+      } catch {
+        return "";
+      }
+    }
+
+    function extractBody(payload: any): string {
+      if (!payload) return "";
+      if (payload.mimeType === "text/plain" && payload.body?.data) {
+        return decodeBase64(payload.body.data);
+      }
+      if (payload.mimeType === "text/html" && payload.body?.data) {
+        const html = decodeBase64(payload.body.data);
+        return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      }
+      if (payload.parts) {
+        for (const part of payload.parts) {
+          const text = extractBody(part);
+          if (text) return text;
+        }
+      }
+      return "";
     }
 
     const emails = await Promise.all(
-      listData.messages.slice(0, 10).map(async (msg: { id: string }) => {
+      listData.messages.map(async (msg: { id: string }) => {
         const msgResponse = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         const msgData = await msgResponse.json();
         const headers = msgData.payload?.headers || [];
-        const subject = headers.find((h: { name: string; value: string }) => h.name === "Subject")?.value || "(No subject)";
-        const from = headers.find((h: { name: string; value: string }) => h.name === "From")?.value || "Unknown";
-        const date = headers.find((h: { name: string; value: string }) => h.name === "Date")?.value || "";
+        const subject = headers.find((h: any) => h.name === "Subject")?.value || "(No subject)";
+        const from = headers.find((h: any) => h.name === "From")?.value || "Unknown";
+        const to = headers.find((h: any) => h.name === "To")?.value || "";
+        const date = headers.find((h: any) => h.name === "Date")?.value || "";
         const isUnread = msgData.labelIds?.includes("UNREAD");
-        return { id: msg.id, subject, from, date, isUnread, snippet: msgData.snippet };
+        const body = extractBody(msgData.payload);
+        return { id: msg.id, subject, from, to, date, isUnread, snippet: msgData.snippet, body };
       })
     );
 
