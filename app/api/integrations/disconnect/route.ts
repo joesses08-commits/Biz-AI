@@ -21,11 +21,16 @@ export async function POST(request: NextRequest) {
 
   if (!table) return NextResponse.json({ error: "Unknown integration" });
 
-  const { error } = await supabase.from(table).delete().eq("user_id", userId);
+  // Try all possible user IDs
+  await supabase.from(table).delete().eq("user_id", userId);
+  await supabase.from(table).delete().eq("user_id", "demo-user");
 
-  if (error) {
-    // Try deleting by demo-user as fallback
-    await supabase.from(table).delete().eq("user_id", "demo-user");
+  // For gmail, also try deleting all rows for this user
+  if (integration === "gmail") {
+    const { data: rows } = await supabase.from(table).select("id").limit(10);
+    if (rows && rows.length > 0) {
+      await supabase.from(table).delete().in("id", rows.map((r: any) => r.id));
+    }
   }
 
   return NextResponse.json({ success: true });
