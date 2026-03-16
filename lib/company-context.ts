@@ -243,11 +243,38 @@ ${customerList}`;
   } catch { return ""; }
 }
 
+async function refreshQuickBooksToken(conn: any) {
+  try {
+    const credentials = Buffer.from(`${process.env.QUICKBOOKS_CLIENT_ID}:${process.env.QUICKBOOKS_CLIENT_SECRET}`).toString("base64");
+    const res = await fetch("https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${credentials}`,
+      },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: conn.refresh_token,
+      }),
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      await supabase.from("quickbooks_connections").update({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token || conn.refresh_token,
+      }).eq("user_id", conn.user_id);
+      return data.access_token;
+    }
+  } catch {}
+  return conn.access_token;
+}
+
 async function getQuickBooksContext(userId: string): Promise<string> {
   try {
     const { data: conn } = await supabase.from("quickbooks_connections").select("*").eq("user_id", userId).single();
     if (!conn) return "";
-    const headers = { Authorization: `Bearer ${conn.access_token}`, Accept: "application/json" };
+    const token = await refreshQuickBooksToken(conn);
+    const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
     const [invoicesRes, plRes] = await Promise.all([
       fetch(`https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}/query?query=SELECT * FROM Invoice MAXRESULTS 100&minorversion=65`, { headers }),
       fetch(`https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}/reports/ProfitAndLoss?minorversion=65`, { headers }),
