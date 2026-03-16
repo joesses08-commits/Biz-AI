@@ -102,7 +102,7 @@ export default function LandingPage() {
           <h1 className="fade-up d2" style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(48px, 7vw, 88px)", fontWeight: "400", lineHeight: "1.05", letterSpacing: "-0.02em", margin: "24px 0 28px", color: "#f0ede8" }}>
             Your business,{" "}<span style={{ fontStyle: "italic", color: "#888" }}>fully</span><br />understood.
           </h1>
-          <p className="fade-up d3" style={{ fontSize: "18px", color: "#555", lineHeight: "1.7", maxWidth: "560px", margin: "0 auto 40px", fontWeight: "300" }}>
+          <p className="fade-up d3" style={{ fontSize: "18px", color: "#777", lineHeight: "1.7", maxWidth: "560px", margin: "0 auto 40px", fontWeight: "300" }}>
             BizAI connects every tool your company runs on and gives you a single AI that knows everything — your numbers, your emails, your meetings, your risks — and tells you exactly what to do.
           </p>
           <div className="fade-up d4" style={{ display: "flex", gap: "12px", justifyContent: "center", alignItems: "center" }}>
@@ -110,7 +110,7 @@ export default function LandingPage() {
             <a href="#features" className="btn-ghost">See how it works</a>
           </div>
           <div className="fade-up d4" style={{ marginTop: "80px", display: "flex", gap: "48px", justifyContent: "center", alignItems: "center" }}>
-            {[["$1M+", "ARR tracked"], ["15+", "Integrations"], ["60s", "Setup time"]].map(([stat, label]) => (
+            {[["", "ARR tracked"], ["15+", "Integrations"], ["60s", "Setup time"]].map(([stat, label]) => (
               <div key={label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "28px", fontWeight: "300", fontFamily: "'Playfair Display', serif", color: "#f0ede8" }}>{stat}</div>
                 <div className="label" style={{ marginTop: "4px" }}>{label}</div>
@@ -136,9 +136,9 @@ export default function LandingPage() {
         <div style={{ marginBottom: "48px" }}>
           <span className="label">Why BizAI</span>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 3vw, 42px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.2", letterSpacing: "-0.02em", maxWidth: "560px", color: "#f0ede8" }}>
-            Every business generates enormous data.<br /><span style={{ fontStyle: "italic", color: "#555" }}>Nobody can make sense of it.</span>
+            Every business generates enormous data.<br /><span style={{ fontStyle: "italic", color: "#777" }}>Nobody can make sense of it.</span>
           </h2>
-          <p style={{ fontSize: "15px", color: "#444", lineHeight: "1.7", maxWidth: "520px", marginTop: "20px", fontWeight: "300" }}>
+          <p style={{ fontSize: "15px", color: "#666", lineHeight: "1.7", maxWidth: "520px", marginTop: "20px", fontWeight: "300" }}>
             Your revenue is in Stripe. Your invoices are in QuickBooks. Your emails are in Gmail. Your decisions are in Zoom calls. None of these tools talk to each other — so you never see the full picture. BizAI connects everything and tells you what it means.
           </p>
         </div>
@@ -146,10 +146,10 @@ export default function LandingPage() {
           {[
             { before: "Separate tools", after: "One intelligent platform", icon: "→" },
             { before: "Monthly reports", after: "Real-time intelligence", icon: "→" },
-            { before: "$300K exec team", after: "AI COO at $299/mo", icon: "→" },
+            { before: "Expensive exec team", after: "AI COO for a fraction of the cost", icon: "→" },
           ].map((item) => (
             <div key={item.before} style={{ background: "#0a0a0a", padding: "36px" }}>
-              <div style={{ fontSize: "13px", color: "#333", marginBottom: "8px", fontWeight: "300", textDecoration: "line-through" }}>{item.before}</div>
+              <div style={{ fontSize: "13px", color: "#555", marginBottom: "8px", fontWeight: "300", textDecoration: "line-through" }}>{item.before}</div>
               <div style={{ fontSize: "16px", color: "#f0ede8", fontWeight: "500" }}>{item.after}</div>
             </div>
           ))}
@@ -161,7 +161,7 @@ export default function LandingPage() {
         <div style={{ marginBottom: "72px" }}>
           <span className="label">The Platform</span>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 4vw, 52px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.1", letterSpacing: "-0.02em", maxWidth: "480px" }}>
-            Built for operators,<br /><span style={{ fontStyle: "italic", color: "#555" }}>not analysts.</span>
+            Built for operators,<br /><span style={{ fontStyle: "italic", color: "#777" }}>not analysts.</span>
           </h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1px", background: "#111" }}>
@@ -170,7 +170,7 @@ export default function LandingPage() {
               <div style={{ fontSize: "36px", fontFamily: "'Playfair Display', serif", fontWeight: "400", color: "#f0ede8", marginBottom: "4px" }}>{f.stat}</div>
               <div className="label" style={{ marginBottom: "24px" }}>{f.statLabel}</div>
               <h3 style={{ fontSize: "18px", fontWeight: "500", marginBottom: "12px", color: "#f0ede8", letterSpacing: "-0.01em" }}>{f.title}</h3>
-              <p style={{ fontSize: "14px", color: "#555", lineHeight: "1.7", fontWeight: "300" }}>{f.description}</p>
+              <p style={{ fontSize: "14px", color: "#777", lineHeight: "1.7", fontWeight: "300" }}>{f.description}</p>
             </div>
           ))}
         </div>
@@ -192,7 +192,7 @@ export default function LandingPage() {
             <div key={s.step} style={{ padding: "40px", background: "#0a0a0a" }}>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "48px", color: "#1a1a1a", fontWeight: "400", lineHeight: "1", marginBottom: "24px" }}>{s.step}</div>
               <h3 style={{ fontSize: "16px", fontWeight: "500", marginBottom: "12px", color: "#f0ede8" }}>{s.title}</h3>
-              <p style={{ fontSize: "13px", color: "#444", lineHeight: "1.7", fontWeight: "300" }}>{s.desc}</p>
+              <p style={{ fontSize: "13px", color: "#666", lineHeight: "1.7", fontWeight: "300" }}>{s.desc}</p>
             </div>
           ))}
         </div>
@@ -202,20 +202,20 @@ export default function LandingPage() {
       <section style={{ padding: "120px 48px", borderTop: "1px solid #111", maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", background: "#111" }}>
           {[
-            { plan: "Starter", price: "$299", desc: "For founders and small teams. Connect up to 3 platforms. AI daily briefings, dashboard, and email support." },
-            { plan: "Growth", price: "$999", desc: "For scaling businesses. Up to 10 integrations, 25 team members, predictive forecasting, and dedicated onboarding." },
-            { plan: "Professional", price: "$2,500", desc: "For established companies. Unlimited integrations, unlimited team, custom AI workflows, and priority support." },
+            { plan: "Starter", price: "Starting at", desc: "For founders and small teams. Connect up to 3 platforms. AI daily briefings, dashboard, and email support." },
+            { plan: "Growth", price: "From", desc: "For scaling businesses. Up to 10 integrations, 25 team members, predictive forecasting, and dedicated onboarding." },
+            { plan: "Professional", price: "From", desc: "For established companies. Unlimited integrations, unlimited team, custom AI workflows, and priority support." },
             { plan: "Enterprise", price: "Custom", desc: "For large organizations with complex needs. White-glove setup, custom integrations, and SLA guarantees." },
           ].map((tier) => (
             <div key={tier.plan} style={{ background: "#0a0a0a", padding: "48px" }}>
               <div className="label" style={{ marginBottom: "12px" }}>{tier.plan}</div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "44px", fontWeight: "400", color: "#f0ede8", lineHeight: "1", marginBottom: "24px" }}>{tier.price}<span style={{ fontSize: "16px", color: "#444", fontFamily: "'DM Sans', sans-serif", fontWeight: "300", marginLeft: "4px" }}>{tier.price !== "Custom" ? "/mo" : ""}</span></div>
-              <p style={{ fontSize: "14px", color: "#555", lineHeight: "1.7", fontWeight: "300", marginBottom: "32px" }}>{tier.desc}</p>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "44px", fontWeight: "400", color: "#f0ede8", lineHeight: "1", marginBottom: "24px" }}>{tier.price}<span style={{ fontSize: "16px", color: "#666", fontFamily: "'DM Sans', sans-serif", fontWeight: "300", marginLeft: "4px" }}>{tier.price !== "Custom" ? "/mo" : ""}</span></div>
+              <p style={{ fontSize: "14px", color: "#777", lineHeight: "1.7", fontWeight: "300", marginBottom: "32px" }}>{tier.desc}</p>
               <a href="#contact" className="btn-ghost" style={{ fontSize: "13px", padding: "10px 24px" }}>Book a Demo</a>
             </div>
           ))}
         </div>
-        <p style={{ marginTop: "24px", textAlign: "center", fontSize: "13px", color: "#333", fontWeight: "300" }}>Every client is onboarded personally. No self-serve. No setup fees.</p>
+        <p style={{ marginTop: "24px", textAlign: "center", fontSize: "13px", color: "#555", fontWeight: "300" }}>Every client is onboarded personally. No self-serve. No setup fees.</p>
       </section>
 
       {/* CTA */}
@@ -224,9 +224,9 @@ export default function LandingPage() {
         <div style={{ position: "relative", maxWidth: "560px", margin: "0 auto" }}>
           <span className="label">Get Started</span>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(36px, 5vw, 64px)", fontWeight: "400", margin: "20px 0 24px", lineHeight: "1.05", letterSpacing: "-0.02em" }}>
-            Ready to meet your<br /><span style={{ fontStyle: "italic", color: "#555" }}>AI COO?</span>
+            Ready to meet your<br /><span style={{ fontStyle: "italic", color: "#777" }}>AI COO?</span>
           </h2>
-          <p style={{ fontSize: "16px", color: "#444", marginBottom: "40px", lineHeight: "1.7", fontWeight: "300" }}>
+          <p style={{ fontSize: "16px", color: "#666", marginBottom: "40px", lineHeight: "1.7", fontWeight: "300" }}>
             We onboard every client personally. Book a 30-minute call and we'll show you exactly what BizAI looks like running on your business.
           </p>
           <a href="mailto:jo.esses08@gmail.com" className="btn-primary" style={{ fontSize: "15px", padding: "16px 36px" }}>Book a Demo →</a>
@@ -235,9 +235,9 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer style={{ borderTop: "1px solid #111", padding: "32px 48px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: "13px", color: "#333", fontWeight: "300" }}>© 2026 BizAI. All rights reserved.</span>
+        <span style={{ fontSize: "13px", color: "#555", fontWeight: "300" }}>© 2026 BizAI. All rights reserved.</span>
         <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
-          <Link href="/login" style={{ fontSize: "13px", color: "#333", textDecoration: "none" }}>Client Login →</Link>
+          <Link href="/login" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Client Login →</Link>
         </div>
       </footer>
     </div>
