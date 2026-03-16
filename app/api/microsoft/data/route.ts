@@ -1,24 +1,18 @@
-import { getUserId } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getUserId } from "@/lib/auth";
 
 export async function GET() {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const userId = await getUserId();
 
-  const { data: conn, error } = await supabase
+  const { data: conn } = await supabase
     .from("microsoft_connections")
     .select("*")
-    .eq("user_id", await getUserId())
+    .eq("user_id", userId)
     .single();
 
-  console.log("Microsoft conn:", conn, "error:", error);
-
-  if (!conn) {
-    return NextResponse.json({ connected: false });
-  }
+  if (!conn) return NextResponse.json({ connected: false });
 
   const headers = {
     Authorization: `Bearer ${conn.access_token}`,
@@ -27,14 +21,12 @@ export async function GET() {
 
   try {
     const [emailsRes, eventsRes] = await Promise.all([
-      fetch("https://graph.microsoft.com/v1.0/me/messages?$top=10&$orderby=receivedDateTime desc&$select=subject,from,receivedDateTime,isRead,bodyPreview", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/messages?$top=20&$orderby=receivedDateTime desc&$select=subject,from,receivedDateTime,isRead,bodyPreview", { headers }),
       fetch("https://graph.microsoft.com/v1.0/me/events?$top=5&$orderby=start/dateTime&$select=subject,start,end,organizer", { headers }),
     ]);
 
     const emails = await emailsRes.json();
     const events = await eventsRes.json();
-
-    console.log("Emails response:", JSON.stringify(emails).slice(0, 200));
 
     return NextResponse.json({
       connected: true,
@@ -43,8 +35,7 @@ export async function GET() {
       emails: emails.value || [],
       events: events.value || [],
     });
-  } catch (error) {
-    console.error("Microsoft Graph error:", error);
+  } catch {
     return NextResponse.json({ connected: true, email: conn.email, emails: [], events: [] });
   }
 }

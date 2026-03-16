@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getUserId } from "@/lib/auth";
 
 export async function GET() {
   const supabase = createClient(
@@ -7,12 +8,14 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
+  const userId = await getUserId();
+
   const { data } = await supabase
     .from("gmail_connections")
-    .select("email, user_id")
-    .limit(1)
+    .select("email")
+    .eq("user_id", userId)
     .single();
 
   if (!data) return NextResponse.json({ connected: false });
-  return NextResponse.json({ connected: true, email: data.email, userId: data.user_id });
+  return NextResponse.json({ connected: true, email: data.email });
 }
