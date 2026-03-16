@@ -20,7 +20,7 @@ async function refreshGoogleToken(connection: any) {
   if (data.access_token) {
     await supabase.from("gmail_connections").update({
       access_token: data.access_token,
-      token_expiry: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+      expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
     }).eq("user_id", connection.user_id);
     return data.access_token;
   }
@@ -43,7 +43,7 @@ async function refreshMicrosoftToken(connection: any) {
   if (data.access_token) {
     await supabase.from("microsoft_connections").update({
       access_token: data.access_token,
-      token_expiry: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+      expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
     }).eq("user_id", connection.user_id);
     return data.access_token;
   }
@@ -80,7 +80,7 @@ async function getGmailContext(userId: string): Promise<string> {
     const { data: conn } = await supabase.from("gmail_connections").select("*").eq("user_id", userId).single();
     if (!conn) return "";
     let token = conn.access_token;
-    if (new Date(conn.token_expiry) < new Date()) token = await refreshGoogleToken(conn);
+    if (new Date(conn.expires_at) < new Date()) token = await refreshGoogleToken(conn);
     const listRes = await fetch(
       "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50",
       { headers: { Authorization: `Bearer ${token}` } }
@@ -115,7 +115,7 @@ async function getGoogleSheetsContext(userId: string): Promise<string> {
     const { data: conn } = await supabase.from("gmail_connections").select("*").eq("user_id", userId).single();
     if (!conn) return "";
     let token = conn.access_token;
-    if (new Date(conn.token_expiry) < new Date()) token = await refreshGoogleToken(conn);
+    if (new Date(conn.expires_at) < new Date()) token = await refreshGoogleToken(conn);
     const filesRes = await fetch(
       "https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.spreadsheet'&pageSize=10&fields=files(id,name,modifiedTime)",
       { headers: { Authorization: `Bearer ${token}` } }
@@ -149,7 +149,7 @@ async function getOutlookContext(userId: string): Promise<string> {
     const { data: conn } = await supabase.from("microsoft_connections").select("*").eq("user_id", userId).single();
     if (!conn) return "";
     let token = conn.access_token;
-    if (new Date(conn.token_expiry) < new Date()) token = await refreshMicrosoftToken(conn);
+    if (new Date(conn.expires_at) < new Date()) token = await refreshMicrosoftToken(conn);
     const res = await fetch(
       "https://graph.microsoft.com/v1.0/me/messages?$top=50&$select=subject,from,receivedDateTime,body,isRead&$orderby=receivedDateTime desc",
       { headers: { Authorization: `Bearer ${token}` } }
@@ -173,7 +173,7 @@ async function getExcelContext(userId: string): Promise<string> {
     const { data: conn } = await supabase.from("microsoft_connections").select("*").eq("user_id", userId).single();
     if (!conn) return "";
     let token = conn.access_token;
-    if (new Date(conn.token_expiry) < new Date()) token = await refreshMicrosoftToken(conn);
+    if (new Date(conn.expires_at) < new Date()) token = await refreshMicrosoftToken(conn);
     const filesRes = await fetch(
       "https://graph.microsoft.com/v1.0/me/drive/root/children?$top=50&$select=id,name,file,lastModifiedDateTime",
       { headers: { Authorization: `Bearer ${token}` } }

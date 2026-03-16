@@ -18,7 +18,7 @@ async function refreshToken(conn: any, supabase: any) {
   if (data.access_token) {
     await supabase.from("microsoft_connections").update({
       access_token: data.access_token,
-      token_expiry: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+      expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
     }).eq("user_id", conn.user_id);
     return data.access_token;
   }
@@ -48,7 +48,7 @@ export async function GET() {
     if (!conn) return NextResponse.json({ connected: false });
 
     let token = conn.access_token;
-    if (new Date(conn.token_expiry) < new Date()) token = await refreshToken(conn, supabase);
+    if (new Date(conn.expires_at) < new Date()) token = await refreshToken(conn, supabase);
 
     const headers = { Authorization: `Bearer ${token}` };
 
