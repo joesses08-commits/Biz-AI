@@ -14,22 +14,22 @@ module.exports = {
       },
       colors: {
         bg: {
-          base: "#f5f5f7",
-          surface: "#ffffff",
-          elevated: "#f5f5f7",
-          border: "#d2d2d7",
-          hover: "#e8e8ed",
+          base: "#060608",
+          surface: "#0c0c10",
+          elevated: "#111116",
+          border: "#1c1c24",
+          hover: "#16161e",
         },
         accent: {
-          DEFAULT: "#0071e3",
-          dim: "#0071e310",
-          border: "#0071e330",
-          hover: "#0077ed",
+          DEFAULT: "#4f6ef7",
+          dim: "#4f6ef720",
+          border: "#4f6ef740",
+          hover: "#6b85f8",
         },
         text: {
-          primary: "#1d1d1f",
-          secondary: "#515154",
-          muted: "#86868b",
+          primary: "#f4f4f8",
+          secondary: "#8888a8",
+          muted: "#404058",
         },
       },
       animation: {
@@ -40,7 +40,7 @@ module.exports = {
       },
       keyframes: {
         fadeUp: {
-          from: { opacity: 0, transform: "translateY(8px)" },
+          from: { opacity: 0, transform: "translateY(12px)" },
           to: { opacity: 1, transform: "translateY(0)" },
         },
         fadeIn: {
