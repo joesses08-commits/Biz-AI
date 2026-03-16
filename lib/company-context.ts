@@ -87,22 +87,30 @@ async function getGmailContext(userId: string): Promise<string> {
     );
     const listData = await listRes.json();
     if (!listData.messages?.length) return "";
-    const emails = await Promise.all(
-      listData.messages.slice(0, 50).map(async (msg: any) => {
-        const res = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const data = await res.json();
-        const headers = data.payload?.headers || [];
-        const subject = getHeader(headers, "subject") || "(No subject)";
-        const from = getHeader(headers, "from") || "Unknown";
-        const date = getHeader(headers, "date") || "Unknown date";
-        const body = extractEmailBody(data.payload);
-        const isUnread = data.labelIds?.includes("UNREAD") ? "[UNREAD]" : "";
-        return `  ${isUnread} FROM: ${from} | DATE: ${date} | SUBJECT: ${subject}\n  BODY: ${body.slice(0, 400)}`;
-      })
-    );
+    const messages = listData.messages.slice(0, 50);
+    const emails: string[] = [];
+    
+    // Fetch in batches of 10 to avoid timeout
+    for (let i = 0; i < messages.length; i += 10) {
+      const batch = messages.slice(i, i + 10);
+      const batchResults = await Promise.all(
+        batch.map(async (msg: any) => {
+          const res = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const data = await res.json();
+          const headers = data.payload?.headers || [];
+          const subject = getHeader(headers, "subject") || "(No subject)";
+          const from = getHeader(headers, "from") || "Unknown";
+          const date = getHeader(headers, "date") || "Unknown date";
+          const body = extractEmailBody(data.payload);
+          const isUnread = data.labelIds?.includes("UNREAD") ? "[UNREAD]" : "";
+          return `  ${isUnread} FROM: ${from} | DATE: ${date} | SUBJECT: ${subject}\n  BODY: ${body.slice(0, 400)}`;
+        })
+      );
+      emails.push(...batchResults);
+    }
     return `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 GMAIL (${conn.email}) — ${emails.length} emails
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
