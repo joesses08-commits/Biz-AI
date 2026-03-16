@@ -110,7 +110,7 @@ export default function LandingPage() {
             <a href="#features" className="btn-ghost">See how it works</a>
           </div>
           <div className="fade-up d4" style={{ marginTop: "80px", display: "flex", gap: "48px", justifyContent: "center", alignItems: "center" }}>
-            {[["", "ARR tracked"], ["15+", "Integrations"], ["60s", "Setup time"]].map(([stat, label]) => (
+            {[["Ask anything", "About your business"], ["One platform", "Every tool connected"], ["Daily", "AI briefings"]].map(([stat, label]) => (
               <div key={label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "28px", fontWeight: "300", fontFamily: "'Playfair Display', serif", color: "#f0ede8" }}>{stat}</div>
                 <div className="label" style={{ marginTop: "4px" }}>{label}</div>
@@ -198,25 +198,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing removed — replaced with simple CTA since sales are white glove */}
-      <section style={{ padding: "120px 48px", borderTop: "1px solid #111", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1px", background: "#111" }}>
-          {[
-            { plan: "Starter", price: "Starting at", desc: "For founders and small teams. Connect up to 3 platforms. AI daily briefings, dashboard, and email support." },
-            { plan: "Growth", price: "From", desc: "For scaling businesses. Up to 10 integrations, 25 team members, predictive forecasting, and dedicated onboarding." },
-            { plan: "Professional", price: "From", desc: "For established companies. Unlimited integrations, unlimited team, custom AI workflows, and priority support." },
-            { plan: "Enterprise", price: "Custom", desc: "For large organizations with complex needs. White-glove setup, custom integrations, and SLA guarantees." },
-          ].map((tier) => (
-            <div key={tier.plan} style={{ background: "#0a0a0a", padding: "48px" }}>
-              <div className="label" style={{ marginBottom: "12px" }}>{tier.plan}</div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "44px", fontWeight: "400", color: "#f0ede8", lineHeight: "1", marginBottom: "24px" }}>{tier.price}<span style={{ fontSize: "16px", color: "#666", fontFamily: "'DM Sans', sans-serif", fontWeight: "300", marginLeft: "4px" }}>{tier.price !== "Custom" ? "/mo" : ""}</span></div>
-              <p style={{ fontSize: "14px", color: "#777", lineHeight: "1.7", fontWeight: "300", marginBottom: "32px" }}>{tier.desc}</p>
-              <a href="#contact" className="btn-ghost" style={{ fontSize: "13px", padding: "10px 24px" }}>Book a Demo</a>
-            </div>
-          ))}
-        </div>
-        <p style={{ marginTop: "24px", textAlign: "center", fontSize: "13px", color: "#555", fontWeight: "300" }}>Every client is onboarded personally. No self-serve. No setup fees.</p>
-      </section>
+
 
       {/* CTA */}
       <section id="contact" style={{ padding: "120px 48px", borderTop: "1px solid #111", textAlign: "center", position: "relative", overflow: "hidden" }}>
