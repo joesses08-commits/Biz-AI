@@ -66,25 +66,27 @@ export async function GET() {
     let accessToken = connection.access_token;
     const expiry = new Date(connection.token_expiry);
 
-    if (expiry < new Date()) {
-      const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          refresh_token: connection.refresh_token,
-          client_id: process.env.GOOGLE_CLIENT_ID!,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-          grant_type: "refresh_token",
-        }),
-      });
-      const refreshData = await refreshResponse.json();
-      if (refreshData.access_token) {
-        accessToken = refreshData.access_token;
-        await supabase.from("gmail_connections").update({
-          access_token: accessToken,
-          token_expiry: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
-        }).eq("user_id", user.id);
-      }
+    // Always try to refresh token
+    const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        refresh_token: connection.refresh_token,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        grant_type: "refresh_token",
+      }),
+    });
+    const refreshData = await refreshResponse.json();
+
+    if (refreshData.access_token) {
+      accessToken = refreshData.access_token;
+      await supabase.from("gmail_connections").update({
+        access_token: accessToken,
+        token_expiry: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
+      }).eq("user_id", user.id);
+    } else {
+      return NextResponse.json({ error: "Token refresh failed", refresh_error: refreshData }, { status: 401 });
     }
 
     const listResponse = await fetch(
@@ -94,14 +96,14 @@ export async function GET() {
     const listData = await listResponse.json();
 
     if (listData.error) {
-      return NextResponse.json({ error: listData.error.message }, { status: 400 });
+      return NextResponse.json({ error: listData.error.message, list_error: listData }, { status: 400 });
     }
 
     if (!listData.messages || listData.messages.length === 0) {
       return NextResponse.json({ emails: [], total: 0 });
     }
 
-    // DEBUG: fetch first message and return raw structure
+    // DEBUG: fetch first message and return full raw response
     const firstMsgResponse = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages/${listData.messages[0].id}?format=full`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -110,11 +112,9 @@ export async function GET() {
 
     return NextResponse.json({
       debug: true,
-      raw_keys: Object.keys(firstMsg),
-      payload_keys: firstMsg.payload ? Object.keys(firstMsg.payload) : "NO PAYLOAD",
-      headers_sample: firstMsg.payload?.headers?.slice(0, 5) || "NO HEADERS",
-      snippet: firstMsg.snippet,
-      labelIds: firstMsg.labelIds,
+      first_msg_raw: firstMsg,
+      token_expiry_was: expiry.toISOString(),
+      refresh_succeeded: !!refreshData.access_token,
     });
 
   } catch (err) {
