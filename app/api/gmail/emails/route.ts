@@ -2,6 +2,32 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+function decodeBase64(str: string) {
+  try {
+    return Buffer.from(str.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
+  } catch {
+    return "";
+  }
+}
+
+function extractBody(payload: any): string {
+  if (!payload) return "";
+  if (payload.mimeType === "text/plain" && payload.body?.data) {
+    return decodeBase64(payload.body.data);
+  }
+  if (payload.mimeType === "text/html" && payload.body?.data) {
+    const html = decodeBase64(payload.body.data);
+    return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  }
+  if (payload.parts) {
+    for (const part of payload.parts) {
+      const text = extractBody(part);
+      if (text) return text;
+    }
+  }
+  return "";
+}
+
 export async function GET() {
   try {
     const cookieStore = cookies();
@@ -67,32 +93,6 @@ export async function GET() {
 
     if (!listData.messages || listData.messages.length === 0) {
       return NextResponse.json({ emails: [], total: 0 });
-    }
-
-    function decodeBase64(str: string) {
-      try {
-        return Buffer.from(str.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8");
-      } catch {
-        return "";
-      }
-    }
-
-    function extractBody(payload: any): string {
-      if (!payload) return "";
-      if (payload.mimeType === "text/plain" && payload.body?.data) {
-        return decodeBase64(payload.body.data);
-      }
-      if (payload.mimeType === "text/html" && payload.body?.data) {
-        const html = decodeBase64(payload.body.data);
-        return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-      }
-      if (payload.parts) {
-        for (const part of payload.parts) {
-          const text = extractBody(part);
-          if (text) return text;
-        }
-      }
-      return "";
     }
 
     const emails = await Promise.all(
