@@ -11,7 +11,7 @@ async function refreshToken(conn: any, supabase: any) {
       client_id: process.env.MICROSOFT_CLIENT_ID!,
       client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
       grant_type: "refresh_token",
-      scope: "offline_access Mail.Read Calendars.Read Files.Read",
+      scope: "offline_access Mail.Read Calendars.Read Files.Read.All",
     }),
   });
   const data = await res.json();
@@ -52,34 +52,33 @@ export async function GET() {
 
     const headers = { Authorization: `Bearer ${token}` };
 
-    // Search entire drive for all file types
-    const [allRes, xlsRes, docRes, pptRes] = await Promise.all([
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='')??$top=100&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.docx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.pptx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+    // Use /me/drive/recent to get recently accessed files
+    // AND search for specific file types across entire drive
+    const [recentRes, searchXlsxRes, searchDocxRes, searchPptxRes] = await Promise.all([
+      fetch("https://graph.microsoft.com/v1.0/me/drive/recent?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='xlsx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='docx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='pptx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
     ]);
 
-    const [allData, xlsData, docData, pptData] = await Promise.all([
-      allRes.json(), xlsRes.json(), docRes.json(), pptRes.json()
+    const [recentData, xlsxData, docxData, pptxData] = await Promise.all([
+      recentRes.json(), searchXlsxRes.json(), searchDocxRes.json(), searchPptxRes.json()
     ]);
-
-    // Merge and deduplicate all files
-    const allFiles = [
-      ...(allData.value || []),
-      ...(xlsData.value || []),
-      ...(docData.value || []),
-      ...(pptData.value || []),
-    ].filter(f => f.file); // only files not folders
 
     const seen = new Set();
-    const files = allFiles.filter(f => {
+    const allFiles = [
+      ...(recentData.value || []),
+      ...(xlsxData.value || []),
+      ...(docxData.value || []),
+      ...(pptxData.value || []),
+    ].filter(f => {
+      if (!f.file) return false;
       if (seen.has(f.id)) return false;
       seen.add(f.id);
       return true;
     });
 
-    return NextResponse.json({ connected: true, email: conn.email, files });
+    return NextResponse.json({ connected: true, email: conn.email, files: allFiles });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

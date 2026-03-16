@@ -11,7 +11,7 @@ async function refreshToken(conn: any, supabase: any) {
       client_id: process.env.MICROSOFT_CLIENT_ID!,
       client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
       grant_type: "refresh_token",
-      scope: "offline_access Mail.Read Calendars.Read Files.Read",
+      scope: "offline_access Mail.Read Calendars.Read Files.Read.All",
     }),
   });
   const data = await res.json();
@@ -52,20 +52,21 @@ export async function GET() {
 
     const headers = { Authorization: `Bearer ${token}` };
 
-    // Search entire drive for Excel files
-    const [xlsxRes, xlsRes] = await Promise.all([
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xlsx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
-      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='.xls')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+    // Search for Excel files AND get recent files
+    const [recentRes, searchRes] = await Promise.all([
+      fetch("https://graph.microsoft.com/v1.0/me/drive/recent?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
+      fetch("https://graph.microsoft.com/v1.0/me/drive/root/search(q='xlsx')?$top=50&$select=id,name,size,lastModifiedDateTime,file,parentReference", { headers }),
     ]);
 
-    const [xlsxData, xlsData] = await Promise.all([xlsxRes.json(), xlsRes.json()]);
+    const [recentData, searchData] = await Promise.all([recentRes.json(), searchRes.json()]);
 
     const seen = new Set();
     const excelFiles = [
-      ...(xlsxData.value || []),
-      ...(xlsData.value || []),
+      ...(recentData.value || []),
+      ...(searchData.value || []),
     ].filter(f => {
       if (!f.file) return false;
+      if (!f.name?.match(/\.(xlsx|xls)$/i)) return false;
       if (seen.has(f.id)) return false;
       seen.add(f.id);
       return true;
@@ -73,7 +74,6 @@ export async function GET() {
 
     if (!excelFiles.length) return NextResponse.json({ connected: true, files: [], sheets: [] });
 
-    // Read data from each file
     const sheets: any[] = [];
     for (const file of excelFiles.slice(0, 5)) {
       try {
