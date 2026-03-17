@@ -15,7 +15,6 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Get all users
     const { data: users } = await supabase.auth.admin.listUsers();
     if (!users?.users?.length) return NextResponse.json({ sent: 0 });
 
@@ -26,20 +25,17 @@ export async function GET(request: Request) {
         const email = user.email;
         if (!email) continue;
 
-        // Get company profile
         const { data: profile } = await supabase
           .from("company_profiles")
           .select("company_name, company_brief")
           .eq("user_id", user.id)
           .single();
 
-        // Build context
         const context = await buildFullCompanyContext(user.id);
         if (!context || context.length < 500) continue;
 
         const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-        // Generate briefing with Claude
         const response = await anthropic.messages.create({
           model: "claude-sonnet-4-5",
           max_tokens: 1000,
@@ -65,9 +61,8 @@ Rules:
 
         const companyName = profile?.company_name || "Your Business";
 
-        // Send email
         await resend.emails.send({
-          from: "BizAI <briefing@bizai.co>",
+          from: "BizAI <onboarding@resend.dev>",
           to: email,
           subject: `Your AI COO Briefing — ${today}`,
           html: `
@@ -76,15 +71,12 @@ Rules:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BizAI Daily Briefing</title>
 </head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;min-height:100vh;">
     <tr>
       <td align="center" style="padding:40px 20px;">
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
-          
-          <!-- Header -->
           <tr>
             <td style="padding-bottom:32px;">
               <table width="100%" cellpadding="0" cellspacing="0">
@@ -100,16 +92,12 @@ Rules:
               </table>
             </td>
           </tr>
-
-          <!-- Title -->
           <tr>
             <td style="padding-bottom:24px;border-bottom:1px solid #ffffff10;">
               <p style="margin:0;color:#ffffff40;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Daily Briefing</p>
               <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:-1px;line-height:1.2;">${companyName}</h1>
             </td>
           </tr>
-
-          <!-- Briefing Content -->
           <tr>
             <td style="padding:32px 0;">
               <div style="color:#ffffffb0;font-size:15px;line-height:1.7;">
@@ -117,8 +105,6 @@ Rules:
               </div>
             </td>
           </tr>
-
-          <!-- CTA -->
           <tr>
             <td style="padding-top:8px;padding-bottom:40px;border-top:1px solid #ffffff10;">
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
@@ -135,17 +121,13 @@ Rules:
               </table>
             </td>
           </tr>
-
-          <!-- Footer -->
           <tr>
             <td>
               <p style="margin:0;color:#ffffff20;font-size:11px;">
-                BizAI · AI Operating System for Business · 
-                <a href="https://biz-ai-pi.vercel.app" style="color:#ffffff30;text-decoration:none;">biz-ai-pi.vercel.app</a>
+                BizAI · AI Operating System for Business
               </p>
             </td>
           </tr>
-
         </table>
       </td>
     </tr>
