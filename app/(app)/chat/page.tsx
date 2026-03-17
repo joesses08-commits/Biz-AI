@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, User, RotateCcw, Zap } from "lucide-react";
-import { cn, generateId } from "@/lib/utils";
+import { Send, Plus, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -12,88 +12,93 @@ interface Message {
   timestamp: string;
 }
 
-const STARTER_QUESTIONS = [
-  "What's the most important thing I should focus on today?",
-  "What does my financial position look like right now?",
-  "Who are my most valuable customers?",
-  "What are my biggest cost problems?",
-  "Are there any urgent issues I should know about?",
-  "How can I improve profitability this quarter?",
-];
-
-function UserBubble({ message }: { message: Message }) {
-  return (
-    <div className="flex justify-end gap-3">
-      <div className="max-w-[72%]">
-        <div className="bg-white text-black rounded-2xl rounded-tr-md px-4 py-3 shadow-sm">
-          <p className="text-sm leading-relaxed font-medium">{message.content}</p>
-        </div>
-        <p className="text-[10px] text-text-muted text-right mt-1.5 pr-1">
-          {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      </div>
-      <div className="w-7 h-7 rounded-full bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0 mt-1">
-        <User size={12} className="text-white/70" />
-      </div>
-    </div>
-  );
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: string;
 }
 
-function AssistantBubble({ message, isStreaming }: { message: Message; isStreaming?: boolean }) {
-  return (
-    <div className="flex gap-3">
-      <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center flex-shrink-0 mt-1">
-        <Zap size={11} className="text-accent" fill="currentColor" />
-      </div>
-      <div className="flex-1 max-w-[82%]">
-        <div className="bg-bg-surface border border-bg-border rounded-2xl rounded-tl-md px-5 py-4 shadow-sm">
-          {message.content ? (
-            <div className="prose prose-invert prose-sm max-w-none
-              prose-headings:text-text-primary prose-headings:font-semibold prose-headings:text-sm prose-headings:mt-3 prose-headings:mb-1.5
-              prose-p:text-text-secondary prose-p:leading-relaxed prose-p:text-sm prose-p:my-1
-              prose-li:text-text-secondary prose-li:text-sm prose-li:my-0.5
-              prose-strong:text-text-primary prose-strong:font-semibold
-              prose-ul:my-2 prose-ol:my-2
-              prose-hr:border-bg-border">
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2.5 py-0.5">
-              <div className="flex gap-1">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce"
-                    style={{ animationDelay: `${i * 0.15}s` }} />
-                ))}
-              </div>
-              <span className="text-xs text-text-muted">Analyzing your data...</span>
-            </div>
-          )}
-          {isStreaming && message.content && (
-            <span className="inline-block w-0.5 h-3.5 bg-accent ml-0.5 animate-pulse" />
-          )}
-        </div>
-        <p className="text-[10px] text-text-muted mt-1.5 pl-1">
-          BizAI · {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      </div>
-    </div>
-  );
+const QUICK_ACTIONS = [
+  "What needs my attention today?",
+  "What are my biggest risks right now?",
+  "Where can I make more money?",
+  "How's my cash position?",
+  "What should I do this week?",
+];
+
+function generateId() {
+  return Math.random().toString(36).slice(2);
+}
+
+function getTitle(messages: Message[]) {
+  const first = messages.find(m => m.role === "user");
+  if (!first) return "New conversation";
+  return first.content.slice(0, 40) + (first.content.length > 40 ? "..." : "");
 }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingId, setStreamingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const activeConversation = conversations.find(c => c.id === activeId);
+  const messages = activeConversation?.messages || [];
+
+  useEffect(() => {
+    const saved = localStorage.getItem("bizai_conversations");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setConversations(parsed);
+        if (parsed.length > 0) setActiveId(parsed[0].id);
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (conversations.length > 0) {
+      localStorage.setItem("bizai_conversations", JSON.stringify(conversations));
+    }
+  }, [conversations]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const newConversation = () => {
+    const id = generateId();
+    const conv: Conversation = {
+      id,
+      title: "New conversation",
+      messages: [],
+      createdAt: new Date().toISOString(),
+    };
+    setConversations(prev => [conv, ...prev]);
+    setActiveId(id);
+    setInput("");
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+
+    let currentId = activeId;
+    if (!currentId) {
+      const id = generateId();
+      const conv: Conversation = {
+        id,
+        title: "New conversation",
+        messages: [],
+        createdAt: new Date().toISOString(),
+      };
+      setConversations(prev => [conv, ...prev]);
+      setActiveId(id);
+      currentId = id;
+    }
 
     const userMsg: Message = {
       id: generateId(),
@@ -109,13 +114,17 @@ export default function ChatPage() {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages(prev => [...prev, userMsg, assistantMsg]);
+    setConversations(prev => prev.map(c =>
+      c.id === currentId
+        ? { ...c, messages: [...c.messages, userMsg, assistantMsg], title: getTitle([...c.messages, userMsg]) }
+        : c
+    ));
     setInput("");
     setIsLoading(true);
-    setStreamingId(assistantMsg.id);
 
     try {
-      const history = [...messages, userMsg].map(m => ({
+      const currentMessages = conversations.find(c => c.id === currentId)?.messages || [];
+      const history = [...currentMessages, userMsg].map(m => ({
         role: m.role,
         content: m.content,
       }));
@@ -126,28 +135,23 @@ export default function ChatPage() {
         body: JSON.stringify({ messages: history }),
       });
 
-      if (!res.ok) throw new Error("Chat failed");
       const data = await res.json();
+      const responseText = data.message || data.response || "Something went wrong.";
 
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === assistantMsg.id
-            ? { ...m, content: data.message || data.response || "No response" }
-            : m
-        )
-      );
-    } catch (err) {
-      setMessages(prev =>
-        prev.map(m =>
-          m.id === assistantMsg.id
-            ? { ...m, content: "Something went wrong. Please try again." }
-            : m
-        )
-      );
+      setConversations(prev => prev.map(c =>
+        c.id === currentId
+          ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? { ...m, content: responseText } : m) }
+          : c
+      ));
+    } catch {
+      setConversations(prev => prev.map(c =>
+        c.id === currentId
+          ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? { ...m, content: "Something went wrong. Please try again." } : m) }
+          : c
+      ));
     } finally {
       setIsLoading(false);
-      setStreamingId(null);
-      inputRef.current?.focus();
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
@@ -158,106 +162,188 @@ export default function ChatPage() {
     }
   };
 
+  const formatTime = (iso: string) => {
+    return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-bg-base">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-bg-border bg-bg-surface/80 backdrop-blur-sm flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center">
-            <Zap size={14} className="text-accent" fill="currentColor" />
-          </div>
+    <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden">
+
+      {/* Sidebar — chat history */}
+      <div className="w-60 flex-shrink-0 border-r border-white/[0.06] flex flex-col">
+        <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between">
+          <span className="text-xs font-semibold text-white/40 uppercase tracking-widest">Chats</span>
+          <button onClick={newConversation}
+            className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition">
+            <Plus size={12} className="text-white/50" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto py-2">
+          {conversations.length === 0 ? (
+            <div className="px-4 py-6 text-center">
+              <p className="text-white/20 text-xs">No conversations yet</p>
+            </div>
+          ) : (
+            conversations.map(conv => (
+              <button key={conv.id} onClick={() => setActiveId(conv.id)}
+                className={`w-full text-left px-4 py-3 hover:bg-white/[0.03] transition group ${activeId === conv.id ? "bg-white/[0.05]" : ""}`}>
+                <p className={`text-xs truncate mb-0.5 ${activeId === conv.id ? "text-white/80" : "text-white/50"}`}>
+                  {conv.title}
+                </p>
+                <p className="text-[10px] text-white/20">{formatDate(conv.createdAt)}</p>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
           <div>
-            <h1 className="text-sm font-bold text-text-primary tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-              AI Analyst
-            </h1>
-            <p className="text-[10px] text-text-muted">Powered by your business data</p>
+            <h1 className="text-sm font-semibold tracking-tight">AI Analyst</h1>
+            <p className="text-[10px] text-white/30">Powered by your business data</p>
           </div>
-        </div>
-        {messages.length > 0 && (
-          <button onClick={() => setMessages([])} className="btn-ghost text-xs gap-1.5 h-8">
-            <RotateCcw size={11} /> New chat
+          <button onClick={newConversation}
+            className="text-xs text-white/40 hover:text-white border border-white/10 hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+            New chat
           </button>
-        )}
-      </div>
+        </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-6">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center max-w-lg mx-auto">
-            <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-6 shadow-lg shadow-accent/5">
-              <Zap size={28} className="text-accent" fill="currentColor" />
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center max-w-lg mx-auto">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold mb-2 tracking-tight">Your AI COO</h2>
+              <p className="text-sm text-white/30 mb-8 leading-relaxed">
+                Ask anything about your business. I have full access to your emails, financials, and all connected data.
+              </p>
+
+              {/* Quick actions */}
+              <div className="w-full space-y-2">
+                {QUICK_ACTIONS.map(q => (
+                  <button key={q} onClick={() => sendMessage(q)}
+                    className="w-full text-left px-4 py-3 rounded-xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.03] transition group flex items-center justify-between">
+                    <span className="text-sm text-white/50 group-hover:text-white/70 transition">{q}</span>
+                    <ChevronRight size={14} className="text-white/20 group-hover:text-white/40 transition flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-text-primary mb-2 tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-              Your AI COO
-            </h2>
-            <p className="text-sm text-text-muted mb-10 leading-relaxed">
-              Ask anything about your business. I have access to your financials, emails, and all connected data.
-            </p>
-            <div className="grid grid-cols-1 gap-2 w-full">
-              {STARTER_QUESTIONS.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => sendMessage(q)}
-                  className="text-left px-4 py-3 rounded-xl border border-bg-border hover:border-accent/30 hover:bg-white/3 text-sm text-text-secondary hover:text-text-primary transition-all duration-150 group"
-                >
-                  <span className="text-accent/50 group-hover:text-accent mr-2 transition-colors">→</span>
-                  {q}
-                </button>
+          ) : (
+            <>
+              {messages.map(message => (
+                <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                  {message.role === "assistant" && (
+                    <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 mt-1">
+                      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
+                      </svg>
+                    </div>
+                  )}
+
+                  <div className={`max-w-[78%] ${message.role === "user" ? "items-end" : "items-start"} flex flex-col`}>
+                    <div className={`rounded-2xl px-4 py-3 ${
+                      message.role === "user"
+                        ? "bg-white text-black rounded-tr-md"
+                        : "bg-white/[0.04] border border-white/[0.06] rounded-tl-md"
+                    }`}>
+                      {message.role === "user" ? (
+                        <p className="text-sm font-medium leading-relaxed">{message.content}</p>
+                      ) : message.content ? (
+                        <div className="prose prose-invert prose-sm max-w-none
+                          prose-p:text-white/70 prose-p:leading-relaxed prose-p:text-sm prose-p:my-1.5
+                          prose-strong:text-white prose-strong:font-semibold
+                          prose-headings:text-white prose-headings:font-semibold prose-headings:text-sm
+                          prose-li:text-white/70 prose-li:text-sm
+                          prose-ul:my-2 prose-ol:my-2
+                          prose-hr:border-white/10">
+                          <ReactMarkdown>{message.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 py-0.5">
+                          <div className="flex gap-1">
+                            {[0, 1, 2].map(i => (
+                              <div key={i} className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce"
+                                style={{ animationDelay: `${i * 0.15}s` }} />
+                            ))}
+                          </div>
+                          <span className="text-xs text-white/30">Thinking...</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-white/20 mt-1 px-1">
+                      {message.role === "assistant" ? "BizAI · " : ""}{formatTime(message.timestamp)}
+                    </p>
+                  </div>
+
+                  {message.role === "user" && (
+                    <div className="w-7 h-7 rounded-full bg-white/10 border border-white/15 flex items-center justify-center flex-shrink-0 mt-1">
+                      <span className="text-[10px] font-semibold text-white/70">J</span>
+                    </div>
+                  )}
+                </div>
               ))}
-            </div>
-          </div>
-        ) : (
-          <>
-            {messages.map((message) =>
-              message.role === "user" ? (
-                <UserBubble key={message.id} message={message} />
-              ) : (
-                <AssistantBubble key={message.id} message={message} isStreaming={streamingId === message.id} />
-              )
-            )}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
-
-      {/* Input */}
-      <div className="px-6 py-4 border-t border-bg-border bg-bg-surface/80 backdrop-blur-sm flex-shrink-0">
-        <div className="flex gap-3 items-end max-w-4xl mx-auto">
-          <div className="flex-1 relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask your AI COO anything..."
-              rows={1}
-              disabled={isLoading}
-              className={cn(
-                "w-full bg-bg-elevated border border-bg-border rounded-2xl px-5 py-3.5 text-sm text-text-primary placeholder:text-text-muted resize-none min-h-[50px] max-h-36 leading-relaxed focus:outline-none focus:border-accent/40 transition-colors",
-                isLoading && "opacity-50 cursor-not-allowed"
-              )}
-              onInput={e => {
-                const el = e.currentTarget;
-                el.style.height = "auto";
-                el.style.height = Math.min(el.scrollHeight, 144) + "px";
-              }}
-            />
-          </div>
-          <button
-            onClick={() => sendMessage(input)}
-            disabled={!input.trim() || isLoading}
-            className="h-[50px] w-[50px] rounded-2xl bg-accent hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 transition-all duration-150 active:scale-95 shadow-lg shadow-accent/20"
-          >
-            {isLoading ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Send size={15} className="text-white" />
-            )}
-          </button>
+              <div ref={messagesEndRef} />
+            </>
+          )}
         </div>
-        <p className="text-[10px] text-text-muted mt-2 text-center">
-          Shift+Enter for new line · Enter to send
-        </p>
+
+        {/* Input */}
+        <div className="px-6 py-4 border-t border-white/[0.06] flex-shrink-0">
+          <div className="flex gap-3 items-end max-w-4xl mx-auto">
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask your AI COO anything..."
+                rows={1}
+                disabled={isLoading}
+                className={cn(
+                  "w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-3.5 text-sm text-white placeholder-white/20 resize-none min-h-[50px] max-h-36 leading-relaxed focus:outline-none focus:border-white/20 transition-colors",
+                  isLoading && "opacity-50 cursor-not-allowed"
+                )}
+                onInput={e => {
+                  const el = e.currentTarget;
+                  el.style.height = "auto";
+                  el.style.height = Math.min(el.scrollHeight, 144) + "px";
+                }}
+              />
+            </div>
+            <button
+              onClick={() => sendMessage(input)}
+              disabled={!input.trim() || isLoading}
+              className="h-[50px] w-[50px] rounded-2xl bg-white disabled:opacity-20 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0 transition-all hover:bg-white/90 active:scale-95">
+              {isLoading ? (
+                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              ) : (
+                <Send size={15} className="text-black" />
+              )}
+            </button>
+          </div>
+          <p className="text-[10px] text-white/15 mt-2 text-center">Shift+Enter for new line · Enter to send</p>
+        </div>
+
       </div>
     </div>
   );
