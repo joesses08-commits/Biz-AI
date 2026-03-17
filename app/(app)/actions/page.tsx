@@ -348,7 +348,7 @@ export default function ActionsPage() {
 
   const filtered = active.filter(item => {
     if (filter === "all") return true;
-    if (!item.due_date) return filter === "all";
+    if (!item.due_date) return filter === ("all" as typeof filter);
     const days = daysUntil(item.due_date);
     if (filter === "today") return days <= 0;
     if (filter === "week") return days <= 7;
