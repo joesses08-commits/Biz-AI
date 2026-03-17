@@ -14,6 +14,7 @@ export async function middleware(request: NextRequest) {
     "/api/quickbooks/callback",
     "/api/stripe/connect",
     "/api/stripe/callback",
+    "/api/briefing",
   ];
 
   const isPublic = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
