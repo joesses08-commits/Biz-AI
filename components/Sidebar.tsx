@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   MessageSquare,
+  CheckSquare,
   Zap,
   Settings,
   HelpCircle,
@@ -85,6 +86,7 @@ export default function Sidebar() {
         <NavItem href="/integrations" icon={Plug} label="Integrations" description="Connect your tools" />
         <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" description="Business metrics" />
         <NavItem href="/chat" icon={MessageSquare} label="AI Analyst" description="Ask questions" />
+        <NavItem href="/actions" icon={CheckSquare} label="Action Tracker" description="Tasks & deadlines" />
 
         <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mt-4 mb-2">Integrations</div>
 
