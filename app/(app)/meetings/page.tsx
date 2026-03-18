@@ -287,8 +287,8 @@ export default function MeetingsPage() {
             <h3 className="text-sm font-semibold text-white mb-4">How Meeting Intelligence Works</h3>
             <div className="space-y-3">
               {[
-                { step: "1", text: "Record your Google Meet — transcripts save automatically to Google Drive" },
-                { step: "2", text: "Click 'Scan Google Drive' — BizAI finds and processes your meeting transcripts" },
+                { step: "1", text: "Record your Google Meet or Microsoft Teams meeting with transcription enabled" },
+                { step: "2", text: "Click 'Scan Google Meet' or 'Scan Teams' — BizAI finds and processes transcripts automatically" },
                 { step: "3", text: "Action items are automatically added to your Action Tracker" },
                 { step: "4", text: "Meeting summaries and decisions are saved to your AI's memory" },
                 { step: "5", text: "Paste any transcript manually using 'Upload Transcript'" },
