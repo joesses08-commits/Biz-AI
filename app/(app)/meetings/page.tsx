@@ -303,7 +303,7 @@ export default function MeetingsPage() {
             </div>
             <div className="mt-6 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
               <p className="text-xs text-amber-300/70">
-                <span className="font-semibold text-amber-300">Enable transcripts in Google Meet:</span> During a meeting, click Activities → Transcripts → Start Transcript. The file will appear in your Google Drive after the meeting.
+                <span className="font-semibold text-amber-300">Google Meet:</span> During a meeting, click Activities → Transcripts → Start Transcript. <span className="font-semibold text-amber-300 ml-2">Microsoft Teams:</span> Click More → Record & Transcribe → Start Transcription. Both save automatically.
               </p>
             </div>
           </div>
