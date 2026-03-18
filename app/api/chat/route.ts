@@ -59,8 +59,7 @@ BRAIN_UPDATE: [one sentence of new context to remember]
 
 ${companyContext || "No integrations connected yet. Tell the CEO to connect their tools at /integrations."}`;
 
-    const response = await Promise.race([
-      anthropic.messages.create({
+    const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 2000,
       system: systemPrompt,
