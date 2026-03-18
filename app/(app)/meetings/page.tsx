@@ -154,6 +154,7 @@ export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
+  const [scanningTeams, setScanningTeams] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -191,6 +192,26 @@ export default function MeetingsPage() {
       setScanResult("Failed to scan Drive");
     }
     setScanning(false);
+  };
+
+  const scanTeams = async () => {
+    setScanningTeams(true);
+    setScanResult(null);
+    try {
+      const res = await fetch("/api/meetings/scan-teams", { method: "POST" });
+      const data = await res.json();
+      if (data.processed > 0) {
+        setScanResult(`Teams: Found ${data.new_found} new transcripts, processed ${data.processed}`);
+        await loadMeetings();
+      } else if (data.new_found === 0) {
+        setScanResult("No new Teams transcripts found in OneDrive");
+      } else {
+        setScanResult(`Teams: Found ${data.new_found} transcripts but none could be processed`);
+      }
+    } catch {
+      setScanResult("Failed to scan Teams");
+    }
+    setScanningTeams(false);
   };
 
   const processTranscript = async () => {
@@ -235,10 +256,15 @@ export default function MeetingsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={scanTeams} disabled={scanningTeams}
+              className="flex items-center gap-2 text-xs text-white/60 hover:text-white border border-white/10 hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
+              <RefreshCw size={12} className={scanningTeams ? "animate-spin" : ""} />
+              {scanningTeams ? "Scanning..." : "Scan Teams"}
+            </button>
             <button onClick={scanDrive} disabled={scanning}
               className="flex items-center gap-2 text-xs text-white/60 hover:text-white border border-white/10 hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
               <RefreshCw size={12} className={scanning ? "animate-spin" : ""} />
-              {scanning ? "Scanning..." : "Scan Google Drive"}
+              {scanning ? "Scanning..." : "Scan Google Meet"}
             </button>
             <button onClick={() => setShowUpload(!showUpload)}
               className="flex items-center gap-2 text-xs text-black bg-white hover:bg-white/90 px-3 py-2 rounded-xl transition font-semibold">
