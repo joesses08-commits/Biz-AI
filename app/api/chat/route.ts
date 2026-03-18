@@ -59,12 +59,15 @@ BRAIN_UPDATE: [one sentence of new context to remember]
 
 ${companyContext || "No integrations connected yet. Tell the CEO to connect their tools at /integrations."}`;
 
-    const response = await anthropic.messages.create({
+    const response = await Promise.race([
+      anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 2000,
       system: systemPrompt,
       messages,
-    });
+    }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 45000))
+    ]) as Awaited<ReturnType<typeof anthropic.messages.create>>;
 
     const fullText = response.content[0].type === "text" ? response.content[0].text : "";
 
