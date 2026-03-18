@@ -65,9 +65,7 @@ ${companyContext || "No integrations connected yet. Tell the CEO to connect thei
       max_tokens: 2000,
       system: systemPrompt,
       messages,
-    }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 45000))
-    ]) as Awaited<ReturnType<typeof anthropic.messages.create>>;
+    });
 
     const fullText = response.content[0].type === "text" ? response.content[0].text : "";
 
