@@ -200,10 +200,14 @@ function StatusDot({ status }: { status?: string }) {
   return <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors[status || "neutral"]}`} />;
 }
 
+// In-memory cache so dashboard doesn't reload on navigation
+let _cachedData: DashboardAI | null = null;
+let _cachedAt: Date | null = null;
+
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardAI | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [data, setData] = useState<DashboardAI | null>(_cachedData);
+  const [loading, setLoading] = useState(!_cachedData);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(_cachedAt);
 
   const now = new Date();
   const hour = now.getHours();
@@ -214,13 +218,17 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/dashboard/ai-metrics");
       const json = await res.json();
+      _cachedData = json;
+      _cachedAt = new Date();
       setData(json);
-      setLastUpdated(new Date());
+      setLastUpdated(_cachedAt);
     } catch {}
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!_cachedData) load();
+  }, []);
 
   const groupedMetrics = [
     { label: "Revenue", items: data?.metrics?.filter(m => m.category === "revenue") || [] },
