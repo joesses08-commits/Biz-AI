@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { RefreshCw, ArrowUpRight, TrendingUp, TrendingDown, Minus, Shield, Zap, Settings } from "lucide-react";
+import { RefreshCw, ArrowUpRight, TrendingUp, TrendingDown, Minus, Shield, Zap, Settings, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 type Metric = {
@@ -20,6 +20,8 @@ type RiskItem = {
   dollar_impact: string;
   action: string;
   urgency: "critical" | "high" | "medium";
+  source?: string;
+  source_detail?: string;
 };
 
 type OpportunityItem = {
@@ -28,6 +30,8 @@ type OpportunityItem = {
   dollar_impact: string;
   action: string;
   timeframe: string;
+  source?: string;
+  source_detail?: string;
 };
 
 type OperationItem = {
@@ -35,6 +39,8 @@ type OperationItem = {
   detail: string;
   action: string;
   due: string;
+  source?: string;
+  source_detail?: string;
 };
 
 type TopItem = {
@@ -56,6 +62,36 @@ type DashboardAI = {
   chart_label?: string;
   error?: string;
 };
+
+const SOURCE_LINKS: Record<string, string> = {
+  "Gmail": "/gmail",
+  "Stripe": "/stripe",
+  "QuickBooks": "/quickbooks",
+  "Google Sheets": "/google/sheets",
+  "Microsoft 365": "/microsoft",
+  "Manual": "/settings",
+};
+
+const SOURCE_COLORS: Record<string, string> = {
+  "Gmail": "text-red-400/70",
+  "Stripe": "text-purple-400/70",
+  "QuickBooks": "text-green-400/70",
+  "Google Sheets": "text-emerald-400/70",
+  "Microsoft 365": "text-blue-400/70",
+};
+
+function SourceTag({ source, source_detail }: { source?: string; source_detail?: string }) {
+  if (!source) return null;
+  const href = SOURCE_LINKS[source] || "#";
+  const color = SOURCE_COLORS[source] || "text-white/25";
+  return (
+    <Link href={href} className={`flex items-center gap-1 mt-3 pt-3 border-t border-white/[0.05] group ${color} hover:opacity-100 transition`}>
+      <span className="text-[10px] font-medium">{source}</span>
+      {source_detail && <span className="text-[10px] text-white/20 truncate">· {source_detail}</span>}
+      <ExternalLink size={9} className="flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition" />
+    </Link>
+  );
+}
 
 function TrendIcon({ trend }: { trend?: string }) {
   if (trend === "up") return <TrendingUp size={11} className="text-emerald-400" />;
@@ -98,6 +134,7 @@ function RiskCard({ item }: { item: RiskItem }) {
         <span className="text-xs font-bold text-red-400">{item.dollar_impact} at risk</span>
         <span className="text-[11px] text-white/30">{item.action}</span>
       </div>
+      <SourceTag source={item.source} source_detail={item.source_detail} />
     </div>
   );
 }
@@ -123,6 +160,7 @@ function OpportunityCard({ item }: { item: OpportunityItem }) {
         <span className="text-xs font-bold text-emerald-400">{item.dollar_impact}</span>
         <span className="text-[11px] text-white/30">{item.action}</span>
       </div>
+      <SourceTag source={item.source} source_detail={item.source_detail} />
     </div>
   );
 }
@@ -142,6 +180,7 @@ function OperationCard({ item }: { item: OperationItem }) {
       </div>
       <p className="text-xs text-white/50 leading-relaxed mb-3">{item.detail}</p>
       <p className="text-[11px] text-white/40">→ {item.action}</p>
+      <SourceTag source={item.source} source_detail={item.source_detail} />
     </div>
   );
 }

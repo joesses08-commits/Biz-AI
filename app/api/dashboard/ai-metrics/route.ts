@@ -92,7 +92,9 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
       "detail": "specific cross-platform insight with dollar amount",
       "dollar_impact": "$X,XXX",
       "action": "exact action to take",
-      "urgency": "critical | high | medium"
+      "urgency": "critical | high | medium",
+      "source": "Gmail | Stripe | QuickBooks | Google Sheets | Microsoft 365 | Manual",
+      "source_detail": "specific email subject, invoice number, sheet name, or file name this came from"
     }
   ],
   "opportunities": [
@@ -101,7 +103,9 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
       "detail": "specific opportunity with dollar amount",
       "dollar_impact": "$X,XXX potential",
       "action": "exact action",
-      "timeframe": "today | this week | this month"
+      "timeframe": "today | this week | this month",
+      "source": "Gmail | Stripe | QuickBooks | Google Sheets | Microsoft 365 | Manual",
+      "source_detail": "specific email subject, invoice number, sheet name, or file name this came from"
     }
   ],
   "operations": [
@@ -109,7 +113,9 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
       "title": "short title",
       "detail": "what needs to happen and why",
       "action": "specific next step",
-      "due": "today | this week | this month"
+      "due": "today | this week | this month",
+      "source": "Gmail | Stripe | QuickBooks | Google Sheets | Microsoft 365 | Manual",
+      "source_detail": "specific email subject, invoice number, sheet name, or file name this came from"
     }
   ],
   "metrics": [
