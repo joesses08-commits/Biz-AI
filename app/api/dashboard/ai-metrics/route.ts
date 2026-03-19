@@ -43,26 +43,7 @@ export async function GET() {
     // Cache miss — call Claude
     const companyContext = await buildFullCompanyContext(user.id);
 
-    // Check if any integrations are connected
-    const { createClient } = await import("@supabase/supabase-js");
-    const adminSupa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-    const [{ data: gmail }, { data: stripe }, { data: qb }, { data: ms }] = await Promise.all([
-      adminSupa.from("gmail_connections").select("id").eq("user_id", user.id).single(),
-      adminSupa.from("stripe_connections").select("id").eq("user_id", user.id).single(),
-      adminSupa.from("quickbooks_connections").select("id").eq("user_id", user.id).single(),
-      adminSupa.from("microsoft_connections").select("id").eq("user_id", user.id).single(),
-    ]);
 
-    if (!gmail && !stripe && !qb && !ms) {
-      return NextResponse.json({
-        briefing: "No integrations connected yet. Connect your business tools to get started.",
-        risks: [],
-        opportunities: [],
-        operations: [{ title: "Connect your first integration", detail: "Go to Integrations to connect Gmail, Stripe, QuickBooks, or Microsoft 365.", action: "Visit /integrations", due: "today" }],
-        metrics: [],
-        top_items: [],
-      });
-    }
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
     const response = await anthropic.messages.create({
