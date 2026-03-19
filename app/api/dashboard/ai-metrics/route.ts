@@ -125,17 +125,15 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
-    const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
-    const firstBrace = cleaned.indexOf("{");
-    const lastBrace = cleaned.lastIndexOf("}");
-    const jsonStr = firstBrace !== -1 && lastBrace !== -1 ? cleaned.slice(firstBrace, lastBrace + 1) : cleaned;
+    const firstBrace = raw.indexOf("{");
+    const lastBrace = raw.lastIndexOf("}");
+    const jsonStr = firstBrace !== -1 && lastBrace !== -1 ? raw.slice(firstBrace, lastBrace + 1) : raw;
 
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
-      console.error("JSON parse failed. Raw response:", raw.slice(0, 500));
-      return NextResponse.json({ error: "parse_failed", raw: raw.slice(0, 500) }, { status: 500 });
+      parsed = { briefing: "Unable to load briefing. Please refresh.", metrics: [], risks: [], opportunities: [], operations: [], top_items: [] };
     }
 
     // Save AI response to cache
