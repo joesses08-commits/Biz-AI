@@ -40,42 +40,39 @@ export async function GET() {
       }
     }
 
-    // Cache miss — call Claude
     const companyContext = await buildFullCompanyContext(user.id);
-
-
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 3000,
-      system: `You are a world-class Chief Operating Officer and business intelligence engine. Today is ${today}.
+      system: `You are a world-class Chief Operating Officer. Today is ${today}.
 
 You have three jobs:
-1. RISK PROTECTOR — Find threats the owner doesn't see yet. Cross-reference platforms. Every risk needs a specific dollar amount. Never state the obvious.
-2. GROWTH ENGINE — Find specific revenue opportunities hiding in the data. Name the customer, the amount, the action. Not generic advice.
-3. OPERATIONS MANAGER — What specifically needs to happen today, this week, this month. Concrete actions with deadlines and dollar amounts.
+1. RISK PROTECTOR — Find threats with specific dollar amounts
+2. GROWTH ENGINE — Find specific revenue opportunities with dollar amounts  
+3. OPERATIONS MANAGER — What needs to happen today, this week, this month
 
 DATA RULES:
-- Always note the DATE of data you reference
-- Spreadsheets last modified 90+ days ago = flag as potentially outdated
-- Data named "model", "template", "example", "demo", "test", "sample", "class project", "hypothetical" = HYPOTHETICAL, label it clearly
+- Note the DATE of data you reference
+- Spreadsheets 90+ days old = flag as potentially outdated
+- Data named "demo", "test", "sample", "class project" = HYPOTHETICAL
 - Never present old data as current without stating the date
 
-CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks shows invoices, list them with exact dollar amounts. Never say $0 if QuickBooks has data. Return ONLY a raw JSON object. No markdown. No backticks. No code fences. Start with { and end with }. Nothing before { and nothing after }.
+CRITICAL: You MUST return ONLY a raw JSON object. No markdown. No backticks. No code fences. Start your response with { and end with }. Nothing before the { and nothing after the }.
 
 {
   "business_type": "precise description",
-  "briefing": "2 sentences max — most important thing right now with specific numbers",
+  "briefing": "2 sentences max with specific numbers",
   "risks": [
     {
       "title": "short title",
-      "detail": "specific cross-platform insight with dollar amount",
+      "detail": "specific insight with dollar amount",
       "dollar_impact": "$X,XXX",
-      "action": "exact action to take",
-      "urgency": "critical | high | medium",
-      "source": "Gmail | Stripe | QuickBooks | Google Sheets | Microsoft 365 | Manual",
-      "source_detail": "specific email subject, invoice number, sheet name, or file name this came from"
+      "action": "exact action",
+      "urgency": "critical",
+      "source": "Gmail",
+      "source_detail": "specific email or file name"
     }
   ],
   "opportunities": [
@@ -84,19 +81,19 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
       "detail": "specific opportunity with dollar amount",
       "dollar_impact": "$X,XXX potential",
       "action": "exact action",
-      "timeframe": "today | this week | this month",
-      "source": "Gmail | Stripe | QuickBooks | Google Sheets | Microsoft 365 | Manual",
-      "source_detail": "specific email subject, invoice number, sheet name, or file name this came from"
+      "timeframe": "today",
+      "source": "Stripe",
+      "source_detail": "specific transaction or customer"
     }
   ],
   "operations": [
     {
       "title": "short title",
-      "detail": "what needs to happen and why",
+      "detail": "what needs to happen",
       "action": "specific next step",
-      "due": "today | this week | this month",
-      "source": "Gmail | Stripe | QuickBooks | Google Sheets | Microsoft 365 | Manual",
-      "source_detail": "specific email subject, invoice number, sheet name, or file name this came from"
+      "due": "today",
+      "source": "Gmail",
+      "source_detail": "specific email or file"
     }
   ],
   "metrics": [
@@ -104,48 +101,53 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
       "id": "unique_id",
       "label": "Metric Name",
       "value": "formatted value",
-      "sub": "context that adds meaning",
-      "trend": "up | down | neutral",
-      "category": "revenue | operations | customers | cash | activity"
+      "sub": "context",
+      "trend": "up",
+      "category": "revenue"
     }
   ],
   "top_items": [
     {
-      "type": "customer | invoice | email | transaction | lead",
+      "type": "customer",
       "label": "specific name",
-      "value": "dollar amount or status",
-      "status": "good | warning | urgent | neutral"
+      "value": "dollar amount",
+      "status": "good"
     }
   ],
   "chart_data": [{ "label": "period", "value": 0 }],
   "chart_label": "what this chart shows",
-  "snapshot": "one paragraph summary of business state today for memory"
+  "snapshot": "one paragraph summary for memory"
 }`,
       messages: [{ role: "user", content: companyContext || "No integrations connected yet." }],
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
-    // Strip markdown fences and find JSON object
-    const stripped = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-    const firstBrace = stripped.indexOf("{");
-    const lastBrace = stripped.lastIndexOf("}");
-    const jsonStr = firstBrace !== -1 && lastBrace !== -1 ? stripped.slice(firstBrace, lastBrace + 1) : stripped;
+    
+    // Find the JSON object — look for first { and last }
+    const firstBrace = raw.indexOf("{");
+    const lastBrace = raw.lastIndexOf("}");
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+      return NextResponse.json({ error: "no_json", raw: raw.slice(0, 200) }, { status: 500 });
+    }
+    
+    const jsonStr = raw.slice(firstBrace, lastBrace + 1);
 
     let parsed;
     try {
       parsed = JSON.parse(jsonStr);
-    } catch {
-      parsed = { briefing: "Unable to load briefing. Please refresh.", metrics: [], risks: [], opportunities: [], operations: [], top_items: [] };
+    } catch (e) {
+      return NextResponse.json({ error: "parse_failed", sample: jsonStr.slice(0, 200) }, { status: 500 });
     }
 
-    // Save AI response to cache
+    // Save to cache
     await supabase.from("dashboard_cache").upsert({
       user_id: user.id,
       response: parsed,
       cached_at: new Date().toISOString(),
     });
 
-    // Save snapshot to memory in background
+    // Save snapshot to memory
     if (parsed.snapshot) {
       updateCompanyMemory(user.id, `DAILY SNAPSHOT: ${parsed.snapshot}`).catch(() => {});
     }
