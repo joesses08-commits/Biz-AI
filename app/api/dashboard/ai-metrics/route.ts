@@ -134,7 +134,8 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
-      parsed = { briefing: "Refresh to load your briefing.", metrics: [], risks: [], opportunities: [], operations: [], top_items: [] };
+      console.error("JSON parse failed. Raw response:", raw.slice(0, 500));
+      return NextResponse.json({ error: "parse_failed", raw: raw.slice(0, 500) }, { status: 500 });
     }
 
     // Save AI response to cache
