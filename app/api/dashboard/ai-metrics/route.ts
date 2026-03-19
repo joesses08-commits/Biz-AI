@@ -125,9 +125,11 @@ CRITICAL: You MUST report exact numbers from QuickBooks data. If QuickBooks show
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
-    const firstBrace = raw.indexOf("{");
-    const lastBrace = raw.lastIndexOf("}");
-    const jsonStr = firstBrace !== -1 && lastBrace !== -1 ? raw.slice(firstBrace, lastBrace + 1) : raw;
+    // Strip markdown fences and find JSON object
+    const stripped = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+    const firstBrace = stripped.indexOf("{");
+    const lastBrace = stripped.lastIndexOf("}");
+    const jsonStr = firstBrace !== -1 && lastBrace !== -1 ? stripped.slice(firstBrace, lastBrace + 1) : stripped;
 
     let parsed;
     try {
