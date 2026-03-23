@@ -201,6 +201,11 @@ export default function Sidebar() {
           <span className="text-[13px]">Sign Out</span>
         </button>
         <div className="px-3 pt-2">
+          <div className="flex items-center gap-2 mb-1">
+            <a href="/privacy" className="text-[10px] text-text-muted hover:text-white transition">Privacy</a>
+            <span className="text-[10px] text-text-muted">·</span>
+            <a href="/terms" className="text-[10px] text-text-muted hover:text-white transition">Terms</a>
+          </div>
           <div className="text-[10px] text-text-muted">BizAI v1.0 · Claude Sonnet</div>
         </div>
       </div>
