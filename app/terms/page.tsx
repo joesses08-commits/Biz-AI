@@ -3,7 +3,7 @@ export default function TermsOfService() {
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="max-w-3xl mx-auto px-6 py-16">
         <div className="mb-12">
-          <a href="/" className="text-white/30 text-sm hover:text-white transition">← BizAI</a>
+          <a href="/dashboard" className="text-white/30 text-sm hover:text-white transition">← Back to Dashboard</a>
         </div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">Terms of Service</h1>
         <p className="text-white/30 text-sm mb-12">Last updated: March 19, 2026</p>
