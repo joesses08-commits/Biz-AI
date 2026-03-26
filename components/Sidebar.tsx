@@ -209,7 +209,7 @@ export default function Sidebar() {
             <span className="text-[10px] text-text-muted">·</span>
             <a href="/terms" className="text-[10px] text-text-muted hover:text-white transition">Terms</a>
           </div>
-          <div className="text-[10px] text-text-muted">BizAI v1.0 · Claude Sonnet</div>
+          <div className="text-[10px] text-text-muted">Jimmy v1.0 · Claude Sonnet</div>
         </div>
       </div>
     </aside>
