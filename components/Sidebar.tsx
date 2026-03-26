@@ -8,7 +8,6 @@ import {
   MessageSquare,
   CheckSquare,
   Video,
-  Zap,
   Settings,
   HelpCircle,
   LogOut,
@@ -71,12 +70,16 @@ export default function Sidebar() {
     <aside className="w-[220px] flex-shrink-0 flex flex-col h-screen bg-bg-surface border-r border-bg-border">
       <div className="px-5 py-5 border-b border-bg-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center glow-accent">
-            <Zap size={14} className="text-white" fill="white" />
+          <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
+            <svg width="20" height="20" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+              <rect width="40" height="40" rx="10" fill="#0a0a0a"/>
+              <line x1="24" y1="8" x2="24" y2="26" stroke="white" strokeWidth="4" strokeLinecap="round"/>
+              <path d="M24 26 Q24 34 18 35 Q11 36 10 30" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
           <div>
-            <div className="text-sm font-bold text-text-primary leading-none" style={{ fontFamily: "var(--font-display)" }}>BizAI</div>
-            <div className="text-[10px] text-text-muted mt-0.5 leading-none">Intelligence Platform</div>
+            <div className="text-sm font-bold text-text-primary leading-none" style={{ fontFamily: "var(--font-display)" }}>Jimmy</div>
+            <div className="text-[10px] text-text-muted mt-0.5 leading-none">AI Operating System</div>
           </div>
         </div>
       </div>
