@@ -10,7 +10,7 @@ const integrations = [
 const features = [
   {
     title: "Qualitative + Quantitative Intelligence",
-    description: "Not just your numbers — but what they mean in the context of the real world. Tariffs, competitors, market shifts, employee performance. BizAI connects your internal data with what's happening outside your business.",
+    description: "Not just your numbers — but what they mean in the context of the real world. Tariffs, competitors, market shifts, employee performance. Jimmy AI connects your internal data with what's happening outside your business.",
     stat: "360°",
     statLabel: "business visibility",
   },
@@ -22,13 +22,13 @@ const features = [
   },
   {
     title: "24/7 Live Data Across Every Platform",
-    description: "Gmail, Outlook, QuickBooks, Stripe, Slack, Sheets, Excel — all updating in real time. The moment something changes in your business, BizAI knows. No manual reporting. No waiting for the monthly review.",
+    description: "Gmail, Outlook, QuickBooks, Stripe, Slack, Sheets, Excel — all updating in real time. The moment something changes in your business, Jimmy AI knows. No manual reporting. No waiting for the monthly review.",
     stat: "15+",
     statLabel: "live integrations",
   },
   {
     title: "Live Excel & Financial Modeling",
-    description: "Connect your actual spreadsheets. Model a new idea, run a scenario, build a pitch deck with live numbers — and send it directly to a buyer or investor without ever leaving BizAI.",
+    description: "Connect your actual spreadsheets. Model a new idea, run a scenario, build a pitch deck with live numbers — and send it directly to a buyer or investor without ever leaving Jimmy AI.",
     stat: "60s",
     statLabel: "to model any scenario",
   },
@@ -40,7 +40,7 @@ const features = [
   },
   {
     title: "Zoom Meeting Intelligence",
-    description: "Every meeting transcribed, summarized, and turned into action items automatically. Over time BizAI builds a knowledge bank of everything your company has ever decided, discussed, and committed to.",
+    description: "Every meeting transcribed, summarized, and turned into action items automatically. Over time Jimmy AI builds a knowledge bank of everything your company has ever decided, discussed, and committed to.",
     stat: "2min",
     statLabel: "avg. meeting brief",
   },
@@ -82,7 +82,7 @@ export default function LandingPage() {
           <div style={{ width: "28px", height: "28px", background: "#f0ede8", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 7L7 13M1 7H13" stroke="#080808" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
-          <span style={{ fontSize: "15px", fontWeight: "500", letterSpacing: "0.02em" }}>BizAI</span>
+          <span style={{ fontSize: "15px", fontWeight: "500", letterSpacing: "0.02em" }}>Jimmy AI</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "36px" }}>
           <a href="#features" className="nav-link">Product</a>
@@ -103,7 +103,7 @@ export default function LandingPage() {
             Your business,{" "}<span style={{ fontStyle: "italic", color: "#888" }}>fully</span><br />understood.
           </h1>
           <p className="fade-up d3" style={{ fontSize: "18px", color: "#777", lineHeight: "1.7", maxWidth: "560px", margin: "0 auto 40px", fontWeight: "300" }}>
-            BizAI connects every tool your company runs on and gives you a single AI that knows everything — your numbers, your emails, your meetings, your risks — and tells you exactly what to do.
+            Jimmy AI connects every tool your company runs on and gives you a single AI that knows everything — your numbers, your emails, your meetings, your risks — and tells you exactly what to do.
           </p>
           <div className="fade-up d4" style={{ display: "flex", gap: "12px", justifyContent: "center", alignItems: "center" }}>
             <a href="#contact" className="btn-primary">Book a Demo</a>
@@ -134,12 +134,12 @@ export default function LandingPage() {
       {/* What makes it different */}
       <section style={{ padding: "120px 48px", maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ marginBottom: "48px" }}>
-          <span className="label">Why BizAI</span>
+          <span className="label">Why Jimmy AI</span>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 3vw, 42px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.2", letterSpacing: "-0.02em", maxWidth: "560px", color: "#f0ede8" }}>
             Every business generates enormous data.<br /><span style={{ fontStyle: "italic", color: "#777" }}>Nobody can make sense of it.</span>
           </h2>
           <p style={{ fontSize: "15px", color: "#666", lineHeight: "1.7", maxWidth: "520px", marginTop: "20px", fontWeight: "300" }}>
-            Your revenue is in Stripe. Your invoices are in QuickBooks. Your emails are in Gmail. Your decisions are in Zoom calls. None of these tools talk to each other — so you never see the full picture. BizAI connects everything and tells you what it means.
+            Your revenue is in Stripe. Your invoices are in QuickBooks. Your emails are in Gmail. Your decisions are in Zoom calls. None of these tools talk to each other — so you never see the full picture. Jimmy AI connects everything and tells you what it means.
           </p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1px", background: "#111", marginTop: "60px" }}>
@@ -209,7 +209,7 @@ export default function LandingPage() {
             Ready to meet your<br /><span style={{ fontStyle: "italic", color: "#777" }}>AI COO?</span>
           </h2>
           <p style={{ fontSize: "16px", color: "#666", marginBottom: "40px", lineHeight: "1.7", fontWeight: "300" }}>
-            We onboard every client personally. Book a 30-minute call and we'll show you exactly what BizAI looks like running on your business.
+            We onboard every client personally. Book a 30-minute call and we'll show you exactly what Jimmy AI looks like running on your business.
           </p>
           <a href="mailto:jo.esses08@gmail.com" className="btn-primary" style={{ fontSize: "15px", padding: "16px 36px" }}>Book a Demo →</a>
         </div>
@@ -217,7 +217,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer style={{ borderTop: "1px solid #111", padding: "32px 48px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: "13px", color: "#555", fontWeight: "300" }}>© 2026 BizAI. All rights reserved.</span>
+        <span style={{ fontSize: "13px", color: "#555", fontWeight: "300" }}>© 2026 Jimmy AI. All rights reserved.</span>
         <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
           <Link href="/login" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Client Login →</Link>
         </div>

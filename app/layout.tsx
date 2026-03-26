@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BizAI — AI Business Intelligence",
+  title: "Jimmy AI — AI Business Intelligence",
   description: "An AI COO for your business. Fully integrated platform and analysis.",
 };
 

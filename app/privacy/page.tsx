@@ -12,8 +12,8 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">1. Introduction</h2>
-            <p>BizAI ("we," "our," or "us") operates an AI-powered business intelligence platform. This Privacy Policy explains how we collect, use, and protect your information when you use our services at biz-ai-pi.vercel.app and any associated domains.</p>
-            <p className="mt-3">By using BizAI, you agree to the collection and use of information in accordance with this policy.</p>
+            <p>Jimmy AI ("we," "our," or "us") operates an AI-powered business intelligence platform. This Privacy Policy explains how we collect, use, and protect your information when you use our services at biz-ai-pi.vercel.app and any associated domains.</p>
+            <p className="mt-3">By using Jimmy AI, you agree to the collection and use of information in accordance with this policy.</p>
           </section>
 
           <section>
@@ -54,7 +54,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">5. Third-Party Services</h2>
-            <p>BizAI integrates with third-party services. When you connect these services, you are also subject to their privacy policies:</p>
+            <p>Jimmy AI integrates with third-party services. When you connect these services, you are also subject to their privacy policies:</p>
             <ul className="list-disc list-inside mt-2 space-y-1 text-white/50">
               <li>Google: policies.google.com/privacy</li>
               <li>Microsoft: privacy.microsoft.com</li>
@@ -83,7 +83,7 @@ export default function PrivacyPolicy() {
 
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">8. Children's Privacy</h2>
-            <p>BizAI is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children.</p>
+            <p>Jimmy AI is not intended for use by individuals under the age of 18. We do not knowingly collect personal information from children.</p>
           </section>
 
           <section>
@@ -94,7 +94,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-lg font-semibold text-white mb-3">10. Contact Us</h2>
             <p>If you have any questions about this Privacy Policy or your data, please contact us at:</p>
-            <p className="mt-2 text-white/80">BizAI<br />Email: joey@bizai.co</p>
+            <p className="mt-2 text-white/80">Jimmy AI<br />Email: joey@bizai.co</p>
           </section>
 
         </div>

@@ -291,7 +291,7 @@ export default function ChatPage() {
                       )}
                     </div>
                     <p className="text-[10px] text-white/20 mt-1 px-1">
-                      {message.role === "assistant" ? "BizAI · " : ""}{formatTime(message.timestamp)}
+                      {message.role === "assistant" ? "Jimmy AI · " : ""}{formatTime(message.timestamp)}
                     </p>
                   </div>
 

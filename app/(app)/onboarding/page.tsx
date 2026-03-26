@@ -68,9 +68,9 @@ export default function OnboardingPage() {
         {currentStep === 0 && (
           <div>
             <div className="text-center mb-10">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Welcome to BizAI</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Welcome to Jimmy AI</p>
               <h1 className="text-4xl font-bold mb-4 tracking-tight">Your AI COO is ready.</h1>
-              <p className="text-white/40 leading-relaxed">BizAI connects every tool your business runs on and gives you a single AI that knows everything — your numbers, your emails, your meetings, your risks — and tells you exactly what to do.</p>
+              <p className="text-white/40 leading-relaxed">Jimmy AI connects every tool your business runs on and gives you a single AI that knows everything — your numbers, your emails, your meetings, your risks — and tells you exactly what to do.</p>
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-8 space-y-3">
               {["Live data from every platform you use", "AI that knows your specific business — not generic advice", "Proactive alerts before problems become crises", "Ask anything about your business in plain English"].map((b, i) => (

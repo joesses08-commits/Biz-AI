@@ -37,7 +37,7 @@ export default function MicrosoftPage() {
             </svg>
           </div>
           <h1 className="text-white text-2xl font-semibold mb-3">Connect Microsoft 365</h1>
-          <p className="text-white/40 text-sm mb-8 leading-relaxed">Connect your Microsoft account to give BizAI access to Outlook, Calendar, Excel, and OneDrive.</p>
+          <p className="text-white/40 text-sm mb-8 leading-relaxed">Connect your Microsoft account to give Jimmy AI access to Outlook, Calendar, Excel, and OneDrive.</p>
           <a href="/api/microsoft/connect" className="inline-flex items-center gap-2 bg-white text-black font-medium py-2.5 px-6 rounded-xl text-sm hover:bg-white/90 transition">
             Connect Microsoft 365
           </a>

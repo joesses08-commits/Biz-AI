@@ -166,7 +166,7 @@ export default function IntegrationsPage() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-10">
           <h1 className="text-3xl font-bold tracking-tight mb-2">Integrations</h1>
-          <p className="text-text-muted">Connect your business tools so BizAI has full visibility across your company.</p>
+          <p className="text-text-muted">Connect your business tools so Jimmy AI has full visibility across your company.</p>
         </div>
 
         {connected.length > 0 && (

@@ -42,7 +42,7 @@ export default function LoginPage() {
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <span className="text-white font-bold text-lg tracking-tight">BizAI</span>
+            <span className="text-white font-bold text-lg tracking-tight">Jimmy AI</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Welcome back</h1>
           <p className="text-white/30 text-sm">Sign in to your AI COO</p>
@@ -88,7 +88,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-white/15 text-xs mt-6">
-          Access is by invitation only. Contact your BizAI representative.
+          Access is by invitation only. Contact your Jimmy AI representative.
         </p>
 
       </div>

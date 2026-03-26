@@ -128,7 +128,7 @@ export default function SettingsPage() {
                 <div>
                   <label className={labelClass}>Who you are & what you do</label>
                   <textarea value={brain.company_brief} onChange={e => setBrain({...brain, company_brief: e.target.value})}
-                    rows={4} placeholder="e.g. I'm a sophomore at NYU Stern studying finance. I manage a personal investment portfolio through Schwab and Robinhood. I'm applying to scholarships and coordinating a basketball team. I'm also building BizAI, a B2B SaaS product."
+                    rows={4} placeholder="e.g. I'm a sophomore at NYU Stern studying finance. I manage a personal investment portfolio through Schwab and Robinhood. I'm applying to scholarships and coordinating a basketball team. I'm also building Jimmy AI, a B2B SaaS product."
                     className={textareaClass} />
                 </div>
 

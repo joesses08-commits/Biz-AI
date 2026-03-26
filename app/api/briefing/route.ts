@@ -62,7 +62,7 @@ Rules:
         const companyName = profile?.company_name || "Your Business";
 
         await resend.emails.send({
-          from: "BizAI <onboarding@resend.dev>",
+          from: "Jimmy AI <onboarding@resend.dev>",
           to: email,
           subject: `Your AI COO Briefing — ${today}`,
           html: `
@@ -82,7 +82,7 @@ Rules:
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
-                    <span style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.5px;">BizAI</span>
+                    <span style="color:#ffffff;font-size:18px;font-weight:700;letter-spacing:-0.5px;">Jimmy AI</span>
                     <span style="color:#ffffff30;font-size:12px;margin-left:8px;">AI COO</span>
                   </td>
                   <td align="right">
@@ -124,7 +124,7 @@ Rules:
           <tr>
             <td>
               <p style="margin:0;color:#ffffff20;font-size:11px;">
-                BizAI · AI Operating System for Business
+                Jimmy AI · AI Operating System for Business
               </p>
             </td>
           </tr>

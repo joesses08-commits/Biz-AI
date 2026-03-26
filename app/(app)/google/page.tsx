@@ -39,7 +39,7 @@ export default function GooglePage() {
             </svg>
           </div>
           <h1 className="text-white text-2xl font-semibold mb-3">Connect Google Workspace</h1>
-          <p className="text-white/40 text-sm mb-8 leading-relaxed">Connect your Google account to give BizAI access to Gmail, Sheets, and Drive.</p>
+          <p className="text-white/40 text-sm mb-8 leading-relaxed">Connect your Google account to give Jimmy AI access to Gmail, Sheets, and Drive.</p>
           <a href="/api/gmail/connect" className="inline-flex items-center gap-2 bg-white text-black font-medium py-2.5 px-6 rounded-xl text-sm hover:bg-white/90 transition">
             Connect Google
           </a>

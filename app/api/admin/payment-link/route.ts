@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: "usd",
             product_data: {
-              name: `BizAI ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
+              name: `Jimmy AI ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
               description: "AI Operating System for Business",
             },
             unit_amount: amount,
