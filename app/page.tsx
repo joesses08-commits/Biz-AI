@@ -219,6 +219,8 @@ export default function LandingPage() {
       <footer style={{ borderTop: "1px solid #111", padding: "32px 48px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: "13px", color: "#555", fontWeight: "300" }}>© 2026 Jimmy AI. All rights reserved.</span>
         <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
+          <Link href="/privacy" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Privacy</Link>
+          <Link href="/terms" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Terms</Link>
           <Link href="/login" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Client Login →</Link>
         </div>
       </footer>
