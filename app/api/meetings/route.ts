@@ -84,9 +84,16 @@ export async function POST(request: Request) {
 
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-    // Process transcript with Claude
+    // Get company context for better analysis
+    const { data: profile } = await adminSupabase
+      .from("company_profiles")
+      .select("company_brief")
+      .eq("user_id", user.id)
+      .single();
+
+    // Use haiku for cost savings
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2000,
       system: `You are analyzing a meeting transcript. Extract structured information. Today is ${today}.
 
@@ -107,7 +114,9 @@ Return ONLY raw JSON, no markdown:
       "priority": "critical | high | medium | low"
     }
   ],
-  "key_topics": ["topic 1", "topic 2"]
+  "key_topics": ["topic 1", "topic 2"],
+  "tone": "productive/tense/positive/concerning/neutral",
+  "business_impact": "one sentence on what this meeting means for the business"
 }`,
       messages: [{ role: "user", content: `Meeting Title: ${title || "Unknown"}\n\nTranscript:\n${transcript.slice(0, 8000)}` }],
     });
@@ -154,17 +163,33 @@ Return ONLY raw JSON, no markdown:
       });
     }
 
-    // Save to company memory
-    if (parsed.summary) {
-      const memoryEntry = `MEETING [${parsed.date || today}]: "${title || parsed.title}" — ${parsed.summary}. Decisions: ${(parsed.decisions || []).join("; ")}. Action items: ${actionItems.length} items created.`;
-      const { data: existing } = await adminSupabase.from("company_memory").select("memory").eq("user_id", user.id).single();
-      const current = existing?.memory || "";
-      await adminSupabase.from("company_memory").upsert({
-        user_id: user.id,
-        memory: (current + `\n[${new Date().toISOString()}] ${memoryEntry}`).slice(-15000),
-        last_updated: new Date().toISOString(),
-      });
-    }
+    // Feed meeting into Company Brain
+    const meetingRawData = `Meeting: ${title || parsed.title || "Unknown"}
+Date: ${parsed.date || today}
+Participants: ${(parsed.participants || []).join(", ")}
+Duration: ${parsed.duration_minutes || "unknown"} minutes
+Summary: ${parsed.summary}
+Decisions: ${(parsed.decisions || []).join("; ")}
+Action Items: ${actionItems.length} items created
+Key Topics: ${(parsed.key_topics || []).join(", ")}
+Business Impact: ${parsed.business_impact || ""}`;
+
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/process`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.id,
+        source: "Meetings",
+        eventType: "meeting_transcript",
+        rawData: meetingRawData,
+        companyContext: profile?.company_brief || "",
+      }),
+    });
+
+    // Rebuild snapshot since meeting is important
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
+      method: "POST",
+    }).catch(() => {});
 
     return NextResponse.json({ meeting, action_items_created: actionItems.length });
   } catch (err) {
