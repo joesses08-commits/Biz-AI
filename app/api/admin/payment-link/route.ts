@@ -9,33 +9,43 @@ const planPrices: Record<string, number> = {
   starter: 29900,
   growth: 99900,
   professional: 250000,
+  enterprise: 499900,
 };
 
 export async function POST(request: NextRequest) {
-  const { email, plan } = await request.json();
+  const { email, plan, customerId } = await request.json();
 
   try {
     const amount = planPrices[plan] || 29900;
+    const planName = `Jimmy AI ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`;
 
+    // Create a product
+    const product = await stripe.products.create({
+      name: planName,
+      description: "AI Operating System for Business",
+    });
+
+    // Create a price for that product
+    const price = await stripe.prices.create({
+      product: product.id,
+      unit_amount: amount,
+      currency: "usd",
+      recurring: { interval: "month" },
+    });
+
+    // Create payment link with the price
     const paymentLink = await stripe.paymentLinks.create({
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: `Jimmy AI ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`,
-              description: "AI Operating System for Business",
-            },
-            unit_amount: amount,
-            recurring: { interval: "month" },
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: price.id, quantity: 1 }],
+      metadata: { plan, customer_email: email, customer_id: customerId || "" },
+      after_completion: {
+        type: "redirect",
+        redirect: { url: "https://myjimmy.ai/login" },
+      },
     });
 
     return NextResponse.json({ url: paymentLink.url });
   } catch (error: any) {
+    console.error("Payment link error:", error);
     return NextResponse.json({ error: error.message });
   }
 }
