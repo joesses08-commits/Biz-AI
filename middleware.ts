@@ -15,6 +15,7 @@ export async function middleware(request: NextRequest) {
     "/api/stripe/connect",
     "/api/stripe/callback",
     "/api/briefing",
+    "/api/webhook",
     "/privacy",
     "/terms",
   ];
@@ -43,22 +44,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const protectedPaths = [
-    "/dashboard",
-    "/chat",
-    "/settings",
-    "/integrations",
-    "/gmail",
-    "/google",
-    "/microsoft",
-    "/stripe",
-    "/quickbooks",
-    "/api",
-  ];
-
-  const isProtected = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path));
-
-  if (!user && isProtected) {
+  if (!user && request.nextUrl.pathname !== "/login") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
