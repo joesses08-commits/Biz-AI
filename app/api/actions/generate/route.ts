@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { buildFullCompanyContext } from "@/lib/company-context";
 import { createClient } from "@supabase/supabase-js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -27,18 +26,47 @@ export async function POST() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    const context = await buildFullCompanyContext(user.id);
+    // Read from Company Brain snapshot
+    const { data: snapshot } = await adminSupabase
+      .from("context_cache")
+      .select("context")
+      .eq("user_id", user.id)
+      .single();
+
+    // Get action-required events
+    const { data: actionEvents } = await adminSupabase
+      .from("company_events")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("action_required", true)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const { data: profile } = await adminSupabase
+      .from("company_profiles")
+      .select("company_name, company_brief")
+      .eq("user_id", user.id)
+      .single();
+
+    const actionEventsText = actionEvents?.length
+      ? `\n\nACTIONS REQUIRED FROM EVENTS:\n${actionEvents.map(e =>
+          `- [${e.source}] ${e.analysis}\n  Recommended: ${e.recommended_action}\n  Impact: ${e.business_impact}`
+        ).join("\n\n")}`
+      : "";
+
+    const context = (snapshot?.context || profile?.company_brief || "") + actionEventsText;
     const today = new Date().toISOString().split("T")[0];
 
+    // Use claude-haiku for cost savings
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 2000,
       system: `You are a COO extracting action items from business data. Today is ${today}.
 
 Extract 5-8 specific, actionable items that need attention. Each must be something concrete that can actually be done.
 
 RULES:
-- Only include things with real urgency or opportunity
+- Prioritize any action_required events first
 - Include the specific dollar amount when relevant
 - Name specific people, customers, or platforms involved
 - Be specific about what needs to happen
