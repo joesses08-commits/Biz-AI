@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const publicPaths = [
+    "/",
     "/login",
     "/auth",
     "/api/gmail/connect",
@@ -20,7 +21,11 @@ export async function middleware(request: NextRequest) {
     "/terms",
   ];
 
-  const isPublic = publicPaths.some(path => request.nextUrl.pathname.startsWith(path));
+  const isPublic = publicPaths.some(path => 
+    path === "/" 
+      ? request.nextUrl.pathname === "/" 
+      : request.nextUrl.pathname.startsWith(path)
+  );
   if (isPublic) return NextResponse.next();
 
   let response = NextResponse.next({
