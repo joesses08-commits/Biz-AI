@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-02-25.acacia" as any,
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 const planPrices: Record<string, number> = {
   starter: 29900,
@@ -19,13 +17,11 @@ export async function POST(request: NextRequest) {
     const amount = planPrices[plan] || 29900;
     const planName = `Jimmy AI ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`;
 
-    // Create a product
     const product = await stripe.products.create({
       name: planName,
       description: "AI Operating System for Business",
     });
 
-    // Create a price for that product
     const price = await stripe.prices.create({
       product: product.id,
       unit_amount: amount,
@@ -33,7 +29,6 @@ export async function POST(request: NextRequest) {
       recurring: { interval: "month" },
     });
 
-    // Create payment link with the price
     const paymentLink = await stripe.paymentLinks.create({
       line_items: [{ price: price.id, quantity: 1 }],
       metadata: { plan, customer_email: email, customer_id: customerId || "" },
