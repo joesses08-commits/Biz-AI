@@ -33,6 +33,24 @@ function getHeader(headers: any[], name: string): string {
   return headers?.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
 }
 
+async function registerGmailPush(accessToken: string) {
+  try {
+    const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/watch", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        labelIds: ["INBOX"],
+        topicName: "projects/biz-ai-489803/topics/gmail-push",
+      }),
+    });
+    const data = await res.json();
+    return data.historyId;
+  } catch { return null; }
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
@@ -58,7 +76,6 @@ export async function GET(request: NextRequest) {
     });
 
     const tokens = await tokenResponse.json();
-
     if (!tokens.access_token) {
       return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=gmail_failed`);
     }
@@ -91,15 +108,19 @@ export async function GET(request: NextRequest) {
 
     const expiryDate = new Date(Date.now() + tokens.expires_in * 1000);
 
+    // Register Gmail push notifications
+    const historyId = await registerGmailPush(tokens.access_token);
+
     await supabase.from("gmail_connections").upsert({
       user_id: user.id,
       email: userInfo.email,
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       token_expiry: expiryDate.toISOString(),
+      last_history_id: historyId || null,
     }, { onConflict: "user_id" });
 
-    // Kick off initial email scan in background (don't await — don't block redirect)
+    // Initial email scan in background
     initialEmailScan(user.id, tokens.access_token).catch(() => {});
 
     return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/integrations?success=gmail`);
@@ -111,7 +132,6 @@ export async function GET(request: NextRequest) {
 
 async function initialEmailScan(userId: string, accessToken: string) {
   try {
-    // Get company context for better analysis
     const { data: profile } = await supabaseAdmin
       .from("company_profiles")
       .select("*")
@@ -120,7 +140,6 @@ async function initialEmailScan(userId: string, accessToken: string) {
 
     const companyContext = profile?.company_brief || "";
 
-    // Fetch last 20 emails
     const listRes = await fetch(
       "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20",
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -128,7 +147,6 @@ async function initialEmailScan(userId: string, accessToken: string) {
     const listData = await listRes.json();
     if (!listData.messages?.length) return;
 
-    // Process each email
     for (const msg of listData.messages.slice(0, 20)) {
       try {
         const res = await fetch(
@@ -143,13 +161,8 @@ async function initialEmailScan(userId: string, accessToken: string) {
         const body = extractEmailBody(data.payload).slice(0, 1000);
         const isUnread = data.labelIds?.includes("UNREAD") ? "UNREAD" : "READ";
 
-        const rawData = `FROM: ${from}
-DATE: ${date}
-SUBJECT: ${subject}
-STATUS: ${isUnread}
-BODY: ${body}`;
+        const rawData = `FROM: ${from}\nDATE: ${date}\nSUBJECT: ${subject}\nSTATUS: ${isUnread}\nBODY: ${body}`;
 
-        // Send to event processor
         await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/process`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -162,12 +175,10 @@ BODY: ${body}`;
           }),
         });
 
-        // Small delay to avoid rate limits
         await new Promise(r => setTimeout(r, 500));
       } catch { continue; }
     }
 
-    // After scanning all emails, build the first snapshot
     await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-user-id": userId },
