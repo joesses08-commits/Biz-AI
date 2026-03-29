@@ -22,15 +22,14 @@ export async function POST() {
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const base = process.env.NEXT_PUBLIC_APP_URL!;
+    const userHeader = { "Content-Type": "application/json", "x-user-id": user.id };
 
-    // Run all syncs in parallel
     const results = await Promise.allSettled([
-      fetch(`${base}/api/gmail/sync`, { method: "POST" }).then(r => r.json()),
-      fetch(`${base}/api/microsoft/sync`, { method: "POST" }).then(r => r.json()),
-      fetch(`${base}/api/quickbooks/sync`, { method: "POST" }).then(r => r.json()),
+      fetch(`${base}/api/gmail/sync`, { method: "POST", headers: userHeader }).then(r => r.json()),
+      fetch(`${base}/api/microsoft/sync`, { method: "POST", headers: userHeader }).then(r => r.json()),
+      fetch(`${base}/api/quickbooks/sync`, { method: "POST", headers: userHeader }).then(r => r.json()),
     ]);
 
-    // Always rebuild snapshot after syncing
     await fetch(`${base}/api/events/snapshot`, { method: "POST" });
 
     return NextResponse.json({

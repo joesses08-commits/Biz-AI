@@ -1,7 +1,5 @@
-import { NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,54 +26,35 @@ async function refreshQuickBooksToken(conn: any) {
   return conn.access_token;
 }
 
-export async function POST() {
-  try {
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll(); },
-          setAll(cookiesToSet: { name: string; value: string; options?: object }[]) {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-          },
-        },
-      }
-    );
+async function syncUserQuickBooks(userId: string) {
+  const { data: conn } = await supabaseAdmin
+    .from("quickbooks_connections")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  if (!conn) return { synced: 0 };
 
-    const { data: conn } = await supabaseAdmin
-      .from("quickbooks_connections")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+  const token = await refreshQuickBooksToken(conn);
+  const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
 
-    if (!conn) return NextResponse.json({ error: "QuickBooks not connected" });
+  const { data: profile } = await supabaseAdmin
+    .from("company_profiles")
+    .select("company_brief")
+    .eq("user_id", userId)
+    .single();
 
-    const token = await refreshQuickBooksToken(conn);
-    const headers = { Authorization: `Bearer ${token}`, Accept: "application/json" };
+  const invoicesRes = await fetch(
+    `https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}/query?query=SELECT * FROM Invoice ORDER BY MetaData.LastUpdatedTime DESC MAXRESULTS 20&minorversion=65`,
+    { headers }
+  );
+  const invoicesData = await invoicesRes.json();
+  const invoices = invoicesData.QueryResponse?.Invoice || [];
 
-    const { data: profile } = await supabaseAdmin
-      .from("company_profiles")
-      .select("company_brief")
-      .eq("user_id", user.id)
-      .single();
+  let synced = 0;
 
-    // Fetch recent invoices
-    const invoicesRes = await fetch(
-      `https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}/query?query=SELECT * FROM Invoice ORDER BY MetaData.LastUpdatedTime DESC MAXRESULTS 20&minorversion=65`,
-      { headers }
-    );
-    const invoicesData = await invoicesRes.json();
-    const invoices = invoicesData.QueryResponse?.Invoice || [];
-
-    let synced = 0;
-
-    for (const inv of invoices) {
-      const rawData = `Invoice #${inv.DocNumber}
+  for (const inv of invoices) {
+    const rawData = `Invoice #${inv.DocNumber}
 Customer: ${inv.CustomerRef?.name || "Unknown"}
 Total: $${inv.TotalAmt}
 Balance Due: $${inv.Balance}
@@ -83,29 +62,59 @@ Date: ${inv.TxnDate}
 Due Date: ${inv.DueDate || "not set"}
 Status: ${inv.Balance > 0 ? "UNPAID" : "PAID"}`;
 
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/process`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          source: "QuickBooks",
-          eventType: "invoice",
-          rawData,
-          companyContext: profile?.company_brief || "",
-        }),
-      });
-
-      synced++;
-      await new Promise(r => setTimeout(r, 300));
-    }
-
-    // Rebuild snapshot after syncing
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/process`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        source: "QuickBooks",
+        eventType: "invoice",
+        rawData,
+        companyContext: profile?.company_brief || "",
+      }),
     });
 
-    return NextResponse.json({ success: true, synced });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    synced++;
+    await new Promise(r => setTimeout(r, 300));
   }
+
+  if (synced > 0) {
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": userId },
+    });
+  }
+
+  return { synced };
+}
+
+export async function GET(request: NextRequest) {
+  const authHeader = request.headers.get("authorization");
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: connections } = await supabaseAdmin
+    .from("quickbooks_connections")
+    .select("user_id");
+
+  if (!connections?.length) return NextResponse.json({ synced: 0 });
+
+  let totalSynced = 0;
+  for (const conn of connections) {
+    try {
+      const result = await syncUserQuickBooks(conn.user_id);
+      totalSynced += result.synced;
+    } catch { continue; }
+  }
+
+  return NextResponse.json({ success: true, totalSynced });
+}
+
+export async function POST(request: NextRequest) {
+  const userId = request.headers.get("x-user-id");
+  if (!userId) return NextResponse.json({ error: "No user ID" }, { status: 400 });
+
+  const result = await syncUserQuickBooks(userId);
+  return NextResponse.json({ success: true, ...result });
 }
