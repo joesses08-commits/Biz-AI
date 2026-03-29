@@ -7,6 +7,14 @@
     {
       "path": "/api/gmail/sync",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/microsoft/sync",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/quickbooks/sync",
+      "schedule": "0 */4 * * *"
     }
   ]
 }
