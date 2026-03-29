@@ -6,6 +6,7 @@ export async function middleware(request: NextRequest) {
   const publicPaths = [
     "/",
     "/login",
+    "/reset-password",
     "/auth",
     "/api/gmail/connect",
     "/api/gmail/callback",
