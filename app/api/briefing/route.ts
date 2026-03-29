@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
-import { buildFullCompanyContext } from "@/lib/company-context";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -31,13 +30,34 @@ export async function GET(request: Request) {
           .eq("user_id", user.id)
           .single();
 
-        const context = await buildFullCompanyContext(user.id);
-        if (!context || context.length < 500) continue;
+        // Read from Company Brain snapshot instead of rebuilding full context
+        const { data: snapshot } = await supabase
+          .from("context_cache")
+          .select("context")
+          .eq("user_id", user.id)
+          .single();
+
+        // Get recent critical events
+        const { data: criticalEvents } = await supabase
+          .from("company_events")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("action_required", true)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const context = snapshot?.context || profile?.company_brief || "";
+        if (!context || context.length < 100) continue;
+
+        const criticalText = criticalEvents?.length
+          ? `\n\nACTIONS REQUIRED:\n${criticalEvents.map(e => `- ${e.analysis} → ${e.recommended_action}`).join("\n")}`
+          : "";
 
         const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
+        // Use claude-haiku for cost savings
         const response = await anthropic.messages.create({
-          model: "claude-sonnet-4-5",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 1000,
           system: `You are an AI COO writing a daily morning briefing email. Today is ${today}.
 
@@ -50,10 +70,9 @@ Rules:
 - Be specific — name customers, amounts, dates
 - No fluff, no warm-up phrases
 - Every point needs a dollar amount
-- Cross-reference platforms to find non-obvious insights
 - Keep it under 200 words total
 - Format as clean HTML paragraphs, no markdown`,
-          messages: [{ role: "user", content: context }],
+          messages: [{ role: "user", content: context + criticalText }],
         });
 
         const briefingText = response.content[0].type === "text" ? response.content[0].text : "";
@@ -110,10 +129,10 @@ Rules:
               <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;">
                 <tr>
                   <td>
-                    <a href="https://biz-ai-pi.vercel.app/dashboard" style="display:inline-block;background:#ffffff;color:#000000;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:600;">
+                    <a href="https://myjimmy.ai/dashboard" style="display:inline-block;background:#ffffff;color:#000000;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:600;">
                       Open Command Center →
                     </a>
-                    <a href="https://biz-ai-pi.vercel.app/chat" style="display:inline-block;background:transparent;color:#ffffff60;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid #ffffff15;margin-left:8px;">
+                    <a href="https://myjimmy.ai/chat" style="display:inline-block;background:transparent;color:#ffffff60;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid #ffffff15;margin-left:8px;">
                       Ask AI COO
                     </a>
                   </td>
