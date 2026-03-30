@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { updateCompanyBrain } from "@/lib/company-context";
+import { updateCompanyBrain, buildFullCompanyContext } from "@/lib/company-context";
 import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -33,21 +33,18 @@ export async function POST(request: NextRequest) {
 
     const { messages } = await request.json();
 
-    // Get company profile
     const { data: profile } = await supabaseAdmin
       .from("company_profiles")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // Get Company Brain snapshot — trimmed to 2000 chars for cost
     const { data: snapshot } = await supabaseAdmin
       .from("context_cache")
       .select("context, cached_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    // Get only 15 most recent events — trimmed raw data
     const { data: recentEvents } = await supabaseAdmin
       .from("company_events")
       .select("created_at, source, event_type, analysis, tone, importance, recommended_action, dollar_amount, action_required, raw_data")
@@ -57,7 +54,6 @@ export async function POST(request: NextRequest) {
 
     const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-    // Build tight context
     let companyContext = "";
 
     if (profile) {
@@ -66,8 +62,13 @@ FOUNDATION: ${profile.company_brief || ""}
 ${profile.company_brain ? `KNOWLEDGE:\n${profile.company_brain.slice(0, 1000)}` : ""}`;
     }
 
-    if (snapshot?.context) {
+    // Use snapshot if it has real content, otherwise fall back to live data
+    if (snapshot?.context && snapshot.context.length > 200) {
       companyContext += `\n\nBRAIN SNAPSHOT (${snapshot.cached_at ? new Date(snapshot.cached_at).toLocaleString() : "unknown"}):\n${snapshot.context.slice(0, 2500)}`;
+    } else {
+      // Snapshot empty — read live integration data directly (same as dashboard)
+      const liveContext = await buildFullCompanyContext(user.id);
+      companyContext += `\n\nLIVE BUSINESS DATA:\n${liveContext.slice(0, 2500)}`;
     }
 
     if (recentEvents?.length) {
@@ -87,7 +88,7 @@ Raw: ${(e.raw_data || "").slice(0, 120)}`
 
     const systemPrompt = `You are the AI COO of this business. Today is ${today}.
 
-You are a brilliant, direct advisor who speaks like a trusted partner. You have full access to all business data through the Company Brain.
+You are a brilliant, direct advisor who speaks like a trusted partner. You have full access to all business data.
 
 HOW TO COMMUNICATE:
 - Talk naturally, like a smart person in a real conversation
@@ -97,17 +98,16 @@ HOW TO COMMUNICATE:
 - If something is urgent, say it directly and tell them exactly what to do
 - Keep responses tight and punchy — no fluff
 - Never say "Great question", "Certainly", "Based on the data provided"
-- If asked about a specific email or event, pull from the raw data
 
 DATA RULES:
 - Always note the DATE of data you reference
-- Data named "model", "template", "example", "demo", "test" = HYPOTHETICAL
+- Only state numbers you can see in the data — never guess or use memory
 
 BRAIN UPDATE RULE:
 If the CEO tells you something new, respond normally AND end with:
 BRAIN_UPDATE: [one sentence of new context to remember]
 
-${companyContext || "No integrations connected yet. Tell the CEO to connect their tools at /integrations."}`;
+${companyContext || "No integrations connected yet."}`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
