@@ -9,6 +9,7 @@ import {
   CheckSquare,
   Video,
   Settings,
+  BarChart2,
   HelpCircle,
   LogOut,
   Plug,
@@ -187,6 +188,12 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-3 pb-4 border-t border-bg-border pt-3 space-y-1">
+        <Link href="/settings/usage">
+          <div className="nav-item">
+            <BarChart2 size={15} className="text-text-muted flex-shrink-0" />
+            <span className="text-[13px]">Usage & Costs</span>
+          </div>
+        </Link>
         <Link href="/settings">
           <div className="nav-item">
             <Settings size={15} className="text-text-muted flex-shrink-0" />

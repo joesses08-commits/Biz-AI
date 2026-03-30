@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { trackUsage } from "@/lib/track-usage";
 import { createClient } from "@supabase/supabase-js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -44,6 +45,7 @@ Data: ${rawData.slice(0, 1500)}`
       }],
     });
 
+    trackUsage(userId, "event_processor", "claude-haiku-4-5-20251001", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
     const firstBrace = raw.indexOf("{");
     const lastBrace = raw.lastIndexOf("}");

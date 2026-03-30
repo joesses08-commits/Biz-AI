@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { buildFullCompanyContext } from "@/lib/company-context";
+import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
@@ -246,6 +247,7 @@ Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
       messages: [{ role: "user", content: companyContext || "No integrations connected yet." }],
     });
 
+    trackUsage(user.id, "dashboard", "claude-sonnet-4-5", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
     const firstBrace = raw.indexOf("{");
     const lastBrace = raw.lastIndexOf("}");

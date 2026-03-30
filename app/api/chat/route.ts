@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { updateCompanyBrain } from "@/lib/company-context";
+import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
@@ -133,6 +134,7 @@ ${companyContext || "No integrations connected yet. Tell the CEO to connect thei
       messages,
     });
 
+    trackUsage(user.id, "chat", "claude-sonnet-4-5", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
     const fullText = response.content[0].type === "text" ? response.content[0].text : "";
 
     let displayText = fullText;
