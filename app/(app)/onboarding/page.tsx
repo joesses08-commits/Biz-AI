@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -12,20 +12,24 @@ const INTEGRATIONS = [
 ];
 
 const BRAIN_SOURCES = [
-  { source: "gmail", label: "Gmail", sublabel: "Last 12 months — inbox & sent, smart filtered" },
-  { source: "google_drive", label: "Google Drive", sublabel: "Sheets, Docs, Slides with full content" },
-  { source: "microsoft", label: "Microsoft 365", sublabel: "Outlook emails + OneDrive files" },
-  { source: "quickbooks", label: "QuickBooks", sublabel: "All invoices and customers" },
-  { source: "stripe", label: "Stripe", sublabel: "All charges, subscriptions, customers" },
+  { source: "gmail", label: "Gmail", sublabel: "Last 12 months — inbox & sent, smart filtered", integration: "gmail", batched: true },
+  { source: "google_drive", label: "Google Drive", sublabel: "Sheets, Docs, Slides with full content", integration: "gmail", batched: false },
+  { source: "microsoft", label: "Microsoft 365", sublabel: "Outlook emails + OneDrive files", integration: "microsoft", batched: false },
+  { source: "quickbooks", label: "QuickBooks", sublabel: "All invoices and customers", integration: "quickbooks", batched: false },
+  { source: "stripe", label: "Stripe", sublabel: "All charges, subscriptions, customers", integration: "stripe", batched: false },
 ];
 
-const SOURCE_TO_INTEGRATION: Record<string, string> = {
-  gmail: "gmail",
-  google_drive: "gmail",
-  microsoft: "microsoft",
-  quickbooks: "quickbooks",
-  stripe: "stripe",
-};
+type SourceStatus = "pending" | "collecting" | "processing" | "done" | "skipped";
+
+interface SourceProgress {
+  source: string;
+  label: string;
+  sublabel: string;
+  status: SourceStatus;
+  items?: number;
+  pct?: number;
+  jobId?: string;
+}
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -35,8 +39,9 @@ export default function OnboardingPage() {
   const [checking, setChecking] = useState(true);
   const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>([]);
   const [buildingBrain, setBuildingBrain] = useState(false);
-  const [brainProgress, setBrainProgress] = useState<{source: string; label: string; sublabel: string; status: "pending" | "processing" | "done" | "skipped"; items?: number}[]>([]);
+  const [brainProgress, setBrainProgress] = useState<SourceProgress[]>([]);
   const [brainDone, setBrainDone] = useState(false);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
   const supabase = createBrowserClient(
@@ -45,11 +50,11 @@ export default function OnboardingPage() {
   );
 
   useEffect(() => { checkOnboarded(); }, []);
+  useEffect(() => () => { if (pollingRef.current) clearInterval(pollingRef.current); }, []);
 
   async function checkOnboarded() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
-
     const { data: profile } = await supabase.from("profiles").select("onboarded").eq("id", user.id).single();
     if (profile?.onboarded) { router.push("/dashboard"); return; }
 
@@ -84,35 +89,98 @@ export default function OnboardingPage() {
     setCurrentStep(2);
   }
 
-  async function buildBrain() {
-    setBuildingBrain(true);
-
-    const activeSources = BRAIN_SOURCES.filter(s =>
-      connectedIntegrations.includes(SOURCE_TO_INTEGRATION[s.source])
-    );
-
-    if (!activeSources.length) { setBrainDone(true); setBuildingBrain(false); return; }
-
-    setBrainProgress(activeSources.map(s => ({ ...s, status: "pending" })));
-
-    for (let i = 0; i < activeSources.length; i++) {
-      setBrainProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: "processing" } : p));
-
+  async function pollJob(jobId: string, sourceIndex: number) {
+    const poll = async () => {
       try {
+        const res = await fetch(`/api/brain/backfill/process`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId }),
+        });
+        const data = await res.json();
+
+        setBrainProgress(prev => prev.map((p, idx) => idx === sourceIndex ? {
+          ...p,
+          status: data.done ? "done" : "processing",
+          pct: data.pct,
+          items: data.processed,
+        } : p));
+
+        if (data.done) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          processNextSource(sourceIndex + 1);
+        }
+      } catch {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        setBrainProgress(prev => prev.map((p, idx) => idx === sourceIndex ? { ...p, status: "skipped" } : p));
+        processNextSource(sourceIndex + 1);
+      }
+    };
+
+    pollingRef.current = setInterval(poll, 2000);
+  }
+
+  async function processNextSource(index: number) {
+    const activeSources = BRAIN_SOURCES.filter(s => connectedIntegrations.includes(s.integration));
+    if (index >= activeSources.length) {
+      setBrainDone(true);
+      setBuildingBrain(false);
+      return;
+    }
+
+    const s = activeSources[index];
+    setBrainProgress(prev => prev.map((p, idx) => idx === index ? { ...p, status: s.batched ? "collecting" : "processing" } : p));
+
+    try {
+      if (s.batched) {
+        // Gmail: start job then poll
+        const res = await fetch("/api/brain/backfill/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: s.source }),
+        });
+        const data = await res.json();
+
+        setBrainProgress(prev => prev.map((p, idx) => idx === index ? {
+          ...p,
+          status: "processing",
+          jobId: data.jobId,
+          items: data.totalItems,
+        } : p));
+
+        await pollJob(data.jobId, index);
+      } else {
+        // Direct processing
         const res = await fetch("/api/brain/backfill", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ source: activeSources[i].source }),
+          body: JSON.stringify({ source: s.source }),
         });
         const data = await res.json();
-        setBrainProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: "done", items: data.itemsProcessed } : p));
-      } catch {
-        setBrainProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: "skipped" } : p));
-      }
-    }
 
-    setBrainDone(true);
-    setBuildingBrain(false);
+        setBrainProgress(prev => prev.map((p, idx) => idx === index ? {
+          ...p,
+          status: "done",
+          items: data.itemsProcessed,
+        } : p));
+
+        processNextSource(index + 1);
+      }
+    } catch {
+      setBrainProgress(prev => prev.map((p, idx) => idx === index ? { ...p, status: "skipped" } : p));
+      processNextSource(index + 1);
+    }
+  }
+
+  async function buildBrain() {
+    setBuildingBrain(true);
+    setBrainDone(false);
+
+    const activeSources = BRAIN_SOURCES.filter(s => connectedIntegrations.includes(s.integration));
+    if (!activeSources.length) { setBrainDone(true); setBuildingBrain(false); return; }
+
+    setBrainProgress(activeSources.map(s => ({ ...s, status: "pending", pct: 0 })));
+    processNextSource(0);
   }
 
   async function finish() {
@@ -142,7 +210,6 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-8">
       <div className="max-w-2xl w-full">
 
-        {/* Progress */}
         <div className="flex items-center gap-2 mb-12 justify-center">
           {steps.map((s, i) => (
             <div key={s.id} className="flex items-center gap-2">
@@ -154,7 +221,6 @@ export default function OnboardingPage() {
           ))}
         </div>
 
-        {/* Step 0: Welcome */}
         {currentStep === 0 && (
           <div>
             <div className="text-center mb-10">
@@ -163,12 +229,7 @@ export default function OnboardingPage() {
               <p className="text-white/40 leading-relaxed">Jimmy connects every tool your business runs on and gives you a single AI that knows everything — your numbers, your emails, your deals, your risks.</p>
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-8 space-y-3">
-              {[
-                "Knows your full business history from day one",
-                "Live data from every platform you use",
-                "Proactive alerts before problems become crises",
-                "Ask anything about your business in plain English",
-              ].map((b, i) => (
+              {["Knows your full business history from day one", "Live data from every platform you use", "Proactive alerts before problems become crises", "Ask anything about your business in plain English"].map((b, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -177,13 +238,10 @@ export default function OnboardingPage() {
                 </div>
               ))}
             </div>
-            <button onClick={() => setCurrentStep(1)} className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
-              Get Started →
-            </button>
+            <button onClick={() => setCurrentStep(1)} className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">Get Started →</button>
           </div>
         )}
 
-        {/* Step 1: Company Brief */}
         {currentStep === 1 && (
           <div>
             <div className="text-center mb-8">
@@ -217,7 +275,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2: Connect Tools */}
         {currentStep === 2 && (
           <div>
             <div className="text-center mb-8">
@@ -228,7 +285,7 @@ export default function OnboardingPage() {
             <div className="grid grid-cols-2 gap-3 mb-8">
               {INTEGRATIONS.map((tool) => {
                 const isConnected = connectedIntegrations.includes(tool.id);
-                const connectHref = tool.id === "gmail" ? "/api/gmail/connect" : tool.id === "microsoft" ? "/api/microsoft/connect" : tool.id === "quickbooks" ? "/api/quickbooks/connect" : "/api/stripe/connect";
+                const connectHref = `/api/${tool.id === "gmail" ? "gmail" : tool.id === "microsoft" ? "microsoft" : tool.id === "quickbooks" ? "quickbooks" : "stripe"}/connect`;
                 return (
                   <div key={tool.id} className={`relative border rounded-2xl p-5 transition ${isConnected ? "border-emerald-500/30 bg-emerald-500/5" : "border-white/[0.06] bg-white/[0.03]"}`}>
                     {isConnected && (
@@ -242,9 +299,7 @@ export default function OnboardingPage() {
                     <p className="text-sm font-semibold mb-1">{tool.name}</p>
                     <p className="text-white/30 text-xs mb-3">{tool.description}</p>
                     {!isConnected && (
-                      <a href={connectHref} className="text-xs text-white/50 hover:text-white transition underline underline-offset-2">
-                        Connect →
-                      </a>
+                      <a href={connectHref} className="text-xs text-white/50 hover:text-white transition underline underline-offset-2">Connect →</a>
                     )}
                   </div>
                 );
@@ -259,7 +314,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 3: Build Brain */}
         {currentStep === 3 && (
           <div>
             <div className="text-center mb-8">
@@ -268,20 +322,17 @@ export default function OnboardingPage() {
                 {brainDone ? "Your brain is built." : "Build your Company Brain."}
               </h1>
               <p className="text-white/40 text-sm leading-relaxed">
-                {brainDone
-                  ? "Jimmy has read your full history and knows your business. You're ready."
-                  : connectedIntegrations.length > 0
-                    ? "Jimmy will read your full history — emails, files, invoices, payments — and build permanent intelligence about your business. One time only."
-                    : "No tools connected yet. You can build your brain later from Settings after connecting."}
+                {brainDone ? "Jimmy has read your full history and knows your business. You're ready." :
+                 connectedIntegrations.length > 0 ? "Jimmy will read your full history — emails, files, invoices, payments — and build permanent intelligence about your business. One time only." :
+                 "No tools connected yet. You can build your brain later from Settings after connecting."}
               </p>
             </div>
 
-            {/* What will be read */}
             {connectedIntegrations.length > 0 && !buildingBrain && !brainDone && (
               <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-6">
                 <p className="text-white/30 text-xs uppercase tracking-widest mb-4">What Jimmy will read</p>
                 <div className="space-y-4">
-                  {BRAIN_SOURCES.filter(s => connectedIntegrations.includes(SOURCE_TO_INTEGRATION[s.source])).map((s, i) => (
+                  {BRAIN_SOURCES.filter(s => connectedIntegrations.includes(s.integration)).map((s, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <div className="w-1.5 h-1.5 rounded-full bg-white/30 mt-2 flex-shrink-0" />
                       <div>
@@ -292,12 +343,11 @@ export default function OnboardingPage() {
                   ))}
                 </div>
                 <div className="mt-4 pt-4 border-t border-white/[0.06]">
-                  <p className="text-white/20 text-xs">Takes 1-3 minutes. After this, Jimmy only processes new data automatically — no repeat scans.</p>
+                  <p className="text-white/20 text-xs">Takes 2-5 minutes depending on your data volume. You can navigate away — it runs in the background.</p>
                 </div>
               </div>
             )}
 
-            {/* Progress */}
             {(buildingBrain || brainDone) && brainProgress.length > 0 && (
               <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-6">
                 <p className="text-white/30 text-xs uppercase tracking-widest mb-4">Building your brain</p>
@@ -306,22 +356,34 @@ export default function OnboardingPage() {
                     <div key={i} className="flex items-center gap-3">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 border transition-all ${
                         item.status === "done" ? "bg-emerald-500/20 border-emerald-500/30" :
-                        item.status === "processing" ? "bg-white/10 border-white/30" :
+                        item.status === "processing" || item.status === "collecting" ? "bg-white/10 border-white/30" :
                         "bg-white/5 border-white/10"
                       }`}>
                         {item.status === "done" && <span className="text-emerald-400 text-xs">✓</span>}
-                        {item.status === "processing" && <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {(item.status === "processing" || item.status === "collecting") && <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                         {item.status === "pending" && <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
                         {item.status === "skipped" && <span className="text-white/20 text-xs">—</span>}
                       </div>
                       <div className="flex-1">
-                        <p className={`text-sm font-medium transition ${item.status === "done" ? "text-white/70" : item.status === "processing" ? "text-white" : "text-white/30"}`}>
-                          {item.label}
-                        </p>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className={`text-sm font-medium transition ${item.status === "done" ? "text-white/70" : item.status === "processing" || item.status === "collecting" ? "text-white" : "text-white/30"}`}>
+                            {item.label}
+                          </p>
+                          {item.status === "processing" && item.pct !== undefined && (
+                            <span className="text-xs text-white/30">{item.pct}%</span>
+                          )}
+                        </div>
+                        {item.status === "processing" && item.pct !== undefined && (
+                          <div className="w-full bg-white/[0.06] rounded-full h-1 mb-1">
+                            <div className="bg-white/40 h-1 rounded-full transition-all duration-500" style={{ width: `${item.pct}%` }} />
+                          </div>
+                        )}
                         <p className="text-xs text-white/25">
-                          {item.status === "done" && item.items !== undefined ? `${item.items} items analyzed` :
-                           item.status === "processing" ? "Analyzing your history..." :
-                           item.status === "pending" ? item.sublabel : "Skipped"}
+                          {item.status === "done" && item.items !== undefined ? `${item.items} emails scanned` :
+                           item.status === "collecting" ? "Collecting emails..." :
+                           item.status === "processing" ? `Analyzing ${item.items || "..."} emails...` :
+                           item.status === "pending" ? item.sublabel :
+                           item.status === "skipped" ? "Skipped" : ""}
                         </p>
                       </div>
                     </div>
@@ -344,18 +406,11 @@ export default function OnboardingPage() {
               {!brainDone && connectedIntegrations.length > 0 && (
                 <button onClick={buildBrain} disabled={buildingBrain}
                   className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 disabled:opacity-60 transition flex items-center justify-center gap-2">
-                  {buildingBrain ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                      Building...
-                    </>
-                  ) : "Build Company Brain →"}
+                  {buildingBrain ? (<><div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />Building...</>) : "Build Company Brain →"}
                 </button>
               )}
               {(brainDone || connectedIntegrations.length === 0) && (
-                <button onClick={() => setCurrentStep(4)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
-                  Continue →
-                </button>
+                <button onClick={() => setCurrentStep(4)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">Continue →</button>
               )}
             </div>
             {!buildingBrain && !brainDone && connectedIntegrations.length > 0 && (
@@ -366,7 +421,6 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: Launch */}
         {currentStep === 4 && (
           <div>
             <div className="text-center mb-8">
@@ -378,12 +432,7 @@ export default function OnboardingPage() {
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-8 space-y-2">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-4">Try asking</p>
-              {[
-                "What's the most important thing I should focus on today?",
-                "What does my financial position look like right now?",
-                "Who are my most valuable customers and are any at risk?",
-                "What deals or opportunities should I be pursuing?",
-              ].map((q, i) => (
+              {["What's the most important thing I should focus on today?", "What does my financial position look like right now?", "Who are my most valuable customers and are any at risk?", "What deals or opportunities should I be pursuing?"].map((q, i) => (
                 <div key={i} onClick={() => router.push(`/chat?q=${encodeURIComponent(q)}`)}
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition cursor-pointer group">
                   <span className="text-white/20 group-hover:text-white/40 transition text-xs">→</span>
@@ -391,9 +440,7 @@ export default function OnboardingPage() {
                 </div>
               ))}
             </div>
-            <button onClick={finish} className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
-              Go to Dashboard →
-            </button>
+            <button onClick={finish} className="w-full bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">Go to Dashboard →</button>
           </div>
         )}
 
