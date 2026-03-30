@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
                 user_id: user.id, source: "Gmail", email_id: msg.id,
                 from_address: from, subject, date, snippet,
                 is_sent: isSent, thread_id: msgData.threadId, is_unread: isUnread,
-              }, { onConflict: "email_id" }).catch(() => {});
+              }, { onConflict: "email_id" }); // ignore duplicate
 
               allEmails.push({ subject, from, date, snippet, isSent, isUnread });
               fetched++;
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
             user_id: user.id, source: "Google Drive", file_id: file.id,
             name: file.name, file_type: MIME_TYPES[file.mimeType] || "File",
             modified_at: file.modifiedTime, content_preview: content.slice(0, 3000),
-          }, { onConflict: "file_id" }).catch(() => {});
+          }, { onConflict: "file_id" }); // ignore duplicate
 
           fileTexts.push(`FILE: ${file.name} | TYPE: ${MIME_TYPES[file.mimeType]} | MODIFIED: ${file.modifiedTime}\n${content ? `CONTENT:\n${content.slice(0, 1000)}` : ""}`);
           await new Promise(r => setTimeout(r, 200));
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
             user_id: user.id, source: "Microsoft Outlook", email_id: email.id,
             from_address: from, subject: email.subject || "", date: email.receivedDateTime || "",
             snippet: email.bodyPreview || "", is_sent: isSent, is_unread: !email.isRead,
-          }, { onConflict: "email_id" }).catch(() => {});
+          }, { onConflict: "email_id" }); // ignore duplicate
           allEmails.push({ subject: email.subject, from, date: email.receivedDateTime, snippet: email.bodyPreview || "", isSent, isUnread: !email.isRead });
         }
       }
