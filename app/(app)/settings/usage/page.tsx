@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface UsageSummary {
   totalCost: number;
@@ -32,9 +32,22 @@ export default function UsagePage() {
 
   const chartData = usage ? Object.entries(usage.byFeature).map(([key, val]) => ({
     name: FEATURE_LABELS[key] || key,
-    cost: parseFloat((val.cost * 100).toFixed(4)),
+    cost: parseFloat((val.cost * 100).toFixed(3)),
     calls: val.calls,
   })).sort((a, b) => b.cost - a.cost) : [];
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-xs">
+          <p className="text-white font-semibold mb-1">{label}</p>
+          <p className="text-white/60">{payload[0].value.toFixed(3)}¢</p>
+          <p className="text-white/40">{payload[0].payload.calls} calls</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
@@ -45,67 +58,63 @@ export default function UsagePage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          {[1,2,3].map(i => <div key={i} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 h-24 animate-pulse" />)}
-        </div>
+        <div className="text-white/30 text-sm">Loading...</div>
+      ) : !usage ? (
+        <div className="text-white/30 text-sm">No usage data yet.</div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Total Cost</p>
-              <p className="text-3xl font-bold text-white">${((usage?.totalCost || 0)).toFixed(4)}</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Total Cost</p>
+              <p className="text-3xl font-bold text-white">${usage.totalCost.toFixed(4)}</p>
               <p className="text-white/30 text-xs mt-1">last 30 days</p>
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">AI Calls</p>
-              <p className="text-3xl font-bold text-white">{usage?.totalCalls || 0}</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">AI Calls</p>
+              <p className="text-3xl font-bold text-white">{usage.totalCalls}</p>
               <p className="text-white/30 text-xs mt-1">last 30 days</p>
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Avg Per Call</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Avg Per Call</p>
               <p className="text-3xl font-bold text-white">
-                {usage?.totalCalls ? ((usage.totalCost / usage.totalCalls) * 100).toFixed(3) : "0.000"}¢
+                {usage.totalCalls > 0 ? ((usage.totalCost / usage.totalCalls) * 100).toFixed(3) : "0"}¢
               </p>
               <p className="text-white/30 text-xs mt-1">cents per call</p>
             </div>
           </div>
 
+          {/* Chart */}
           {chartData.length > 0 && (
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-6">
-              <p className="text-xs font-semibold text-white/40 mb-5">Cost by Feature (cents)</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-6">Cost by Feature (cents)</p>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#ffffff40" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#ffffff40" }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px" }}
-                    labelStyle={{ color: "#fff", fontSize: 12 }}
-                    itemStyle={{ color: "#ffffff80", fontSize: 11 }}
-                    formatter={(val: any) => [`${val}¢`, "Cost"]}
-                  />
-                  <Bar dataKey="cost" fill="rgba(255,255,255,0.15)" radius={[4,4,0,0]} />
+                <BarChart data={chartData} barCategoryGap="30%">
+                  <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+                  <Bar dataKey="cost" radius={[6, 6, 0, 0]}>
+                    {chartData.map((_, i) => (
+                      <Cell key={i} fill="rgba(255,255,255,0.15)" />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/[0.06]">
-              <p className="text-xs font-semibold text-white/40">Breakdown by Feature</p>
-            </div>
-            <div className="divide-y divide-white/[0.04]">
-              {chartData.length === 0 ? (
-                <div className="px-6 py-8 text-center">
-                  <p className="text-white/20 text-sm">No usage data yet. Start using Jimmy AI to see costs here.</p>
-                </div>
-              ) : chartData.map(item => (
-                <div key={item.name} className="px-6 py-4 flex items-center justify-between">
+          {/* Breakdown */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
+            <p className="text-white/30 text-xs uppercase tracking-widest mb-4">Breakdown by Feature</p>
+            <div className="space-y-0">
+              {chartData.map((item, i) => (
+                <div key={i} className="flex items-center justify-between py-4 border-b border-white/[0.04] last:border-0">
                   <div>
-                    <p className="text-sm font-medium text-white">{item.name}</p>
-                    <p className="text-xs text-white/30">{item.calls} calls</p>
+                    <p className="text-sm text-white/80 font-medium">{item.name}</p>
+                    <p className="text-xs text-white/30 mt-0.5">{item.calls} {item.calls === 1 ? "call" : "calls"}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-white">{item.cost.toFixed(3)}¢</p>
+                    <p className="text-sm font-semibold text-white">{item.cost.toFixed(3)}¢</p>
                     <p className="text-xs text-white/30">${(item.cost / 100).toFixed(5)}</p>
                   </div>
                 </div>
