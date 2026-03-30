@@ -38,7 +38,6 @@ export async function POST(request: NextRequest) {
 
     const companyContext = `${profile?.company_name || ""}: ${profile?.company_brief || ""}`;
 
-    // Get all summaries from queue for this user
     const { data: allRows } = await supabaseAdmin
       .from("backfill_queue")
       .select("item_data")
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest) {
       .filter((s: any) => s && typeof s === "string" && s.length > 0);
 
     if (!emailTexts.length) {
-      return NextResponse.json({ error: "No email summaries found in queue" }, { status: 400 });
+      return NextResponse.json({ error: "No email summaries found" }, { status: 400 });
     }
 
     const response = await anthropic.messages.create({
@@ -82,13 +81,22 @@ Write the knowledge summary now.`
     trackUsage(user.id, "snapshot", "claude-sonnet-4-5", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
     const brainSection = response.content[0].type === "text" ? response.content[0].text : "";
 
-    if (brainSection) {
-      const existingBrain = profile?.company_brain || "";
-      await supabaseAdmin.from("company_profiles").upsert({
-        user_id: user.id,
-        company_brain: existingBrain + "\n\n=== GMAIL HISTORY ===\n" + brainSection,
-        updated_at: new Date().toISOString(),
-      });
+    if (brainSection && profile?.id) {
+      const existingBrain = profile.company_brain || "";
+      const newBrain = existingBrain + "\n\n=== GMAIL HISTORY ===\n" + brainSection;
+
+      // Use UPDATE with the actual row ID — more reliable than upsert
+      const { error } = await supabaseAdmin
+        .from("company_profiles")
+        .update({
+          company_brain: newBrain,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id);
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
 
       fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
         method: "POST",
