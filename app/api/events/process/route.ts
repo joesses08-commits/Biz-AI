@@ -15,34 +15,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Use haiku for individual event analysis — cheap and fast
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
-      max_tokens: 1000,
-      system: `You are an expert business analyst. Analyze this business event and extract deep intelligence.
-      
-You must return ONLY a raw JSON object. No markdown. No backticks. Start with { end with }.
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      system: `You are a business analyst. Analyze this business event quickly and extract key intelligence.
 
+Return ONLY raw JSON, no markdown, start with {:
 {
   "summary": "1-2 sentence intelligent summary connecting this to business context",
   "tone": "positive/negative/neutral/urgent/concerning",
-  "intent": "what the person/system actually wants or means",
+  "intent": "what the person or system actually wants",
   "importance": "critical/high/normal/low",
   "action_required": true/false,
-  "recommended_action": "specific action to take, or null",
-  "business_impact": "what this means for the business in plain english",
-  "people_involved": ["name1", "name2"],
-  "dollar_amount": 0,
-  "connections": "how this connects to other business events or patterns"
+  "recommended_action": "specific action to take or null",
+  "business_impact": "what this means for the business",
+  "people_involved": ["name1"],
+  "dollar_amount": 0
 }`,
       messages: [{
         role: "user",
-        content: `COMPANY CONTEXT:
-${companyContext || "No company context available"}
+        content: `COMPANY: ${companyContext?.slice(0, 500) || "No context"}
 
-NEW EVENT:
+EVENT:
 Source: ${source}
 Type: ${eventType}
-Data: ${rawData}`
+Data: ${rawData.slice(0, 1500)}`
       }],
     });
 
@@ -50,7 +48,7 @@ Data: ${rawData}`
     const firstBrace = raw.indexOf("{");
     const lastBrace = raw.lastIndexOf("}");
     const jsonStr = raw.slice(firstBrace, lastBrace + 1);
-    
+
     let analysis;
     try {
       analysis = JSON.parse(jsonStr);
@@ -62,7 +60,7 @@ Data: ${rawData}`
       user_id: userId,
       source,
       event_type: eventType,
-      raw_data: rawData,
+      raw_data: rawData.slice(0, 5000),
       analysis: analysis.summary,
       tone: analysis.tone,
       intent: analysis.intent,
