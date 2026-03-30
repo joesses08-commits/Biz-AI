@@ -96,7 +96,7 @@ async function syncUserGoogleDrive(userId: string) {
     .from("gmail_connections")
     .select("*")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   if (!conn) return { synced: 0 };
 
@@ -105,36 +105,38 @@ async function syncUserGoogleDrive(userId: string) {
     token = await refreshGoogleToken(conn);
   }
 
-  // Get last sync time for this source
-  const { data: lastEvent } = await supabaseAdmin
-    .from("company_events")
-    .select("created_at")
-    .eq("user_id", userId)
-    .eq("source", "Google Drive")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+  // First time = full 1 year scan. After that = incremental from last event.
+  let afterDate: string;
+  if (!conn.initial_sync_done) {
+    afterDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+  } else {
+    const { data: lastEvent } = await supabaseAdmin
+      .from("company_events")
+      .select("created_at")
+      .eq("user_id", userId)
+      .eq("source", "Google Drive")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    afterDate = lastEvent
+      ? new Date(lastEvent.created_at).toISOString()
+      : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  }
 
-  const afterDate = lastEvent
-    ? new Date(lastEvent.created_at).toISOString()
-    : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  // Fetch all recently modified files
   const mimeQuery = Object.keys(MIME_TYPES).map(m => `mimeType='${m}'`).join(" or ");
+  const pageSize = !conn.initial_sync_done ? 50 : 20;
   const filesRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files?q=(${mimeQuery}) and modifiedTime > '${afterDate}'&pageSize=20&fields=files(id,name,mimeType,modifiedTime,owners,lastModifyingUser,size)&orderBy=modifiedTime desc`,
+    `https://www.googleapis.com/drive/v3/files?q=(${mimeQuery}) and modifiedTime > '${afterDate}'&pageSize=${pageSize}&fields=files(id,name,mimeType,modifiedTime,owners,lastModifyingUser,size)&orderBy=modifiedTime desc`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   const filesData = await filesRes.json();
   const files = filesData.files || [];
 
-  if (!files.length) return { synced: 0 };
-
   const { data: profile } = await supabaseAdmin
     .from("company_profiles")
     .select("company_brief")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   let synced = 0;
   let hasImportant = false;
@@ -144,7 +146,6 @@ async function syncUserGoogleDrive(userId: string) {
       const fileType = MIME_TYPES[file.mimeType] || "File";
       const modifier = file.lastModifyingUser?.displayName || "Unknown";
 
-      // Get file content based on type
       let content = "";
       if (file.mimeType === "application/vnd.google-apps.spreadsheet") {
         content = await getSheetContent(file.id, token);
@@ -180,6 +181,14 @@ ${content ? `\nContent Preview:\n${content.slice(0, 1500)}` : ""}`;
       synced++;
       await new Promise(r => setTimeout(r, 500));
     } catch { continue; }
+  }
+
+  // Mark initial sync done after first run
+  if (!conn.initial_sync_done) {
+    await supabaseAdmin
+      .from("gmail_connections")
+      .update({ initial_sync_done: true })
+      .eq("user_id", userId);
   }
 
   if (hasImportant) {

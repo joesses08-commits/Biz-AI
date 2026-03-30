@@ -31,7 +31,7 @@ async function syncUserQuickBooks(userId: string) {
     .from("quickbooks_connections")
     .select("*")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   if (!conn) return { synced: 0 };
 
@@ -42,10 +42,19 @@ async function syncUserQuickBooks(userId: string) {
     .from("company_profiles")
     .select("company_brief")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
+
+  // First time = fetch last 100 invoices. After that = only last 7 days.
+  let query: string;
+  if (!conn.initial_sync_done) {
+    query = "SELECT * FROM Invoice ORDER BY MetaData.LastUpdatedTime DESC MAXRESULTS 100";
+  } else {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    query = `SELECT * FROM Invoice WHERE MetaData.LastUpdatedTime > '${sevenDaysAgo}' ORDER BY MetaData.LastUpdatedTime DESC MAXRESULTS 20`;
+  }
 
   const invoicesRes = await fetch(
-    `https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}/query?query=SELECT * FROM Invoice ORDER BY MetaData.LastUpdatedTime DESC MAXRESULTS 20&minorversion=65`,
+    `https://quickbooks.api.intuit.com/v3/company/${conn.realm_id}/query?query=${encodeURIComponent(query)}&minorversion=65`,
     { headers }
   );
   const invoicesData = await invoicesRes.json();
@@ -76,6 +85,11 @@ Status: ${inv.Balance > 0 ? "UNPAID" : "PAID"}`;
 
     synced++;
     await new Promise(r => setTimeout(r, 300));
+  }
+
+  // Mark initial sync done
+  if (!conn.initial_sync_done) {
+    await supabaseAdmin.from("quickbooks_connections").update({ initial_sync_done: true }).eq("user_id", userId);
   }
 
   if (synced > 0) {

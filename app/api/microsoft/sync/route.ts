@@ -34,7 +34,7 @@ async function syncUserMicrosoft(userId: string) {
     .from("microsoft_connections")
     .select("*")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   if (!conn) return { synced: 0 };
 
@@ -43,33 +43,46 @@ async function syncUserMicrosoft(userId: string) {
     token = await refreshMicrosoftToken(conn);
   }
 
-  const { data: lastEvent } = await supabaseAdmin
-    .from("company_events")
-    .select("created_at")
-    .eq("user_id", userId)
-    .eq("source", "Microsoft")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  const afterDate = lastEvent
-    ? new Date(lastEvent.created_at).toISOString()
-    : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  // First time = full 1 year scan. After that = incremental.
+  let afterDate: string;
+  let topCount: number;
+  if (!conn.initial_sync_done) {
+    afterDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+    topCount = 50;
+  } else {
+    const { data: lastEvent } = await supabaseAdmin
+      .from("company_events")
+      .select("created_at")
+      .eq("user_id", userId)
+      .eq("source", "Microsoft")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    afterDate = lastEvent
+      ? new Date(lastEvent.created_at).toISOString()
+      : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    topCount = 10;
+  }
 
   const emailsRes = await fetch(
-    `https://graph.microsoft.com/v1.0/me/messages?$top=10&$filter=receivedDateTime gt ${afterDate}&$select=subject,from,receivedDateTime,body,isRead&$orderby=receivedDateTime desc`,
+    `https://graph.microsoft.com/v1.0/me/messages?$top=${topCount}&$filter=receivedDateTime gt ${afterDate}&$select=subject,from,receivedDateTime,body,isRead&$orderby=receivedDateTime desc`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   const emailsData = await emailsRes.json();
   const emails = emailsData.value || [];
 
-  if (!emails.length) return { synced: 0 };
+  if (!emails.length) {
+    if (!conn.initial_sync_done) {
+      await supabaseAdmin.from("microsoft_connections").update({ initial_sync_done: true }).eq("user_id", userId);
+    }
+    return { synced: 0 };
+  }
 
   const { data: profile } = await supabaseAdmin
     .from("company_profiles")
     .select("company_brief")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
   let synced = 0;
   let hasImportant = false;
@@ -97,6 +110,11 @@ async function syncUserMicrosoft(userId: string) {
 
     synced++;
     await new Promise(r => setTimeout(r, 300));
+  }
+
+  // Mark initial sync done after first run
+  if (!conn.initial_sync_done) {
+    await supabaseAdmin.from("microsoft_connections").update({ initial_sync_done: true }).eq("user_id", userId);
   }
 
   if (hasImportant) {
