@@ -106,27 +106,29 @@ export async function POST(request: NextRequest) {
         .limit(BATCH_SIZE);
 
       if (!batch?.length) {
-        // All processed — build final summary from all collected emails
-        const { data: allImportant } = await supabaseAdmin
+        // All processed — build final summary
+        // Use correct Supabase filter syntax
+        const { data: allRows } = await supabaseAdmin
           .from("backfill_queue")
           .select("item_data")
           .eq("job_id", jobId)
-          .eq("processed", true)
-          .not("item_data->summary", "is", null)
-          .limit(200);
+          .eq("processed", true);
 
-        const emailTexts = (allImportant || [])
+        // Filter in JS — more reliable than Supabase JSON filtering
+        const emailTexts = (allRows || [])
           .map((r: any) => r.item_data?.summary)
-          .filter(Boolean);
+          .filter((s: any) => s && typeof s === "string" && s.length > 0);
 
-        if (emailTexts.length) {
+        if (emailTexts.length > 0) {
           const brainSection = await buildBrainSection(user.id, "Gmail", emailTexts.join("\n"), companyContext);
 
           if (brainSection) {
             const existingBrain = profile?.company_brain || "";
+            const newBrain = existingBrain + "\n\n=== GMAIL HISTORY ===\n" + brainSection;
+
             await supabaseAdmin.from("company_profiles").upsert({
               user_id: user.id,
-              company_brain: existingBrain + "\n\n=== GMAIL HISTORY ===\n" + brainSection,
+              company_brain: newBrain,
               updated_at: new Date().toISOString(),
             });
           }
@@ -137,18 +139,17 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         }).eq("id", jobId);
 
-        // Trigger snapshot
+        // Trigger snapshot rebuild
         fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-user-id": user.id },
         }).catch(() => {});
 
-        return NextResponse.json({ done: true, jobId });
+        return NextResponse.json({ done: true, jobId, emailsAnalyzed: emailTexts.length });
       }
 
       // Process this batch
       const token = batch[0].item_data?.token;
-      const processedIds: string[] = [];
 
       for (const item of batch) {
         try {
@@ -159,9 +160,11 @@ export async function POST(request: NextRequest) {
           );
           const msgData = await msgRes.json();
           const headers = msgData.payload?.headers || [];
-          const subject = headers.find((h: any) => h.name === "Subject")?.value || "(No subject)";
-          const from = headers.find((h: any) => h.name === "From")?.value || "";
-          const date = headers.find((h: any) => h.name === "Date")?.value || "";
+
+          const getHeader = (name: string) => headers.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
+          const subject = getHeader("subject") || "(No subject)";
+          const from = getHeader("from") || "";
+          const date = getHeader("date") || "";
           const snippet = msgData.snippet || "";
 
           let summary = null;
@@ -169,42 +172,40 @@ export async function POST(request: NextRequest) {
             summary = `${isSent ? "SENT" : "RECEIVED"} | ${date} | FROM: ${from} | SUBJECT: ${subject} | ${snippet.slice(0, 150)}`;
           }
 
-          // Mark as processed with summary
           await supabaseAdmin.from("backfill_queue").update({
             processed: true,
-            item_data: { ...item.item_data, summary },
+            item_data: { isSent, summary },
           }).eq("id", item.id);
 
-          processedIds.push(item.id);
-        } catch { continue; }
+        } catch {
+          // Mark as processed even if failed
+          await supabaseAdmin.from("backfill_queue").update({
+            processed: true,
+            item_data: { ...item.item_data, summary: null },
+          }).eq("id", item.id);
+        }
       }
 
       // Update job progress
-      const { data: jobUpdate } = await supabaseAdmin
-        .from("backfill_jobs")
-        .update({
-          processed_items: (job.processed_items || 0) + batch.length,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", jobId)
-        .select()
-        .single();
+      const newProcessed = (job.processed_items || 0) + batch.length;
+      await supabaseAdmin.from("backfill_jobs").update({
+        processed_items: newProcessed,
+        updated_at: new Date().toISOString(),
+      }).eq("id", jobId);
 
-      const processed = jobUpdate?.processed_items || 0;
       const total = job.total_items || 1;
-      const pct = Math.round((processed / total) * 100);
+      const pct = Math.round((newProcessed / total) * 100);
 
       return NextResponse.json({
         done: false,
         jobId,
-        processed,
+        processed: newProcessed,
         total,
         pct,
         batchSize: batch.length,
       });
     }
 
-    // Non-Gmail direct processing
     return NextResponse.json({ done: true, jobId });
 
   } catch (err) {
