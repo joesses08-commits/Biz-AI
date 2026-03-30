@@ -4,12 +4,39 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
+const INTEGRATIONS = [
+  { id: "gmail", name: "Gmail & Google Drive", description: "Emails, Sheets, Docs, Slides", icon: "G", color: "bg-red-500/10 border-red-500/20 text-red-400" },
+  { id: "microsoft", name: "Microsoft 365", description: "Outlook, OneDrive, Excel", icon: "M", color: "bg-blue-500/10 border-blue-500/20 text-blue-400" },
+  { id: "quickbooks", name: "QuickBooks", description: "Invoices, P&L, cash flow", icon: "Q", color: "bg-green-500/10 border-green-500/20 text-green-400" },
+  { id: "stripe", name: "Stripe", description: "Revenue & payments", icon: "S", color: "bg-purple-500/10 border-purple-500/20 text-purple-400" },
+];
+
+const BRAIN_SOURCES = [
+  { source: "gmail", label: "Gmail", sublabel: "Last 12 months — inbox & sent, smart filtered" },
+  { source: "google_drive", label: "Google Drive", sublabel: "Sheets, Docs, Slides with full content" },
+  { source: "microsoft", label: "Microsoft 365", sublabel: "Outlook emails + OneDrive files" },
+  { source: "quickbooks", label: "QuickBooks", sublabel: "All invoices and customers" },
+  { source: "stripe", label: "Stripe", sublabel: "All charges, subscriptions, customers" },
+];
+
+const SOURCE_TO_INTEGRATION: Record<string, string> = {
+  gmail: "gmail",
+  google_drive: "gmail",
+  microsoft: "microsoft",
+  quickbooks: "quickbooks",
+  stripe: "stripe",
+};
+
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [companyName, setCompanyName] = useState("");
   const [companyBrief, setCompanyBrief] = useState("");
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>([]);
+  const [buildingBrain, setBuildingBrain] = useState(false);
+  const [brainProgress, setBrainProgress] = useState<{source: string; label: string; sublabel: string; status: "pending" | "processing" | "done" | "skipped"; items?: number}[]>([]);
+  const [brainDone, setBrainDone] = useState(false);
   const router = useRouter();
 
   const supabase = createBrowserClient(
@@ -17,25 +44,28 @@ export default function OnboardingPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  useEffect(() => {
-    checkOnboarded();
-  }, []);
+  useEffect(() => { checkOnboarded(); }, []);
 
   async function checkOnboarded() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
 
-    // Check profiles table
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarded")
-      .eq("id", user.id)
-      .single();
+    const { data: profile } = await supabase.from("profiles").select("onboarded").eq("id", user.id).single();
+    if (profile?.onboarded) { router.push("/dashboard"); return; }
 
-    if (profile?.onboarded) {
-      router.push("/dashboard");
-      return;
-    }
+    const [gmail, microsoft, quickbooks, stripe] = await Promise.all([
+      supabase.from("gmail_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("microsoft_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("quickbooks_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("stripe_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+    ]);
+
+    const connected = [];
+    if (gmail.data) connected.push("gmail");
+    if (microsoft.data) connected.push("microsoft");
+    if (quickbooks.data) connected.push("quickbooks");
+    if (stripe.data) connected.push("stripe");
+    setConnectedIntegrations(connected);
     setChecking(false);
   }
 
@@ -54,12 +84,41 @@ export default function OnboardingPage() {
     setCurrentStep(2);
   }
 
+  async function buildBrain() {
+    setBuildingBrain(true);
+
+    const activeSources = BRAIN_SOURCES.filter(s =>
+      connectedIntegrations.includes(SOURCE_TO_INTEGRATION[s.source])
+    );
+
+    if (!activeSources.length) { setBrainDone(true); setBuildingBrain(false); return; }
+
+    setBrainProgress(activeSources.map(s => ({ ...s, status: "pending" })));
+
+    for (let i = 0; i < activeSources.length; i++) {
+      setBrainProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: "processing" } : p));
+
+      try {
+        const res = await fetch("/api/brain/backfill", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: activeSources[i].source }),
+        });
+        const data = await res.json();
+        setBrainProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: "done", items: data.itemsProcessed } : p));
+      } catch {
+        setBrainProgress(prev => prev.map((p, idx) => idx === i ? { ...p, status: "skipped" } : p));
+      }
+    }
+
+    setBrainDone(true);
+    setBuildingBrain(false);
+  }
+
   async function finish() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      // Save to profiles table
       await supabase.from("profiles").upsert({ id: user.id, onboarded: true });
-      // Save to user metadata
       await supabase.auth.updateUser({ data: { onboarded: true } });
     }
     router.push("/dashboard");
@@ -67,33 +126,30 @@ export default function OnboardingPage() {
 
   const steps = [
     { id: 1, label: "Welcome" },
-    { id: 2, label: "Company Brief" },
+    { id: 2, label: "Your Business" },
     { id: 3, label: "Connect Tools" },
-    { id: 4, label: "Get Started" },
+    { id: 4, label: "Build Brain" },
+    { id: 5, label: "Launch" },
   ];
 
-  if (checking) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (checking) return (
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-8">
       <div className="max-w-2xl w-full">
 
         {/* Progress */}
-        <div className="flex items-center gap-3 mb-12 justify-center">
+        <div className="flex items-center gap-2 mb-12 justify-center">
           {steps.map((s, i) => (
-            <div key={s.id} className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${i <= currentStep ? "bg-white text-black" : "bg-white/10 text-white/30"}`}>
+            <div key={s.id} className="flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${i <= currentStep ? "bg-white text-black" : "bg-white/10 text-white/30"}`}>
                 {i < currentStep ? "✓" : s.id}
               </div>
-              {i < steps.length - 1 && (
-                <div className={`w-12 h-px ${i < currentStep ? "bg-white/40" : "bg-white/10"}`} />
-              )}
+              {i < steps.length - 1 && <div className={`w-10 h-px ${i < currentStep ? "bg-white/40" : "bg-white/10"}`} />}
             </div>
           ))}
         </div>
@@ -104,10 +160,15 @@ export default function OnboardingPage() {
             <div className="text-center mb-10">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Welcome to Jimmy AI</p>
               <h1 className="text-4xl font-bold mb-4 tracking-tight">Your AI COO is ready.</h1>
-              <p className="text-white/40 leading-relaxed">Jimmy AI connects every tool your business runs on and gives you a single AI that knows everything — your numbers, your emails, your meetings, your risks — and tells you exactly what to do.</p>
+              <p className="text-white/40 leading-relaxed">Jimmy connects every tool your business runs on and gives you a single AI that knows everything — your numbers, your emails, your deals, your risks.</p>
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-8 space-y-3">
-              {["Live data from every platform you use", "AI that knows your specific business — not generic advice", "Proactive alerts before problems become crises", "Ask anything about your business in plain English"].map((b, i) => (
+              {[
+                "Knows your full business history from day one",
+                "Live data from every platform you use",
+                "Proactive alerts before problems become crises",
+                "Ask anything about your business in plain English",
+              ].map((b, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <div className="w-4 h-4 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -126,9 +187,9 @@ export default function OnboardingPage() {
         {currentStep === 1 && (
           <div>
             <div className="text-center mb-8">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Company Brief</p>
-              <h1 className="text-3xl font-bold mb-3 tracking-tight">Tell your AI COO about your business.</h1>
-              <p className="text-white/40 text-sm leading-relaxed">This is the foundation of your AI's knowledge. Be as detailed as possible — what you sell, who you sell to, what platforms you use, key people, how the business operates.</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Your Business</p>
+              <h1 className="text-3xl font-bold mb-3 tracking-tight">Tell Jimmy about your business.</h1>
+              <p className="text-white/40 text-sm leading-relaxed">This is the foundation of your AI's knowledge. The more detail you give, the smarter it gets from day one.</p>
             </div>
             <div className="space-y-4 mb-8">
               <div>
@@ -137,9 +198,9 @@ export default function OnboardingPage() {
                   className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition" />
               </div>
               <div>
-                <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">Company Brief</label>
+                <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">Tell Jimmy about your business</label>
                 <textarea value={companyBrief} onChange={e => setCompanyBrief(e.target.value)}
-                  placeholder="Describe your business — what you sell, who you sell to, how you operate, key people, tools you use..."
+                  placeholder="What do you sell, who are your clients, how do you operate, what tools do you use, who are the key people, what are your current goals..."
                   rows={10}
                   className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition resize-none leading-relaxed" />
                 <p className="text-white/20 text-xs mt-2">More context = smarter AI. You can always update this in Settings.</p>
@@ -152,9 +213,7 @@ export default function OnboardingPage() {
                 {saving ? "Saving..." : "Save & Continue →"}
               </button>
             </div>
-            <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(2)}>
-              Skip for now — I'll add this in Settings
-            </p>
+            <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(2)}>Skip for now</p>
           </div>
         )}
 
@@ -163,49 +222,167 @@ export default function OnboardingPage() {
           <div>
             <div className="text-center mb-8">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Connect Your Tools</p>
-              <h1 className="text-3xl font-bold mb-3 tracking-tight">Give your AI COO full visibility.</h1>
-              <p className="text-white/40 text-sm leading-relaxed">Connect the platforms your business runs on. The more you connect, the more your AI knows.</p>
+              <h1 className="text-3xl font-bold mb-3 tracking-tight">Give Jimmy full visibility.</h1>
+              <p className="text-white/40 text-sm leading-relaxed">Connect the platforms your business runs on. Jimmy will read your full history and know your business from day one.</p>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-8">
-              {[
-                { name: "Gmail", href: "/api/gmail/connect", description: "Emails & client communication", icon: "📧" },
-                { name: "QuickBooks", href: "/api/quickbooks/connect", description: "Invoices, P&L, cash flow", icon: "📊" },
-                { name: "Microsoft 365", href: "/api/microsoft/connect", description: "Outlook, Excel, OneDrive", icon: "💼" },
-                { name: "Stripe", href: "/api/stripe/connect", description: "Revenue & payments", icon: "💳" },
-              ].map((tool) => (
-                <a key={tool.name} href={tool.href}
-                  className="bg-white/[0.03] border border-white/[0.06] hover:border-white/20 rounded-2xl p-5 transition">
-                  <div className="text-2xl mb-3">{tool.icon}</div>
-                  <p className="text-sm font-semibold mb-1">{tool.name}</p>
-                  <p className="text-white/30 text-xs">{tool.description}</p>
-                </a>
-              ))}
+              {INTEGRATIONS.map((tool) => {
+                const isConnected = connectedIntegrations.includes(tool.id);
+                const connectHref = tool.id === "gmail" ? "/api/gmail/connect" : tool.id === "microsoft" ? "/api/microsoft/connect" : tool.id === "quickbooks" ? "/api/quickbooks/connect" : "/api/stripe/connect";
+                return (
+                  <div key={tool.id} className={`relative border rounded-2xl p-5 transition ${isConnected ? "border-emerald-500/30 bg-emerald-500/5" : "border-white/[0.06] bg-white/[0.03]"}`}>
+                    {isConnected && (
+                      <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+                        <span className="text-emerald-400 text-xs">✓</span>
+                      </div>
+                    )}
+                    <div className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs font-bold mb-3 ${tool.color}`}>
+                      {tool.icon}
+                    </div>
+                    <p className="text-sm font-semibold mb-1">{tool.name}</p>
+                    <p className="text-white/30 text-xs mb-3">{tool.description}</p>
+                    {!isConnected && (
+                      <a href={connectHref} className="text-xs text-white/50 hover:text-white transition underline underline-offset-2">
+                        Connect →
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <div className="flex gap-3">
               <button onClick={() => setCurrentStep(1)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
-              <button onClick={() => setCurrentStep(3)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">Continue →</button>
+              <button onClick={() => setCurrentStep(3)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
+                {connectedIntegrations.length > 0 ? "Continue →" : "Skip for now →"}
+              </button>
             </div>
-            <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(3)}>
-              Skip for now — I'll connect in Settings
-            </p>
           </div>
         )}
 
-        {/* Step 3: Get Started */}
+        {/* Step 3: Build Brain */}
         {currentStep === 3 && (
+          <div>
+            <div className="text-center mb-8">
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Company Brain</p>
+              <h1 className="text-3xl font-bold mb-3 tracking-tight">
+                {brainDone ? "Your brain is built." : "Build your Company Brain."}
+              </h1>
+              <p className="text-white/40 text-sm leading-relaxed">
+                {brainDone
+                  ? "Jimmy has read your full history and knows your business. You're ready."
+                  : connectedIntegrations.length > 0
+                    ? "Jimmy will read your full history — emails, files, invoices, payments — and build permanent intelligence about your business. One time only."
+                    : "No tools connected yet. You can build your brain later from Settings after connecting."}
+              </p>
+            </div>
+
+            {/* What will be read */}
+            {connectedIntegrations.length > 0 && !buildingBrain && !brainDone && (
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-6">
+                <p className="text-white/30 text-xs uppercase tracking-widest mb-4">What Jimmy will read</p>
+                <div className="space-y-4">
+                  {BRAIN_SOURCES.filter(s => connectedIntegrations.includes(SOURCE_TO_INTEGRATION[s.source])).map((s, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white/30 mt-2 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm text-white/70 font-medium">{s.label}</p>
+                        <p className="text-xs text-white/30">{s.sublabel}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                  <p className="text-white/20 text-xs">Takes 1-3 minutes. After this, Jimmy only processes new data automatically — no repeat scans.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Progress */}
+            {(buildingBrain || brainDone) && brainProgress.length > 0 && (
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-6">
+                <p className="text-white/30 text-xs uppercase tracking-widest mb-4">Building your brain</p>
+                <div className="space-y-4">
+                  {brainProgress.map((item, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 border transition-all ${
+                        item.status === "done" ? "bg-emerald-500/20 border-emerald-500/30" :
+                        item.status === "processing" ? "bg-white/10 border-white/30" :
+                        "bg-white/5 border-white/10"
+                      }`}>
+                        {item.status === "done" && <span className="text-emerald-400 text-xs">✓</span>}
+                        {item.status === "processing" && <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                        {item.status === "pending" && <div className="w-1.5 h-1.5 rounded-full bg-white/20" />}
+                        {item.status === "skipped" && <span className="text-white/20 text-xs">—</span>}
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-sm font-medium transition ${item.status === "done" ? "text-white/70" : item.status === "processing" ? "text-white" : "text-white/30"}`}>
+                          {item.label}
+                        </p>
+                        <p className="text-xs text-white/25">
+                          {item.status === "done" && item.items !== undefined ? `${item.items} items analyzed` :
+                           item.status === "processing" ? "Analyzing your history..." :
+                           item.status === "pending" ? item.sublabel : "Skipped"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {brainDone && (
+              <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 mb-6 text-center">
+                <p className="text-emerald-400 text-sm font-semibold">✓ Company Brain built successfully</p>
+                <p className="text-white/30 text-xs mt-1">Jimmy now knows your full business history from day one</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              {!buildingBrain && !brainDone && (
+                <button onClick={() => setCurrentStep(2)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
+              )}
+              {!brainDone && connectedIntegrations.length > 0 && (
+                <button onClick={buildBrain} disabled={buildingBrain}
+                  className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 disabled:opacity-60 transition flex items-center justify-center gap-2">
+                  {buildingBrain ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                      Building...
+                    </>
+                  ) : "Build Company Brain →"}
+                </button>
+              )}
+              {(brainDone || connectedIntegrations.length === 0) && (
+                <button onClick={() => setCurrentStep(4)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
+                  Continue →
+                </button>
+              )}
+            </div>
+            {!buildingBrain && !brainDone && connectedIntegrations.length > 0 && (
+              <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(4)}>
+                Skip — build later from Settings
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Step 4: Launch */}
+        {currentStep === 4 && (
           <div>
             <div className="text-center mb-8">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">You're ready</p>
               <h1 className="text-3xl font-bold mb-3 tracking-tight">Your AI COO is briefed.</h1>
-              <p className="text-white/40 text-sm leading-relaxed">Ask it anything about your business. It has full context on your company and access to all your connected platforms.</p>
+              <p className="text-white/40 text-sm leading-relaxed">
+                {brainDone ? "Jimmy has read your full history and is ready to give you real insights from day one." : "Ask anything about your business. Connect tools and build your brain anytime from Settings."}
+              </p>
             </div>
             <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 mb-8 space-y-2">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-4">Try asking</p>
               {[
                 "What's the most important thing I should focus on today?",
                 "What does my financial position look like right now?",
-                "Are there any urgent emails I need to respond to?",
                 "Who are my most valuable customers and are any at risk?",
+                "What deals or opportunities should I be pursuing?",
               ].map((q, i) => (
                 <div key={i} onClick={() => router.push(`/chat?q=${encodeURIComponent(q)}`)}
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition cursor-pointer group">
