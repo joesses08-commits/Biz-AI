@@ -28,6 +28,8 @@ export async function POST() {
       fetch(`${base}/api/gmail/sync`, { method: "POST", headers: userHeader }).then(r => r.json()),
       fetch(`${base}/api/microsoft/sync`, { method: "POST", headers: userHeader }).then(r => r.json()),
       fetch(`${base}/api/quickbooks/sync`, { method: "POST", headers: userHeader }).then(r => r.json()),
+      fetch(`${base}/api/google/sync`, { method: "POST", headers: userHeader }).then(r => r.json()),
+      fetch(`${base}/api/microsoft/files`, { method: "POST", headers: userHeader }).then(r => r.json()),
     ]);
 
     await fetch(`${base}/api/events/snapshot`, { method: "POST" });
@@ -35,8 +37,10 @@ export async function POST() {
     return NextResponse.json({
       success: true,
       gmail: results[0].status === "fulfilled" ? results[0].value : "failed",
-      microsoft: results[1].status === "fulfilled" ? results[1].value : "failed",
+      microsoft_email: results[1].status === "fulfilled" ? results[1].value : "failed",
       quickbooks: results[2].status === "fulfilled" ? results[2].value : "failed",
+      google_drive: results[3].status === "fulfilled" ? results[3].value : "failed",
+      onedrive: results[4].status === "fulfilled" ? results[4].value : "failed",
     });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

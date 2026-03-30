@@ -15,6 +15,14 @@
     {
       "path": "/api/quickbooks/sync",
       "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/google/sync",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/microsoft/files",
+      "schedule": "0 * * * *"
     }
   ]
 }
