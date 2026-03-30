@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
@@ -15,69 +16,102 @@ async function buildSnapshotForUser(userId: string) {
     .from("company_profiles")
     .select("*")
     .eq("user_id", userId)
-    .single();
+    .maybeSingle();
 
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: events } = await supabaseAdmin
+  const { data: existing } = await supabaseAdmin
+    .from("context_cache")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  // Only read events NEWER than last snapshot — never reprocess old data
+  const lastSnapshotAt = existing?.last_snapshot_at
+    ? new Date(existing.last_snapshot_at).toISOString()
+    : new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const { data: newEvents } = await supabaseAdmin
     .from("company_events")
     .select("*")
     .eq("user_id", userId)
-    .gte("created_at", sevenDaysAgo)
+    .gt("created_at", lastSnapshotAt)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(50);
 
-  if (!events?.length) return { message: "No events to snapshot yet" };
+  // If no new events and snapshot exists, nothing to do
+  if (!newEvents?.length && existing?.context) {
+    return { message: "No new events — snapshot unchanged", unchanged: true };
+  }
 
-  const eventsText = events.map(e =>
+  const newEventsText = (newEvents || []).map(e =>
     `[${new Date(e.created_at).toLocaleString()}] ${e.source} — ${e.event_type}
 Summary: ${e.analysis}
-Tone: ${e.tone} | Importance: ${e.importance} | Action needed: ${e.action_required}
-${e.recommended_action ? `Recommended: ${e.recommended_action}` : ""}
-${e.business_impact ? `Impact: ${e.business_impact}` : ""}
-${e.dollar_amount ? `Amount: $${e.dollar_amount}` : ""}`
+Importance: ${e.importance} | Action needed: ${e.action_required}
+${e.recommended_action ? `Action: ${e.recommended_action}` : ""}
+${e.dollar_amount ? `Amount: $${e.dollar_amount}` : ""}
+Raw: ${(e.raw_data || "").slice(0, 300)}`
   ).join("\n\n");
 
   const snapshotResponse = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 2000,
-    system: `You are a Chief Operating Officer writing an intelligent business snapshot.
-Read all recent events and write a comprehensive analysis that:
-- Connects related events together and identifies patterns
-- Flags what needs immediate attention with specific actions
-- Notes the emotional tone of customer and partner relationships
-- Highlights financial implications and opportunities
-- Suggests specific next steps
-- Connects dots that aren't obvious from individual events
+    system: `You are a Chief Operating Officer maintaining an intelligent business snapshot.
 
-Write in plain english like a smart COO briefing. Be specific, not generic. Name people, amounts, and dates.`,
+You have an existing snapshot and new events just came in. Your job is to update the snapshot intelligently:
+
+RULES:
+- Keep everything from the existing snapshot that is still relevant or unresolved
+- Add new important information from the new events
+- Remove or mark resolved anything that has been addressed
+- Never shrink the snapshot just because time passed — only remove things that are truly resolved or irrelevant
+- Keep specific names, amounts, dates — never generalize
+- Prioritize by business impact, not by recency
+- If something critical is still unresolved from last week, it stays at the top
+- Write in plain english, like a smart COO briefing
+
+The snapshot should always reflect the TRUE current state of the business — not just what happened recently.`,
     messages: [{
       role: "user",
       content: `COMPANY: ${profile?.company_name || "Unknown"}
-CONTEXT: ${profile?.company_brief || "No context"}
+CONTEXT: ${profile?.company_brief || ""}
+${profile?.company_brain ? `ACCUMULATED KNOWLEDGE:\n${profile.company_brain.slice(0, 500)}` : ""}
 
-RECENT EVENTS (last 7 days):
-${eventsText}
+EXISTING SNAPSHOT (keep what's still relevant):
+${existing?.context || "No existing snapshot — build from scratch."}
 
-Write the snapshot now.`
+NEW EVENTS SINCE LAST SNAPSHOT:
+${newEventsText || "No new events."}
+
+Update the snapshot now. Keep unresolved items. Add new important items. Remove only what's truly resolved.`
     }],
   });
 
+  trackUsage(userId, "snapshot", "claude-sonnet-4-5", snapshotResponse.usage.input_tokens, snapshotResponse.usage.output_tokens).catch(() => {});
+
   const snapshot = snapshotResponse.content[0].type === "text" ? snapshotResponse.content[0].text : "";
+
+  const now = new Date().toISOString();
 
   await supabaseAdmin.from("context_cache").upsert({
     user_id: userId,
     context: snapshot,
-    cached_at: new Date().toISOString(),
+    cached_at: now,
+    last_snapshot_at: now,
   });
 
-  await supabaseAdmin.from("dashboard_cache").delete().eq("user_id", userId);
+  // Only bust dashboard cache if new events were important
+  const hasImportant = (newEvents || []).some(e =>
+    e.importance === "critical" || e.importance === "high"
+  );
 
-  return { success: true, snapshot };
+  if (hasImportant) {
+    await supabaseAdmin.from("dashboard_cache").delete().eq("user_id", userId);
+  }
+
+  return { success: true, newEventsProcessed: newEvents?.length || 0, importantEvents: hasImportant };
 }
 
 export async function POST(request: NextRequest) {
   try {
-    // Check for user ID in header first (called from sync routes)
     const headerUserId = request.headers.get("x-user-id");
 
     if (headerUserId) {
@@ -85,7 +119,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result);
     }
 
-    // Otherwise use cookies (called from dashboard)
     const cookieStore = cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

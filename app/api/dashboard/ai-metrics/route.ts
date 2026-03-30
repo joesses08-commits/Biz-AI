@@ -4,13 +4,13 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { buildFullCompanyContext } from "@/lib/company-context";
+import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-const AI_CACHE_MINUTES = 30;
 
 export async function GET() {
   try {
@@ -31,22 +31,21 @@ export async function GET() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    // Return cached dashboard if it exists — only busted when important events arrive
     const { data: cached } = await supabase
       .from("dashboard_cache")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (cached) {
-      const ageMinutes = (Date.now() - new Date(cached.cached_at).getTime()) / (1000 * 60);
-      if (ageMinutes < AI_CACHE_MINUTES) {
-        return NextResponse.json({ ...cached.response, _cached: true });
-      }
+    if (cached?.response) {
+      return NextResponse.json({ ...cached.response, _cached: true });
     }
 
-    const { data: snapshotCache } = await supabaseAdmin
+    // No cache — build fresh from snapshot
+    const { data: snapshot } = await supabaseAdmin
       .from("context_cache")
-      .select("*")
+      .select("context, cached_at")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -55,7 +54,7 @@ export async function GET() {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(20);
 
     const { data: profile } = await supabaseAdmin
       .from("company_profiles")
@@ -65,23 +64,23 @@ export async function GET() {
 
     let companyContext = "";
 
-    if (snapshotCache?.context) {
+    if (snapshot?.context && snapshot.context.length > 200) {
       const recentEventsText = (recentEvents || []).map((e: any) =>
         `[${new Date(e.created_at).toLocaleString()}] ${e.source} — ${e.event_type}
 ${e.analysis}
-${e.action_required ? `⚠️ ACTION NEEDED: ${e.recommended_action}` : ""}
+${e.action_required ? `⚠️ ACTION: ${e.recommended_action}` : ""}
 ${e.dollar_amount ? `💰 $${e.dollar_amount}` : ""}
-RAW: ${(e.raw_data || "").slice(0, 500)}`
+Raw: ${(e.raw_data || "").slice(0, 200)}`
       ).join("\n\n");
 
       companyContext = `COMPANY: ${profile?.company_name || "Unknown"}
 CONTEXT: ${profile?.company_brief || ""}
-${profile?.company_brain ? `\nACCUMULATED KNOWLEDGE:\n${profile.company_brain}` : ""}
+${profile?.company_brain ? `\nKNOWLEDGE:\n${profile.company_brain}` : ""}
 
-COMPANY BRAIN SNAPSHOT:
-${snapshotCache.context}
+BRAIN SNAPSHOT (${snapshot.cached_at ? new Date(snapshot.cached_at).toLocaleString() : "unknown"}):
+${snapshot.context}
 
-ALL RECENT EVENTS WITH RAW DATA (newest first):
+RECENT EVENTS:
 ${recentEventsText}`;
     } else {
       companyContext = await buildFullCompanyContext(user.id);
@@ -92,80 +91,32 @@ ${recentEventsText}`;
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
       max_tokens: 4000,
-      system: `You are a world-class Chief Operating Officer, strategic advisor, and analyst. Today is ${today}.
+      system: `You are a world-class Chief Operating Officer. Today is ${today}.
 
-You have full access to this person's Company Brain — a living memory system containing every email, file, payment, invoice, meeting, and business event, all analyzed for tone, intent, and business impact.
+You have full access to this person's Company Brain. Your job is to present the most important intelligence clearly.
 
-═══════════════════════════════════════
-HOW TO THINK
-═══════════════════════════════════════
+HOW TO THINK:
+1. WHY is this happening? Understand cause before judging symptom.
+2. IS THIS TEMPORARY OR STRUCTURAL? Temporary = monitor. Structural = act.
+3. DOES MY ADVICE MATCH THEIR ACTUAL GOAL? Read the data to understand what they're trying to achieve.
+4. WHAT DECISION NEEDS TO BE MADE RIGHT NOW? Only surface what requires real action.
 
-Before surfacing any insight or giving any advice, ask yourself four questions:
+HOW TO ANALYZE:
+- Compare current to historical — never present a number in isolation
+- Connect dots across sources — the best insights combine things that seem unrelated
+- Understand tone and relationships — emails tell you why, numbers tell you what
 
-1. WHY is this happening?
-   Every data point has a cause. A portfolio drop might be macro market conditions, not company failure. 
-   Missing revenue might be intentional build phase, not business failure. 
-   An overdue invoice might be a long-term client who always pays late, not a collection risk.
-   Understand the cause before judging the symptom.
-
-2. IS THIS TEMPORARY OR STRUCTURAL?
-   Temporary: caused by external conditions, a one-time event, a known phase, or something already being addressed.
-   Structural: caused by a fundamental gap, a broken system, or a pattern that will repeat.
-   Temporary problems need monitoring. Structural problems need action.
-   Never treat a temporary situation as a structural crisis, and never dismiss a structural problem as temporary.
-
-3. DOES MY ADVICE MATCH THEIR ACTUAL GOAL?
-   Read the data to understand what this person is actually trying to achieve.
-   Advice that contradicts their stated strategy needs a compelling reason, not just a textbook rule.
-   Someone building a product isn't failing because they have no revenue yet.
-   Someone investing for growth doesn't want to be told to put money in savings.
-   Someone holding through market volatility isn't making a mistake just because they're down.
-   Match the advice to the goal, not to a generic playbook.
-
-4. WHAT DECISION ACTUALLY NEEDS TO BE MADE RIGHT NOW?
-   Not every data point requires action. Not every risk needs to be escalated.
-   Some things should be monitored. Some things are already being handled. Some things are irrelevant right now.
-   Only surface what requires a real decision or action in the near term.
-   The most valuable thing you can do is tell them what to focus on — and what to ignore.
-
-═══════════════════════════════════════
-HOW TO ANALYZE
-═══════════════════════════════════════
-
-COMPARE CURRENT TO HISTORICAL.
-Never present a number in isolation. Always give the trend, the change, and the context.
-
-CONNECT DOTS ACROSS SOURCES.
-The most important insights come from combining things that seem unrelated.
-
-UNDERSTAND TONE AND RELATIONSHIPS.
-Numbers tell you what. Emails tell you why and how people feel about it.
-
-READ THE WHOLE PICTURE BEFORE JUDGING ANY PART OF IT.
-Before calling something a risk, ask: does the rest of the data explain it?
-Before calling something an opportunity, ask: is there something in the data blocking it?
-
-═══════════════════════════════════════
-HOW TO ADVISE
-═══════════════════════════════════════
-
-Give advice that is specific, grounded in WHY, honest about uncertainty, timed correctly, and aware of tradeoffs.
-
-═══════════════════════════════════════
-OUTPUT FORMAT
-═══════════════════════════════════════
-
-Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
+OUTPUT FORMAT — Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
 
 {
-  "business_type": "precise description of ALL their ventures, roles, and current phase",
-  "briefing": "2-3 sentences. The single most important thing happening right now with specific numbers. What changed since last time. What actually needs a decision today vs what to monitor.",
+  "business_type": "precise description of ALL their ventures and current phase",
+  "briefing": "2-3 sentences. Most important thing happening right now with specific numbers. What changed. What needs a decision today.",
   "risks": [
     {
       "title": "short specific title",
-      "detail": "What is happening. Why it is a risk given the full context.",
-      "dollar_impact": "$X,XXX at risk or cost",
-      "action": "Specific action that makes sense given the full context.",
+      "detail": "What is happening and why it is a risk.",
+      "dollar_impact": "$X,XXX at risk",
+      "action": "Specific action",
       "urgency": "critical or high or medium",
       "source": "source name",
       "source_detail": "specific email subject, file name, or transaction"
@@ -174,7 +125,7 @@ Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
   "opportunities": [
     {
       "title": "short specific title",
-      "detail": "What the opportunity is. Why now is the right time.",
+      "detail": "What the opportunity is and why now.",
       "dollar_impact": "$X,XXX potential",
       "action": "Exact action",
       "timeframe": "today or this week or this month",
@@ -197,7 +148,7 @@ Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
       "id": "unique_snake_case_id",
       "label": "Metric Name",
       "value": "Current formatted value",
-      "sub": "Context: change vs historical, phase explanation, or date qualifier",
+      "sub": "Context: change vs historical",
       "trend": "up or down or neutral",
       "category": "revenue or cash or customers or operations or activity"
     }
@@ -206,17 +157,19 @@ Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
     {
       "type": "stock or customer or invoice or deal or task",
       "label": "specific name",
-      "value": "dollar amount or key metric with context",
+      "value": "dollar amount or key metric",
       "status": "good or warning or urgent or neutral"
     }
   ],
   "chart_data": [
     { "label": "specific date or period", "value": 0 }
   ],
-  "chart_label": "What this chart shows, what it reveals, and why it matters right now"
+  "chart_label": "What this chart shows and why it matters"
 }`,
       messages: [{ role: "user", content: companyContext || "No integrations connected yet." }],
     });
+
+    trackUsage(user.id, "dashboard", "claude-sonnet-4-5", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
     const firstBrace = raw.indexOf("{");
