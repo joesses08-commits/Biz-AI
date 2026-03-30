@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { stripeInitialBackfill } from "@/lib/initial-backfill";
 
 export async function GET(req: NextRequest) {
   const cookieStore = cookies();
@@ -24,16 +25,11 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get("state");
   const error = searchParams.get("error");
 
-  if (error) {
-    return NextResponse.redirect(new URL("/integrations?error=stripe", process.env.NEXT_PUBLIC_APP_URL!));
-  }
-
-  if (!code || !state) {
+  if (error || !code || !state) {
     return NextResponse.redirect(new URL("/integrations?error=stripe", process.env.NEXT_PUBLIC_APP_URL!));
   }
 
   try {
-    // Exchange code for access token
     const tokenRes = await fetch("https://connect.stripe.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -50,13 +46,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL("/integrations?error=stripe", process.env.NEXT_PUBLIC_APP_URL!));
     }
 
-    // Save to Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+
     await supabase.from("stripe_connections").upsert({
       user_id: state,
       stripe_user_id: tokenData.stripe_user_id,
       access_token: tokenData.access_token,
       scope: tokenData.scope,
     });
+
+    // Run historical backfill in background
+    if (user) {
+      stripeInitialBackfill(user.id, tokenData.access_token).catch(() => {});
+    }
 
     return NextResponse.redirect(new URL("/integrations?success=stripe", process.env.NEXT_PUBLIC_APP_URL!));
   } catch {

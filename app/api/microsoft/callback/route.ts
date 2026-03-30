@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { microsoftInitialBackfill } from "@/lib/initial-backfill";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -64,11 +65,15 @@ export async function GET(request: NextRequest) {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token || "",
       expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
+      initial_sync_done: false,
     }, { onConflict: "user_id" });
 
     if (dbError) {
       return NextResponse.redirect(new URL(`/integrations?error=microsoft_db_failed&reason=${encodeURIComponent(dbError.message)}`, request.url));
     }
+
+    // Run full historical backfill in background
+    microsoftInitialBackfill(user.id, tokens.access_token).catch(() => {});
 
     return NextResponse.redirect(new URL("/integrations?success=microsoft", request.url));
   } catch (err) {
