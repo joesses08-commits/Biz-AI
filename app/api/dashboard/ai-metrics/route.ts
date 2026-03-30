@@ -4,7 +4,6 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { buildFullCompanyContext } from "@/lib/company-context";
-import { trackUsage } from "@/lib/track-usage";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
@@ -36,7 +35,7 @@ export async function GET() {
       .from("dashboard_cache")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (cached) {
       const ageMinutes = (Date.now() - new Date(cached.cached_at).getTime()) / (1000 * 60);
@@ -49,7 +48,7 @@ export async function GET() {
       .from("context_cache")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     const { data: recentEvents } = await supabaseAdmin
       .from("company_events")
@@ -62,17 +61,17 @@ export async function GET() {
       .from("company_profiles")
       .select("*")
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     let companyContext = "";
 
     if (snapshotCache?.context) {
-      const recentEventsText = (recentEvents || []).map(e =>
+      const recentEventsText = (recentEvents || []).map((e: any) =>
         `[${new Date(e.created_at).toLocaleString()}] ${e.source} — ${e.event_type}
 ${e.analysis}
 ${e.action_required ? `⚠️ ACTION NEEDED: ${e.recommended_action}` : ""}
 ${e.dollar_amount ? `💰 $${e.dollar_amount}` : ""}
-RAW: ${e.raw_data.slice(0, 500)}`
+RAW: ${(e.raw_data || "").slice(0, 500)}`
       ).join("\n\n");
 
       companyContext = `COMPANY: ${profile?.company_name || "Unknown"}
@@ -135,50 +134,22 @@ HOW TO ANALYZE
 
 COMPARE CURRENT TO HISTORICAL.
 Never present a number in isolation. Always give the trend, the change, and the context.
-"$76K" means nothing. "$76K, down from $82.5K 13 days ago (-7.7%)" means something.
 
 CONNECT DOTS ACROSS SOURCES.
 The most important insights come from combining things that seem unrelated.
-An email about tariffs + a supplier invoice + a low cash balance = supply chain risk.
-A market news event + a portfolio drop = macro explanation, not company failure.
-A new connection + an existing asset + a missing bridge = opportunity hiding in plain sight.
 
 UNDERSTAND TONE AND RELATIONSHIPS.
 Numbers tell you what. Emails tell you why and how people feel about it.
-A client who paid late AND whose last email was cold is different from a client who paid late and apologized.
-A supplier who raised prices AND mentioned "due to new tariffs" is different from one who just raised prices.
 
 READ THE WHOLE PICTURE BEFORE JUDGING ANY PART OF IT.
 Before calling something a risk, ask: does the rest of the data explain it?
 Before calling something an opportunity, ask: is there something in the data blocking it?
-The dashboard should reflect a coherent understanding of the whole situation, not isolated observations.
 
 ═══════════════════════════════════════
 HOW TO ADVISE
 ═══════════════════════════════════════
 
-Give advice that is:
-- Specific to this person's situation, goals, and current phase
-- Grounded in WHY — not just what to do but why it makes sense given the full picture
-- Honest about uncertainty — if you don't have enough data to be sure, say so
-- Timed correctly — urgent when urgent, patient when patience is right
-- Aware of tradeoffs — acknowledge what the advice costs, not just what it gains
-
-The best COO doesn't just give orders. They explain their reasoning so the person can make a better decision. Do that.
-
-═══════════════════════════════════════
-HOW TO PRESENT
-═══════════════════════════════════════
-
-SURFACE WHAT MATTERS MOST — regardless of category or business type.
-The most important thing might be a market event, a relationship, a legal deadline, a technical issue, or a missed opportunity. Follow the data.
-
-SHOW CHANGE NOT JUST STATE.
-Every metric should show where it came from, not just where it is.
-
-CHART WHAT TELLS THE BEST STORY.
-Find what has multiple data points over time and tells the most important story right now.
-Build chart_data from real data points found in the events and raw data. Make it reveal something.
+Give advice that is specific, grounded in WHY, honest about uncertainty, timed correctly, and aware of tradeoffs.
 
 ═══════════════════════════════════════
 OUTPUT FORMAT
@@ -192,9 +163,9 @@ Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
   "risks": [
     {
       "title": "short specific title",
-      "detail": "What is happening. Why it is a risk given the full context — including cause, whether temporary or structural, and what happens if ignored.",
+      "detail": "What is happening. Why it is a risk given the full context.",
       "dollar_impact": "$X,XXX at risk or cost",
-      "action": "Specific action that makes sense given the full context. If timing matters explain why now. If waiting is right, say that instead.",
+      "action": "Specific action that makes sense given the full context.",
       "urgency": "critical or high or medium",
       "source": "source name",
       "source_detail": "specific email subject, file name, or transaction"
@@ -203,7 +174,7 @@ Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
   "opportunities": [
     {
       "title": "short specific title",
-      "detail": "What the opportunity is. Why now is the right time given the current data. What is blocking it if anything.",
+      "detail": "What the opportunity is. Why now is the right time.",
       "dollar_impact": "$X,XXX potential",
       "action": "Exact action",
       "timeframe": "today or this week or this month",
@@ -247,7 +218,6 @@ Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
       messages: [{ role: "user", content: companyContext || "No integrations connected yet." }],
     });
 
-    trackUsage(user.id, "dashboard", "claude-sonnet-4-5", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
     const firstBrace = raw.indexOf("{");
     const lastBrace = raw.lastIndexOf("}");
