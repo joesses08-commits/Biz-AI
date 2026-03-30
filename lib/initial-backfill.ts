@@ -13,21 +13,6 @@ function decodeBase64(str: string) {
   } catch { return ""; }
 }
 
-function extractEmailBody(payload: any): string {
-  if (!payload) return "";
-  if (payload.mimeType === "text/plain" && payload.body?.data) return decodeBase64(payload.body.data);
-  if (payload.mimeType === "text/html" && payload.body?.data) {
-    return decodeBase64(payload.body.data).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  }
-  if (payload.parts) {
-    for (const part of payload.parts) {
-      const text = extractEmailBody(part);
-      if (text) return text;
-    }
-  }
-  return "";
-}
-
 function getHeader(headers: any[], name: string): string {
   return headers?.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
 }
@@ -49,7 +34,7 @@ async function buildHistoricalSummary(userId: string, source: string, rawDataTex
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-5",
     max_tokens: 1000,
-    system: `You are a business analyst doing a one-time historical analysis of a business's data. 
+    system: `You are a business analyst doing a one-time historical analysis of a business's data.
 Summarize the key patterns, relationships, outstanding items, and important context you find.
 Be specific — name clients, amounts, dates, patterns. This summary will be used to give an AI COO context about the business history.
 Write 3-5 paragraphs covering: key relationships, financial patterns, recurring themes, outstanding items, and anything unusual.`,
@@ -68,7 +53,34 @@ Write the historical summary now.`
   return response.content[0].type === "text" ? response.content[0].text : "";
 }
 
-// GMAIL — batch scan last 200 emails, one Sonnet summary
+async function getSheetContent(fileId: string, token: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/A1:Z100`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json();
+    if (!data.values?.length) return "";
+    return data.values.slice(0, 30).map((row: any[]) => row.join(" | ")).join("\n");
+  } catch { return ""; }
+}
+
+async function getDocContent(fileId: string, token: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://docs.googleapis.com/v1/documents/${fileId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json();
+    if (!data.body?.content) return "";
+    return data.body.content
+      .map((block: any) => block.paragraph?.elements?.map((e: any) => e.textRun?.content || "").join("") || "")
+      .join("")
+      .slice(0, 1000);
+  } catch { return ""; }
+}
+
+// GMAIL + GOOGLE DRIVE — batch scan, one Sonnet call each
 export async function gmailInitialBackfill(userId: string, accessToken: string) {
   try {
     const { data: profile } = await supabaseAdmin
@@ -79,39 +91,81 @@ export async function gmailInitialBackfill(userId: string, accessToken: string) 
 
     const companyContext = profile?.company_brief || "";
 
-    // Fetch last 200 email metadata only (fast, no full bodies)
+    // ── GMAIL ──────────────────────────────────────────────
     const listRes = await fetch(
       "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=200&q=in:inbox",
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const listData = await listRes.json();
     const messages = listData.messages || [];
-    if (!messages.length) return;
 
-    // Fetch details for first 100 — subject, from, date, snippet only
-    const emailSummaries: string[] = [];
-    for (const msg of messages.slice(0, 100)) {
-      try {
-        const res = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=subject&metadataHeaders=from&metadataHeaders=date`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        const data = await res.json();
-        const headers = data.payload?.headers || [];
-        const subject = getHeader(headers, "subject") || "(No subject)";
-        const from = getHeader(headers, "from") || "Unknown";
-        const date = getHeader(headers, "date") || "";
-        const snippet = data.snippet || "";
-        emailSummaries.push(`${date} | FROM: ${from} | SUBJECT: ${subject} | ${snippet.slice(0, 100)}`);
-        await new Promise(r => setTimeout(r, 100));
-      } catch { continue; }
+    if (messages.length) {
+      const emailSummaries: string[] = [];
+      for (const msg of messages.slice(0, 100)) {
+        try {
+          const res = await fetch(
+            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=subject&metadataHeaders=from&metadataHeaders=date`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          const data = await res.json();
+          const headers = data.payload?.headers || [];
+          const subject = getHeader(headers, "subject") || "(No subject)";
+          const from = getHeader(headers, "from") || "Unknown";
+          const date = getHeader(headers, "date") || "";
+          const snippet = data.snippet || "";
+          emailSummaries.push(`${date} | FROM: ${from} | SUBJECT: ${subject} | ${snippet.slice(0, 100)}`);
+          await new Promise(r => setTimeout(r, 80));
+        } catch { continue; }
+      }
+
+      if (emailSummaries.length) {
+        const summary = await buildHistoricalSummary(userId, "Gmail", emailSummaries.join("\n"), companyContext);
+        await saveHistoricalSummary(userId, "Gmail", summary);
+      }
     }
 
-    if (!emailSummaries.length) return;
+    // ── GOOGLE DRIVE ───────────────────────────────────────
+    const MIME_TYPES: Record<string, string> = {
+      "application/vnd.google-apps.spreadsheet": "Google Sheet",
+      "application/vnd.google-apps.document": "Google Doc",
+      "application/vnd.google-apps.presentation": "Google Slides",
+      "application/pdf": "PDF",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "Excel",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word Doc",
+    };
 
-    const rawDataText = emailSummaries.join("\n");
-    const summary = await buildHistoricalSummary(userId, "Gmail", rawDataText, companyContext);
-    await saveHistoricalSummary(userId, "Gmail", summary);
+    const mimeQuery = Object.keys(MIME_TYPES).map(m => `mimeType='${m}'`).join(" or ");
+    const filesRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files?q=(${mimeQuery})&pageSize=50&fields=files(id,name,mimeType,modifiedTime,lastModifyingUser)&orderBy=modifiedTime desc`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const filesData = await filesRes.json();
+    const files = filesData.files || [];
+
+    if (files.length) {
+      const fileDetails: string[] = [];
+
+      for (const file of files.slice(0, 30)) {
+        try {
+          const fileType = MIME_TYPES[file.mimeType] || "File";
+          let content = "";
+
+          if (file.mimeType === "application/vnd.google-apps.spreadsheet") {
+            content = await getSheetContent(file.id, accessToken);
+          } else if (file.mimeType === "application/vnd.google-apps.document") {
+            content = await getDocContent(file.id, accessToken);
+          }
+
+          fileDetails.push(`FILE: ${file.name} | TYPE: ${fileType} | MODIFIED: ${file.modifiedTime} | BY: ${file.lastModifyingUser?.displayName || "Unknown"}${content ? `\nCONTENT PREVIEW:\n${content.slice(0, 500)}` : ""}`);
+          await new Promise(r => setTimeout(r, 200));
+        } catch { continue; }
+      }
+
+      if (fileDetails.length) {
+        const summary = await buildHistoricalSummary(userId, "Google Drive", fileDetails.join("\n\n"), companyContext);
+        await saveHistoricalSummary(userId, "Google Drive", summary);
+      }
+    }
 
     // Mark initial sync done
     await supabaseAdmin.from("gmail_connections")
@@ -125,11 +179,11 @@ export async function gmailInitialBackfill(userId: string, accessToken: string) 
     });
 
   } catch (err) {
-    console.error("Gmail backfill error:", err);
+    console.error("Gmail/Drive backfill error:", err);
   }
 }
 
-// MICROSOFT — batch scan Outlook + OneDrive, one Sonnet summary each
+// MICROSOFT — Outlook + OneDrive batch scan
 export async function microsoftInitialBackfill(userId: string, accessToken: string) {
   try {
     const { data: profile } = await supabaseAdmin
@@ -140,7 +194,7 @@ export async function microsoftInitialBackfill(userId: string, accessToken: stri
 
     const companyContext = profile?.company_brief || "";
 
-    // Fetch last 100 Outlook emails — metadata only
+    // ── OUTLOOK ────────────────────────────────────────────
     const emailsRes = await fetch(
       "https://graph.microsoft.com/v1.0/me/messages?$top=100&$select=subject,from,receivedDateTime,bodyPreview&$orderby=receivedDateTime desc",
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -157,7 +211,7 @@ export async function microsoftInitialBackfill(userId: string, accessToken: stri
       await saveHistoricalSummary(userId, "Microsoft Outlook", emailSummary);
     }
 
-    // Fetch OneDrive files
+    // ── ONEDRIVE ───────────────────────────────────────────
     const filesRes = await fetch(
       "https://graph.microsoft.com/v1.0/me/drive/root/children?$top=100&$select=name,lastModifiedDateTime,size,file&$orderby=lastModifiedDateTime desc",
       { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -190,7 +244,7 @@ export async function microsoftInitialBackfill(userId: string, accessToken: stri
   }
 }
 
-// STRIPE — all transactions, one Sonnet summary
+// STRIPE — all charges, one Sonnet summary
 export async function stripeInitialBackfill(userId: string, stripeAccessToken: string) {
   try {
     const { data: profile } = await supabaseAdmin
@@ -217,7 +271,6 @@ export async function stripeInitialBackfill(userId: string, stripeAccessToken: s
     const summary = await buildHistoricalSummary(userId, "Stripe", chargesText, companyContext);
     await saveHistoricalSummary(userId, "Stripe", summary);
 
-    // Trigger snapshot
     await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-user-id": userId },
@@ -228,7 +281,7 @@ export async function stripeInitialBackfill(userId: string, stripeAccessToken: s
   }
 }
 
-// QUICKBOOKS — all invoices + customers, one Sonnet summary
+// QUICKBOOKS — all invoices, one Sonnet summary
 export async function quickbooksInitialBackfill(userId: string, accessToken: string, realmId: string) {
   try {
     const { data: profile } = await supabaseAdmin
@@ -240,7 +293,6 @@ export async function quickbooksInitialBackfill(userId: string, accessToken: str
     const companyContext = profile?.company_brief || "";
     const headers = { Authorization: `Bearer ${accessToken}`, Accept: "application/json" };
 
-    // Fetch all invoices
     const invoicesRes = await fetch(
       `https://quickbooks.api.intuit.com/v3/company/${realmId}/query?query=SELECT * FROM Invoice ORDER BY MetaData.LastUpdatedTime DESC MAXRESULTS 100&minorversion=65`,
       { headers }
@@ -257,12 +309,10 @@ export async function quickbooksInitialBackfill(userId: string, accessToken: str
     const summary = await buildHistoricalSummary(userId, "QuickBooks", invoicesText, companyContext);
     await saveHistoricalSummary(userId, "QuickBooks", summary);
 
-    // Mark initial sync done
     await supabaseAdmin.from("quickbooks_connections")
       .update({ initial_sync_done: true })
       .eq("user_id", userId);
 
-    // Trigger snapshot
     await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-user-id": userId },
