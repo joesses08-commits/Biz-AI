@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { bustDashboardCache } from "@/lib/bust-cache";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest) {
 
         // Rebuild snapshot for important emails immediately
         if (eventData.analysis?.importance === "critical" || eventData.analysis?.importance === "high") {
+        bustDashboardCache(userId).catch(() => {});
           fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-user-id": userId },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { bustDashboardCache } from "@/lib/bust-cache";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -140,6 +141,7 @@ export async function POST(request: NextRequest) {
             .eq("user_id", conn.user_id)
             .single();
 
+          bustDashboardCache(conn.user_id).catch(() => {});
           await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/process`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
