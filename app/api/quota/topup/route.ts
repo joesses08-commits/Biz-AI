@@ -4,10 +4,10 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 const PRICE_TO_TOKENS: Record<string, number> = {
-  "price_1TGqneLyxBan4QvlWZifLXz": 10000,
-  "price_1TGqoMLyxBan4QvZNeRgbe0": 25000,
-  "price_1TGqohLyxBan4Qv5cahkd9Q": 50000,
-  "price_1TGqo1LyxBan4QvpHLbM2Vg": 100000,
+  "price_1TGubfLYyxBan4QvzDH75ZHD": 10000,
+  "price_1TGudULYyxBan4Qvq49EOsze": 25000,
+  "price_1TGue9LYyxBan4QvWAkqZpk6": 50000,
+  "price_1TGueeLYyxBan4QvVY3UFTMA": 100000,
 };
 
 export async function POST(req: NextRequest) {

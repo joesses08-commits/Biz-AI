@@ -4,10 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const TOKEN_PACKS = [
-  { label: "10,000 tokens", tokens: 10000, price: "$10", priceId: "price_1TGqneLyxBan4QvlWZifLXz" },
-  { label: "25,000 tokens", tokens: 25000, price: "$25", priceId: "price_1TGqoMLyxBan4QvZNeRgbe0" },
-  { label: "50,000 tokens", tokens: 50000, price: "$50", priceId: "price_1TGqohLyxBan4Qv5cahkd9Q" },
-  { label: "100,000 tokens", tokens: 100000, price: "$100", priceId: "price_1TGqo1LyxBan4QvpHLbM2Vg", popular: true },
+  { label: "10,000 tokens", tokens: 10000, price: "$10", priceId: "price_1TGubfLYyxBan4QvzDH75ZHD" },
+  { label: "25,000 tokens", tokens: 25000, price: "$25", priceId: "price_1TGudULYyxBan4Qvq49EOsze" },
+  { label: "50,000 tokens", tokens: 50000, price: "$50", priceId: "price_1TGue9LYyxBan4QvWAkqZpk6" },
+  { label: "100,000 tokens", tokens: 100000, price: "$100", priceId: "price_1TGueeLYyxBan4QvVY3UFTMA", popular: true },
 ];
 
 interface Quota {
@@ -52,7 +52,6 @@ function QuotaContent() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        console.error("No URL returned:", data);
         alert(data.error || "Something went wrong. Please try again.");
         setBuying(null);
       }
