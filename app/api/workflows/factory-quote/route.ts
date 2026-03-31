@@ -136,7 +136,7 @@ Return ONLY raw JSON, no markdown:
         const margin = sellPrice > 0 ? ((sellPrice - elc) / sellPrice * 100) : 0;
         return {
           ...p,
-          factory_name: factory_name || parsed.factory_name,
+          factory_name: (factory_name || parsed.factory_name || "Unknown").replace(/_Quote$/, "").replace(/_/g, " "),
           factory_email,
           first_cost: firstCost,
           duty_pct: orderDetails.duty_pct || "30",
@@ -222,26 +222,31 @@ Return ONLY raw JSON, no markdown:
 
       // Header row
       rows.push([
-        "Product", "Specs", "SKU", "Factory", "Factory Email",
-        "First Cost", "Duty%", "Tariff%", "Freight", "ELC", "Sell", "Margin%",
+        "Photo/SKU", "Product", "Specs", "Factory", "First Cost",
+        "Duty%", "Tariff%", "Freight", "ELC", "Sell", "Margin%",
         "MOQ", "Lead Time (days)", "Competitiveness", "Notes"
       ]);
 
+      // Track row index for yellow highlighting
+      const yellowRows: number[] = [];
+      let currentRow = 2; // 1-indexed, row 1 is header
+
       // Data rows grouped by product
       for (const [productName, factories] of Object.entries(productGroups)) {
-        factories.forEach((f, index) => {
+        factories.forEach((f: any, index: number) => {
           let competitiveness = "";
-          if (index === 0) competitiveness = "🥇 Most Competitive";
-          else if (index === 1) competitiveness = "🥈 2nd Best";
+          if (index === 0) {
+            competitiveness = "🥇 Most Competitive";
+            yellowRows.push(currentRow);
+          } else if (index === 1) competitiveness = "🥈 2nd Best";
           else if (index === 2) competitiveness = "🥉 3rd Best";
           else competitiveness = `${index + 1}th`;
 
           rows.push([
+            index === 0 ? (f.sku || "") : "",
             index === 0 ? productName : "",
             index === 0 ? f.specs : "",
-            index === 0 ? f.sku : "",
             f.factory_name,
-            f.factory_email,
             f.first_cost,
             `${f.duty_pct}%`,
             `${f.tariff_pct}%`,
@@ -254,42 +259,54 @@ Return ONLY raw JSON, no markdown:
             competitiveness,
             f.notes || "",
           ]);
+          currentRow++;
         });
         // Empty row between products
-        rows.push(new Array(16).fill(""));
+        rows.push(new Array(15).fill(""));
+        currentRow++;
       }
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
 
+      // Yellow highlight on best price rows
+      const yellowFill = { patternType: "solid", fgColor: { rgb: "FFFF00" } };
+      for (const rowIdx of yellowRows) {
+        for (let col = 0; col < 15; col++) {
+          const cellRef = XLSX.utils.encode_cell({ r: rowIdx - 1, c: col });
+          if (!ws[cellRef]) ws[cellRef] = { t: "s", v: "" };
+          ws[cellRef].s = { fill: yellowFill, font: { bold: true } };
+        }
+      }
+
       // Column widths
       ws["!cols"] = [
-        { wch: 30 }, { wch: 25 }, { wch: 12 }, { wch: 20 }, { wch: 25 },
+        { wch: 12 }, { wch: 28 }, { wch: 30 }, { wch: 20 },
         { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 10 },
-        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 20 }, { wch: 20 }
+        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 20 }, { wch: 25 }
       ];
 
       XLSX.utils.book_append_sheet(wb, ws, "Quote Comparison");
 
       // Summary sheet
       const summaryRows: any[][] = [["Summary — Best Factory Per Product"], [""]];
-      summaryRows.push(["Product", "Best Factory", "Best ELC", "Best Margin%", "Savings vs Worst"]);
+      summaryRows.push(["Product", "Best Factory", "Best ELC", "Best Margin%", "Savings vs 2nd Best"]);
 
       for (const [productName, factories] of Object.entries(productGroups)) {
         if (factories.length < 2) continue;
         const best = factories[0];
-        const worst = factories[factories.length - 1];
-        const savings = Math.round((worst.elc - best.elc) * 100) / 100;
+        const second = factories[1];
+        const savings = Math.round((second.elc - best.elc) * 100) / 100;
         summaryRows.push([
           productName,
           best.factory_name,
           best.elc,
           `${best.margin_pct}%`,
-          `$${savings} savings vs ${worst.factory_name}`,
+          savings > 0 ? `$${savings} cheaper than ${second.factory_name}` : "Same as 2nd best",
         ]);
       }
 
       const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
-      summaryWs["!cols"] = [{ wch: 30 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 30 }];
+      summaryWs["!cols"] = [{ wch: 30 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 35 }];
       XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
 
       // Convert to base64
