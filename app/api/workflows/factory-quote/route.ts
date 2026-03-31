@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import Anthropic from "@anthropic-ai/sdk";
 import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -216,102 +217,171 @@ Return ONLY raw JSON, no markdown:
         productGroups[key].sort((a, b) => b.margin_pct - a.margin_pct);
       }
 
-      // Build Excel workbook
-      const wb = XLSX.utils.book_new();
-      const rows: any[][] = [];
+      // Build Excel workbook using ExcelJS for full styling + image support
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "Jimmy AI";
+      wb.created = new Date();
 
-      // Header row
-      rows.push([
-        "Photo/SKU", "Product", "Specs", "Factory", "First Cost",
-        "Duty%", "Tariff%", "Freight", "ELC", "Sell", "Margin%",
-        "MOQ", "Lead Time (days)", "Competitiveness", "Notes"
-      ]);
+      // ── QUOTE COMPARISON SHEET ─────────────────────────────────────────
+      const ws = wb.addWorksheet("Quote Comparison");
 
-      // Track row index for yellow highlighting
-      const yellowRows: number[] = [];
-      let currentRow = 2; // 1-indexed, row 1 is header
+      ws.columns = [
+        { header: "Photo/SKU", key: "sku", width: 14 },
+        { header: "Product", key: "product", width: 30 },
+        { header: "Specs", key: "specs", width: 32 },
+        { header: "Factory", key: "factory", width: 22 },
+        { header: "First Cost", key: "first_cost", width: 12 },
+        { header: "Duty%", key: "duty", width: 8 },
+        { header: "Tariff%", key: "tariff", width: 8 },
+        { header: "Freight", key: "freight", width: 10 },
+        { header: "ELC", key: "elc", width: 10 },
+        { header: "Sell", key: "sell", width: 10 },
+        { header: "Margin%", key: "margin", width: 10 },
+        { header: "MOQ", key: "moq", width: 8 },
+        { header: "Lead Time (days)", key: "lead", width: 16 },
+        { header: "Competitiveness", key: "comp", width: 22 },
+        { header: "Notes", key: "notes", width: 28 },
+      ];
 
-      // Data rows grouped by product
+      // Style header row
+      const headerRow = ws.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1a1a2e" } };
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = {
+          bottom: { style: "thin", color: { argb: "FF444444" } },
+        };
+      });
+      headerRow.height = 20;
+
+      // Add data rows
       for (const [productName, factories] of Object.entries(productGroups)) {
         factories.forEach((f: any, index: number) => {
           let competitiveness = "";
-          if (index === 0) {
-            competitiveness = "🥇 Most Competitive";
-            yellowRows.push(currentRow);
-          } else if (index === 1) competitiveness = "🥈 2nd Best";
+          if (index === 0) competitiveness = "🥇 Most Competitive";
+          else if (index === 1) competitiveness = "🥈 2nd Best";
           else if (index === 2) competitiveness = "🥉 3rd Best";
           else competitiveness = `${index + 1}th`;
 
-          rows.push([
-            index === 0 ? (f.sku || "") : "",
-            index === 0 ? productName : "",
-            index === 0 ? f.specs : "",
-            f.factory_name,
-            f.first_cost,
-            `${f.duty_pct}%`,
-            `${f.tariff_pct}%`,
-            f.freight,
-            f.elc,
-            f.sell_price,
-            `${f.margin_pct}%`,
-            f.moq || "",
-            f.lead_time_days || "",
-            competitiveness,
-            f.notes || "",
-          ]);
-          currentRow++;
+          const marginNum = parseFloat(f.margin_pct);
+          const isNegative = marginNum < 0;
+          const isBest = index === 0;
+
+          const row = ws.addRow({
+            sku: index === 0 ? (f.sku || "") : "",
+            product: index === 0 ? productName : "",
+            specs: index === 0 ? f.specs : "",
+            factory: f.factory_name,
+            first_cost: f.first_cost,
+            duty: `${f.duty_pct}%`,
+            tariff: `${f.tariff_pct}%`,
+            freight: f.freight,
+            elc: f.elc,
+            sell: f.sell_price,
+            margin: `${f.margin_pct}%`,
+            moq: f.moq || "",
+            lead: f.lead_time_days || "",
+            comp: competitiveness,
+            notes: f.notes || "",
+          });
+
+          // Yellow for best price row
+          if (isBest) {
+            row.eachCell((cell) => {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+              cell.font = { bold: true, size: 10 };
+            });
+          }
+
+          // Red for negative margin (override just the margin cell)
+          if (isNegative) {
+            const marginCell = row.getCell("margin");
+            marginCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF4444" } };
+            marginCell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+          }
+
+          row.height = 18;
         });
-        // Empty row between products
-        rows.push(new Array(15).fill(""));
-        currentRow++;
+
+        // Empty spacer row between products
+        ws.addRow({});
       }
 
-      const ws = XLSX.utils.aoa_to_sheet(rows);
+      // Freeze header row
+      ws.views = [{ state: "frozen", ySplit: 1 }];
 
-      // Yellow highlight on best price rows
-      const yellowFill = { patternType: "solid", fgColor: { rgb: "FFFF00" } };
-      for (const rowIdx of yellowRows) {
-        for (let col = 0; col < 15; col++) {
-          const cellRef = XLSX.utils.encode_cell({ r: rowIdx - 1, c: col });
-          if (!ws[cellRef]) ws[cellRef] = { t: "s", v: "" };
-          ws[cellRef].s = { fill: yellowFill, font: { bold: true } };
-        }
-      }
+      // ── SUMMARY SHEET ──────────────────────────────────────────────────
+      const summaryWs = wb.addWorksheet("Summary");
 
-      // Column widths
-      ws["!cols"] = [
-        { wch: 12 }, { wch: 28 }, { wch: 30 }, { wch: 20 },
-        { wch: 12 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 10 },
-        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 20 }, { wch: 25 }
+      summaryWs.columns = [
+        { header: "Product", key: "product", width: 32 },
+        { header: "Best Factory", key: "factory", width: 22 },
+        { header: "Best ELC", key: "elc", width: 12 },
+        { header: "Best Margin%", key: "margin", width: 14 },
+        { header: "Savings vs 2nd Best", key: "savings", width: 38 },
+        { header: "2nd Best Factory", key: "second", width: 22 },
+        { header: "2nd Best ELC", key: "second_elc", width: 14 },
+        { header: "Negotiation Target", key: "target", width: 30 },
       ];
 
-      XLSX.utils.book_append_sheet(wb, ws, "Quote Comparison");
-
-      // Summary sheet
-      const summaryRows: any[][] = [["Summary — Best Factory Per Product"], [""]];
-      summaryRows.push(["Product", "Best Factory", "Best ELC", "Best Margin%", "Savings vs 2nd Best"]);
+      // Style summary header
+      const summaryHeader = summaryWs.getRow(1);
+      summaryHeader.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1a1a2e" } };
+        cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      });
+      summaryHeader.height = 20;
 
       for (const [productName, factories] of Object.entries(productGroups)) {
-        if (factories.length < 2) continue;
+        if (factories.length < 1) continue;
         const best = factories[0];
-        const second = factories[1];
-        const savings = Math.round((second.elc - best.elc) * 100) / 100;
-        summaryRows.push([
-          productName,
-          best.factory_name,
-          best.elc,
-          `${best.margin_pct}%`,
-          savings > 0 ? `$${savings} cheaper than ${second.factory_name}` : "Same as 2nd best",
-        ]);
+        const second = factories.length > 1 ? factories[1] : null;
+        const savings = second ? Math.round((second.elc - best.elc) * 100) / 100 : 0;
+        const marginNum = parseFloat(best.margin_pct);
+        const isNegative = marginNum < 0;
+
+        const negotiationTarget = second
+          ? `Ask ${second.factory_name} to match $${best.first_cost}/unit`
+          : "Only one quote received";
+
+        const row = summaryWs.addRow({
+          product: productName,
+          factory: best.factory_name,
+          elc: best.elc,
+          margin: `${best.margin_pct}%`,
+          savings: second
+            ? savings > 0
+              ? `$${savings} cheaper than ${second.factory_name}`
+              : "Same price as 2nd best"
+            : "No comparison",
+          second: second?.factory_name || "—",
+          second_elc: second?.elc || "—",
+          target: negotiationTarget,
+        });
+
+        // Yellow highlight best rows in summary
+        row.eachCell((cell) => {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
+          cell.font = { bold: false, size: 10 };
+        });
+
+        // Red for negative margin
+        if (isNegative) {
+          const marginCell = row.getCell("margin");
+          marginCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF4444" } };
+          marginCell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+        }
+
+        row.height = 18;
       }
 
-      const summaryWs = XLSX.utils.aoa_to_sheet(summaryRows);
-      summaryWs["!cols"] = [{ wch: 30 }, { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 35 }];
-      XLSX.utils.book_append_sheet(wb, summaryWs, "Summary");
+      summaryWs.views = [{ state: "frozen", ySplit: 1 }];
 
       // Convert to base64
-      const excelBuffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-      const base64 = excelBuffer.toString("base64");
+      const excelBuffer = await wb.xlsx.writeBuffer();
+      const base64 = Buffer.from(excelBuffer).toString("base64");
 
       const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
       const fileName = `${date} Factory Quote Comparison — ${job.job_name}.xlsx`;
