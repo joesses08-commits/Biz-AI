@@ -12,14 +12,22 @@ const supabaseAdmin = createClient(
 );
 
 async function buildSnapshotForUser(userId: string) {
-  const { data: profile } = await supabaseAdmin
-    .from("company_profiles")
+  const { data: existing } = await supabaseAdmin
+    .from("context_cache")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
 
-  const { data: existing } = await supabaseAdmin
-    .from("context_cache")
+  // Cooldown: skip Claude if snapshot ran less than 45 minutes ago
+  if (existing?.cached_at) {
+    const minutesSinceLastRun = (Date.now() - new Date(existing.cached_at).getTime()) / 1000 / 60;
+    if (minutesSinceLastRun < 45) {
+      return { message: `Snapshot is fresh — skipping`, unchanged: true };
+    }
+  }
+
+  const { data: profile } = await supabaseAdmin
+    .from("company_profiles")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
