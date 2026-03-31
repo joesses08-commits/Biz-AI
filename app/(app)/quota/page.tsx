@@ -77,7 +77,6 @@ function QuotaContent() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
       <div className="max-w-3xl mx-auto">
-
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight">AI Tokens</h1>
           <p className="text-white/30 text-sm mt-1">Manage your monthly AI usage and purchase more tokens.</p>
@@ -94,7 +93,6 @@ function QuotaContent() {
           <div className="text-white/30 text-sm">Loading...</div>
         ) : (
           <>
-            {/* Token balance */}
             <div className={`border rounded-2xl p-6 mb-6 ${isEmpty ? "bg-red-500/5 border-red-500/20" : isLow ? "bg-yellow-500/5 border-yellow-500/20" : "bg-white/[0.02] border-white/[0.06]"}`}>
               <div className="flex items-start justify-between mb-4">
                 <div>
@@ -113,7 +111,6 @@ function QuotaContent() {
                 </div>
               </div>
 
-              {/* Progress bar */}
               <div className="w-full bg-white/[0.06] rounded-full h-2 mb-2">
                 <div
                   className={`h-2 rounded-full transition-all ${isEmpty ? "bg-red-500" : isLow ? "bg-yellow-500" : "bg-white/40"}`}
@@ -137,10 +134,9 @@ function QuotaContent() {
               )}
             </div>
 
-            {/* Daily limit */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 mb-6">
               <h2 className="text-sm font-semibold text-white mb-1">Daily Spending Limit</h2>
-              <p className="text-white/30 text-xs mb-4">Set a daily token cap to control how fast you use your monthly balance. This is optional — hitting the limit pauses refreshes and chat for the day, not permanently.</p>
+              <p className="text-white/30 text-xs mb-4">Set a daily token cap to control how fast you use your monthly balance. Optional — hitting the limit pauses refreshes and chat for that day only.</p>
               <div className="flex gap-3 items-end">
                 <div className="flex-1">
                   <label className="text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Daily limit (tokens)</label>
@@ -151,7 +147,7 @@ function QuotaContent() {
                     placeholder="No limit"
                     className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/20 transition text-sm"
                   />
-                  <p className="text-white/15 text-xs mt-1">e.g. 2,000 tokens/day = ~$2/day</p>
+                  <p className="text-white/15 text-xs mt-1">e.g. 2,000 tokens/day ≈ $2/day</p>
                 </div>
                 <button onClick={saveDailyLimit} disabled={savingLimit}
                   className="bg-white text-black font-semibold px-6 py-3 rounded-xl hover:bg-white/90 disabled:opacity-50 transition text-sm flex-shrink-0">
@@ -167,8 +163,7 @@ function QuotaContent() {
               )}
             </div>
 
-            {/* Buy more */}
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 mb-4">
               <h2 className="text-sm font-semibold text-white mb-1">Buy More Tokens</h2>
               <p className="text-white/30 text-xs mb-6">Tokens never expire and stack on top of your monthly balance.</p>
               <div className="grid grid-cols-2 gap-3">
@@ -189,8 +184,7 @@ function QuotaContent() {
               </div>
             </div>
 
-            {/* What tokens cost */}
-            <div className="mt-4 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">What costs tokens</p>
               <div className="space-y-2">
                 {[
@@ -214,11 +208,14 @@ function QuotaContent() {
     </div>
   );
 }
-}
 
 export default function QuotaPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    }>
       <QuotaContent />
     </Suspense>
   );
