@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getQuota, MONTHLY_TOKENS } from "@/lib/quota";
+import { getQuota } from "@/lib/quota";
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET() {
   try {
@@ -23,15 +29,7 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const quota = await getQuota(user.id);
-
-    return NextResponse.json({
-      tokensRemaining: quota?.tokens_remaining ?? MONTHLY_TOKENS,
-      tokensUsedToday: quota?.tokens_used_today ?? 0,
-      monthlyTotalUsed: quota?.monthly_total_used ?? 0,
-      dailyLimit: quota?.daily_limit ?? null,
-      monthlyLimit: MONTHLY_TOKENS,
-      pctUsed: quota ? Math.round(((MONTHLY_TOKENS - quota.tokens_remaining) / MONTHLY_TOKENS) * 100) : 0,
-    });
+    return NextResponse.json(quota);
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
@@ -57,16 +55,25 @@ export async function PATCH(request: NextRequest) {
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const { dailyLimit } = await request.json();
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
 
-    await supabaseAdmin.from("user_quota").update({
-      daily_limit: dailyLimit === null ? null : Number(dailyLimit),
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", user.id);
+    const { data: existing } = await supabaseAdmin
+      .from("user_quota")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      await supabaseAdmin.from("user_quota").update({
+        daily_limit: dailyLimit === null ? null : Number(dailyLimit),
+        updated_at: new Date().toISOString(),
+      }).eq("user_id", user.id);
+    } else {
+      await supabaseAdmin.from("user_quota").insert({
+        user_id: user.id,
+        daily_limit: dailyLimit === null ? null : Number(dailyLimit),
+        tokens_remaining: 0,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -5,6 +5,9 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+export const MONTHLY_TOKENS = 50000;
+
+// Token costs per feature — shown on quota page
 export const TOKEN_COSTS = {
   dashboard: 150,
   chat: 30,
@@ -14,50 +17,65 @@ export const TOKEN_COSTS = {
   backfill: 0,
 };
 
-export const MONTHLY_TOKENS = 50000;
-export const TOKENS_PER_DOLLAR = 1000;
+// Get start of current billing period (1st of current month)
+function getBillingPeriodStart(): string {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+}
+
+// Get start of today
+function getTodayStart(): string {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+}
 
 export async function getQuota(userId: string) {
-  const today = new Date().toISOString().split("T")[0];
+  const billingStart = getBillingPeriodStart();
+  const todayStart = getTodayStart();
 
-  let { data: quota } = await supabaseAdmin
+  // Get total tokens used this billing period from api_usage
+  const { data: monthlyUsage } = await supabaseAdmin
+    .from("api_usage")
+    .select("input_tokens, output_tokens")
+    .eq("user_id", userId)
+    .gte("created_at", billingStart);
+
+  const tokensUsedThisMonth = (monthlyUsage || []).reduce(
+    (sum, r) => sum + (r.input_tokens || 0) + (r.output_tokens || 0), 0
+  );
+
+  // Get tokens used today
+  const { data: todayUsage } = await supabaseAdmin
+    .from("api_usage")
+    .select("input_tokens, output_tokens")
+    .eq("user_id", userId)
+    .gte("created_at", todayStart);
+
+  const tokensUsedToday = (todayUsage || []).reduce(
+    (sum, r) => sum + (r.input_tokens || 0) + (r.output_tokens || 0), 0
+  );
+
+  // Get bonus tokens from purchases
+  const { data: quotaRow } = await supabaseAdmin
     .from("user_quota")
-    .select("*")
+    .select("tokens_remaining, daily_limit")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!quota) {
-    const { data: newQuota } = await supabaseAdmin
-      .from("user_quota")
-      .insert({
-        user_id: userId,
-        tokens_remaining: MONTHLY_TOKENS,
-        tokens_used_today: 0,
-        daily_limit: null,
-        monthly_total_used: 0,
-        last_reset_date: today,
-        last_daily_reset: today,
-      })
-      .select()
-      .single();
-    return newQuota;
-  }
+  const bonusTokens = quotaRow?.tokens_remaining || 0;
+  const dailyLimit = quotaRow?.daily_limit || null;
 
-  if (quota.last_daily_reset !== today) {
-    const { data: updated } = await supabaseAdmin
-      .from("user_quota")
-      .update({
-        tokens_used_today: 0,
-        last_daily_reset: today,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId)
-      .select()
-      .single();
-    return updated;
-  }
+  const totalAllowance = MONTHLY_TOKENS + bonusTokens;
+  const tokensRemaining = Math.max(0, totalAllowance - tokensUsedThisMonth);
 
-  return quota;
+  return {
+    tokensRemaining,
+    tokensUsedToday,
+    monthlyTotalUsed: tokensUsedThisMonth,
+    dailyLimit,
+    monthlyLimit: totalAllowance,
+    pctUsed: Math.round((tokensUsedThisMonth / totalAllowance) * 100),
+  };
 }
 
 export async function checkQuota(userId: string, feature: keyof typeof TOKEN_COSTS): Promise<{
@@ -68,41 +86,47 @@ export async function checkQuota(userId: string, feature: keyof typeof TOKEN_COS
   dailyLimit: number | null;
 }> {
   const quota = await getQuota(userId);
-  if (!quota) return { allowed: true, tokensRemaining: MONTHLY_TOKENS, tokensUsedToday: 0, dailyLimit: null };
-
   const cost = TOKEN_COSTS[feature];
 
-  if (cost === 0) return { allowed: true, tokensRemaining: quota.tokens_remaining, tokensUsedToday: quota.tokens_used_today, dailyLimit: quota.daily_limit };
+  if (cost === 0) return { allowed: true, tokensRemaining: quota.tokensRemaining, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
 
-  if (quota.tokens_remaining < cost) {
-    return { allowed: false, reason: "monthly_limit", tokensRemaining: quota.tokens_remaining, tokensUsedToday: quota.tokens_used_today, dailyLimit: quota.daily_limit };
+  if (quota.tokensRemaining < cost) {
+    return { allowed: false, reason: "monthly_limit", tokensRemaining: quota.tokensRemaining, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
   }
 
-  if (quota.daily_limit && quota.tokens_used_today + cost > quota.daily_limit) {
-    return { allowed: false, reason: "daily_limit", tokensRemaining: quota.tokens_remaining, tokensUsedToday: quota.tokens_used_today, dailyLimit: quota.daily_limit };
+  if (quota.dailyLimit && quota.tokensUsedToday + cost > quota.dailyLimit) {
+    return { allowed: false, reason: "daily_limit", tokensRemaining: quota.tokensRemaining, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
   }
 
-  return { allowed: true, tokensRemaining: quota.tokens_remaining, tokensUsedToday: quota.tokens_used_today, dailyLimit: quota.daily_limit };
+  return { allowed: true, tokensRemaining: quota.tokensRemaining, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
 }
 
+// No longer needed — usage is tracked via api_usage automatically
 export async function consumeTokens(userId: string, feature: keyof typeof TOKEN_COSTS) {
-  const cost = TOKEN_COSTS[feature];
-  if (cost === 0) return;
-
-  await supabaseAdmin.rpc("decrement_tokens", {
-    p_user_id: userId,
-    p_cost: cost,
-  });
+  // Usage is now calculated from api_usage table — no separate counter needed
+  return;
 }
 
 export async function addTokens(userId: string, tokens: number) {
-  const quota = await getQuota(userId);
-  if (!quota) return;
+  // Add bonus tokens from purchase to user_quota
+  const { data: existing } = await supabaseAdmin
+    .from("user_quota")
+    .select("tokens_remaining")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  await supabaseAdmin.from("user_quota").update({
-    tokens_remaining: quota.tokens_remaining + tokens,
-    updated_at: new Date().toISOString(),
-  }).eq("user_id", userId);
+  if (existing) {
+    await supabaseAdmin.from("user_quota").update({
+      tokens_remaining: (existing.tokens_remaining || 0) + tokens,
+      updated_at: new Date().toISOString(),
+    }).eq("user_id", userId);
+  } else {
+    await supabaseAdmin.from("user_quota").insert({
+      user_id: userId,
+      tokens_remaining: tokens,
+      daily_limit: null,
+    });
+  }
 }
 
 export function formatTokens(tokens: number): string {
