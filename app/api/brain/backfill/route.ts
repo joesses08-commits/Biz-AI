@@ -195,6 +195,19 @@ export async function POST(request: NextRequest) {
               }
               content = allTabContent.join("\n\n");
             } catch {}
+          } else if (file.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+            try {
+              // Export Excel as CSV via Drive API
+              const res = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${file.id}/export?mimeType=text/csv`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              if (res.ok) {
+                const csv = await res.text();
+                const rows = csv.split("\n").slice(0, 40).map(r => r.trim()).filter(Boolean);
+                content = `TAB: Sheet1\n${rows.join("\n")}`;
+              }
+            } catch {}
           } else if (file.mimeType === "application/vnd.google-apps.document") {
             const res = await fetch(`https://docs.googleapis.com/v1/documents/${file.id}`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json();
