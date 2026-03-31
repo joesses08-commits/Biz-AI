@@ -107,6 +107,7 @@ async function syncUserGmail(userId: string) {
       const date = getHeader(headers, "date") || "";
       const body = extractEmailBody(data.payload).slice(0, 1000);
       const isUnread = data.labelIds?.includes("UNREAD") ? "UNREAD" : "READ";
+      const isSent = data.labelIds?.includes("SENT") || false;
 
       const rawData = `FROM: ${from}\nDATE: ${date}\nSUBJECT: ${subject}\nSTATUS: ${isUnread}\nBODY: ${body}`;
 
