@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const TOKEN_PACKS = [
@@ -19,7 +19,7 @@ interface Quota {
   pctUsed: number;
 }
 
-export default function QuotaPage() {
+function QuotaContent() {
   const [quota, setQuota] = useState<Quota | null>(null);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState<string | null>(null);
@@ -212,5 +212,14 @@ export default function QuotaPage() {
         )}
       </div>
     </div>
+  );
+}
+}
+
+export default function QuotaPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>}>
+      <QuotaContent />
+    </Suspense>
   );
 }
