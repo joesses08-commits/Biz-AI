@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { bustDashboardCache } from "@/lib/bust-cache";
+import { addTokens } from "@/lib/quota";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -12,6 +13,13 @@ const supabase = createClient(
 );
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
+
+const TOKEN_PACKS: Record<string, number> = {
+  "price_1TGqneLyxBan4QvlWZifLXz": 10000,
+  "price_1TGqoMLyxBan4QvZNeRgbe0": 25000,
+  "price_1TGqohLyxBan4Qv5cahkd9Q": 50000,
+  "price_1TGqo1LyxBan4QvpHLbM2Vg": 100000,
+};
 
 function generateTempPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$";
@@ -29,30 +37,35 @@ export async function POST(request: NextRequest) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature!,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, signature!, process.env.STRIPE_WEBHOOK_SECRET!);
   } catch (err: any) {
     return NextResponse.json({ error: `Webhook error: ${err.message}` }, { status: 400 });
   }
 
-  // Handle new client payment — create account + send welcome email
-  if (event.type === "checkout.session.completed" || event.type === "payment_intent.succeeded") {
+  if (event.type === "checkout.session.completed") {
     const session = event.data.object as any;
+    const metadata = session.metadata || {};
+
+    // Handle token top-up purchase
+    if (metadata.userId && metadata.tokens) {
+      const tokens = parseInt(metadata.tokens);
+      await addTokens(metadata.userId, tokens);
+      return NextResponse.json({ received: true });
+    }
+
+    // Handle new client subscription
     const email = session.customer_details?.email || session.receipt_email;
     const customerName = session.customer_details?.name || "there";
-    const plan = session.metadata?.plan || "starter";
+    const plan = metadata.plan || "starter";
 
     if (email) {
       const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const userExists = existingUsers?.users?.find(u => u.email === email);
+      const userExists = existingUsers?.users?.find((u: any) => u.email === email);
 
       if (!userExists) {
         const tempPassword = generateTempPassword();
 
-        const { error: createError } = await supabase.auth.admin.createUser({
+        const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
           email,
           password: tempPassword,
           email_confirm: true,
@@ -63,7 +76,16 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        if (!createError) {
+        if (!createError && newUser?.user) {
+          // Initialize quota for new user
+          await supabase.from("user_quota").insert({
+            user_id: newUser.user.id,
+            tokens_remaining: 50000,
+            tokens_used_today: 0,
+            daily_limit: null,
+            monthly_total_used: 0,
+          });
+
           await supabase.from("customers").update({ status: "active" }).eq("email", email);
 
           await resend.emails.send({
@@ -91,7 +113,7 @@ export async function POST(request: NextRequest) {
                   </a>
                 </div>
                 <p style="color: #444; font-size: 12px; text-align: center; margin-top: 40px;">
-                  If you have any questions, reply to this email or contact us at jo.esses08@gmail.com
+                  Questions? Email joey@myjimmy.ai
                 </p>
               </div>
             `,
@@ -101,46 +123,34 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Process ALL Stripe events into Company Brain
+  // Process Stripe events into Company Brain
   try {
     const eventObj = event.data.object as any;
     let rawData = "";
-    let eventType = event.type;
+    const eventType = event.type;
 
     if (event.type === "payment_intent.succeeded") {
       const amount = (eventObj.amount / 100).toFixed(2);
-      const customer = eventObj.customer || "unknown";
-      rawData = `Payment succeeded: $${amount} from customer ${customer}. Payment ID: ${eventObj.id}. Description: ${eventObj.description || "none"}.`;
+      rawData = `Payment succeeded: $${amount} from customer ${eventObj.customer || "unknown"}. ID: ${eventObj.id}. Description: ${eventObj.description || "none"}.`;
     } else if (event.type === "payment_intent.payment_failed") {
       const amount = (eventObj.amount / 100).toFixed(2);
-      rawData = `Payment FAILED: $${amount} attempted. Reason: ${eventObj.last_payment_error?.message || "unknown"}. Customer: ${eventObj.customer || "unknown"}.`;
+      rawData = `Payment FAILED: $${amount}. Reason: ${eventObj.last_payment_error?.message || "unknown"}.`;
     } else if (event.type === "customer.subscription.created") {
       const amount = ((eventObj.plan?.amount || 0) / 100).toFixed(2);
-      rawData = `New subscription created: $${amount}/${eventObj.plan?.interval || "month"}. Customer: ${eventObj.customer}. Plan: ${eventObj.plan?.nickname || eventObj.plan?.id || "unknown"}.`;
+      rawData = `New subscription: $${amount}/${eventObj.plan?.interval || "month"}. Customer: ${eventObj.customer}.`;
     } else if (event.type === "customer.subscription.deleted") {
-      rawData = `Subscription CANCELLED. Customer: ${eventObj.customer}. Plan: ${eventObj.plan?.nickname || "unknown"}. Reason: ${eventObj.cancellation_details?.reason || "not specified"}.`;
+      rawData = `Subscription CANCELLED. Customer: ${eventObj.customer}. Reason: ${eventObj.cancellation_details?.reason || "not specified"}.`;
     } else if (event.type === "invoice.payment_failed") {
       const amount = (eventObj.amount_due / 100).toFixed(2);
-      rawData = `Invoice payment failed: $${amount} due. Customer: ${eventObj.customer_email || eventObj.customer}. Attempt: ${eventObj.attempt_count}.`;
-    } else if (event.type === "customer.created") {
-      rawData = `New customer created: ${eventObj.email || eventObj.id}. Name: ${eventObj.name || "unknown"}.`;
+      rawData = `Invoice payment failed: $${amount}. Customer: ${eventObj.customer_email || eventObj.customer}.`;
     }
 
     if (rawData) {
-      // Find which Jimmy AI user has this Stripe connected
-      const { data: stripeConns } = await supabase
-        .from("stripe_connections")
-        .select("user_id")
-        .limit(50);
+      const { data: stripeConns } = await supabase.from("stripe_connections").select("user_id").limit(50);
 
       if (stripeConns?.length) {
         for (const conn of stripeConns) {
-          const { data: profile } = await supabase
-            .from("company_profiles")
-            .select("company_brief")
-            .eq("user_id", conn.user_id)
-            .single();
-
+          const { data: profile } = await supabase.from("company_profiles").select("company_brief").eq("user_id", conn.user_id).single();
           bustDashboardCache(conn.user_id).catch(() => {});
           await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/process`, {
             method: "POST",

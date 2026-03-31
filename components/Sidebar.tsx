@@ -22,6 +22,7 @@ import {
   FileSpreadsheet,
   HardDrive,
   BarChart3,
+  Zap,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
@@ -188,6 +189,12 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-3 pb-4 border-t border-bg-border pt-3 space-y-1">
+        <Link href="/quota">
+          <div className="nav-item">
+            <Zap size={15} className="text-text-muted flex-shrink-0" />
+            <span className="text-[13px]">AI Tokens</span>
+          </div>
+        </Link>
         <Link href="/settings/usage">
           <div className="nav-item">
             <BarChart2 size={15} className="text-text-muted flex-shrink-0" />
