@@ -302,7 +302,18 @@ export async function POST(request: NextRequest) {
     if (brainSection) {
       const existingBrain = profile?.company_brain || "";
       const sourceHeader = `\n\n=== ${source.toUpperCase().replace("_", " ")} HISTORY ===\n`;
-      const newBrain = existingBrain + sourceHeader + brainSection;
+
+      // For Google Drive, append raw spreadsheet data after Claude summary to preserve exact numbers
+      let rawDataAppend = "";
+      if (source === "google_drive" && fileTexts.length > 0) {
+        const rawSheets = fileTexts
+          .filter(t => t.includes("TAB:"))
+          .map(t => t.slice(0, 3000))
+          .join("\n\n---\n\n");
+        if (rawSheets) rawDataAppend = "\n\n=== RAW SPREADSHEET DATA ===\n" + rawSheets;
+      }
+
+      const newBrain = existingBrain + sourceHeader + brainSection + rawDataAppend;
 
       await supabaseAdmin.from("company_profiles").update({
         company_brain: newBrain,
