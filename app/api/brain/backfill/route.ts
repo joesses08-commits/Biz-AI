@@ -292,11 +292,10 @@ export async function POST(request: NextRequest) {
       const sourceHeader = `\n\n=== ${source.toUpperCase().replace("_", " ")} HISTORY ===\n`;
       const newBrain = existingBrain + sourceHeader + brainSection;
 
-      await supabaseAdmin.from("company_profiles").upsert({
-        user_id: user.id,
+      await supabaseAdmin.from("company_profiles").update({
         company_brain: newBrain,
         updated_at: new Date().toISOString(),
-      });
+      }).eq("user_id", user.id);
 
       await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
         method: "POST",
