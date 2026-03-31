@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
             modified_at: file.modifiedTime, content_preview: content.slice(0, 3000),
           }, { onConflict: "file_id" }); // ignore duplicate
 
-          fileTexts.push(`FILE: ${file.name} | TYPE: ${MIME_TYPES[file.mimeType]} | MODIFIED: ${file.modifiedTime}\n${content ? `CONTENT:\n${content.slice(0, 1000)}` : ""}`);
+          fileTexts.push(`FILE: ${file.name} | TYPE: ${MIME_TYPES[file.mimeType]} | MODIFIED: ${file.modifiedTime}\n${content ? `CONTENT:\n${content.slice(0, 5000)}` : ""}`);
           await new Promise(r => setTimeout(r, 200));
         } catch { continue; }
       }
