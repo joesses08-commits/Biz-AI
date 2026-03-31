@@ -75,7 +75,7 @@ export default function HelpPage() {
         <div className="mt-10 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 text-center">
           <p className="text-sm font-semibold text-white mb-1">Need more help?</p>
           <p className="text-white/30 text-xs mb-4">Reach out and we'll get back to you within 24 hours.</p>
-          <a href="mailto:support@myjimmy.ai"
+          <a href="mailto:joey@myjimmy.ai"
             className="inline-block bg-white text-black font-semibold px-6 py-2.5 rounded-xl hover:bg-white/90 transition text-sm">
             Contact Support
           </a>
