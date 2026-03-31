@@ -50,26 +50,41 @@ export async function GET() {
     let token = conn.access_token;
     if (new Date(conn.expires_at) < new Date()) token = await refreshToken(conn, supabase);
 
-    // Fetch 50 emails with full body
-    const res = await fetch(
-      "https://graph.microsoft.com/v1.0/me/messages?$top=50&$orderby=receivedDateTime desc&$select=subject,from,toRecipients,receivedDateTime,isRead,body,bodyPreview",
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const data = await res.json();
+    // Fetch inbox + sent emails
+    const [inboxRes, sentRes] = await Promise.all([
+      fetch(
+        "https://graph.microsoft.com/v1.0/me/messages?$top=30&$orderby=receivedDateTime desc&$select=subject,from,toRecipients,receivedDateTime,isRead,body,bodyPreview",
+        { headers: { Authorization: `Bearer ${token}` } }
+      ),
+      fetch(
+        "https://graph.microsoft.com/v1.0/me/mailFolders/SentItems/messages?$top=20&$orderby=sentDateTime desc&$select=subject,from,toRecipients,sentDateTime,isRead,body,bodyPreview",
+        { headers: { Authorization: `Bearer ${token}` } }
+      ),
+    ]);
 
-    if (data.error) return NextResponse.json({ error: data.error.message }, { status: 400 });
+    const inboxData = await inboxRes.json();
+    const sentData = await sentRes.json();
 
-    const emails = (data.value || []).map((email: any) => ({
+    if (inboxData.error) return NextResponse.json({ error: inboxData.error.message }, { status: 400 });
+
+    const mapEmail = (email: any, isSent: boolean) => ({
       id: email.id,
       subject: email.subject || "(No subject)",
       from: email.from?.emailAddress?.address || "Unknown",
       fromName: email.from?.emailAddress?.name || "",
       to: email.toRecipients?.map((r: any) => r.emailAddress?.address).join(", ") || "",
-      date: email.receivedDateTime,
-      isUnread: !email.isRead,
+      date: email.receivedDateTime || email.sentDateTime,
+      isUnread: isSent ? false : !email.isRead,
+      isSent,
+      direction: isSent ? "OUTBOUND — user initiated this" : "INBOUND",
       body: email.body?.content?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || email.bodyPreview || "",
       snippet: email.bodyPreview || "",
-    }));
+    });
+
+    const emails = [
+      ...(inboxData.value || []).map((e: any) => mapEmail(e, false)),
+      ...(sentData.value || []).map((e: any) => mapEmail(e, true)),
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return NextResponse.json({
       connected: true,
