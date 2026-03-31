@@ -36,24 +36,34 @@ export async function getQuota(userId: string) {
   // Get total tokens used this billing period from api_usage
   const { data: monthlyUsage } = await supabaseAdmin
     .from("api_usage")
-    .select("input_tokens, output_tokens")
+    .select("input_tokens, output_tokens, model")
     .eq("user_id", userId)
     .gte("created_at", billingStart);
 
-  const tokensUsedThisMonth = (monthlyUsage || []).reduce(
-    (sum, r) => sum + (r.input_tokens || 0) + (r.output_tokens || 0), 0
-  );
+  // Convert real API tokens to quota tokens using cost ($0.001 per quota token)
+  const MODEL_COSTS: Record<string, { input: number; output: number }> = {
+    "claude-sonnet-4-5": { input: 0.000003, output: 0.000015 },
+    "claude-haiku-4-5-20251001": { input: 0.00000025, output: 0.00000125 },
+  };
+
+  const tokensUsedThisMonth = Math.round((monthlyUsage || []).reduce((sum, r) => {
+    const costs = MODEL_COSTS[r.model] || MODEL_COSTS["claude-sonnet-4-5"];
+    const costUsd = (r.input_tokens || 0) * costs.input + (r.output_tokens || 0) * costs.output;
+    return sum + (costUsd / 0.001); // 1 quota token = $0.001
+  }, 0));
 
   // Get tokens used today
   const { data: todayUsage } = await supabaseAdmin
     .from("api_usage")
-    .select("input_tokens, output_tokens")
+    .select("input_tokens, output_tokens, model")
     .eq("user_id", userId)
     .gte("created_at", todayStart);
 
-  const tokensUsedToday = (todayUsage || []).reduce(
-    (sum, r) => sum + (r.input_tokens || 0) + (r.output_tokens || 0), 0
-  );
+  const tokensUsedToday = Math.round((todayUsage || []).reduce((sum, r) => {
+    const costs = MODEL_COSTS[r.model] || MODEL_COSTS["claude-sonnet-4-5"];
+    const costUsd = (r.input_tokens || 0) * costs.input + (r.output_tokens || 0) * costs.output;
+    return sum + (costUsd / 0.001);
+  }, 0));
 
   // Get bonus tokens from purchases
   const { data: quotaRow } = await supabaseAdmin
