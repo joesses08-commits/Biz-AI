@@ -43,7 +43,7 @@ async function buildSnapshotForUser(userId: string) {
   }
 
   const newEventsText = (newEvents || []).map(e =>
-    `[${new Date(e.created_at).toLocaleString()}] ${e.source} — ${e.event_type}
+    `[${new Date(e.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}] ${e.source} — ${e.event_type}
 Summary: ${e.analysis}
 Importance: ${e.importance} | Action needed: ${e.action_required}
 ${e.recommended_action ? `Action: ${e.recommended_action}` : ""}

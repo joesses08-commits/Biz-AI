@@ -41,13 +41,29 @@ async function refreshGoogleToken(conn: any) {
 
 async function getSheetContent(fileId: string, token: string): Promise<string> {
   try {
-    const res = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/A1:Z200`,
+    // First get all sheet names
+    const metaRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${fileId}?fields=sheets.properties.title`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    const data = await res.json();
-    if (!data.values?.length) return "";
-    return data.values.slice(0, 50).map((row: any[]) => row.join(" | ")).join("\n");
+    const meta = await metaRes.json();
+    const sheets = meta.sheets || [];
+
+    const allContent: string[] = [];
+
+    for (const sheet of sheets.slice(0, 5)) {
+      const title = sheet.properties?.title || "Sheet";
+      const res = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${fileId}/values/${encodeURIComponent(title)}!A1:Z200`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json();
+      if (!data.values?.length) continue;
+      const rows = data.values.slice(0, 50).map((row: any[]) => row.join(" | ")).join("\n");
+      allContent.push(`TAB: ${title}\n${rows}`);
+    }
+
+    return allContent.join("\n\n");
   } catch { return ""; }
 }
 

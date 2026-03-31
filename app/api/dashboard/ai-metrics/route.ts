@@ -66,7 +66,7 @@ export async function GET() {
 
     if (snapshot?.context && snapshot.context.length > 200) {
       const recentEventsText = (recentEvents || []).map((e: any) =>
-        `[${new Date(e.created_at).toLocaleString()}] ${e.source} — ${e.event_type}
+        `[${new Date(e.created_at).toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}] ${e.source} — ${e.event_type}
 ${e.analysis}
 ${e.action_required ? `⚠️ ACTION: ${e.recommended_action}` : ""}
 ${e.dollar_amount ? `💰 $${e.dollar_amount}` : ""}

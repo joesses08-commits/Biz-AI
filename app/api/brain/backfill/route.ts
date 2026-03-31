@@ -180,9 +180,19 @@ export async function POST(request: NextRequest) {
         try {
           let content = "";
           if (file.mimeType === "application/vnd.google-apps.spreadsheet") {
-            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${file.id}/values/A1:Z100`, { headers: { Authorization: `Bearer ${token}` } });
-            const data = await res.json();
-            if (data.values?.length) content = data.values.slice(0, 40).map((row: any[]) => row.join(" | ")).join("\n");
+            try {
+              const metaRes = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${file.id}?fields=sheets.properties.title`, { headers: { Authorization: `Bearer ${token}` } });
+              const meta = await metaRes.json();
+              const sheets = meta.sheets || [];
+              const allTabContent: string[] = [];
+              for (const sheet of sheets.slice(0, 5)) {
+                const title = sheet.properties?.title || "Sheet";
+                const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${file.id}/values/${encodeURIComponent(title)}!A1:Z100`, { headers: { Authorization: `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.values?.length) allTabContent.push(`TAB: ${title}\n${data.values.slice(0, 40).map((row: any[]) => row.join(" | ")).join("\n")}`);
+              }
+              content = allTabContent.join("\n\n");
+            } catch {}
           } else if (file.mimeType === "application/vnd.google-apps.document") {
             const res = await fetch(`https://docs.googleapis.com/v1/documents/${file.id}`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json();
