@@ -213,7 +213,15 @@ export async function POST(request: NextRequest) {
       }
 
       itemsProcessed = fileTexts.length;
-      if (fileTexts.length) brainSection = await buildBrainSection(user.id, "Google Drive", fileTexts.join("\n\n"), companyContext);
+      if (fileTexts.length) {
+        brainSection = await buildBrainSection(user.id, "Google Drive", fileTexts.join("\n\n"), companyContext);
+        // Append raw spreadsheet tab data to preserve exact numbers
+        const rawSheets = fileTexts
+          .filter(t => t.includes("TAB:"))
+          .map(t => t.slice(0, 3000))
+          .join("\n\n---\n\n");
+        if (rawSheets) brainSection += "\n\n=== RAW SPREADSHEET DATA ===\n" + rawSheets;
+      }
 
     } else if (source === "microsoft") {
       const { data: conn } = await supabaseAdmin.from("microsoft_connections").select("*").eq("user_id", user.id).maybeSingle();
@@ -303,17 +311,7 @@ export async function POST(request: NextRequest) {
       const existingBrain = profile?.company_brain || "";
       const sourceHeader = `\n\n=== ${source.toUpperCase().replace("_", " ")} HISTORY ===\n`;
 
-      // For Google Drive, append raw spreadsheet data after Claude summary to preserve exact numbers
-      let rawDataAppend = "";
-      if (source === "google_drive" && fileTexts.length > 0) {
-        const rawSheets = fileTexts
-          .filter(t => t.includes("TAB:"))
-          .map(t => t.slice(0, 3000))
-          .join("\n\n---\n\n");
-        if (rawSheets) rawDataAppend = "\n\n=== RAW SPREADSHEET DATA ===\n" + rawSheets;
-      }
-
-      const newBrain = existingBrain + sourceHeader + brainSection + rawDataAppend;
+      const newBrain = existingBrain + sourceHeader + brainSection;
 
       await supabaseAdmin.from("company_profiles").update({
         company_brain: newBrain,
