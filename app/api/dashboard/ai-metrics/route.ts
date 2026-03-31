@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { buildFullCompanyContext } from "@/lib/company-context";
 import { trackUsage } from "@/lib/track-usage";
+import { checkQuota } from "@/lib/quota";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
@@ -30,6 +31,17 @@ export async function GET() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    // Check quota before making AI call
+    const quota = await checkQuota(user.id, "dashboard");
+    if (!quota.allowed) {
+      return NextResponse.json({ 
+        error: "quota_exceeded",
+        reason: quota.reason,
+        tokensRemaining: quota.tokensRemaining,
+        message: quota.reason === "daily_limit" ? "Daily token limit reached. Adjust your limit in AI Tokens settings." : "Monthly token limit reached. Purchase more tokens to continue."
+      }, { status: 402 });
+    }
 
     // Return cached dashboard if it exists — only busted when important events arrive
     const { data: cached } = await supabase
