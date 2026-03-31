@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import Anthropic from "@anthropic-ai/sdk";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
+import * as JSZip from "jszip";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -149,6 +150,12 @@ Return ONLY raw JSON, no markdown:
         };
       });
 
+      // Attach images to products by row position
+      const processedWithImages = processedProducts.map((p: any, i: number) => ({
+        ...p,
+        image_base64: imagesByRow[i + 2] || imagesByRow[i + 1] || null, // try row offset variations
+      }));
+
       // Save to factory_quotes table
       await supabaseAdmin.from("factory_quotes").insert({
         job_id,
@@ -157,7 +164,7 @@ Return ONLY raw JSON, no markdown:
         factory_email,
         attachment_name: file_name,
         raw_data: parsed.products || [],
-        processed_data: processedProducts,
+        processed_data: processedWithImages,
         status: "processed",
       });
 
@@ -285,6 +292,27 @@ Return ONLY raw JSON, no markdown:
             comp: competitiveness,
             notes: f.notes || "",
           });
+
+          // Embed product image if available (only on first factory row per product)
+          if (index === 0 && f.image_base64) {
+            try {
+              const imageData = f.image_base64.split(",")[1] || f.image_base64;
+              const ext = f.image_base64.includes("png") ? "png" : "jpeg";
+              const imageId = wb.addImage({
+                base64: imageData,
+                extension: ext as "png" | "jpeg",
+              });
+              const rowNum = row.number;
+              ws.addImage(imageId, {
+                tl: { col: 0, row: rowNum - 1 },
+                br: { col: 1, row: rowNum },
+                editAs: "oneCell",
+              });
+              row.height = 60; // taller row to show image
+            } catch (imgErr) {
+              console.error("Image embed error:", imgErr);
+            }
+          }
 
           // Yellow for best price row
           if (isBest) {
