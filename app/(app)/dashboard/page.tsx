@@ -205,12 +205,29 @@ function StatusDot({ status }: { status?: string }) {
 let _cachedData: DashboardAI | null = null;
 let _cachedAt: Date | null = null;
 
+function loadFromStorage(): { data: DashboardAI | null; cachedAt: Date | null } {
+  try {
+    const raw = localStorage.getItem("jimmy_dashboard");
+    if (!raw) return { data: null, cachedAt: null };
+    const parsed = JSON.parse(raw);
+    return { data: parsed.data, cachedAt: parsed.cachedAt ? new Date(parsed.cachedAt) : null };
+  } catch { return { data: null, cachedAt: null }; }
+}
+
+function saveToStorage(data: DashboardAI, cachedAt: Date) {
+  try { localStorage.setItem("jimmy_dashboard", JSON.stringify({ data, cachedAt: cachedAt.toISOString() })); } catch {}
+}
+
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardAI | null>(_cachedData);
-  const [loading, setLoading] = useState(!_cachedData);
+  const stored = typeof window !== "undefined" ? loadFromStorage() : { data: null, cachedAt: null };
+  const initialData = _cachedData || stored.data;
+  const initialCachedAt = _cachedAt || stored.cachedAt;
+
+  const [data, setData] = useState<DashboardAI | null>(initialData);
+  const [loading, setLoading] = useState(!initialData);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(_cachedAt);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialCachedAt);
 
   const now = new Date();
   const hour = now.getHours();
@@ -230,6 +247,7 @@ export default function DashboardPage() {
       _cachedAt = new Date();
       setData(json);
       setLastUpdated(_cachedAt);
+      saveToStorage(json, _cachedAt);
     } catch {}
     finally { setLoading(false); }
   };
@@ -242,6 +260,7 @@ export default function DashboardPage() {
       setSyncMessage("Brain updated — refreshing dashboard...");
       await fetch("/api/cache", { method: "DELETE" });
       _cachedData = null;
+      try { localStorage.removeItem("jimmy_dashboard"); } catch {}
       await load();
       setSyncMessage("");
     } catch {
@@ -252,7 +271,9 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!_cachedData) load();
+    // Only auto-load if nothing in memory AND nothing in localStorage
+    const stored = loadFromStorage();
+    if (!_cachedData && !stored.data) load();
   }, []);
 
   const groupedMetrics = [
