@@ -136,7 +136,9 @@ export default function ChatPage() {
       });
 
       const data = await res.json();
-      const responseText = data.message || data.response || "Something went wrong.";
+      const responseText = res.status === 402
+        ? `⚠️ ${data.message} [Buy more tokens at myjimmy.ai/quota]`
+        : data.message || data.response || "Something went wrong.";
 
       setConversations(prev => prev.map(c =>
         c.id === currentId

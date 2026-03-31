@@ -219,6 +219,11 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/dashboard/ai-metrics");
       const json = await res.json();
+      if (res.status === 402) {
+        setData({ error: "quota_exceeded", message: json.message, reason: json.reason });
+        setLoading(false);
+        return;
+      }
       _cachedData = json;
       _cachedAt = new Date();
       setData(json);
@@ -292,6 +297,12 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 <div className="h-3 bg-white/5 rounded-lg animate-pulse w-full" />
                 <div className="h-3 bg-white/5 rounded-lg animate-pulse w-2/3" />
+              </div>
+            ) : data?.error === "quota_exceeded" ? (
+              <div>
+                <p className="text-sm text-red-400 font-semibold mb-1">You're out of AI tokens</p>
+                <p className="text-xs text-white/40 mb-2">{data.message}</p>
+                <a href="/quota" className="text-xs bg-white text-black font-semibold px-3 py-1.5 rounded-lg hover:bg-white/90 transition">Buy More Tokens →</a>
               </div>
             ) : (
               <p className="text-sm text-white/70 leading-relaxed">{data?.briefing || "Loading your briefing..."}</p>
