@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { RefreshCw, ArrowUpRight, TrendingUp, TrendingDown, Minus, Shield, Zap, Settings, ExternalLink, Brain } from "lucide-react";
+import { RefreshCw, ArrowUpRight, TrendingUp, TrendingDown, Minus, Shield, Zap, Settings, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 type Metric = {
@@ -252,19 +252,19 @@ export default function DashboardPage() {
     finally { setLoading(false); }
   };
 
-  const syncBrain = async () => {
+  const refresh = async () => {
     setSyncing(true);
     setSyncMessage("Syncing all integrations...");
     try {
       await fetch("/api/sync", { method: "POST" });
-      setSyncMessage("Brain updated — refreshing dashboard...");
+      setSyncMessage("Rebuilding dashboard...");
       await fetch("/api/cache", { method: "DELETE" });
       _cachedData = null;
       try { localStorage.removeItem("jimmy_dashboard"); } catch {}
       await load();
       setSyncMessage("");
     } catch {
-      setSyncMessage("Sync failed — try again");
+      setSyncMessage("Refresh failed — try again");
     } finally {
       setSyncing(false);
     }
@@ -298,15 +298,10 @@ export default function DashboardPage() {
           {syncMessage && <p className="text-emerald-400/70 text-xs mt-1">{syncMessage}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={syncBrain} disabled={syncing || loading}
+          <button onClick={refresh} disabled={syncing || loading}
             className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition px-4 py-2.5 rounded-xl border border-white/[0.06] hover:border-white/20 bg-white/[0.02] disabled:opacity-40">
-            <Brain size={12} className={syncing ? "animate-pulse text-emerald-400" : ""} />
-            {syncing ? "Syncing..." : "Sync Brain"}
-          </button>
-          <button onClick={load} disabled={loading || syncing}
-            className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition px-4 py-2.5 rounded-xl border border-white/[0.06] hover:border-white/20 bg-white/[0.02] disabled:opacity-40">
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-            Refresh
+            <RefreshCw size={12} className={syncing || loading ? "animate-spin" : ""} />
+            {syncing || loading ? syncMessage || "Refreshing..." : "Refresh"}
           </button>
         </div>
       </div>
