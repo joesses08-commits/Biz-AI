@@ -59,12 +59,12 @@ export async function POST(request: NextRequest) {
     if (profile) {
       companyContext += `COMPANY: ${profile.company_name || "Unknown"}
 FOUNDATION: ${profile.company_brief || ""}
-${profile.company_brain ? `KNOWLEDGE:\n${profile.company_brain.slice(0, 1000)}` : ""}`;
+${profile.company_brain ? `KNOWLEDGE:\n${profile.company_brain.slice(0, 6000)}` : ""}`;
     }
 
     // Use snapshot if it has real content, otherwise fall back to live data
     if (snapshot?.context && snapshot.context.length > 200) {
-      companyContext += `\n\nBRAIN SNAPSHOT (${snapshot.cached_at ? new Date(snapshot.cached_at).toLocaleString() : "unknown"}):\n${snapshot.context.slice(0, 2500)}`;
+      companyContext += `\n\nBRAIN SNAPSHOT (${snapshot.cached_at ? new Date(snapshot.cached_at).toLocaleString() : "unknown"}):\n${snapshot.context.slice(0, 4000)}`;
     } else {
       // Snapshot empty — read live integration data directly (same as dashboard)
       const liveContext = await buildFullCompanyContext(user.id);
