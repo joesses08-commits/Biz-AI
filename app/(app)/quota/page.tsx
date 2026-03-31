@@ -49,8 +49,16 @@ function QuotaContent() {
         body: JSON.stringify({ priceId }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error("No URL returned:", data);
+        alert(data.error || "Something went wrong. Please try again.");
+        setBuying(null);
+      }
+    } catch (err) {
+      console.error("Buy tokens error:", err);
+      alert("Something went wrong. Please try again.");
       setBuying(null);
     }
   };
