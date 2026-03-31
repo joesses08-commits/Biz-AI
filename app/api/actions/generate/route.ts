@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { trackUsage } from "@/lib/track-usage";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
@@ -92,6 +93,8 @@ Return ONLY raw JSON, no markdown:
 }`,
       messages: [{ role: "user", content: context || "No data connected." }],
     });
+
+    trackUsage(user.id, "actions", "claude-haiku-4-5-20251001", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
     const cleaned = raw.replace(/```json|```/g, "").trim();

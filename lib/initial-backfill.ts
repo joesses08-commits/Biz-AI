@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { trackUsage } from "@/lib/track-usage";
 import { createClient } from "@supabase/supabase-js";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
