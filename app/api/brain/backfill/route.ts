@@ -47,7 +47,7 @@ IMPORTANT: If the data contains spreadsheet tabs with dates and numbers (portfol
 SOURCE: ${source}
 
 DATA:
-${dataText.slice(0, 20000)}
+${dataText.slice(0, 40000)}
 
 Write the knowledge summary now.`
     }],
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
       const files = filesData.files || [];
       const fileTexts: string[] = [];
 
-      for (const file of files.slice(0, 50)) {
+      for (const file of files.slice(0, 15)) {
         try {
           let content = "";
           if (file.mimeType === "application/vnd.google-apps.spreadsheet") {
