@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { trackUsage } from "@/lib/track-usage";
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -75,6 +76,7 @@ Rules:
           messages: [{ role: "user", content: context + criticalText }],
         });
 
+        trackUsage(user.id, "briefing", "claude-haiku-4-5-20251001", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
         const briefingText = response.content[0].type === "text" ? response.content[0].text : "";
         if (!briefingText) continue;
 
