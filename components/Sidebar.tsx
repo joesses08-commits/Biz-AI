@@ -94,7 +94,6 @@ export default function Sidebar() {
         <NavItem href="/chat" icon={MessageSquare} label="AI Analyst" description="Ask questions" />
         <NavItem href="/actions" icon={CheckSquare} label="Action Tracker" description="Tasks & deadlines" />
         <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
-        <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
         <NavItem href="/meetings" icon={Video} label="Meetings" description="Transcripts & actions" />
 
         <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mt-4 mb-2">Integrations</div>
