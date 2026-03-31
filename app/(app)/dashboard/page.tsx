@@ -61,6 +61,8 @@ type DashboardAI = {
   chart_data?: { label: string; value: number }[];
   chart_label?: string;
   error?: string;
+  message?: string;
+  reason?: string;
 };
 
 const SOURCE_LINKS: Record<string, string> = {
