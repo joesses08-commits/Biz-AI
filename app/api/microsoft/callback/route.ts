@@ -75,6 +75,12 @@ export async function GET(request: NextRequest) {
     // Run full historical backfill in background
     microsoftInitialBackfill(user.id, tokens.access_token).catch(() => {});
 
+    // Set up real-time push notifications
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/microsoft/subscribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Cookie": request.headers.get("cookie") || "" },
+    }).catch(() => {});
+
     return NextResponse.redirect(new URL("/integrations?success=microsoft", request.url));
   } catch (err) {
     return NextResponse.redirect(new URL(`/integrations?error=microsoft_exception&reason=${encodeURIComponent(String(err))}`, request.url));

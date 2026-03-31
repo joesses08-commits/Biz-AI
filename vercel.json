@@ -23,6 +23,10 @@
     {
       "path": "/api/microsoft/files",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/microsoft/subscribe",
+      "schedule": "0 0 * * *"
     }
   ]
 }

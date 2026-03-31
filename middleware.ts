@@ -26,6 +26,7 @@ export async function middleware(request: NextRequest) {
     "/api/webhook",
     "/api/events/process",
     "/api/events/snapshot",
+    "/api/microsoft/push",
     "/privacy",
     "/terms",
   ];
