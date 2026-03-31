@@ -11,7 +11,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"brain" | "company">("brain");
+  const [activeTab, setActiveTab] = useState<"brain" | "company" | "feed">("brain");
+  const [events, setEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
 
   const [brain, setBrain] = useState({
     company_name: "",
@@ -22,6 +25,22 @@ export default function SettingsPage() {
     what_matters: "",
     where_data_lives: "",
   });
+
+  const loadEvents = async () => {
+    if (eventsLoaded) return;
+    setEventsLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from("company_events")
+      .select("id, source, event_type, analysis, importance, action_required, recommended_action, dollar_amount, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    setEvents(data || []);
+    setEventsLoading(false);
+    setEventsLoaded(true);
+  };
 
   const [company, setCompany] = useState({
     industry: "",
@@ -99,8 +118,9 @@ export default function SettingsPage() {
           {[
             { id: "brain", label: "Company Brain" },
             { id: "company", label: "Company Info" },
+            { id: "feed", label: "Live Feed" },
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); if (tab.id === "feed") loadEvents(); }}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.id ? "bg-white text-black" : "text-white/40 hover:text-white"}`}>
               {tab.label}
             </button>
@@ -227,6 +247,80 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+        {activeTab === "feed" && (
+          <div>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="text-sm font-semibold text-white mb-1">Intelligence Feed</h2>
+                  <p className="text-white/30 text-xs">Everything Jimmy has seen and processed since day one.</p>
+                </div>
+                <button onClick={() => { setEventsLoaded(false); loadEvents(); }}
+                  className="text-[11px] text-white/30 hover:text-white/60 transition px-3 py-1.5 rounded-lg border border-white/[0.06] hover:border-white/10">
+                  Refresh
+                </button>
+              </div>
+
+              {eventsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-5 h-5 border-2 border-white/10 border-t-white/40 rounded-full animate-spin" />
+                </div>
+              ) : events.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-white/20 text-sm">No events yet</p>
+                  <p className="text-white/10 text-xs mt-1">Events will appear here as Jimmy processes your integrations</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {events.map((event, i) => {
+                    const sourceColors: Record<string, string> = {
+                      Gmail: "text-red-400/70 bg-red-500/5 border-red-500/10",
+                      Stripe: "text-purple-400/70 bg-purple-500/5 border-purple-500/10",
+                      QuickBooks: "text-green-400/70 bg-green-500/5 border-green-500/10",
+                      "Google Drive": "text-blue-400/70 bg-blue-500/5 border-blue-500/10",
+                      "Google Sheets": "text-emerald-400/70 bg-emerald-500/5 border-emerald-500/10",
+                      Microsoft: "text-blue-400/70 bg-blue-500/5 border-blue-500/10",
+                      Outlook: "text-blue-400/70 bg-blue-500/5 border-blue-500/10",
+                    };
+                    const importanceColors: Record<string, string> = {
+                      critical: "text-red-400 bg-red-500/10 border-red-500/20",
+                      high: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+                      medium: "text-white/40 bg-white/5 border-white/10",
+                      low: "text-white/20 bg-white/[0.02] border-white/[0.05]",
+                    };
+                    const srcColor = sourceColors[event.source] || "text-white/30 bg-white/[0.02] border-white/[0.06]";
+                    const impColor = importanceColors[event.importance] || importanceColors.medium;
+                    const date = new Date(event.created_at);
+                    const timeStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                    return (
+                      <div key={event.id} className="border border-white/[0.05] rounded-xl p-4 hover:border-white/10 transition bg-white/[0.01]">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${srcColor}`}>{event.source}</span>
+                            <span className="text-[11px] text-white/40 font-medium">{event.event_type}</span>
+                            {event.action_required && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">Action Required</span>
+                            )}
+                            {event.dollar_amount && (
+                              <span className="text-[10px] font-bold text-emerald-400">\${Number(event.dollar_amount).toLocaleString()}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${impColor}`}>{event.importance}</span>
+                            <span className="text-[10px] text-white/15 whitespace-nowrap">{timeStr}</span>
+                          </div>
+                        </div>
+                        {event.analysis && <p className="text-xs text-white/40 leading-relaxed mb-1">{event.analysis}</p>}
+                        {event.recommended_action && <p className="text-[11px] text-white/25">→ {event.recommended_action}</p>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
