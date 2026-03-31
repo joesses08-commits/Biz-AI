@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import {
   Zap, AlertCircle, Check, X, ChevronRight, ChevronDown,
   Settings, Eye, Factory, CreditCard, Calendar, FileText,
-  TrendingDown, Loader2, ArrowRight, Shield, Bot, RotateCcw, Circle
+  TrendingDown, Loader2, ArrowRight, Shield, Bot, RotateCcw, Circle,
+  Upload, Plus, FileSpreadsheet, ExternalLink, Trash2
 } from "lucide-react";
 
 interface PendingAction {
@@ -189,6 +190,251 @@ function PendingCard({ action, onApprove, onReject, approving }: {
   );
 }
 
+function FactoryQuoteManager({ userId }: { userId?: string }) {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [building, setBuilding] = useState<string | null>(null);
+  const [newJob, setNewJob] = useState({
+    job_name: "",
+    factories: "",
+    duty_pct: "30",
+    tariff_pct: "20",
+    freight: "0.15",
+    sell_price: "3.50",
+  });
+
+  const loadJobs = async () => {
+    const res = await fetch("/api/workflows/factory-quote");
+    const data = await res.json();
+    setJobs(data.jobs || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadJobs(); }, []);
+
+  const createJob = async () => {
+    if (!newJob.job_name || !newJob.factories) return;
+    setCreating(true);
+    const factories = newJob.factories.split("\n").filter(Boolean).map(line => {
+      const parts = line.split(",").map(s => s.trim());
+      return { name: parts[0], email: parts[1] || "" };
+    });
+    await fetch("/api/workflows/factory-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "create_job",
+        job_name: newJob.job_name,
+        factories,
+        order_details: {
+          duty_pct: newJob.duty_pct,
+          tariff_pct: newJob.tariff_pct,
+          freight: newJob.freight,
+          sell_price: newJob.sell_price,
+        },
+      }),
+    });
+    setCreating(false);
+    setShowNew(false);
+    setNewJob({ job_name: "", factories: "", duty_pct: "30", tariff_pct: "20", freight: "0.15", sell_price: "3.50" });
+    loadJobs();
+  };
+
+  const uploadFile = async (jobId: string, file: File) => {
+    setProcessing(jobId + file.name);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = (e.target?.result as string).split(",")[1];
+      const job = jobs.find(j => j.id === jobId);
+      const factories = job?.factories || [];
+      
+      await fetch("/api/workflows/factory-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "process_file",
+          job_id: jobId,
+          factory_name: file.name.replace(/\.xlsx?$/, ""),
+          factory_email: factories.find((f: any) => file.name.toLowerCase().includes(f.name?.toLowerCase()))?.email || "",
+          file_base64: base64,
+          file_name: file.name,
+        }),
+      });
+      setProcessing(null);
+      loadJobs();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const buildMaster = async (jobId: string) => {
+    setBuilding(jobId);
+    const res = await fetch("/api/workflows/factory-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "build_master", job_id: jobId }),
+    });
+    const data = await res.json();
+    setBuilding(null);
+    loadJobs();
+    if (data.sheetUrl) window.open(data.sheetUrl, "_blank");
+  };
+
+  const statusColors: Record<string, string> = {
+    waiting: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+    ready: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+    complete: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  };
+
+  return (
+    <div className="mt-4 space-y-4">
+      {/* New Job Button */}
+      <button onClick={() => setShowNew(!showNew)}
+        className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
+        <Plus size={11} />
+        New Quote Job
+      </button>
+
+      {/* New Job Form */}
+      {showNew && (
+        <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-3">
+          <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
+          <div>
+            <label className="text-[11px] text-white/30 mb-1 block">Job Name</label>
+            <input value={newJob.job_name} onChange={e => setNewJob({...newJob, job_name: e.target.value})}
+              placeholder="e.g. Spring 2026 Glass Collection"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
+          </div>
+          <div>
+            <label className="text-[11px] text-white/30 mb-1 block">Factories (one per line: Name, email@factory.com)</label>
+            <textarea value={newJob.factories} onChange={e => setNewJob({...newJob, factories: e.target.value})}
+              placeholder={"Yuecheng, yuecheng@factory.com\nFactory B, factoryb@supplier.com\nFactory C, factoryc@co.com"}
+              rows={4}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition resize-none font-mono" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { key: "duty_pct", label: "Duty %", placeholder: "30" },
+              { key: "tariff_pct", label: "Tariff %", placeholder: "20" },
+              { key: "freight", label: "Freight per unit ($)", placeholder: "0.15" },
+              { key: "sell_price", label: "Sell Price ($)", placeholder: "3.50" },
+            ].map(field => (
+              <div key={field.key}>
+                <label className="text-[11px] text-white/30 mb-1 block">{field.label}</label>
+                <input value={(newJob as any)[field.key]} onChange={e => setNewJob({...newJob, [field.key]: e.target.value})}
+                  placeholder={field.placeholder}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={createJob} disabled={creating}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-50">
+              {creating ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+              Create Job
+            </button>
+            <button onClick={() => setShowNew(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Job List */}
+      {loading ? (
+        <div className="flex items-center gap-2 text-white/20 text-xs py-2">
+          <Loader2 size={11} className="animate-spin" />Loading jobs...
+        </div>
+      ) : jobs.length === 0 ? (
+        <p className="text-white/15 text-xs py-2">No quote jobs yet — create one above to get started.</p>
+      ) : (
+        <div className="space-y-3">
+          {jobs.map(job => {
+            const quotesReceived = job.factory_quotes?.length || 0;
+            const totalFactories = job.factories?.length || 0;
+            const pct = totalFactories > 0 ? Math.round((quotesReceived / totalFactories) * 100) : 0;
+            return (
+              <div key={job.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white mb-0.5">{job.job_name}</p>
+                    <p className="text-[10px] text-white/25">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${statusColors[job.status] || "text-white/30 bg-white/5 border-white/10"}`}>
+                    {job.status}
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-white/30">Quotes received</span>
+                    <span className="text-[10px] text-white/40">{quotesReceived} / {totalFactories}</span>
+                  </div>
+                  <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+                    <div className="h-1.5 rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+
+                {/* Factory list */}
+                <div className="space-y-1 mb-3">
+                  {(job.factories || []).map((factory: any, i: number) => {
+                    const received = job.factory_quotes?.find((q: any) => q.factory_name === factory.name || q.factory_email === factory.email);
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : "bg-white/15"}`} />
+                        <span className="text-[11px] text-white/40">{factory.name}</span>
+                        {factory.email && <span className="text-[10px] text-white/20">{factory.email}</span>}
+                        {received && (
+                          <span className="text-[10px] text-emerald-400/70 ml-auto">{received.processed_data?.length || 0} products</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Upload area */}
+                <div className="border border-dashed border-white/[0.08] rounded-xl p-3 mb-3 text-center">
+                  <label className="cursor-pointer">
+                    <input type="file" accept=".xlsx,.xls" multiple className="hidden"
+                      onChange={e => { Array.from(e.target.files || []).forEach(f => uploadFile(job.id, f)); }} />
+                    <div className="flex items-center justify-center gap-2 text-white/25 hover:text-white/50 transition">
+                      {processing?.startsWith(job.id) ? (
+                        <><Loader2 size={12} className="animate-spin text-blue-400" /><span className="text-xs">Processing...</span></>
+                      ) : (
+                        <><Upload size={12} /><span className="text-xs">Drop factory Excel files here or click to upload</span></>
+                      )}
+                    </div>
+                  </label>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  {job.status === "complete" && job.master_sheet_url ? (
+                    <a href={job.master_sheet_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
+                      <ExternalLink size={11} />
+                      View Master Sheet
+                    </a>
+                  ) : (
+                    <button onClick={() => buildMaster(job.id)} disabled={building === job.id || quotesReceived === 0}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition disabled:opacity-40">
+                      {building === job.id ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                      {building === job.id ? "Building..." : "Build Master Sheet"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings }: {
   def: typeof WORKFLOW_DEFS[0]; userWorkflow: UserWorkflow | undefined;
   onToggle: (type: string, enabled: boolean) => void;
@@ -258,28 +504,34 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings }: {
 
       {expanded && (
         <div className="border-t border-white/[0.06] p-5 bg-white/[0.01]">
-          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Settings</p>
-          <div className="space-y-3">
-            {def.settingsFields.map(field => (
-              <div key={field.key}>
-                <label className="text-[11px] text-white/40 mb-1.5 block">{field.label}</label>
-                {field.type === "textarea" ? (
-                  <textarea value={settings[field.key] || ""} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })}
-                    placeholder={field.placeholder} rows={3}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition resize-none" />
-                ) : (
-                  <input type="text" value={settings[field.key] || ""} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })}
-                    placeholder={field.placeholder}
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
-                )}
+          {def.type === "factory_quote" ? (
+            <FactoryQuoteManager />
+          ) : (
+            <>
+              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Settings</p>
+              <div className="space-y-3">
+                {def.settingsFields.map(field => (
+                  <div key={field.key}>
+                    <label className="text-[11px] text-white/40 mb-1.5 block">{field.label}</label>
+                    {field.type === "textarea" ? (
+                      <textarea value={settings[field.key] || ""} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })}
+                        placeholder={field.placeholder} rows={3}
+                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition resize-none" />
+                    ) : (
+                      <input type="text" value={settings[field.key] || ""} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })}
+                        placeholder={field.placeholder}
+                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <button onClick={handleSave} disabled={saving}
-            className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-50">
-            {saving ? <Loader2 size={11} className="animate-spin" /> : saved ? <Check size={11} /> : null}
-            {saved ? "Saved!" : "Save Settings"}
-          </button>
+              <button onClick={handleSave} disabled={saving}
+                className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-50">
+                {saving ? <Loader2 size={11} className="animate-spin" /> : saved ? <Check size={11} /> : null}
+                {saved ? "Saved!" : "Save Settings"}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
