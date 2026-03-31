@@ -38,14 +38,16 @@ Read all the data carefully and write a comprehensive, specific summary that cap
 - Any urgent or unresolved items
 
 Be SPECIFIC — use real names, real amounts, real dates. This summary will be the AI COO's permanent knowledge base.
-Write in flowing paragraphs, not bullet points.`,
+Write in flowing paragraphs, not bullet points.
+
+IMPORTANT: If the data contains spreadsheet tabs with dates and numbers (portfolio history, revenue by date, payment logs), you MUST include the exact figures in your summary. Never generalize numerical data — always preserve specific dates and dollar amounts.`,
     messages: [{
       role: "user",
       content: `COMPANY: ${companyContext}
 SOURCE: ${source}
 
 DATA:
-${dataText.slice(0, 10000)}
+${dataText.slice(0, 20000)}
 
 Write the knowledge summary now.`
     }],
