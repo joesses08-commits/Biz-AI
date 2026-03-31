@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: "2026-02
 
 const TOKEN_PACKS: Record<string, number> = {
   "price_1TGqneLyxBan4QvlWZifLXz": 10000,
-  "price_1TGqoMLyxBan4QvZNeRgbe0": 25000,
+  "price_1TGqoMLYyxBan4QvZNeRgbe0": 25000,
   "price_1TGqohLyxBan4Qv5cahkd9Q": 50000,
   "price_1TGqo1LyxBan4QvpHLbM2Vg": 100000,
 };

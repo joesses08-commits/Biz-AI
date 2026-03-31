@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 
 const TOKEN_PACKS = [
   { label: "10,000 tokens", tokens: 10000, price: "$10", priceId: "price_1TGqneLyxBan4QvlWZifLXz" },
-  { label: "25,000 tokens", tokens: 25000, price: "$25", priceId: "price_1TGqoMLyxBan4QvZNeRgbe0" },
+  { label: "25,000 tokens", tokens: 25000, price: "$25", priceId: "price_1TGqoMLYyxBan4QvZNeRgbe0" },
   { label: "50,000 tokens", tokens: 50000, price: "$50", priceId: "price_1TGqohLyxBan4Qv5cahkd9Q" },
   { label: "100,000 tokens", tokens: 100000, price: "$100", priceId: "price_1TGqo1LyxBan4QvpHLbM2Vg", popular: true },
 ];
