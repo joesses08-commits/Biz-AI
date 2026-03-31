@@ -5,12 +5,21 @@ export async function GET() {
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/gmail/callback`;
 
   const scopes = [
-    "https://www.googleapis.com/auth/gmail.modify",
+    // Gmail — read + send
+    "https://mail.google.com/",
+    // Drive — full read + write
+    "https://www.googleapis.com/auth/drive",
+    // Sheets — read + write
+    "https://www.googleapis.com/auth/spreadsheets",
+    // Docs — read + write
+    "https://www.googleapis.com/auth/documents",
+    // Slides — read + write
+    "https://www.googleapis.com/auth/presentations",
+    // Calendar — read + write
+    "https://www.googleapis.com/auth/calendar",
+    // User info
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/drive.readonly",
-    "https://www.googleapis.com/auth/drive.metadata.readonly",
   ].join(" ");
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +

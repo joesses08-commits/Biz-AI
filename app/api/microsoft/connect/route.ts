@@ -4,7 +4,25 @@ export async function GET() {
   const clientId = process.env.MICROSOFT_CLIENT_ID!;
   const redirectUri = process.env.MICROSOFT_REDIRECT_URI!;
 
-  const scope = "openid email profile User.Read Mail.Read Calendars.Read Files.Read.All offline_access";
+  const scope = [
+    "openid",
+    "email",
+    "profile",
+    "offline_access",
+    "User.Read",
+    // Mail — read + send
+    "Mail.Read",
+    "Mail.Send",
+    // Files/OneDrive — read + write
+    "Files.Read.All",
+    "Files.ReadWrite.All",
+    // Calendar — read + write
+    "Calendars.Read",
+    "Calendars.ReadWrite",
+    // SharePoint — read + write
+    "Sites.Read.All",
+    "Sites.ReadWrite.All",
+  ].join(" ");
 
   const authUrl = new URL("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
   authUrl.searchParams.set("client_id", clientId);
