@@ -120,7 +120,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "No email provider connected. Connect Gmail or Outlook first." }, { status: 400 });
       }
 
-      const useGmail = !!gmailConn?.access_token;
+      // If both connected, frontend must specify provider
+      const bothConnected = !!gmailConn?.access_token && !!msConn?.access_token;
+      if (bothConnected && !body.provider) {
+        return NextResponse.json({ error: "both_connected", gmailEmail: gmailConn.email, outlookEmail: msConn.email }, { status: 400 });
+      }
+
+      const useGmail = body.provider === "outlook" ? false : !!gmailConn?.access_token;
       const results: { factory: string; success: boolean; error?: string }[] = [];
 
       const fileBase64 = job.product_file_base64.replace(/-/g, "+").replace(/_/g, "/");

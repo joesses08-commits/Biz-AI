@@ -295,6 +295,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
   const [building, setBuilding] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"jobs" | "factories">("jobs");
   const [productFile, setProductFile] = useState<File | null>(null);
+  const [providerModal, setProviderModal] = useState<{ jobId: string; gmailEmail: string; outlookEmail: string } | null>(null);
   const [newJob, setNewJob] = useState({
     job_name: "",
     factory_ids: [] as string[],
@@ -319,6 +320,22 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
         ? j.factory_ids.filter(f => f !== id)
         : [...j.factory_ids, id],
     }));
+  };
+
+  const sendRfq = async (jobId: string, provider?: string) => {
+    setSending(jobId);
+    const res = await fetch("/api/workflows/factory-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "send_rfq", job_id: jobId, provider }),
+    });
+    const data = await res.json();
+    setSending(null);
+    if (data.error === "both_connected") {
+      setProviderModal({ jobId, gmailEmail: data.gmailEmail, outlookEmail: data.outlookEmail });
+      return;
+    }
+    loadJobs();
   };
 
   const createJob = async () => {
@@ -355,14 +372,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
 
     // Auto-send RFQs immediately
     if (data.job?.id) {
-      setSending(data.job.id);
-      await fetch("/api/workflows/factory-quote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send_rfq", job_id: data.job.id }),
-      });
-      setSending(null);
-      loadJobs();
+      await sendRfq(data.job.id);
     }
   };
 
@@ -420,6 +430,41 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
 
   return (
     <div className="mt-4 space-y-4">
+      {/* Provider picker modal */}
+      {providerModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-80 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-white mb-1">Send RFQs via which account?</p>
+              <p className="text-[11px] text-white/30">Both Gmail and Outlook are connected. Pick which one to send from.</p>
+            </div>
+            <div className="space-y-2">
+              <button onClick={() => { const j = providerModal; setProviderModal(null); sendRfq(j.jobId, "gmail"); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-white/20 transition text-left">
+                <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs">G</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white">Gmail</p>
+                  <p className="text-[10px] text-white/30">{providerModal.gmailEmail}</p>
+                </div>
+              </button>
+              <button onClick={() => { const j = providerModal; setProviderModal(null); sendRfq(j.jobId, "outlook"); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-white/20 transition text-left">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs">O</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-white">Outlook</p>
+                  <p className="text-[10px] text-white/30">{providerModal.outlookEmail}</p>
+                </div>
+              </button>
+            </div>
+            <button onClick={() => setProviderModal(null)} className="w-full text-center text-[11px] text-white/20 hover:text-white/40 transition">Cancel</button>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-0.5 w-fit">
         <button onClick={() => setActiveTab("jobs")}
