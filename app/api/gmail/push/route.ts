@@ -200,10 +200,11 @@ export async function POST(request: NextRequest) {
       (h.messagesAdded || []).map((m: any) => m.message)
     ) || [];
 
-    // Fallback: if history empty, fetch recent inbox messages directly
+    // Fallback: if history empty, fetch messages received in last 3 minutes
     if (!messages.length) {
+      const threeMinAgo = Math.floor((Date.now() - 3 * 60 * 1000) / 1000);
       const recentRes = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=in:inbox`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=in:inbox+after:${threeMinAgo}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       const recentData = await recentRes.json();
