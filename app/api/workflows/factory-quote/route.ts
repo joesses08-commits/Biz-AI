@@ -14,40 +14,35 @@ const supabaseAdmin = createClient(
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-// ── GET: list all jobs for the user ───────────────────────────────────────
+async function getUser() {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+  );
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
+
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const { data: jobs } = await supabaseAdmin
       .from("factory_quote_jobs")
       .select("*, factory_quotes(*)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-
     return NextResponse.json({ jobs: jobs || [] });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
 
-// ── POST: create job, process quote, or build master sheet ────────────────
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
+    const user = await getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
@@ -55,31 +50,145 @@ export async function POST(req: NextRequest) {
 
     // ── CREATE JOB ──────────────────────────────────────────────────────
     if (action === "create_job") {
-      const { job_name, factories, order_details } = body;
+      const { job_name, product, factories, order_details } = body;
       const { data: job } = await supabaseAdmin
         .from("factory_quote_jobs")
         .insert({
           user_id: user.id,
           job_name,
+          product,
           factories,
           order_details,
           status: "waiting",
         })
         .select()
         .single();
-
       return NextResponse.json({ success: true, job });
+    }
+
+    // ── SEND RFQ EMAILS ──────────────────────────────────────────────────
+    if (action === "send_rfq") {
+      const { job_id } = body;
+
+      const { data: job } = await supabaseAdmin
+        .from("factory_quote_jobs")
+        .select("*")
+        .eq("id", job_id)
+        .single();
+
+      if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
+
+      const { data: gmailConn } = await supabaseAdmin
+        .from("gmail_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!gmailConn?.access_token) {
+        return NextResponse.json({ error: "Gmail not connected" }, { status: 400 });
+      }
+
+      // Refresh token if needed
+      let accessToken = gmailConn.access_token;
+      if (new Date(gmailConn.token_expiry) < new Date()) {
+        const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            refresh_token: gmailConn.refresh_token,
+            client_id: process.env.GOOGLE_CLIENT_ID!,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+            grant_type: "refresh_token",
+          }),
+        });
+        const refreshData = await refreshRes.json();
+        if (refreshData.access_token) {
+          accessToken = refreshData.access_token;
+          await supabaseAdmin.from("gmail_connections").update({
+            access_token: accessToken,
+            token_expiry: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
+          }).eq("user_id", user.id);
+        }
+      }
+
+      const product = job.product || {};
+      const orderDetails = job.order_details || {};
+      const results: { factory: string; success: boolean; error?: string }[] = [];
+
+      for (const factory of (job.factories || [])) {
+        try {
+          // Use Claude Haiku to draft a professional RFQ email
+          const draftRes = await anthropic.messages.create({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 600,
+            system: "You write professional, concise RFQ (Request for Quotation) emails to factories. Be direct and specific. No fluff.",
+            messages: [{
+              role: "user",
+              content: `Write an RFQ email to ${factory.name} (${factory.email}) for this product:
+Product: ${product.name || job.job_name}
+Description: ${product.description || ""}
+Specs: ${product.specs || ""}
+Target Quantity: ${product.target_quantity || orderDetails.quantity || "TBD"}
+Duty: ${orderDetails.duty_pct || 30}%, Tariff: ${orderDetails.tariff_pct || 20}%
+
+Write subject line on first line, then blank line, then email body. Sign off as "Jimmy AI - Procurement".
+Ask for: unit price, MOQ, lead time, payment terms. Request they reply with an Excel quote sheet.`,
+            }],
+          });
+
+          const draftText = draftRes.content[0].type === "text" ? draftRes.content[0].text : "";
+          const lines = draftText.split("\n");
+          const subjectLine = lines[0].replace(/^subject:\s*/i, "").trim();
+          const emailBody = lines.slice(2).join("\n").trim();
+
+          // Send via Gmail API
+          const emailRaw = [
+            `To: ${factory.email}`,
+            `Subject: ${subjectLine}`,
+            `Content-Type: text/plain; charset=utf-8`,
+            ``,
+            emailBody,
+          ].join("\r\n");
+
+          const encoded = Buffer.from(emailRaw).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+          const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ raw: encoded }),
+          });
+
+          const sendData = await sendRes.json();
+          if (sendData.id) {
+            results.push({ factory: factory.name, success: true });
+          } else {
+            results.push({ factory: factory.name, success: false, error: sendData.error?.message || "Send failed" });
+          }
+        } catch (err) {
+          results.push({ factory: factory.name, success: false, error: String(err) });
+        }
+      }
+
+      // Update job status
+      await supabaseAdmin.from("factory_quote_jobs").update({
+        status: "rfq_sent",
+        rfq_sent_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).eq("id", job_id);
+
+      return NextResponse.json({ success: true, results });
     }
 
     // ── PROCESS UPLOADED FILE ────────────────────────────────────────────
     if (action === "process_file") {
       const { job_id, factory_name, factory_email, file_base64, file_name } = body;
 
-      // Decode Excel file
       const buffer = Buffer.from(file_base64, "base64");
       const workbook = XLSX.read(buffer, { type: "buffer" });
-      
-      // Read all sheets
+
       let allData = "";
       for (const sheetName of workbook.SheetNames) {
         const sheet = workbook.Sheets[sheetName];
@@ -87,12 +196,9 @@ export async function POST(req: NextRequest) {
         allData += `\nSHEET: ${sheetName}\n${csv}\n`;
       }
 
-      // Extract images from Excel zip — store in order, ignore row positions
       const imagesByRow: Record<number, string> = {};
       try {
         const zip = await JSZip.loadAsync(buffer);
-
-        // Get all media files sorted by filename (image1, image2, image3...)
         const mediaEntries: { name: string; data: string }[] = [];
         for (const [path, file] of Object.entries(zip.files)) {
           if (path.startsWith("xl/media/") && !(file as any).dir) {
@@ -102,22 +208,14 @@ export async function POST(req: NextRequest) {
             mediaEntries.push({ name: fname, data: `data:image/${ext};base64,${imgBuffer}` });
           }
         }
-
-        // Sort by filename so image1 < image2 < image10
         mediaEntries.sort((a, b) => {
           const numA = parseInt(a.name.replace(/\D/g, "")) || 0;
           const numB = parseInt(b.name.replace(/\D/g, "")) || 0;
           return numA - numB;
         });
+        mediaEntries.forEach((entry, i) => { imagesByRow[i + 1] = entry.data; });
+      } catch {}
 
-        // Map in order: image 0 = product 1, image 1 = product 2, etc.
-        mediaEntries.forEach((entry, i) => {
-          imagesByRow[i + 1] = entry.data; // 1-indexed
-        });
-
-      } catch (imgErr) { console.error("Image extraction error:", imgErr); }
-
-      // Use Claude to extract products and pricing
       const response = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 4000,
@@ -146,19 +244,17 @@ Return ONLY raw JSON, no markdown:
       const lastBrace = raw.lastIndexOf("}");
       const parsed = JSON.parse(raw.slice(firstBrace, lastBrace + 1));
 
-      // Get order details for calculations
-      const { data: job } = await supabaseAdmin
+      const { data: jobRow } = await supabaseAdmin
         .from("factory_quote_jobs")
-        .select("order_details")
+        .select("order_details, factories")
         .eq("id", job_id)
         .single();
 
-      const orderDetails = job?.order_details || {};
+      const orderDetails = jobRow?.order_details || {};
       const dutyPct = parseFloat(orderDetails.duty_pct || "30") / 100;
       const tariffPct = parseFloat(orderDetails.tariff_pct || "20") / 100;
       const freight = parseFloat(orderDetails.freight || "0.15");
 
-      // Calculate ELC only — no sell price or margin (Uncle David sets sell prices manually)
       const processedProducts = (parsed.products || []).map((p: any) => {
         const firstCost = parseFloat(p.unit_cost) || 0;
         const afterDuty = firstCost * (1 + dutyPct);
@@ -182,7 +278,6 @@ Return ONLY raw JSON, no markdown:
         };
       });
 
-      // Save to factory_quotes table — store raw file for image extraction later
       await supabaseAdmin.from("factory_quotes").insert({
         job_id,
         user_id: user.id,
@@ -191,29 +286,31 @@ Return ONLY raw JSON, no markdown:
         attachment_name: file_name,
         raw_data: parsed.products || [],
         processed_data: processedProducts,
-        raw_file_base64: file_base64.slice(0, 500000) || null, // store file for image extraction
+        raw_file_base64: file_base64.slice(0, 500000) || null,
         status: "processed",
       });
 
-      // Update job status
       const { data: allQuotes } = await supabaseAdmin
         .from("factory_quotes")
         .select("factory_name")
         .eq("job_id", job_id);
 
-      const { data: jobData } = await supabaseAdmin
-        .from("factory_quote_jobs")
-        .select("factories")
-        .eq("id", job_id)
-        .single();
-
-      const totalFactories = (jobData?.factories || []).length;
+      const totalFactories = (jobRow?.factories || []).length;
       const receivedFactories = allQuotes?.length || 0;
-      const newStatus = receivedFactories >= totalFactories ? "ready" : "waiting";
+      const newStatus = receivedFactories >= totalFactories ? "ready" : "rfq_sent";
 
       await supabaseAdmin.from("factory_quote_jobs")
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq("id", job_id);
+
+      // Auto-build master sheet if all quotes received
+      if (newStatus === "ready") {
+        fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/workflows/factory-quote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "build_master", job_id, user_id: user.id }),
+        }).catch(() => {});
+      }
 
       return NextResponse.json({ success: true, products: processedProducts, status: newStatus });
     }
@@ -230,10 +327,8 @@ Return ONLY raw JSON, no markdown:
 
       if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
-      // Collect all products + extract images fresh from stored files
       const allProducts: any[] = [];
       for (const quote of (job.factory_quotes || [])) {
-        // Extract images from stored raw file
         const quoteImages: Record<number, string> = {};
         if (quote.raw_file_base64) {
           try {
@@ -253,38 +348,28 @@ Return ONLY raw JSON, no markdown:
               return numA - numB;
             });
             mediaEntries.forEach((entry, i) => { quoteImages[i + 1] = entry.data; });
-          } catch (e) { console.error("Image re-extraction error:", e); }
+          } catch {}
         }
-
         for (let i = 0; i < (quote.processed_data || []).length; i++) {
-          allProducts.push({
-            ...quote.processed_data[i],
-            image_base64: quoteImages[i + 1] || null,
-          });
+          allProducts.push({ ...quote.processed_data[i], image_base64: quoteImages[i + 1] || null });
         }
       }
 
-      // Group by product name and sort each group by margin (best first)
       const productGroups: Record<string, any[]> = {};
       for (const product of allProducts) {
         const key = product.product_name || "Unknown";
         if (!productGroups[key]) productGroups[key] = [];
         productGroups[key].push(product);
       }
-
-      // Sort each group by ELC ascending (cheapest first)
       for (const key of Object.keys(productGroups)) {
         productGroups[key].sort((a, b) => a.elc - b.elc);
       }
 
-      // Build Excel workbook using ExcelJS for full styling + image support
       const wb = new ExcelJS.Workbook();
       wb.creator = "Jimmy AI";
       wb.created = new Date();
 
-      // ── QUOTE COMPARISON SHEET ─────────────────────────────────────────
       const ws = wb.addWorksheet("Quote Comparison");
-
       ws.columns = [
         { header: "Photo/SKU", key: "sku", width: 14 },
         { header: "Product", key: "product", width: 30 },
@@ -303,19 +388,15 @@ Return ONLY raw JSON, no markdown:
         { header: "Notes", key: "notes", width: 28 },
       ];
 
-      // Style header row
       const headerRow = ws.getRow(1);
       headerRow.eachCell((cell) => {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1a1a2e" } };
         cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
         cell.alignment = { horizontal: "center", vertical: "middle" };
-        cell.border = {
-          bottom: { style: "thin", color: { argb: "FF444444" } },
-        };
+        cell.border = { bottom: { style: "thin", color: { argb: "FF444444" } } };
       });
       headerRow.height = 20;
 
-      // Add data rows
       for (const [productName, factories] of Object.entries(productGroups)) {
         factories.forEach((f: any, index: number) => {
           let competitiveness = "";
@@ -325,7 +406,6 @@ Return ONLY raw JSON, no markdown:
           else competitiveness = `${index + 1}th`;
 
           const isBest = index === 0;
-
           const row = ws.addRow({
             sku: index === 0 ? (f.sku || "") : "",
             product: index === 0 ? productName : "",
@@ -344,7 +424,6 @@ Return ONLY raw JSON, no markdown:
             notes: f.notes || "",
           });
 
-          // Add formula for margin — calculates when sell price is entered in col J
           const rowNum2 = row.number;
           const sellCell = row.getCell("sell");
           const mCell = row.getCell("margin");
@@ -353,28 +432,17 @@ Return ONLY raw JSON, no markdown:
           mCell.value = { formula: `=IF(J${rowNum2}="","",((J${rowNum2}-I${rowNum2})/J${rowNum2}))` };
           mCell.numFmt = "0.00%";
 
-          // Embed product image
           if (index === 0 && f.image_base64) {
             try {
               const imageData = f.image_base64.split(",")[1] || f.image_base64;
               const ext = f.image_base64.includes("png") ? "png" : "jpeg";
-              const imageId = wb.addImage({
-                base64: imageData,
-                extension: ext as "png" | "jpeg",
-              });
+              const imageId = wb.addImage({ base64: imageData, extension: ext as "png" | "jpeg" });
               const rowNum = row.number;
-              ws.addImage(imageId, {
-                tl: { col: 0, row: rowNum - 1 },
-                ext: { width: 80, height: 60 },
-                editAs: "oneCell",
-              });
+              ws.addImage(imageId, { tl: { col: 0, row: rowNum - 1 }, ext: { width: 80, height: 60 }, editAs: "oneCell" });
               row.height = 60;
-            } catch (imgErr) {
-              console.error("Image embed error:", imgErr);
-            }
+            } catch {}
           }
 
-          // Yellow for best price row
           if (isBest) {
             row.eachCell((cell) => {
               cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
@@ -385,17 +453,12 @@ Return ONLY raw JSON, no markdown:
 
           if (!f.image_base64 || index !== 0) row.height = 18;
         });
-
-        // Empty spacer row between products
         ws.addRow({});
       }
 
-      // Freeze header row
       ws.views = [{ state: "frozen", ySplit: 1 }];
 
-      // ── SUMMARY SHEET ──────────────────────────────────────────────────
       const summaryWs = wb.addWorksheet("Summary");
-
       summaryWs.columns = [
         { header: "Product", key: "product", width: 32 },
         { header: "Best Factory", key: "factory", width: 22 },
@@ -407,7 +470,6 @@ Return ONLY raw JSON, no markdown:
         { header: "Negotiation Target", key: "target", width: 30 },
       ];
 
-      // Style summary header
       const summaryHeader = summaryWs.getRow(1);
       summaryHeader.eachCell((cell) => {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1a1a2e" } };
@@ -430,11 +492,7 @@ Return ONLY raw JSON, no markdown:
           factory: best.factory_name,
           elc: best.elc,
           margin: "Fill in sell price on Comparison tab",
-          savings: second
-            ? savings > 0
-              ? `$${savings} cheaper than ${second.factory_name}`
-              : "Same price as 2nd best"
-            : "No comparison",
+          savings: second ? (savings > 0 ? `$${savings} cheaper than ${second.factory_name}` : "Same price as 2nd best") : "No comparison",
           second: second?.factory_name || "—",
           second_elc: second?.elc || "—",
           target: negotiationTarget,
@@ -444,24 +502,21 @@ Return ONLY raw JSON, no markdown:
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
           cell.font = { bold: false, size: 10 };
         });
-
         row.height = 18;
       }
 
       summaryWs.views = [{ state: "frozen", ySplit: 1 }];
 
-      // Convert to base64
       const excelBuffer = await wb.xlsx.writeBuffer();
       const base64 = Buffer.from(excelBuffer).toString("base64");
 
       const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "America/New_York" });
       const fileName = `${date} Factory Quote Comparison — ${job.job_name}.xlsx`;
 
-      // Try to save to Google Drive
       const { data: gmailConn } = await supabaseAdmin
         .from("gmail_connections")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", job.user_id)
         .single();
 
       let sheetUrl = null;
@@ -490,26 +545,22 @@ Return ONLY raw JSON, no markdown:
             }
           );
           const uploadData = await uploadRes.json();
-          if (uploadData.id) {
-            sheetUrl = `https://drive.google.com/file/d/${uploadData.id}/view`;
-          }
+          if (uploadData.id) sheetUrl = `https://drive.google.com/file/d/${uploadData.id}/view`;
         } catch {}
       }
 
-      // Update job with master sheet URL
       await supabaseAdmin.from("factory_quote_jobs").update({
         status: "complete",
         master_sheet_url: sheetUrl,
         updated_at: new Date().toISOString(),
       }).eq("id", job_id);
 
-      // Add to pending actions for approval notification
       await supabaseAdmin.from("pending_actions").insert({
-        user_id: user.id,
+        user_id: job.user_id,
         workflow_type: "factory_quote",
         action_type: "create_sheet",
         title: `Factory Quote Comparison Ready — ${job.job_name}`,
-        description: `Master comparison sheet built with ${Object.keys(productGroups).length} products across ${job.factory_quotes?.length} factories. Sorted by best margin per product.`,
+        description: `Master comparison sheet built with ${Object.keys(productGroups).length} products across ${job.factory_quotes?.length} factories.`,
         payload: { file_name: fileName, sheet_url: sheetUrl, base64 },
         status: "pending",
       });

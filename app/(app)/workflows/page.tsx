@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Zap, AlertCircle, Check, X, ChevronRight, ChevronDown,
   Settings, Eye, Factory, CreditCard, Calendar, FileText,
   TrendingDown, Loader2, ArrowRight, Shield, Bot, RotateCcw, Circle,
-  Upload, Plus, FileSpreadsheet, ExternalLink, Trash2
+  Upload, Plus, FileSpreadsheet, ExternalLink, Trash2, Send, Package, Building2
 } from "lucide-react";
 
 interface PendingAction {
@@ -21,25 +21,22 @@ interface HistoryItem {
   id: string; workflow_type: string; action_type: string;
   title: string; status: string; created_at: string;
 }
+interface Factory { id: string; name: string; email: string; contact_name?: string; notes?: string; }
+interface Product { id: string; name: string; description?: string; specs?: string; target_quantity?: number; }
 
 const WORKFLOW_DEFS = [
   {
     type: "factory_quote", icon: Factory, name: "Factory Quote Request",
     tagline: "Auto-request & compare quotes from suppliers", color: "#3b82f6",
     steps: [
-      { label: "Enter item specs + factory emails", type: "input", auto: false },
-      { label: "Jimmy drafts RFQ emails", type: "draft", auto: true },
-      { label: "You approve & Jimmy sends", type: "approval", auto: false },
-      { label: "Jimmy monitors replies & extracts pricing", type: "monitor", auto: true },
-      { label: "Comparison sheet updated", type: "execute", auto: true },
-      { label: "AI analysis & recommendation", type: "analysis", auto: true },
-      { label: "Action items created", type: "execute", auto: true },
+      { label: "Pick product + factories", type: "input", auto: false },
+      { label: "Jimmy drafts & sends RFQ emails", type: "draft", auto: true },
+      { label: "Jimmy monitors replies", type: "monitor", auto: true },
+      { label: "Quotes auto-extracted", type: "execute", auto: true },
+      { label: "Comparison sheet built", type: "execute", auto: true },
+      { label: "AI recommendation", type: "analysis", auto: true },
     ],
-    settingsFields: [
-      { key: "factory_emails", label: "Factory Email Addresses", placeholder: "factory1@co.com, factory2@co.com", type: "textarea" },
-      { key: "default_item", label: "Default Item/Product", placeholder: "e.g. Stainless steel water bottles", type: "text" },
-      { key: "comparison_sheet", label: "Google Sheet Name (optional)", placeholder: "e.g. Quote Comparisons 2026", type: "text" },
-    ],
+    settingsFields: [],
   },
   {
     type: "invoice_overdue", icon: TrendingDown, name: "Invoice Overdue Chaser",
@@ -190,16 +187,204 @@ function PendingCard({ action, onApprove, onReject, approving }: {
   );
 }
 
-function FactoryQuoteManager({ userId }: { userId?: string }) {
+// ── CATALOG MANAGER ────────────────────────────────────────────────────────
+function CatalogManager({ factories, products, onRefresh }: {
+  factories: Factory[]; products: Product[]; onRefresh: () => void;
+}) {
+  const [tab, setTab] = useState<"factories" | "products">("factories");
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [newFactory, setNewFactory] = useState({ name: "", email: "", contact_name: "", notes: "" });
+  const [newProduct, setNewProduct] = useState({ name: "", description: "", specs: "", target_quantity: "" });
+
+  const addFactory = async () => {
+    if (!newFactory.name || !newFactory.email) return;
+    setSaving(true);
+    await fetch("/api/catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add_factory", ...newFactory }),
+    });
+    setSaving(false);
+    setAdding(false);
+    setNewFactory({ name: "", email: "", contact_name: "", notes: "" });
+    onRefresh();
+  };
+
+  const addProduct = async () => {
+    if (!newProduct.name) return;
+    setSaving(true);
+    await fetch("/api/catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add_product", ...newProduct, target_quantity: newProduct.target_quantity ? parseInt(newProduct.target_quantity) : null }),
+    });
+    setSaving(false);
+    setAdding(false);
+    setNewProduct({ name: "", description: "", specs: "", target_quantity: "" });
+    onRefresh();
+  };
+
+  const deleteFactory = async (id: string) => {
+    await fetch("/api/catalog", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_factory", id }) });
+    onRefresh();
+  };
+
+  const deleteProduct = async (id: string) => {
+    await fetch("/api/catalog", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id }) });
+    onRefresh();
+  };
+
+  return (
+    <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5">
+          <button onClick={() => { setTab("factories"); setAdding(false); }}
+            className={`px-3 py-1 rounded-md text-[11px] font-semibold transition ${tab === "factories" ? "bg-white text-black" : "text-white/40"}`}>
+            <span className="flex items-center gap-1"><Building2 size={10} />Factories ({factories.length})</span>
+          </button>
+          <button onClick={() => { setTab("products"); setAdding(false); }}
+            className={`px-3 py-1 rounded-md text-[11px] font-semibold transition ${tab === "products" ? "bg-white text-black" : "text-white/40"}`}>
+            <span className="flex items-center gap-1"><Package size={10} />Products ({products.length})</span>
+          </button>
+        </div>
+        <button onClick={() => setAdding(!adding)}
+          className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition px-2 py-1 rounded-lg border border-white/[0.06] hover:border-white/10">
+          <Plus size={10} />Add
+        </button>
+      </div>
+
+      {/* Add form */}
+      {adding && tab === "factories" && (
+        <div className="mb-3 p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-white/30 mb-1 block">Factory Name *</label>
+              <input value={newFactory.name} onChange={e => setNewFactory({...newFactory, name: e.target.value})}
+                placeholder="Yuecheng" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+            </div>
+            <div>
+              <label className="text-[10px] text-white/30 mb-1 block">Email *</label>
+              <input value={newFactory.email} onChange={e => setNewFactory({...newFactory, email: e.target.value})}
+                placeholder="quotes@factory.com" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-white/30 mb-1 block">Contact Name</label>
+              <input value={newFactory.contact_name} onChange={e => setNewFactory({...newFactory, contact_name: e.target.value})}
+                placeholder="Jenny Li" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+            </div>
+            <div>
+              <label className="text-[10px] text-white/30 mb-1 block">Notes</label>
+              <input value={newFactory.notes} onChange={e => setNewFactory({...newFactory, notes: e.target.value})}
+                placeholder="Specializes in glass" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={addFactory} disabled={saving || !newFactory.name || !newFactory.email}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
+              {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
+            </button>
+            <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {adding && tab === "products" && (
+        <div className="mb-3 p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-white/30 mb-1 block">Product Name *</label>
+              <input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})}
+                placeholder="Glass Water Bottle" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+            </div>
+            <div>
+              <label className="text-[10px] text-white/30 mb-1 block">Target Quantity</label>
+              <input value={newProduct.target_quantity} onChange={e => setNewProduct({...newProduct, target_quantity: e.target.value})}
+                placeholder="500" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] text-white/30 mb-1 block">Description</label>
+            <input value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}
+              placeholder="16oz borosilicate glass bottle with bamboo lid" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+          </div>
+          <div>
+            <label className="text-[10px] text-white/30 mb-1 block">Specs</label>
+            <textarea value={newProduct.specs} onChange={e => setNewProduct({...newProduct, specs: e.target.value})}
+              placeholder="Material: borosilicate glass&#10;Capacity: 16oz / 500ml&#10;Lid: bamboo screw top&#10;Finish: frosted" rows={3}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 resize-none" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={addProduct} disabled={saving || !newProduct.name}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
+              {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
+            </button>
+            <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {tab === "factories" && (
+        <div className="space-y-1.5">
+          {factories.length === 0 ? (
+            <p className="text-[11px] text-white/15 py-2">No factories saved yet — add one above.</p>
+          ) : factories.map(f => (
+            <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+              <Building2 size={11} className="text-white/20 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/70 font-medium">{f.name}</p>
+                <p className="text-[10px] text-white/30">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
+              </div>
+              <button onClick={() => deleteFactory(f.id)} className="text-white/15 hover:text-red-400 transition">
+                <Trash2 size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === "products" && (
+        <div className="space-y-1.5">
+          {products.length === 0 ? (
+            <p className="text-[11px] text-white/15 py-2">No products saved yet — add one above.</p>
+          ) : products.map(p => (
+            <div key={p.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+              <Package size={11} className="text-white/20 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-white/70 font-medium">{p.name}</p>
+                <p className="text-[10px] text-white/30">{p.description || p.specs?.slice(0, 60) || "No description"}{p.target_quantity ? ` · Qty: ${p.target_quantity}` : ""}</p>
+              </div>
+              <button onClick={() => deleteProduct(p.id)} className="text-white/15 hover:text-red-400 transition">
+                <Trash2 size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── FACTORY QUOTE MANAGER ──────────────────────────────────────────────────
+function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
+  factories: Factory[]; products: Product[]; onCatalogRefresh: () => void;
+}) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
   const [showNew, setShowNew] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [building, setBuilding] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"jobs" | "catalog">("jobs");
+
   const [newJob, setNewJob] = useState({
     job_name: "",
-    factories: "",
+    product_id: "",
+    factory_ids: [] as string[],
     duty_pct: "30",
     tariff_pct: "20",
     freight: "0.15",
@@ -214,31 +399,52 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
 
   useEffect(() => { loadJobs(); }, []);
 
+  const toggleFactory = (id: string) => {
+    setNewJob(j => ({
+      ...j,
+      factory_ids: j.factory_ids.includes(id) ? j.factory_ids.filter(f => f !== id) : [...j.factory_ids, id],
+    }));
+  };
+
   const createJob = async () => {
-    if (!newJob.job_name || !newJob.factories) return;
+    if (!newJob.job_name || newJob.factory_ids.length === 0) return;
     setCreating(true);
-    const factories = newJob.factories.split("\n").filter(Boolean).map(line => {
-      const parts = line.split(",").map(s => s.trim());
-      return { name: parts[0], email: parts[1] || "" };
-    });
-    await fetch("/api/workflows/factory-quote", {
+    const selectedProduct = products.find(p => p.id === newJob.product_id);
+    const selectedFactories = factories.filter(f => newJob.factory_ids.includes(f.id));
+
+    const res = await fetch("/api/workflows/factory-quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "create_job",
         job_name: newJob.job_name,
-        factories,
-        order_details: {
-          duty_pct: newJob.duty_pct,
-          tariff_pct: newJob.tariff_pct,
-          freight: newJob.freight,
-        },
+        product: selectedProduct ? {
+          name: selectedProduct.name,
+          description: selectedProduct.description,
+          specs: selectedProduct.specs,
+          target_quantity: selectedProduct.target_quantity,
+        } : { name: newJob.job_name },
+        factories: selectedFactories.map(f => ({ name: f.name, email: f.email })),
+        order_details: { duty_pct: newJob.duty_pct, tariff_pct: newJob.tariff_pct, freight: newJob.freight },
       }),
     });
+    const data = await res.json();
     setCreating(false);
     setShowNew(false);
-    setNewJob({ job_name: "", factories: "", duty_pct: "30", tariff_pct: "20", freight: "0.15" });
-    loadJobs();
+    setNewJob({ job_name: "", product_id: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" });
+    await loadJobs();
+
+    // Auto-send RFQs
+    if (data.job?.id) {
+      setSending(data.job.id);
+      await fetch("/api/workflows/factory-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send_rfq", job_id: data.job.id }),
+      });
+      setSending(null);
+      loadJobs();
+    }
   };
 
   const uploadFile = async (jobId: string, file: File) => {
@@ -247,8 +453,7 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
     reader.onload = async (e) => {
       const base64 = (e.target?.result as string).split(",")[1];
       const job = jobs.find(j => j.id === jobId);
-      const factories = job?.factories || [];
-      
+      const jobFactories = job?.factories || [];
       await fetch("/api/workflows/factory-quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -256,7 +461,7 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
           action: "process_file",
           job_id: jobId,
           factory_name: file.name.replace(/\.xlsx?$/, ""),
-          factory_email: factories.find((f: any) => file.name.toLowerCase().includes(f.name?.toLowerCase()))?.email || "",
+          factory_email: jobFactories.find((f: any) => file.name.toLowerCase().includes(f.name?.toLowerCase()))?.email || "",
           file_base64: base64,
           file_name: file.name,
         }),
@@ -281,161 +486,234 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
   };
 
   const statusColors: Record<string, string> = {
-    waiting: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-    ready: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+    waiting: "text-white/40 bg-white/5 border-white/10",
+    rfq_sent: "text-blue-400 bg-blue-500/10 border-blue-500/20",
+    ready: "text-amber-400 bg-amber-500/10 border-amber-500/20",
     complete: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  };
+
+  const statusLabels: Record<string, string> = {
+    waiting: "Draft",
+    rfq_sent: "RFQs Sent",
+    ready: "Ready to Build",
+    complete: "Complete",
   };
 
   return (
     <div className="mt-4 space-y-4">
-      {/* New Job Button */}
-      <button onClick={() => setShowNew(!showNew)}
-        className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
-        <Plus size={11} />
-        New Quote Job
-      </button>
+      {/* Tabs */}
+      <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-0.5 w-fit">
+        <button onClick={() => setActiveTab("jobs")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "jobs" ? "bg-white text-black" : "text-white/40"}`}>
+          Jobs
+        </button>
+        <button onClick={() => setActiveTab("catalog")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "catalog" ? "bg-white text-black" : "text-white/40"}`}>
+          Catalog
+        </button>
+      </div>
 
-      {/* New Job Form */}
-      {showNew && (
-        <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-3">
-          <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
-          <div>
-            <label className="text-[11px] text-white/30 mb-1 block">Job Name</label>
-            <input value={newJob.job_name} onChange={e => setNewJob({...newJob, job_name: e.target.value})}
-              placeholder="e.g. Spring 2026 Glass Collection"
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
-          </div>
-          <div>
-            <label className="text-[11px] text-white/30 mb-1 block">Factories (one per line: Name, email@factory.com)</label>
-            <textarea value={newJob.factories} onChange={e => setNewJob({...newJob, factories: e.target.value})}
-              placeholder={"Yuecheng, yuecheng@factory.com\nFactory B, factoryb@supplier.com\nFactory C, factoryc@co.com"}
-              rows={4}
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition resize-none font-mono" />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { key: "duty_pct", label: "Duty %", placeholder: "30" },
-              { key: "tariff_pct", label: "Tariff %", placeholder: "20" },
-              { key: "freight", label: "Freight per unit ($)", placeholder: "0.15" },
-            ].map(field => (
-              <div key={field.key}>
-                <label className="text-[11px] text-white/30 mb-1 block">{field.label}</label>
-                <input value={(newJob as any)[field.key]} onChange={e => setNewJob({...newJob, [field.key]: e.target.value})}
-                  placeholder={field.placeholder}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={createJob} disabled={creating}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-50">
-              {creating ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-              Create Job
-            </button>
-            <button onClick={() => setShowNew(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
-              Cancel
-            </button>
-          </div>
-        </div>
+      {activeTab === "catalog" && (
+        <CatalogManager factories={factories} products={products} onRefresh={onCatalogRefresh} />
       )}
 
-      {/* Job List */}
-      {loading ? (
-        <div className="flex items-center gap-2 text-white/20 text-xs py-2">
-          <Loader2 size={11} className="animate-spin" />Loading jobs...
-        </div>
-      ) : jobs.length === 0 ? (
-        <p className="text-white/15 text-xs py-2">No quote jobs yet — create one above to get started.</p>
-      ) : (
-        <div className="space-y-3">
-          {jobs.map(job => {
-            const quotesReceived = job.factory_quotes?.length || 0;
-            const totalFactories = job.factories?.length || 0;
-            const pct = totalFactories > 0 ? Math.round((quotesReceived / totalFactories) * 100) : 0;
-            return (
-              <div key={job.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <p className="text-sm font-semibold text-white mb-0.5">{job.job_name}</p>
-                    <p className="text-[10px] text-white/25">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${statusColors[job.status] || "text-white/30 bg-white/5 border-white/10"}`}>
-                    {job.status}
-                  </span>
-                </div>
+      {activeTab === "jobs" && (
+        <>
+          <button onClick={() => setShowNew(!showNew)}
+            className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
+            <Plus size={11} />New Quote Job
+          </button>
 
-                {/* Progress bar */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-white/30">Quotes received</span>
-                    <span className="text-[10px] text-white/40">{quotesReceived} / {totalFactories}</span>
-                  </div>
-                  <div className="w-full bg-white/[0.05] rounded-full h-1.5">
-                    <div className="h-1.5 rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
+          {showNew && (
+            <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-3">
+              <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
 
-                {/* Factory list */}
-                <div className="space-y-1 mb-3">
-                  {(job.factories || []).map((factory: any, i: number) => {
-                    const received = job.factory_quotes?.find((q: any) => q.factory_name === factory.name || q.factory_email === factory.email);
-                    return (
-                      <div key={i} className="flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : "bg-white/15"}`} />
-                        <span className="text-[11px] text-white/40">{factory.name}</span>
-                        {factory.email && <span className="text-[10px] text-white/20">{factory.email}</span>}
-                        {received && (
-                          <span className="text-[10px] text-emerald-400/70 ml-auto">{received.processed_data?.length || 0} products</span>
-                        )}
+              <div>
+                <label className="text-[11px] text-white/30 mb-1 block">Job Name</label>
+                <input value={newJob.job_name} onChange={e => setNewJob({...newJob, job_name: e.target.value})}
+                  placeholder="e.g. Spring 2026 Glass Collection"
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+              </div>
+
+              {/* Product picker */}
+              <div>
+                <label className="text-[11px] text-white/30 mb-1.5 block">Product <span className="text-white/15">(from your catalog)</span></label>
+                {products.length === 0 ? (
+                  <p className="text-[11px] text-white/20 italic">No products in catalog — go to Catalog tab to add one.</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {products.map(p => (
+                      <button key={p.id} onClick={() => setNewJob({...newJob, product_id: newJob.product_id === p.id ? "" : p.id})}
+                        className={`text-left px-3 py-2 rounded-lg border text-xs transition ${newJob.product_id === p.id ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[0.06] bg-white/[0.02] text-white/50 hover:border-white/10"}`}>
+                        <p className="font-medium">{p.name}</p>
+                        {p.target_quantity && <p className="text-[10px] opacity-60">Qty: {p.target_quantity}</p>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Factory picker */}
+              <div>
+                <label className="text-[11px] text-white/30 mb-1.5 block">Factories to Quote <span className="text-white/15">(select all you want to send to)</span></label>
+                {factories.length === 0 ? (
+                  <p className="text-[11px] text-white/20 italic">No factories in catalog — go to Catalog tab to add one.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {factories.map(f => (
+                      <button key={f.id} onClick={() => toggleFactory(f.id)}
+                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition ${newJob.factory_ids.includes(f.id) ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-white/[0.06] bg-white/[0.02] text-white/50 hover:border-white/10"}`}>
+                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${newJob.factory_ids.includes(f.id) ? "border-emerald-400 bg-emerald-500" : "border-white/20"}`}>
+                          {newJob.factory_ids.includes(f.id) && <Check size={9} className="text-black" />}
+                        </div>
+                        <div>
+                          <p className="font-medium">{f.name}</p>
+                          <p className="text-[10px] opacity-60">{f.email}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { key: "duty_pct", label: "Duty %", placeholder: "30" },
+                  { key: "tariff_pct", label: "Tariff %", placeholder: "20" },
+                  { key: "freight", label: "Freight/unit ($)", placeholder: "0.15" },
+                ].map(field => (
+                  <div key={field.key}>
+                    <label className="text-[11px] text-white/30 mb-1 block">{field.label}</label>
+                    <input value={(newJob as any)[field.key]} onChange={e => setNewJob({...newJob, [field.key]: e.target.value})}
+                      placeholder={field.placeholder}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={createJob} disabled={creating || !newJob.job_name || newJob.factory_ids.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-50">
+                  {creating ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
+                  Create & Send RFQs
+                </button>
+                <button onClick={() => setShowNew(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
+                  Cancel
+                </button>
+              </div>
+              <p className="text-[10px] text-white/20">Jimmy will draft and send an RFQ email to each selected factory immediately.</p>
+            </div>
+          )}
+
+          {/* Job list */}
+          {loading ? (
+            <div className="flex items-center gap-2 text-white/20 text-xs py-2"><Loader2 size={11} className="animate-spin" />Loading jobs...</div>
+          ) : jobs.length === 0 ? (
+            <p className="text-white/15 text-xs py-2">No quote jobs yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {jobs.map(job => {
+                const quotesReceived = job.factory_quotes?.length || 0;
+                const totalFactories = job.factories?.length || 0;
+                const pct = totalFactories > 0 ? Math.round((quotesReceived / totalFactories) * 100) : 0;
+                const isSending = sending === job.id;
+                return (
+                  <div key={job.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-semibold text-white mb-0.5">{job.job_name}</p>
+                        {job.product?.name && <p className="text-[10px] text-blue-400/70 mb-0.5">📦 {job.product.name}</p>}
+                        <p className="text-[10px] text-white/25">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
                       </div>
-                    );
-                  })}
-                </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${statusColors[job.status] || "text-white/30 bg-white/5 border-white/10"}`}>
+                        {statusLabels[job.status] || job.status}
+                      </span>
+                    </div>
 
-                {/* Upload area */}
-                <div className="border border-dashed border-white/[0.08] rounded-xl p-3 mb-3 text-center">
-                  <label className="cursor-pointer">
-                    <input type="file" accept=".xlsx,.xls" multiple className="hidden"
-                      onChange={e => { Array.from(e.target.files || []).forEach(f => uploadFile(job.id, f)); }} />
-                    <div className="flex items-center justify-center gap-2 text-white/25 hover:text-white/50 transition">
-                      {processing?.startsWith(job.id) ? (
-                        <><Loader2 size={12} className="animate-spin text-blue-400" /><span className="text-xs">Processing...</span></>
+                    {isSending && (
+                      <div className="flex items-center gap-2 text-blue-400 text-xs mb-3 bg-blue-500/5 border border-blue-500/10 rounded-lg px-3 py-2">
+                        <Loader2 size={11} className="animate-spin" />
+                        Sending RFQ emails to {totalFactories} factories...
+                      </div>
+                    )}
+
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-white/30">Quotes received</span>
+                        <span className="text-[10px] text-white/40">{quotesReceived} / {totalFactories}</span>
+                      </div>
+                      <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+                        <div className="h-1.5 rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 mb-3">
+                      {(job.factories || []).map((factory: any, i: number) => {
+                        const received = job.factory_quotes?.find((q: any) =>
+                          q.factory_name === factory.name || q.factory_email === factory.email
+                        );
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : job.status === "rfq_sent" || job.status === "ready" || job.status === "complete" ? "bg-blue-400/50" : "bg-white/15"}`} />
+                            <span className="text-[11px] text-white/40">{factory.name}</span>
+                            {factory.email && <span className="text-[10px] text-white/20">{factory.email}</span>}
+                            {received ? (
+                              <span className="text-[10px] text-emerald-400/70 ml-auto">{received.processed_data?.length || 0} products</span>
+                            ) : (job.status === "rfq_sent") ? (
+                              <span className="text-[10px] text-blue-400/50 ml-auto">RFQ sent</span>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Manual upload fallback */}
+                    {job.status !== "complete" && (
+                      <div className="border border-dashed border-white/[0.06] rounded-xl p-3 mb-3 text-center">
+                        <label className="cursor-pointer">
+                          <input type="file" accept=".xlsx,.xls" multiple className="hidden"
+                            onChange={e => { Array.from(e.target.files || []).forEach(f => uploadFile(job.id, f)); }} />
+                          <div className="flex items-center justify-center gap-2 text-white/20 hover:text-white/40 transition">
+                            {processing?.startsWith(job.id) ? (
+                              <><Loader2 size={12} className="animate-spin text-blue-400" /><span className="text-xs">Processing...</span></>
+                            ) : (
+                              <><Upload size={12} /><span className="text-xs">Upload quote manually if not auto-detected</span></>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      {job.status === "complete" && job.master_sheet_url ? (
+                        <a href={job.master_sheet_url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
+                          <ExternalLink size={11} />View Master Sheet
+                        </a>
                       ) : (
-                        <><Upload size={12} /><span className="text-xs">Drop factory Excel files here or click to upload</span></>
+                        <button onClick={() => buildMaster(job.id)} disabled={building === job.id || quotesReceived === 0}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition disabled:opacity-40">
+                          {building === job.id ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                          {building === job.id ? "Building..." : "Build Master Sheet"}
+                        </button>
                       )}
                     </div>
-                  </label>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  {job.status === "complete" && job.master_sheet_url ? (
-                    <a href={job.master_sheet_url} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
-                      <ExternalLink size={11} />
-                      View Master Sheet
-                    </a>
-                  ) : (
-                    <button onClick={() => buildMaster(job.id)} disabled={building === job.id || quotesReceived === 0}
-                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition disabled:opacity-40">
-                      {building === job.id ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
-                      {building === job.id ? "Building..." : "Build Master Sheet"}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings }: {
+function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, products, onCatalogRefresh }: {
   def: typeof WORKFLOW_DEFS[0]; userWorkflow: UserWorkflow | undefined;
   onToggle: (type: string, enabled: boolean) => void;
   onSaveSettings: (type: string, settings: Record<string, string>) => void;
+  factories: Factory[]; products: Product[]; onCatalogRefresh: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>((userWorkflow?.settings as Record<string, string>) || {});
@@ -480,7 +758,6 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings }: {
           </div>
         </div>
 
-        {/* Step flow */}
         <div className="mt-4 flex flex-wrap items-center gap-1">
           {def.steps.map((step, i) => (
             <div key={i} className="flex items-center gap-1">
@@ -502,8 +779,8 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings }: {
       {expanded && (
         <div className="border-t border-white/[0.06] p-5 bg-white/[0.01]">
           {def.type === "factory_quote" ? (
-            <FactoryQuoteManager />
-          ) : (
+            <FactoryQuoteManager factories={factories} products={products} onCatalogRefresh={onCatalogRefresh} />
+          ) : def.settingsFields.length > 0 ? (
             <>
               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Settings</p>
               <div className="space-y-3">
@@ -528,7 +805,7 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings }: {
                 {saved ? "Saved!" : "Save Settings"}
               </button>
             </>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -542,15 +819,24 @@ export default function WorkflowsPage() {
   const [loading, setLoading] = useState(true);
   const [approving, setApproving] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"workflows" | "history">("workflows");
+  const [factories, setFactories] = useState<Factory[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const load = async () => {
-    const res = await fetch("/api/workflows");
+  const loadCatalog = useCallback(async () => {
+    const res = await fetch("/api/catalog");
     const data = await res.json();
+    setFactories(data.factories || []);
+    setProducts(data.products || []);
+  }, []);
+
+  const load = useCallback(async () => {
+    const [wfRes] = await Promise.all([fetch("/api/workflows"), loadCatalog()]);
+    const data = await wfRes.json();
     if (!data.error) { setPending(data.pending || []); setUserWorkflows(data.userWorkflows || []); setHistory(data.history || []); }
     setLoading(false);
-  };
+  }, [loadCatalog]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const handleApprove = async (id: string) => {
     setApproving(id);
@@ -627,7 +913,11 @@ export default function WorkflowsPage() {
                   <span className="text-xs text-white/30">{activeWorkflows.length} running</span>
                 </div>
                 <div className="space-y-3">
-                  {activeWorkflows.map(def => <WorkflowCard key={def.type} def={def} userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)} onToggle={handleToggle} onSaveSettings={handleSaveSettings} />)}
+                  {activeWorkflows.map(def => (
+                    <WorkflowCard key={def.type} def={def} userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)}
+                      onToggle={handleToggle} onSaveSettings={handleSaveSettings}
+                      factories={factories} products={products} onCatalogRefresh={loadCatalog} />
+                  ))}
                 </div>
               </div>
             )}
@@ -638,7 +928,11 @@ export default function WorkflowsPage() {
                 <span className="text-xs text-white/20">{inactiveWorkflows.length} ready to activate</span>
               </div>
               <div className="space-y-3">
-                {inactiveWorkflows.map(def => <WorkflowCard key={def.type} def={def} userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)} onToggle={handleToggle} onSaveSettings={handleSaveSettings} />)}
+                {inactiveWorkflows.map(def => (
+                  <WorkflowCard key={def.type} def={def} userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)}
+                    onToggle={handleToggle} onSaveSettings={handleSaveSettings}
+                    factories={factories} products={products} onCatalogRefresh={loadCatalog} />
+                ))}
               </div>
             </div>
 

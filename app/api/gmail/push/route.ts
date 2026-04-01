@@ -32,28 +32,130 @@ function getHeader(headers: any[], name: string): string {
   return headers?.find((h: any) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
 }
 
+function extractEmailAddress(from: string): string {
+  const match = from.match(/<(.+?)>/);
+  return match ? match[1].toLowerCase() : from.toLowerCase().trim();
+}
+
+async function detectAndProcessQuoteReply(
+  userId: string,
+  fromEmail: string,
+  subject: string,
+  body: string,
+  messageId: string,
+  accessToken: string
+) {
+  try {
+    // Find any waiting jobs for this user
+    const { data: jobs } = await supabaseAdmin
+      .from("factory_quote_jobs")
+      .select("*, factory_quotes(*)")
+      .eq("user_id", userId)
+      .in("status", ["waiting", "rfq_sent"]);
+
+    if (!jobs || jobs.length === 0) return false;
+
+    // Check if sender matches any factory in any active job
+    for (const job of jobs) {
+      const matchedFactory = (job.factories || []).find((f: any) =>
+        f.email?.toLowerCase() === fromEmail
+      );
+      if (!matchedFactory) continue;
+
+      // Already have a quote from this factory for this job?
+      const alreadyReceived = (job.factory_quotes || []).find(
+        (q: any) => q.factory_email?.toLowerCase() === fromEmail
+      );
+      if (alreadyReceived) continue;
+
+      // Check if email has Excel attachment
+      const msgRes = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=full`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const msgData = await msgRes.json();
+      const parts = msgData.payload?.parts || [];
+
+      // Find Excel attachment
+      const excelPart = parts.find((p: any) =>
+        p.filename?.match(/\.xlsx?$/i) ||
+        p.mimeType?.includes("spreadsheet") ||
+        p.mimeType?.includes("excel")
+      );
+
+      if (excelPart && excelPart.body?.attachmentId) {
+        // Download the attachment
+        const attRes = await fetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${excelPart.body.attachmentId}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const attData = await attRes.json();
+        const fileBase64 = attData.data?.replace(/-/g, "+").replace(/_/g, "/") || "";
+
+        // Auto-process the file
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/workflows/factory-quote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "process_file",
+            job_id: job.id,
+            factory_name: matchedFactory.name,
+            factory_email: fromEmail,
+            file_base64: fileBase64,
+            file_name: excelPart.filename,
+            auto_detected: true,
+          }),
+        });
+
+        // Log to company events
+        await supabaseAdmin.from("company_events").insert({
+          user_id: userId,
+          source: "Gmail",
+          event_type: "factory_quote_received",
+          title: `Quote received from ${matchedFactory.name}`,
+          summary: `Auto-detected factory quote reply for job: ${job.job_name}. Subject: ${subject}`,
+          importance: "high",
+          raw_data: { job_id: job.id, factory: matchedFactory.name, subject },
+          created_at: new Date().toISOString(),
+        });
+
+        return true;
+      } else {
+        // No Excel attachment — flag for manual upload
+        await supabaseAdmin.from("company_events").insert({
+          user_id: userId,
+          source: "Gmail",
+          event_type: "factory_quote_reply_no_attachment",
+          title: `Quote reply from ${matchedFactory.name} — no file attached`,
+          summary: `${matchedFactory.name} replied to your RFQ for "${job.job_name}" but didn't attach an Excel file. Upload it manually in Workflows.`,
+          importance: "high",
+          raw_data: { job_id: job.id, factory: matchedFactory.name, subject, body: body.slice(0, 500) },
+          created_at: new Date().toISOString(),
+        });
+        return true;
+      }
+    }
+    return false;
+  } catch (err) {
+    console.error("Quote detection error:", err);
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
-    // Decode the Pub/Sub message
     const messageData = body.message?.data;
     if (!messageData) return NextResponse.json({ received: true });
 
     const decoded = decodeBase64(messageData);
     let notification: any;
-    try {
-      notification = JSON.parse(decoded);
-    } catch {
-      return NextResponse.json({ received: true });
-    }
+    try { notification = JSON.parse(decoded); } catch { return NextResponse.json({ received: true }); }
 
     const gmailEmail = notification.emailAddress;
     const historyId = notification.historyId;
-
     if (!gmailEmail || !historyId) return NextResponse.json({ received: true });
 
-    // Find the user with this Gmail
     const { data: conn } = await supabaseAdmin
       .from("gmail_connections")
       .select("*")
@@ -61,10 +163,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!conn) return NextResponse.json({ received: true });
-
     const userId = conn.user_id;
 
-    // Refresh token if needed
     let accessToken = conn.access_token;
     if (new Date(conn.token_expiry) < new Date()) {
       const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -87,7 +187,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get history to find new messages
     const lastHistoryId = conn.last_history_id || historyId;
     const historyRes = await fetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/history?startHistoryId=${lastHistoryId}&historyTypes=messageAdded`,
@@ -95,10 +194,7 @@ export async function POST(request: NextRequest) {
     );
     const historyData = await historyRes.json();
 
-    // Update last history ID
-    await supabaseAdmin.from("gmail_connections").update({
-      last_history_id: historyId,
-    }).eq("user_id", userId);
+    await supabaseAdmin.from("gmail_connections").update({ last_history_id: historyId }).eq("user_id", userId);
 
     const messages = historyData.history?.flatMap((h: any) =>
       (h.messagesAdded || []).map((m: any) => m.message)
@@ -112,7 +208,6 @@ export async function POST(request: NextRequest) {
       .eq("user_id", userId)
       .single();
 
-    // Process each new email
     for (const msg of messages.slice(0, 5)) {
       try {
         const res = await fetch(
@@ -124,13 +219,20 @@ export async function POST(request: NextRequest) {
         const subject = getHeader(headers, "subject") || "(No subject)";
         const from = getHeader(headers, "from") || "Unknown";
         const date = getHeader(headers, "date") || "";
-        const body = extractEmailBody(data.payload).slice(0, 1000);
+        const emailBody = extractEmailBody(data.payload).slice(0, 1000);
         const isUnread = data.labelIds?.includes("UNREAD") ? "UNREAD" : "READ";
 
-        // Skip sent emails
         if (data.labelIds?.includes("SENT")) continue;
 
-        const rawData = `FROM: ${from}\nDATE: ${date}\nSUBJECT: ${subject}\nSTATUS: ${isUnread}\nBODY: ${body}`;
+        const fromEmail = extractEmailAddress(from);
+
+        // Check if this is a factory quote reply first
+        const wasQuote = await detectAndProcessQuoteReply(
+          userId, fromEmail, subject, emailBody, msg.id, accessToken
+        );
+
+        // Always process as a regular event too
+        const rawData = `FROM: ${from}\nDATE: ${date}\nSUBJECT: ${subject}\nSTATUS: ${isUnread}\n${wasQuote ? "NOTE: Auto-detected as factory quote reply\n" : ""}BODY: ${emailBody}`;
 
         const eventRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/process`, {
           method: "POST",
@@ -138,7 +240,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             userId,
             source: "Gmail",
-            eventType: "email",
+            eventType: wasQuote ? "factory_quote_email" : "email",
             rawData,
             companyContext: profile?.company_brief || "",
           }),
@@ -146,9 +248,8 @@ export async function POST(request: NextRequest) {
 
         const eventData = await eventRes.json();
 
-        // Rebuild snapshot for important emails immediately
         if (eventData.analysis?.importance === "critical" || eventData.analysis?.importance === "high") {
-        bustDashboardCache(userId).catch(() => {});
+          bustDashboardCache(userId).catch(() => {});
           fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/events/snapshot`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "x-user-id": userId },
