@@ -252,19 +252,47 @@ export default function DashboardPage() {
     finally { setLoading(false); }
   };
 
+  const SYNC_STEPS = [
+    { message: "Connecting to integrations...", icon: "⚡", pct: 8 },
+    { message: "Reading Gmail & Outlook...", icon: "📧", pct: 18 },
+    { message: "Pulling Stripe payments...", icon: "💳", pct: 28 },
+    { message: "Syncing QuickBooks invoices...", icon: "📒", pct: 38 },
+    { message: "Scanning Google Drive...", icon: "📁", pct: 48 },
+    { message: "Processing new events...", icon: "⚙️", pct: 58 },
+    { message: "Updating Company Brain...", icon: "🧠", pct: 68 },
+    { message: "Analyzing business context...", icon: "🔍", pct: 78 },
+    { message: "Writing your briefing...", icon: "✍️", pct: 88 },
+    { message: "Finalizing dashboard...", icon: "✅", pct: 95 },
+  ];
+  const [syncProgress, setSyncProgress] = useState(0);
+  const [syncStep, setSyncStep] = useState(0);
+
   const refresh = async () => {
     setSyncing(true);
-    setSyncMessage("Syncing all integrations...");
+    setSyncProgress(0);
+    setSyncStep(0);
+    let stepIndex = 0;
+    const stepInterval = setInterval(() => {
+      if (stepIndex < SYNC_STEPS.length - 1) {
+        stepIndex++;
+        setSyncStep(stepIndex);
+        setSyncProgress(SYNC_STEPS[stepIndex].pct);
+      }
+    }, 1800);
     try {
       await fetch("/api/sync", { method: "POST" });
-      setSyncMessage("Rebuilding dashboard...");
       await fetch("/api/cache", { method: "DELETE" });
       _cachedData = null;
       try { localStorage.removeItem("jimmy_dashboard"); } catch {}
+      clearInterval(stepInterval);
+      setSyncProgress(100);
       await load();
-      setSyncMessage("");
+      setSyncProgress(0);
+      setSyncStep(0);
     } catch {
+      clearInterval(stepInterval);
       setSyncMessage("Refresh failed — try again");
+      setSyncProgress(0);
     } finally {
       setSyncing(false);
     }
@@ -305,6 +333,33 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Sync Progress Bar */}
+      {syncing && (
+        <div className="mb-6 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+            <p className="text-xs text-white/50 font-medium">
+              {SYNC_STEPS[syncStep]?.icon} {SYNC_STEPS[syncStep]?.message}
+            </p>
+            <p className="text-[10px] text-white/20 ml-auto">{syncProgress}%</p>
+          </div>
+          <div className="w-full bg-white/[0.05] rounded-full h-1">
+            <div
+              className="h-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-700"
+              style={{ width: `${syncProgress}%` }}
+            />
+          </div>
+          <div className="flex items-center gap-4 mt-3 overflow-hidden">
+            {SYNC_STEPS.map((step, i) => (
+              <div key={i} className={`flex items-center gap-1 text-[10px] whitespace-nowrap transition-all ${i <= syncStep ? "text-white/40" : "text-white/15"}`}>
+                <span>{step.icon}</span>
+                <span className={i === syncStep ? "text-blue-400 font-medium" : ""}>{step.message.replace("...", "")}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* AI Briefing */}
       <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 mb-6">
