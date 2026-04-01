@@ -400,7 +400,18 @@ Thanks so much,
     // Open draft modal instead of sending immediately
     if (data.job?.id) {
       await loadJobs();
-      openDraft(data.job.id);
+      // Use job data directly since state may not have updated yet
+      const jobName = newJob.job_name;
+      const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Payment terms"];
+      const body = `Hi [contact name],
+
+Hope you're doing well! Please find attached our product list for the ${jobName}.
+
+Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for ${DEFAULT_FIELDS.join(", ")} — but just fill in whatever applies.
+
+Thanks so much,
+[your name]`;
+      setDraftModal({ jobId: data.job.id, emailBody: body, fields: DEFAULT_FIELDS });
     }
   };
 
