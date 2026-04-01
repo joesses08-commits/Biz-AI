@@ -14,7 +14,15 @@ const supabaseAdmin = createClient(
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-async function getUser() {
+async function getUser(req?: NextRequest) {
+  // Allow internal calls from push handlers
+  if (req) {
+    const secret = req.headers.get("x-internal-secret");
+    const userId = req.headers.get("x-user-id");
+    if (secret === process.env.CRON_SECRET && userId) {
+      return { id: userId } as any;
+    }
+  }
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,7 +73,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getUser();
+    const user = await getUser(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();

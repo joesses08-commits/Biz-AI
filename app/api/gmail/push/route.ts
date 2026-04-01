@@ -95,7 +95,7 @@ async function detectAndProcessQuoteReply(
         // Auto-process the file
         await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/workflows/factory-quote`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-internal-secret": process.env.CRON_SECRET || "", "x-user-id": userId },
           body: JSON.stringify({
             action: "process_file",
             job_id: job.id,
