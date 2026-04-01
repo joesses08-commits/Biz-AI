@@ -383,7 +383,7 @@ Return ONLY raw JSON, no markdown:
             sellCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFACD" } };
           }
 
-          row.height = isBest && f.image_base64 ? 60 : 18;
+          if (!f.image_base64 || index !== 0) row.height = 18;
         });
 
         // Empty spacer row between products
