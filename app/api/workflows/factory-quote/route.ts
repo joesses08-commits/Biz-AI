@@ -166,7 +166,13 @@ Return ONLY raw JSON, no markdown:
         const elc = afterTariff + freight;
         return {
           ...p,
-          factory_name: (factory_name || parsed.factory_name || "Unknown").replace(/_Quote$/, "").replace(/_/g, " "),
+          factory_name: (factory_name || parsed.factory_name || "Unknown")
+            .replace(/_Quote_with_Images$/i, "")
+            .replace(/_Quote$/i, "")
+            .replace(/ Quote with Images$/i, "")
+            .replace(/ Quote$/i, "")
+            .replace(/_/g, " ")
+            .trim(),
           factory_email,
           first_cost: firstCost,
           duty_pct: orderDetails.duty_pct || "30",
