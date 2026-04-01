@@ -5,7 +5,7 @@ import {
   Zap, AlertCircle, Check, X, ChevronRight, ChevronDown,
   Settings, Eye, Factory, CreditCard, Calendar, FileText,
   TrendingDown, Loader2, ArrowRight, Shield, Bot, RotateCcw, Circle,
-  Upload, Plus, FileSpreadsheet, ExternalLink, Trash2, Send, Package, Building2
+  Upload, Plus, FileSpreadsheet, ExternalLink, Trash2, Send, Building2, Sparkles
 } from "lucide-react";
 
 interface PendingAction {
@@ -22,19 +22,17 @@ interface HistoryItem {
   title: string; status: string; created_at: string;
 }
 interface Factory { id: string; name: string; email: string; contact_name?: string; notes?: string; }
-interface Product { id: string; name: string; description?: string; specs?: string; target_quantity?: number; }
 
 const WORKFLOW_DEFS = [
   {
     type: "factory_quote", icon: Factory, name: "Factory Quote Request",
-    tagline: "Auto-request & compare quotes from suppliers", color: "#3b82f6",
+    tagline: "Upload product list → Jimmy emails factories → auto-compares quotes", color: "#3b82f6",
     steps: [
-      { label: "Pick product + factories", type: "input", auto: false },
-      { label: "Jimmy drafts & sends RFQ emails", type: "draft", auto: true },
+      { label: "Upload product list + pick factories", type: "input", auto: false },
+      { label: "Jimmy emails file to each factory", type: "draft", auto: true },
       { label: "Jimmy monitors replies", type: "monitor", auto: true },
       { label: "Quotes auto-extracted", type: "execute", auto: true },
-      { label: "Comparison sheet built", type: "execute", auto: true },
-      { label: "AI recommendation", type: "analysis", auto: true },
+      { label: "Comparison sheet + AI recommendation", type: "analysis", auto: true },
     ],
     settingsFields: [],
   },
@@ -187,102 +185,77 @@ function PendingCard({ action, onApprove, onReject, approving }: {
   );
 }
 
-// ── CATALOG MANAGER ────────────────────────────────────────────────────────
-function CatalogManager({ factories, products, onRefresh }: {
-  factories: Factory[]; products: Product[]; onRefresh: () => void;
-}) {
-  const [tab, setTab] = useState<"factories" | "products">("factories");
+// ── FACTORY CATALOG MANAGER ────────────────────────────────────────────────
+function FactoryCatalog({ factories, onRefresh }: { factories: Factory[]; onRefresh: () => void; }) {
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [newFactory, setNewFactory] = useState({ name: "", email: "", contact_name: "", notes: "" });
-  const [newProduct, setNewProduct] = useState({ name: "", description: "", specs: "", target_quantity: "" });
+  const [form, setForm] = useState({ name: "", email: "", contact_name: "", notes: "" });
 
-  const addFactory = async () => {
-    if (!newFactory.name || !newFactory.email) return;
+  const save = async () => {
+    if (!form.name || !form.email) return;
     setSaving(true);
     await fetch("/api/catalog", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "add_factory", ...newFactory }),
+      body: JSON.stringify({ action: "add_factory", ...form }),
     });
     setSaving(false);
     setAdding(false);
-    setNewFactory({ name: "", email: "", contact_name: "", notes: "" });
+    setForm({ name: "", email: "", contact_name: "", notes: "" });
     onRefresh();
   };
 
-  const addProduct = async () => {
-    if (!newProduct.name) return;
-    setSaving(true);
+  const remove = async (id: string) => {
     await fetch("/api/catalog", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "add_product", ...newProduct, target_quantity: newProduct.target_quantity ? parseInt(newProduct.target_quantity) : null }),
+      body: JSON.stringify({ action: "delete_factory", id }),
     });
-    setSaving(false);
-    setAdding(false);
-    setNewProduct({ name: "", description: "", specs: "", target_quantity: "" });
-    onRefresh();
-  };
-
-  const deleteFactory = async (id: string) => {
-    await fetch("/api/catalog", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_factory", id }) });
-    onRefresh();
-  };
-
-  const deleteProduct = async (id: string) => {
-    await fetch("/api/catalog", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id }) });
     onRefresh();
   };
 
   return (
     <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg p-0.5">
-          <button onClick={() => { setTab("factories"); setAdding(false); }}
-            className={`px-3 py-1 rounded-md text-[11px] font-semibold transition ${tab === "factories" ? "bg-white text-black" : "text-white/40"}`}>
-            <span className="flex items-center gap-1"><Building2 size={10} />Factories ({factories.length})</span>
-          </button>
-          <button onClick={() => { setTab("products"); setAdding(false); }}
-            className={`px-3 py-1 rounded-md text-[11px] font-semibold transition ${tab === "products" ? "bg-white text-black" : "text-white/40"}`}>
-            <span className="flex items-center gap-1"><Package size={10} />Products ({products.length})</span>
-          </button>
+        <div className="flex items-center gap-2">
+          <Building2 size={12} className="text-white/30" />
+          <p className="text-[11px] text-white/40 uppercase tracking-widest">Factory Catalog</p>
+          <span className="text-[10px] text-white/20">{factories.length} saved</span>
         </div>
         <button onClick={() => setAdding(!adding)}
-          className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition px-2 py-1 rounded-lg border border-white/[0.06] hover:border-white/10">
-          <Plus size={10} />Add
+          className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition px-2 py-1 rounded-lg border border-white/[0.06]">
+          <Plus size={10} />Add Factory
         </button>
       </div>
 
-      {/* Add form */}
-      {adding && tab === "factories" && (
+      {adding && (
         <div className="mb-3 p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] text-white/30 mb-1 block">Factory Name *</label>
-              <input value={newFactory.name} onChange={e => setNewFactory({...newFactory, name: e.target.value})}
+              <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
                 placeholder="Yuecheng" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
             <div>
               <label className="text-[10px] text-white/30 mb-1 block">Email *</label>
-              <input value={newFactory.email} onChange={e => setNewFactory({...newFactory, email: e.target.value})}
+              <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
                 placeholder="quotes@factory.com" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[10px] text-white/30 mb-1 block">Contact Name</label>
-              <input value={newFactory.contact_name} onChange={e => setNewFactory({...newFactory, contact_name: e.target.value})}
+              <input value={form.contact_name} onChange={e => setForm({...form, contact_name: e.target.value})}
                 placeholder="Jenny Li" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
             <div>
               <label className="text-[10px] text-white/30 mb-1 block">Notes</label>
-              <input value={newFactory.notes} onChange={e => setNewFactory({...newFactory, notes: e.target.value})}
+              <input value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
                 placeholder="Specializes in glass" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={addFactory} disabled={saving || !newFactory.name || !newFactory.email}
+            <button onClick={save} disabled={saving || !form.name || !form.email}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
               {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
             </button>
@@ -291,86 +264,27 @@ function CatalogManager({ factories, products, onRefresh }: {
         </div>
       )}
 
-      {adding && tab === "products" && (
-        <div className="mb-3 p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[10px] text-white/30 mb-1 block">Product Name *</label>
-              <input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-                placeholder="Glass Water Bottle" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+      <div className="space-y-1.5">
+        {factories.length === 0 ? (
+          <p className="text-[11px] text-white/15 py-2">No factories saved yet — add one above. These stay saved across all jobs.</p>
+        ) : factories.map(f => (
+          <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+            <Building2 size={11} className="text-white/20 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-white/70 font-medium">{f.name}</p>
+              <p className="text-[10px] text-white/30">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
             </div>
-            <div>
-              <label className="text-[10px] text-white/30 mb-1 block">Target Quantity</label>
-              <input value={newProduct.target_quantity} onChange={e => setNewProduct({...newProduct, target_quantity: e.target.value})}
-                placeholder="500" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
-            </div>
+            <button onClick={() => remove(f.id)} className="text-white/15 hover:text-red-400 transition"><Trash2 size={11} /></button>
           </div>
-          <div>
-            <label className="text-[10px] text-white/30 mb-1 block">Description</label>
-            <input value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}
-              placeholder="16oz borosilicate glass bottle with bamboo lid" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
-          </div>
-          <div>
-            <label className="text-[10px] text-white/30 mb-1 block">Specs</label>
-            <textarea value={newProduct.specs} onChange={e => setNewProduct({...newProduct, specs: e.target.value})}
-              placeholder="Material: borosilicate glass&#10;Capacity: 16oz / 500ml&#10;Lid: bamboo screw top&#10;Finish: frosted" rows={3}
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 resize-none" />
-          </div>
-          <div className="flex gap-2">
-            <button onClick={addProduct} disabled={saving || !newProduct.name}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
-              {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
-            </button>
-            <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {/* List */}
-      {tab === "factories" && (
-        <div className="space-y-1.5">
-          {factories.length === 0 ? (
-            <p className="text-[11px] text-white/15 py-2">No factories saved yet — add one above.</p>
-          ) : factories.map(f => (
-            <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-              <Building2 size={11} className="text-white/20 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/70 font-medium">{f.name}</p>
-                <p className="text-[10px] text-white/30">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
-              </div>
-              <button onClick={() => deleteFactory(f.id)} className="text-white/15 hover:text-red-400 transition">
-                <Trash2 size={11} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === "products" && (
-        <div className="space-y-1.5">
-          {products.length === 0 ? (
-            <p className="text-[11px] text-white/15 py-2">No products saved yet — add one above.</p>
-          ) : products.map(p => (
-            <div key={p.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-              <Package size={11} className="text-white/20 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/70 font-medium">{p.name}</p>
-                <p className="text-[10px] text-white/30">{p.description || p.specs?.slice(0, 60) || "No description"}{p.target_quantity ? ` · Qty: ${p.target_quantity}` : ""}</p>
-              </div>
-              <button onClick={() => deleteProduct(p.id)} className="text-white/15 hover:text-red-400 transition">
-                <Trash2 size={11} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
 
 // ── FACTORY QUOTE MANAGER ──────────────────────────────────────────────────
-function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
-  factories: Factory[]; products: Product[]; onCatalogRefresh: () => void;
+function FactoryQuoteManager({ factories, onCatalogRefresh }: {
+  factories: Factory[]; onCatalogRefresh: () => void;
 }) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -379,11 +293,10 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
   const [sending, setSending] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [building, setBuilding] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"jobs" | "catalog">("jobs");
-
+  const [activeTab, setActiveTab] = useState<"jobs" | "factories">("jobs");
+  const [productFile, setProductFile] = useState<File | null>(null);
   const [newJob, setNewJob] = useState({
     job_name: "",
-    product_id: "",
     factory_ids: [] as string[],
     duty_pct: "30",
     tariff_pct: "20",
@@ -402,15 +315,24 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
   const toggleFactory = (id: string) => {
     setNewJob(j => ({
       ...j,
-      factory_ids: j.factory_ids.includes(id) ? j.factory_ids.filter(f => f !== id) : [...j.factory_ids, id],
+      factory_ids: j.factory_ids.includes(id)
+        ? j.factory_ids.filter(f => f !== id)
+        : [...j.factory_ids, id],
     }));
   };
 
   const createJob = async () => {
-    if (!newJob.job_name || newJob.factory_ids.length === 0) return;
+    if (!newJob.job_name || newJob.factory_ids.length === 0 || !productFile) return;
     setCreating(true);
-    const selectedProduct = products.find(p => p.id === newJob.product_id);
+
     const selectedFactories = factories.filter(f => newJob.factory_ids.includes(f.id));
+
+    // Read file as base64
+    const fileBase64 = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve((e.target?.result as string).split(",")[1]);
+      reader.readAsDataURL(productFile);
+    });
 
     const res = await fetch("/api/workflows/factory-quote", {
       method: "POST",
@@ -418,23 +340,20 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
       body: JSON.stringify({
         action: "create_job",
         job_name: newJob.job_name,
-        product: selectedProduct ? {
-          name: selectedProduct.name,
-          description: selectedProduct.description,
-          specs: selectedProduct.specs,
-          target_quantity: selectedProduct.target_quantity,
-        } : { name: newJob.job_name },
-        factories: selectedFactories.map(f => ({ name: f.name, email: f.email })),
+        factories: selectedFactories.map(f => ({ name: f.name, email: f.email, contact_name: f.contact_name })),
         order_details: { duty_pct: newJob.duty_pct, tariff_pct: newJob.tariff_pct, freight: newJob.freight },
+        product_file_base64: fileBase64,
+        product_file_name: productFile.name,
       }),
     });
     const data = await res.json();
     setCreating(false);
     setShowNew(false);
-    setNewJob({ job_name: "", product_id: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" });
+    setNewJob({ job_name: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" });
+    setProductFile(null);
     await loadJobs();
 
-    // Auto-send RFQs
+    // Auto-send RFQs immediately
     if (data.job?.id) {
       setSending(data.job.id);
       await fetch("/api/workflows/factory-quote", {
@@ -447,21 +366,24 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
     }
   };
 
-  const uploadFile = async (jobId: string, file: File) => {
-    setProcessing(jobId + file.name);
+  const uploadQuote = async (jobId: string, file: File) => {
+    setProcessing(jobId);
     const reader = new FileReader();
     reader.onload = async (e) => {
       const base64 = (e.target?.result as string).split(",")[1];
       const job = jobs.find(j => j.id === jobId);
       const jobFactories = job?.factories || [];
+      const matchedFactory = jobFactories.find((f: any) =>
+        file.name.toLowerCase().includes(f.name?.toLowerCase())
+      );
       await fetch("/api/workflows/factory-quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "process_file",
           job_id: jobId,
-          factory_name: file.name.replace(/\.xlsx?$/, ""),
-          factory_email: jobFactories.find((f: any) => file.name.toLowerCase().includes(f.name?.toLowerCase()))?.email || "",
+          factory_name: matchedFactory?.name || file.name.replace(/\.xlsx?$/, ""),
+          factory_email: matchedFactory?.email || "",
           file_base64: base64,
           file_name: file.name,
         }),
@@ -493,10 +415,7 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
   };
 
   const statusLabels: Record<string, string> = {
-    waiting: "Draft",
-    rfq_sent: "RFQs Sent",
-    ready: "Ready to Build",
-    complete: "Complete",
+    waiting: "Draft", rfq_sent: "RFQs Sent", ready: "Ready", complete: "Complete",
   };
 
   return (
@@ -507,14 +426,14 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "jobs" ? "bg-white text-black" : "text-white/40"}`}>
           Jobs
         </button>
-        <button onClick={() => setActiveTab("catalog")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "catalog" ? "bg-white text-black" : "text-white/40"}`}>
-          Catalog
+        <button onClick={() => setActiveTab("factories")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factories" ? "bg-white text-black" : "text-white/40"}`}>
+          Factories
         </button>
       </div>
 
-      {activeTab === "catalog" && (
-        <CatalogManager factories={factories} products={products} onRefresh={onCatalogRefresh} />
+      {activeTab === "factories" && (
+        <FactoryCatalog factories={factories} onRefresh={onCatalogRefresh} />
       )}
 
       {activeTab === "jobs" && (
@@ -525,7 +444,7 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
           </button>
 
           {showNew && (
-            <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-3">
+            <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-4">
               <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
 
               <div>
@@ -535,40 +454,52 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
                   className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
               </div>
 
-              {/* Product picker */}
+              {/* Product file upload */}
               <div>
-                <label className="text-[11px] text-white/30 mb-1.5 block">Product <span className="text-white/15">(from your catalog)</span></label>
-                {products.length === 0 ? (
-                  <p className="text-[11px] text-white/20 italic">No products in catalog — go to Catalog tab to add one.</p>
-                ) : (
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {products.map(p => (
-                      <button key={p.id} onClick={() => setNewJob({...newJob, product_id: newJob.product_id === p.id ? "" : p.id})}
-                        className={`text-left px-3 py-2 rounded-lg border text-xs transition ${newJob.product_id === p.id ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/[0.06] bg-white/[0.02] text-white/50 hover:border-white/10"}`}>
-                        <p className="font-medium">{p.name}</p>
-                        {p.target_quantity && <p className="text-[10px] opacity-60">Qty: {p.target_quantity}</p>}
-                      </button>
-                    ))}
+                <label className="text-[11px] text-white/30 mb-1.5 block">Product List File <span className="text-white/15">(your Excel with products — gets sent to factories as-is)</span></label>
+                <label className="cursor-pointer block">
+                  <input type="file" accept=".xlsx,.xls" className="hidden"
+                    onChange={e => setProductFile(e.target.files?.[0] || null)} />
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition ${productFile ? "border-emerald-500/30 bg-emerald-500/5" : "border-dashed border-white/[0.08] hover:border-white/20 bg-white/[0.02]"}`}>
+                    {productFile ? (
+                      <>
+                        <FileSpreadsheet size={14} className="text-emerald-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-emerald-300 font-medium truncate">{productFile.name}</p>
+                          <p className="text-[10px] text-white/30">This exact file will be emailed to each factory</p>
+                        </div>
+                        <button onClick={e => { e.preventDefault(); setProductFile(null); }} className="text-white/20 hover:text-red-400 transition">
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={14} className="text-white/20 flex-shrink-0" />
+                        <p className="text-xs text-white/30">Click to upload your product list Excel</p>
+                      </>
+                    )}
                   </div>
-                )}
+                </label>
               </div>
 
               {/* Factory picker */}
               <div>
-                <label className="text-[11px] text-white/30 mb-1.5 block">Factories to Quote <span className="text-white/15">(select all you want to send to)</span></label>
+                <label className="text-[11px] text-white/30 mb-1.5 block">Send To <span className="text-white/15">(select factories)</span></label>
                 {factories.length === 0 ? (
-                  <p className="text-[11px] text-white/20 italic">No factories in catalog — go to Catalog tab to add one.</p>
+                  <div className="text-[11px] text-white/20 italic p-3 border border-white/[0.06] rounded-xl">
+                    No factories saved yet — go to the Factories tab to add them. They stay saved permanently.
+                  </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {factories.map(f => (
                       <button key={f.id} onClick={() => toggleFactory(f.id)}
                         className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition ${newJob.factory_ids.includes(f.id) ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-white/[0.06] bg-white/[0.02] text-white/50 hover:border-white/10"}`}>
                         <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${newJob.factory_ids.includes(f.id) ? "border-emerald-400 bg-emerald-500" : "border-white/20"}`}>
                           {newJob.factory_ids.includes(f.id) && <Check size={9} className="text-black" />}
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium">{f.name}</p>
-                          <p className="text-[10px] opacity-60">{f.email}</p>
+                          <p className="text-[10px] opacity-60">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
                         </div>
                       </button>
                     ))}
@@ -576,32 +507,38 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { key: "duty_pct", label: "Duty %", placeholder: "30" },
-                  { key: "tariff_pct", label: "Tariff %", placeholder: "20" },
-                  { key: "freight", label: "Freight/unit ($)", placeholder: "0.15" },
-                ].map(field => (
-                  <div key={field.key}>
-                    <label className="text-[11px] text-white/30 mb-1 block">{field.label}</label>
-                    <input value={(newJob as any)[field.key]} onChange={e => setNewJob({...newJob, [field.key]: e.target.value})}
-                      placeholder={field.placeholder}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
-                  </div>
-                ))}
+              {/* Cost settings */}
+              <div>
+                <label className="text-[11px] text-white/30 mb-1.5 block">Cost Settings</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: "duty_pct", label: "Duty %", placeholder: "30" },
+                    { key: "tariff_pct", label: "Tariff %", placeholder: "20" },
+                    { key: "freight", label: "Freight/unit ($)", placeholder: "0.15" },
+                  ].map(field => (
+                    <div key={field.key}>
+                      <label className="text-[10px] text-white/20 mb-1 block">{field.label}</label>
+                      <input value={(newJob as any)[field.key]} onChange={e => setNewJob({...newJob, [field.key]: e.target.value})}
+                        placeholder={field.placeholder}
+                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                <button onClick={createJob} disabled={creating || !newJob.job_name || newJob.factory_ids.length === 0}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-50">
+              <div className="flex gap-2 items-center">
+                <button onClick={createJob}
+                  disabled={creating || !newJob.job_name || newJob.factory_ids.length === 0 || !productFile}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
                   {creating ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                   Create & Send RFQs
                 </button>
-                <button onClick={() => setShowNew(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
+                <button onClick={() => { setShowNew(false); setProductFile(null); }}
+                  className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
                   Cancel
                 </button>
               </div>
-              <p className="text-[10px] text-white/20">Jimmy will draft and send an RFQ email to each selected factory immediately.</p>
+              <p className="text-[10px] text-white/15">Jimmy will email your product list to each selected factory with a personalized message asking them to fill in their pricing and send it back.</p>
             </div>
           )}
 
@@ -609,95 +546,115 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
           {loading ? (
             <div className="flex items-center gap-2 text-white/20 text-xs py-2"><Loader2 size={11} className="animate-spin" />Loading jobs...</div>
           ) : jobs.length === 0 ? (
-            <p className="text-white/15 text-xs py-2">No quote jobs yet.</p>
+            <p className="text-white/15 text-xs py-2">No quote jobs yet — create one above.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {jobs.map(job => {
                 const quotesReceived = job.factory_quotes?.length || 0;
                 const totalFactories = job.factories?.length || 0;
                 const pct = totalFactories > 0 ? Math.round((quotesReceived / totalFactories) * 100) : 0;
                 const isSending = sending === job.id;
+
                 return (
-                  <div key={job.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div>
-                        <p className="text-sm font-semibold text-white mb-0.5">{job.job_name}</p>
-                        {job.product?.name && <p className="text-[10px] text-blue-400/70 mb-0.5">📦 {job.product.name}</p>}
-                        <p className="text-[10px] text-white/25">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  <div key={job.id} className="border border-white/[0.06] rounded-xl overflow-hidden bg-white/[0.01]">
+                    <div className="p-4">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white mb-0.5">{job.job_name}</p>
+                          {job.product_file_name && (
+                            <p className="text-[10px] text-blue-400/60 mb-0.5">📎 {job.product_file_name}</p>
+                          )}
+                          <p className="text-[10px] text-white/25">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[job.status] || "text-white/30 bg-white/5 border-white/10"}`}>
+                          {statusLabels[job.status] || job.status}
+                        </span>
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border capitalize ${statusColors[job.status] || "text-white/30 bg-white/5 border-white/10"}`}>
-                        {statusLabels[job.status] || job.status}
-                      </span>
-                    </div>
 
-                    {isSending && (
-                      <div className="flex items-center gap-2 text-blue-400 text-xs mb-3 bg-blue-500/5 border border-blue-500/10 rounded-lg px-3 py-2">
-                        <Loader2 size={11} className="animate-spin" />
-                        Sending RFQ emails to {totalFactories} factories...
-                      </div>
-                    )}
-
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-white/30">Quotes received</span>
-                        <span className="text-[10px] text-white/40">{quotesReceived} / {totalFactories}</span>
-                      </div>
-                      <div className="w-full bg-white/[0.05] rounded-full h-1.5">
-                        <div className="h-1.5 rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 mb-3">
-                      {(job.factories || []).map((factory: any, i: number) => {
-                        const received = job.factory_quotes?.find((q: any) =>
-                          q.factory_name === factory.name || q.factory_email === factory.email
-                        );
-                        return (
-                          <div key={i} className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : job.status === "rfq_sent" || job.status === "ready" || job.status === "complete" ? "bg-blue-400/50" : "bg-white/15"}`} />
-                            <span className="text-[11px] text-white/40">{factory.name}</span>
-                            {factory.email && <span className="text-[10px] text-white/20">{factory.email}</span>}
-                            {received ? (
-                              <span className="text-[10px] text-emerald-400/70 ml-auto">{received.processed_data?.length || 0} products</span>
-                            ) : (job.status === "rfq_sent") ? (
-                              <span className="text-[10px] text-blue-400/50 ml-auto">RFQ sent</span>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Manual upload fallback */}
-                    {job.status !== "complete" && (
-                      <div className="border border-dashed border-white/[0.06] rounded-xl p-3 mb-3 text-center">
-                        <label className="cursor-pointer">
-                          <input type="file" accept=".xlsx,.xls" multiple className="hidden"
-                            onChange={e => { Array.from(e.target.files || []).forEach(f => uploadFile(job.id, f)); }} />
-                          <div className="flex items-center justify-center gap-2 text-white/20 hover:text-white/40 transition">
-                            {processing?.startsWith(job.id) ? (
-                              <><Loader2 size={12} className="animate-spin text-blue-400" /><span className="text-xs">Processing...</span></>
-                            ) : (
-                              <><Upload size={12} /><span className="text-xs">Upload quote manually if not auto-detected</span></>
-                            )}
-                          </div>
-                        </label>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2">
-                      {job.status === "complete" && job.master_sheet_url ? (
-                        <a href={job.master_sheet_url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
-                          <ExternalLink size={11} />View Master Sheet
-                        </a>
-                      ) : (
-                        <button onClick={() => buildMaster(job.id)} disabled={building === job.id || quotesReceived === 0}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition disabled:opacity-40">
-                          {building === job.id ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
-                          {building === job.id ? "Building..." : "Build Master Sheet"}
-                        </button>
+                      {isSending && (
+                        <div className="flex items-center gap-2 text-blue-400 text-xs mb-3 bg-blue-500/5 border border-blue-500/10 rounded-lg px-3 py-2">
+                          <Loader2 size={11} className="animate-spin" />
+                          Sending RFQ emails to {totalFactories} {totalFactories === 1 ? "factory" : "factories"}...
+                        </div>
                       )}
+
+                      {/* Progress */}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-white/30">Quotes received</span>
+                          <span className="text-[10px] text-white/40">{quotesReceived} / {totalFactories}</span>
+                        </div>
+                        <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+                          <div className="h-1.5 rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+
+                      {/* Factory statuses */}
+                      <div className="space-y-1 mb-3">
+                        {(job.factories || []).map((factory: any, i: number) => {
+                          const received = job.factory_quotes?.find((q: any) =>
+                            q.factory_name === factory.name || q.factory_email === factory.email
+                          );
+                          return (
+                            <div key={i} className="flex items-center gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : job.status === "rfq_sent" || job.status === "ready" || job.status === "complete" ? "bg-blue-400/40" : "bg-white/15"}`} />
+                              <span className="text-[11px] text-white/50">{factory.name}</span>
+                              {factory.email && <span className="text-[10px] text-white/20">{factory.email}</span>}
+                              {received ? (
+                                <span className="text-[10px] text-emerald-400/70 ml-auto">{received.processed_data?.length || 0} products</span>
+                              ) : (job.status === "rfq_sent" || job.status === "ready" || job.status === "complete") ? (
+                                <span className="text-[10px] text-blue-400/40 ml-auto">awaiting reply</span>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Manual upload fallback */}
+                      {job.status !== "complete" && (
+                        <div className="border border-dashed border-white/[0.06] rounded-xl p-3 mb-3 text-center">
+                          <label className="cursor-pointer">
+                            <input type="file" accept=".xlsx,.xls" multiple className="hidden"
+                              onChange={e => { Array.from(e.target.files || []).forEach(f => uploadQuote(job.id, f)); }} />
+                            <div className="flex items-center justify-center gap-2 text-white/20 hover:text-white/40 transition">
+                              {processing === job.id ? (
+                                <><Loader2 size={12} className="animate-spin text-blue-400" /><span className="text-xs">Processing quote...</span></>
+                              ) : (
+                                <><Upload size={12} /><span className="text-xs">Upload a quote manually if not auto-detected</span></>
+                              )}
+                            </div>
+                          </label>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        {job.status === "complete" && job.master_sheet_url ? (
+                          <a href={job.master_sheet_url} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
+                            <ExternalLink size={11} />View Master Sheet
+                          </a>
+                        ) : (
+                          <button onClick={() => buildMaster(job.id)}
+                            disabled={building === job.id || quotesReceived === 0}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition disabled:opacity-40">
+                            {building === job.id ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                            {building === job.id ? "Building..." : "Build Master Sheet"}
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {/* AI Recommendation — shows after complete */}
+                    {job.status === "complete" && job.ai_recommendation && (
+                      <div className="border-t border-white/[0.06] px-4 py-3 bg-purple-500/[0.03]">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles size={11} className="text-purple-400" />
+                          <p className="text-[10px] font-semibold text-purple-400 uppercase tracking-widest">Jimmy's Recommendation</p>
+                        </div>
+                        <p className="text-xs text-white/50 leading-relaxed">{job.ai_recommendation}</p>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -709,11 +666,11 @@ function FactoryQuoteManager({ factories, products, onCatalogRefresh }: {
   );
 }
 
-function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, products, onCatalogRefresh }: {
+function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, onCatalogRefresh }: {
   def: typeof WORKFLOW_DEFS[0]; userWorkflow: UserWorkflow | undefined;
   onToggle: (type: string, enabled: boolean) => void;
   onSaveSettings: (type: string, settings: Record<string, string>) => void;
-  factories: Factory[]; products: Product[]; onCatalogRefresh: () => void;
+  factories: Factory[]; onCatalogRefresh: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [settings, setSettings] = useState<Record<string, string>>((userWorkflow?.settings as Record<string, string>) || {});
@@ -779,7 +736,7 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, 
       {expanded && (
         <div className="border-t border-white/[0.06] p-5 bg-white/[0.01]">
           {def.type === "factory_quote" ? (
-            <FactoryQuoteManager factories={factories} products={products} onCatalogRefresh={onCatalogRefresh} />
+            <FactoryQuoteManager factories={factories} onCatalogRefresh={onCatalogRefresh} />
           ) : def.settingsFields.length > 0 ? (
             <>
               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Settings</p>
@@ -820,19 +777,21 @@ export default function WorkflowsPage() {
   const [approving, setApproving] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"workflows" | "history">("workflows");
   const [factories, setFactories] = useState<Factory[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
 
   const loadCatalog = useCallback(async () => {
-    const res = await fetch("/api/catalog");
+    const res = await fetch("/api/catalog?type=factories");
     const data = await res.json();
     setFactories(data.factories || []);
-    setProducts(data.products || []);
   }, []);
 
   const load = useCallback(async () => {
     const [wfRes] = await Promise.all([fetch("/api/workflows"), loadCatalog()]);
     const data = await wfRes.json();
-    if (!data.error) { setPending(data.pending || []); setUserWorkflows(data.userWorkflows || []); setHistory(data.history || []); }
+    if (!data.error) {
+      setPending(data.pending || []);
+      setUserWorkflows(data.userWorkflows || []);
+      setHistory(data.history || []);
+    }
     setLoading(false);
   }, [loadCatalog]);
 
@@ -914,9 +873,10 @@ export default function WorkflowsPage() {
                 </div>
                 <div className="space-y-3">
                   {activeWorkflows.map(def => (
-                    <WorkflowCard key={def.type} def={def} userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)}
+                    <WorkflowCard key={def.type} def={def}
+                      userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)}
                       onToggle={handleToggle} onSaveSettings={handleSaveSettings}
-                      factories={factories} products={products} onCatalogRefresh={loadCatalog} />
+                      factories={factories} onCatalogRefresh={loadCatalog} />
                   ))}
                 </div>
               </div>
@@ -929,29 +889,10 @@ export default function WorkflowsPage() {
               </div>
               <div className="space-y-3">
                 {inactiveWorkflows.map(def => (
-                  <WorkflowCard key={def.type} def={def} userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)}
+                  <WorkflowCard key={def.type} def={def}
+                    userWorkflow={userWorkflows.find(w => w.workflow_type === def.type)}
                     onToggle={handleToggle} onSaveSettings={handleSaveSettings}
-                    factories={factories} products={products} onCatalogRefresh={loadCatalog} />
-                ))}
-              </div>
-            </div>
-
-            <div className="border border-white/[0.04] rounded-2xl p-4 bg-white/[0.01]">
-              <p className="text-[10px] text-white/20 uppercase tracking-widest mb-3">How Workflows Work</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { icon: <Zap size={10} className="text-blue-400" />, label: "Trigger", desc: "Auto-detected by Jimmy" },
-                  { icon: <Bot size={10} className="text-purple-400" />, label: "AI Draft", desc: "Jimmy writes the content" },
-                  { icon: <Shield size={10} className="text-amber-400" />, label: "Your Approval", desc: "You review before it sends" },
-                  { icon: <Zap size={10} className="text-emerald-400" />, label: "Auto Execute", desc: "Jimmy acts immediately" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">{item.icon}</div>
-                    <div>
-                      <p className="text-[11px] text-white/50 font-medium">{item.label}</p>
-                      <p className="text-[10px] text-white/20">{item.desc}</p>
-                    </div>
-                  </div>
+                    factories={factories} onCatalogRefresh={loadCatalog} />
                 ))}
               </div>
             </div>
@@ -967,7 +908,6 @@ export default function WorkflowsPage() {
               <div className="text-center py-16">
                 <RotateCcw size={24} className="text-white/10 mx-auto mb-3" />
                 <p className="text-white/20 text-sm">No workflow history yet</p>
-                <p className="text-white/10 text-xs mt-1">Actions you approve or reject will appear here</p>
               </div>
             ) : (
               <div className="space-y-2">
