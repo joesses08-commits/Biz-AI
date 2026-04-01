@@ -338,8 +338,8 @@ Return ONLY raw JSON, no markdown:
               });
               const rowNum = row.number;
               ws.addImage(imageId, {
-                tl: { col: 0, row: rowNum - 1 },
-                br: { col: 1, row: rowNum },
+                tl: { nativeCol: 0, nativeRow: rowNum - 1, nativeColOff: 0, nativeRowOff: 0 },
+                br: { nativeCol: 1, nativeRow: rowNum, nativeColOff: 0, nativeRowOff: 0 },
                 editAs: "oneCell",
               });
               row.height = 60; // taller row to show image
