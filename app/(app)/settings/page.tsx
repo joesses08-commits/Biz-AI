@@ -72,7 +72,6 @@ export default function SettingsPage() {
 
       const { data: settings } = await supabase.from("company_settings").select("*").eq("user_id", user.id).single();
       const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
-      const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
       if (settings) {
         setCompany({
           industry: settings.industry || "",
