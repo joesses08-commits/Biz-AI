@@ -268,7 +268,7 @@ ${companyContext || "No integrations connected yet."}`;
       if (useModel === SONNET && sonnetCalls >= MAX_SONNET) break;
       if (useModel === HAIKU && haikuCalls >= MAX_HAIKU) break;
 
-      await new Promise(r => setTimeout(r, i > 0 ? 500 : 0));
+      await new Promise(r => setTimeout(r, i > 0 ? 2000 : 0));
 
       const response = await anthropic.messages.create({
         model: useModel,
