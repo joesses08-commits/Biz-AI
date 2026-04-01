@@ -176,7 +176,7 @@ ${senderName}`;
             const mime = [
               `MIME-Version: 1.0`,
               `To: ${factory.email}`,
-              `Subject: RFQ: ${job.job_name} – Please Quote Attached Product List`,
+              `Subject: RFQ: ${job.job_name} - Please Quote Attached Product List`,
               `Content-Type: multipart/mixed; boundary="${boundary}"`,
               ``,
               `--${boundary}`,
@@ -240,7 +240,7 @@ ${senderName}`;
               headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
               body: JSON.stringify({
                 message: {
-                  subject: `RFQ: ${job.job_name} – Please Quote Attached Product List`,
+                  subject: `RFQ: ${job.job_name} - Please Quote Attached Product List`,
                   body: {
                     contentType: "Text",
                     content: `Hi ${factory.contact_name || factory.name},
