@@ -137,6 +137,14 @@ export async function POST(req: NextRequest) {
       const useGmail = body.provider === "outlook" ? false : !!gmailConn?.access_token;
       const results: { factory: string; success: boolean; error?: string }[] = [];
 
+      // Get user's name for sign-off
+      const { data: userProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      const senderName = userProfile?.full_name || "Joey";
+
       const fileBase64 = job.product_file_base64.replace(/-/g, "+").replace(/_/g, "/");
       const fileName = job.product_file_name || "Product List.xlsx";
       const boundary = "boundary_" + Date.now();
@@ -147,20 +155,15 @@ export async function POST(req: NextRequest) {
 
         for (const factory of (job.factories || [])) {
           try {
-            const emailBody = `Hi ${factory.name},
+            const contactName = factory.contact_name || factory.name;
+            const emailBody = `Hi ${contactName},
 
-I hope this message finds you well. Please find attached our product list for ${job.job_name}.
+Hope you're doing well! Please find attached our product list for the ${job.job_name}.
 
-Could you please fill in your unit pricing in the attached file and send it back to us? We're looking for:
-- Unit price (USD)
-- MOQ
-- Lead time
-- Payment terms
+Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for unit price, MOQ, lead time, and payment terms — but just fill in whatever applies.
 
-Please reply with your completed quote at your earliest convenience.
-
-Thank you,
-Jimmy AI – Procurement`;
+Thanks so much,
+${senderName}`;
 
             const mime = [
               `MIME-Version: 1.0`,
@@ -232,20 +235,14 @@ Jimmy AI – Procurement`;
                   subject: `RFQ: ${job.job_name} – Please Quote Attached Product List`,
                   body: {
                     contentType: "Text",
-                    content: `Hi ${factory.name},
+                    content: `Hi ${factory.contact_name || factory.name},
 
-I hope this message finds you well. Please find attached our product list for ${job.job_name}.
+Hope you're doing well! Please find attached our product list for the ${job.job_name}.
 
-Could you please fill in your unit pricing in the attached file and send it back to us? We're looking for:
-- Unit price (USD)
-- MOQ
-- Lead time
-- Payment terms
+Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for unit price, MOQ, lead time, and payment terms — but just fill in whatever applies.
 
-Please reply with your completed quote at your earliest convenience.
-
-Thank you,
-Jimmy AI – Procurement`,
+Thanks so much,
+${senderName}`,
                   },
                   toRecipients: [{ emailAddress: { address: factory.email } }],
                   attachments: [{

@@ -18,6 +18,7 @@ export default function SettingsPage() {
 
   const [brain, setBrain] = useState({
     company_name: "",
+    full_name: "",
     company_brief: "",
     company_brain: "",
     what_is_real: "",
@@ -70,9 +71,14 @@ export default function SettingsPage() {
       }
 
       const { data: settings } = await supabase.from("company_settings").select("*").eq("user_id", user.id).single();
+      const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
+      const { data: profileData } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
       if (settings) {
         setCompany({
           industry: settings.industry || "",
+          full_name: profileData?.full_name || "",
+          full_name: profileData?.full_name || "",
+          full_name: settings.full_name || "",
           website: settings.website || "",
           currency: settings.currency || "USD",
           fiscal_year_start: settings.fiscal_year_start || "January",
@@ -95,7 +101,9 @@ export default function SettingsPage() {
   const saveCompany = async () => {
     if (!userId) return;
     setSaving(true);
-    await supabase.from("company_settings").upsert({ user_id: userId, ...company }, { onConflict: "user_id" });
+    const { full_name, ...companyWithoutName } = company as any;
+    await supabase.from("company_settings").upsert({ user_id: userId, ...companyWithoutName }, { onConflict: "user_id" });
+    if (full_name) await supabase.from("profiles").update({ full_name }).eq("id", userId);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -206,6 +214,12 @@ export default function SettingsPage() {
         {activeTab === "company" && (
           <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-5">
             <h2 className="text-sm font-semibold text-white mb-4">Company Information</h2>
+            <div>
+              <label className={labelClass}>Your Name</label>
+              <input value={company.full_name} onChange={e => setCompany({...company, full_name: e.target.value})}
+                placeholder="Joey Esses" className={inputClass} />
+              <p className="text-[10px] text-white/20 mt-1">Used to sign emails sent from Jimmy on your behalf</p>
+            </div>
             <div>
               <label className={labelClass}>Industry</label>
               <select value={company.industry} onChange={e => setCompany({...company, industry: e.target.value})} className={inputClass}>
