@@ -22,6 +22,9 @@ const FEATURE_LABELS: Record<string, string> = {
   actions: "Action Items",
   meetings: "Meetings",
   "brain-backfill": "Brain Backfill",
+  "factory-quote-extraction": "Factory Quote Extraction",
+  "factory-quote-recommendation": "Factory Quote Recommendation",
+  "factory-quote-rfq": "Factory Quote RFQ Draft",
 };
 
 const now = new Date();

@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
+import { trackUsage } from "@/lib/track-usage";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -333,6 +334,7 @@ Return ONLY raw JSON, no markdown:
         messages: [{ role: "user", content: `Extract products and pricing:\n${allData.slice(0, 8000)}` }],
       });
 
+      trackUsage(user.id, "factory-quote-extraction", "claude-haiku-4-5-20251001", response.usage.input_tokens, response.usage.output_tokens).catch(() => {});
       const raw = response.content[0].type === "text" ? response.content[0].text : "{}";
       const parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1));
 
@@ -454,6 +456,7 @@ Return ONLY raw JSON, no markdown:
         system: "You are a procurement advisor. Give a concise recommendation based on factory quote comparison data. Be direct and actionable. 3-5 sentences max.",
         messages: [{ role: "user", content: `Quote comparison for "${job.job_name}":\n${productSummary}\n\nGive your recommendation.` }],
       });
+      trackUsage(user.id, "factory-quote-recommendation", "claude-haiku-4-5-20251001", aiRes.usage.input_tokens, aiRes.usage.output_tokens).catch(() => {});
       const aiRecommendation = aiRes.content[0].type === "text" ? aiRes.content[0].text : "";
 
       // Build Excel
