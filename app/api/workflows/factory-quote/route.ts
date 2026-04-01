@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
 
       const useGmail = body.provider === "outlook" ? false : !!gmailConn?.access_token;
       const results: { factory: string; success: boolean; error?: string }[] = [];
+      const customBody = body.custom_body || null;
 
       // Get user's name for sign-off
       const { data: userProfile } = await supabaseAdmin
@@ -156,7 +157,9 @@ export async function POST(req: NextRequest) {
         for (const factory of (job.factories || [])) {
           try {
             const contactName = factory.contact_name || factory.name;
-            const emailBody = `Hi ${contactName},
+            const emailBody = customBody
+              ? customBody.replace("[contact name]", contactName).replace("[your name]", senderName)
+              : `Hi ${contactName},
 
 Hope you're doing well! Please find attached our product list for the ${job.job_name}.
 

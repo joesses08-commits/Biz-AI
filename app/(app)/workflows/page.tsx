@@ -296,6 +296,8 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
   const [activeTab, setActiveTab] = useState<"jobs" | "factories">("jobs");
   const [productFile, setProductFile] = useState<File | null>(null);
   const [providerModal, setProviderModal] = useState<{ jobId: string; gmailEmail: string; outlookEmail: string } | null>(null);
+  const [draftModal, setDraftModal] = useState<{ jobId: string; emailBody: string; fields: string[] } | null>(null);
+  const [pendingProvider, setPendingProvider] = useState<string | undefined>(undefined);
   const [newJob, setNewJob] = useState({
     job_name: "",
     factory_ids: [] as string[],
@@ -322,12 +324,37 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
     }));
   };
 
-  const sendRfq = async (jobId: string, provider?: string) => {
+  const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Payment terms"];
+
+  const buildDraftBody = (jobName: string, fields: string[]) => {
+    const fieldList = fields.join(", ");
+    return `Hi [contact name],
+
+Hope you're doing well! Please find attached our product list for the ${jobName}.
+
+Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for ${fieldList} — but just fill in whatever applies.
+
+Thanks so much,
+[your name]`;
+  };
+
+  const openDraft = async (jobId: string, provider?: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    setPendingProvider(provider);
+    setDraftModal({
+      jobId,
+      emailBody: buildDraftBody(job.job_name, DEFAULT_FIELDS),
+      fields: [...DEFAULT_FIELDS],
+    });
+  };
+
+  const sendRfq = async (jobId: string, provider?: string, emailBody?: string) => {
     setSending(jobId);
     const res = await fetch("/api/workflows/factory-quote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "send_rfq", job_id: jobId, provider }),
+      body: JSON.stringify({ action: "send_rfq", job_id: jobId, provider, custom_body: emailBody }),
     });
     const data = await res.json();
     setSending(null);
@@ -370,9 +397,10 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
     setProductFile(null);
     await loadJobs();
 
-    // Auto-send RFQs immediately
+    // Open draft modal instead of sending immediately
     if (data.job?.id) {
-      await sendRfq(data.job.id);
+      await loadJobs();
+      openDraft(data.job.id);
     }
   };
 
@@ -430,6 +458,70 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
 
   return (
     <div className="mt-4 space-y-4">
+      {/* Draft email modal */}
+      {draftModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg space-y-4 p-6">
+            <div>
+              <p className="text-sm font-semibold text-white mb-0.5">Review RFQ Email</p>
+              <p className="text-[11px] text-white/30">This email will be sent to each factory with their name filled in. Edit the body below then click Send.</p>
+            </div>
+
+            {/* Field toggles */}
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Fields to request</p>
+              <div className="flex flex-wrap gap-2">
+                {["Unit price (USD)", "MOQ", "Lead time", "Payment terms", "Packaging details", "Samples available"].map(field => {
+                  const active = draftModal.fields.includes(field);
+                  return (
+                    <button key={field} onClick={() => {
+                      const newFields = active
+                        ? draftModal.fields.filter(f => f !== field)
+                        : [...draftModal.fields, field];
+                      setDraftModal({
+                        ...draftModal,
+                        fields: newFields,
+                        emailBody: buildDraftBody(jobs.find(j => j.id === draftModal.jobId)?.job_name || "", newFields),
+                      });
+                    }}
+                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/10 bg-white/[0.03] text-white/30"}`}>
+                      {field}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Email body editor */}
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Email body <span className="normal-case text-white/20">— [contact name] and [your name] will be filled in automatically</span></p>
+              <textarea
+                value={draftModal.emailBody}
+                onChange={e => setDraftModal({ ...draftModal, emailBody: e.target.value })}
+                rows={10}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none focus:border-white/20 transition resize-none font-mono leading-relaxed"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const j = draftModal;
+                  setDraftModal(null);
+                  sendRfq(j.jobId, pendingProvider, j.emailBody);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition">
+                <Send size={11} />Send to All Factories
+              </button>
+              <button onClick={() => setDraftModal(null)}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Provider picker modal */}
       {providerModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
@@ -439,7 +531,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
               <p className="text-[11px] text-white/30">Both Gmail and Outlook are connected. Pick which one to send from.</p>
             </div>
             <div className="space-y-2">
-              <button onClick={() => { const j = providerModal; setProviderModal(null); sendRfq(j.jobId, "gmail"); }}
+              <button onClick={() => { const j = providerModal; setProviderModal(null); openDraft(j.jobId, "gmail"); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-white/20 transition text-left">
                 <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs">G</span>
@@ -449,7 +541,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
                   <p className="text-[10px] text-white/30">{providerModal.gmailEmail}</p>
                 </div>
               </button>
-              <button onClick={() => { const j = providerModal; setProviderModal(null); sendRfq(j.jobId, "outlook"); }}
+              <button onClick={() => { const j = providerModal; setProviderModal(null); openDraft(j.jobId, "outlook"); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-white/20 transition text-left">
                 <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs">O</span>
@@ -576,7 +668,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
                   disabled={creating || !newJob.job_name || newJob.factory_ids.length === 0 || !productFile}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
                   {creating ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
-                  Create & Send RFQs
+                  Draft RFQs
                 </button>
                 <button onClick={() => { setShowNew(false); setProductFile(null); }}
                   className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
