@@ -295,6 +295,9 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
   const [building, setBuilding] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"jobs" | "factories">("jobs");
   const [productFile, setProductFile] = useState<File | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
   const [providerModal, setProviderModal] = useState<{ jobId: string; gmailEmail: string; outlookEmail: string } | null>(null);
   const [draftModal, setDraftModal] = useState<{ jobId: string; emailBody: string; fields: string[] } | null>(null);
   const [pendingProvider, setPendingProvider] = useState<string | undefined>(undefined);
@@ -311,6 +314,20 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
     const data = await res.json();
     setJobs(data.jobs || []);
     setLoading(false);
+  };
+
+  const deleteSelectedJobs = async () => {
+    if (!selectedJobs.length) return;
+    setDeleting(true);
+    await fetch("/api/workflows/factory-quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete_jobs", job_ids: selectedJobs }),
+    });
+    setDeleting(false);
+    setSelectMode(false);
+    setSelectedJobs([]);
+    loadJobs();
   };
 
   useEffect(() => { loadJobs(); }, []);
@@ -598,10 +615,26 @@ Thanks so much,
 
       {activeTab === "jobs" && (
         <>
-          <button onClick={() => setShowNew(!showNew)}
-            className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
-            <Plus size={11} />New Quote Job
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowNew(!showNew)}
+              className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
+              <Plus size={11} />New Quote Job
+            </button>
+            {jobs.length > 0 && (
+              <button onClick={() => { setSelectMode(!selectMode); setSelectedJobs([]); }}
+                className={`flex items-center gap-2 text-xs transition px-3 py-2 rounded-xl border ${selectMode ? "border-red-500/30 text-red-400 bg-red-500/5" : "border-white/[0.06] text-white/30 hover:text-white/50 bg-white/[0.02]"}`}>
+                {selectMode ? <X size={11} /> : <Trash2 size={11} />}
+                {selectMode ? "Cancel" : "Select"}
+              </button>
+            )}
+            {selectMode && selectedJobs.length > 0 && (
+              <button onClick={deleteSelectedJobs} disabled={deleting}
+                className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition disabled:opacity-50">
+                {deleting ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                Delete {selectedJobs.length} job{selectedJobs.length > 1 ? "s" : ""}
+              </button>
+            )}
+          </div>
 
           {showNew && (
             <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-4">
@@ -716,15 +749,23 @@ Thanks so much,
                 const isSending = sending === job.id;
 
                 return (
-                  <div key={job.id} className="border border-white/[0.06] rounded-xl overflow-hidden bg-white/[0.01]">
+                  <div key={job.id} className={`border rounded-xl overflow-hidden transition ${selectedJobs.includes(job.id) ? "border-red-500/30 bg-red-500/[0.03]" : "border-white/[0.06] bg-white/[0.01]"}`}>
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3 mb-3">
-                        <div>
+                        <div className="flex items-start gap-2">
+                          {selectMode && (
+                            <button onClick={() => setSelectedJobs(s => s.includes(job.id) ? s.filter(id => id !== job.id) : [...s, job.id])}
+                              className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition ${selectedJobs.includes(job.id) ? "border-red-400 bg-red-500" : "border-white/20"}`}>
+                              {selectedJobs.includes(job.id) && <Check size={9} className="text-white" />}
+                            </button>
+                          )}
+                          <div>
                           <p className="text-sm font-semibold text-white mb-0.5">{job.job_name}</p>
                           {job.product_file_name && (
                             <p className="text-[10px] text-blue-400/60 mb-0.5">📎 {job.product_file_name}</p>
                           )}
                           <p className="text-[10px] text-white/25">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                          </div>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[job.status] || "text-white/30 bg-white/5 border-white/10"}`}>
                           {statusLabels[job.status] || job.status}

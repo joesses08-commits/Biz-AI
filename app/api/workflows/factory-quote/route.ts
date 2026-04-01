@@ -629,6 +629,15 @@ Return ONLY raw JSON, no markdown:
       return NextResponse.json({ success: true, fileName, sheetUrl, base64, aiRecommendation });
     }
 
+    // ── DELETE JOBS ─────────────────────────────────────────────────────
+    if (action === "delete_jobs") {
+      const { job_ids } = body;
+      if (!job_ids?.length) return NextResponse.json({ error: "No job IDs" }, { status: 400 });
+      await supabaseAdmin.from("factory_quotes").delete().in("job_id", job_ids);
+      await supabaseAdmin.from("factory_quote_jobs").delete().in("id", job_ids).eq("user_id", user.id);
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
