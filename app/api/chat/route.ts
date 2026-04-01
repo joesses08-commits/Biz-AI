@@ -152,7 +152,26 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    const { messages, approvedAction } = await request.json();
+    const { messages, approvedAction, pendingTools, userId: passedUserId } = await request.json();
+
+    // If this is an approval execution — run the tools directly, no Claude needed
+    if (approvedAction && pendingTools?.length) {
+      const results = [];
+      for (const tool of pendingTools) {
+        const result = await executeTool(tool.name, tool.input, user.id);
+        results.push({ tool: tool.name, result });
+      }
+      // Use Haiku just for the summary
+      const summaryRes = await anthropic.messages.create({
+        model: HAIKU,
+        max_tokens: 500,
+        system: "You are Jimmy, an AI COO. Summarize what was just executed in 1-2 sentences. Be specific with numbers.",
+        messages: [{ role: "user", content: `These actions were just executed: ${JSON.stringify(results)}. Summarize what was done.` }],
+      });
+      trackUsage(user.id, "chat", HAIKU, summaryRes.usage.input_tokens, summaryRes.usage.output_tokens).catch(() => {});
+      const summary = summaryRes.content[0].type === "text" ? summaryRes.content[0].text : "Done.";
+      return NextResponse.json({ message: summary });
+    }
 
     const quota = await checkQuota(user.id, "chat");
     if (!quota.allowed) {
@@ -288,12 +307,19 @@ ${companyContext || "No integrations connected yet."}`;
         if (toolUse.name === "request_approval") {
           pendingApproval = { action: (toolUse.input as any).action, details: (toolUse.input as any).details };
 
+          // Collect all pending tool calls AFTER approval so we can execute them directly
+          const pendingTools = toolUses
+            .filter(t => t.type === "tool_use" && t.name !== "request_approval")
+            .map(t => t.type === "tool_use" ? { name: t.name, input: t.input } : null)
+            .filter(Boolean);
+
           if (totalSonnetIn > 0) trackUsage(user.id, "chat", SONNET, totalSonnetIn, totalSonnetOut).catch(() => {});
           if (totalHaikuIn > 0) trackUsage(user.id, "chat", HAIKU, totalHaikuIn, totalHaikuOut).catch(() => {});
 
           return NextResponse.json({
             message: finalText || `I'm ready to proceed. Here's what I'll do:`,
             pendingApproval,
+            pendingTools,
             conversationState: currentMessages,
           });
         }

@@ -162,6 +162,7 @@ export default function ChatPage() {
                 content: data.message || "I'm ready to proceed.",
                 pendingApproval: data.pendingApproval,
                 conversationState: data.conversationState,
+                pendingTools: data.pendingTools,
               } : m) }
             : c
         ));
@@ -208,7 +209,6 @@ export default function ChatPage() {
   };
 
   const handleApprove = async (msg: Message) => {
-    if (!msg.conversationState) return;
     const currentId = activeId || conversations[0]?.id;
     setIsLoading(true);
 
@@ -226,15 +226,14 @@ export default function ChatPage() {
     ));
 
     try {
-      const continuationMessages = [
-        ...msg.conversationState,
-        { role: "user", content: "The user has approved this action. Please proceed and execute it now." },
-      ];
-
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: continuationMessages, approvedAction: true }),
+        body: JSON.stringify({
+          messages: msg.conversationState || [],
+          approvedAction: true,
+          pendingTools: (msg as any).pendingTools || [],
+        }),
       });
 
       const data = await res.json();
