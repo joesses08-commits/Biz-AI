@@ -397,13 +397,12 @@ Thanks so much,
     setProductFile(null);
     await loadJobs();
 
-    // Open draft modal instead of sending immediately
+    // Open draft modal
     if (data.job?.id) {
       await loadJobs();
-      // Use job data directly since state may not have updated yet
       const jobName = newJob.job_name;
       const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Payment terms"];
-      const body = `Hi [contact name],
+      const emailBody = `Hi [contact name],
 
 Hope you're doing well! Please find attached our product list for the ${jobName}.
 
@@ -411,7 +410,20 @@ Could you fill in your pricing in the attached file and reply to this email with
 
 Thanks so much,
 [your name]`;
-      setDraftModal({ jobId: data.job.id, emailBody: body, fields: DEFAULT_FIELDS });
+
+      // Check if both providers connected first
+      const providerCheck = await fetch("/api/workflows/factory-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send_rfq", job_id: data.job.id, check_only: true }),
+      });
+      const providerData = await providerCheck.json();
+
+      if (providerData.error === "both_connected") {
+        setProviderModal({ jobId: data.job.id, gmailEmail: providerData.gmailEmail, outlookEmail: providerData.outlookEmail });
+      } else {
+        setDraftModal({ jobId: data.job.id, emailBody, fields: DEFAULT_FIELDS });
+      }
     }
   };
 

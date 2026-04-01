@@ -134,6 +134,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "both_connected", gmailEmail: gmailConn.email, outlookEmail: msConn.email }, { status: 400 });
       }
 
+      // check_only — just verify provider, don't send
+      if (body.check_only) {
+        return NextResponse.json({ success: true, provider: body.provider || "gmail" });
+      }
+
       const useGmail = body.provider === "outlook" ? false : !!gmailConn?.access_token;
       const results: { factory: string; success: boolean; error?: string }[] = [];
       const customBody = body.custom_body || null;
