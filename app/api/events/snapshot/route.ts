@@ -32,6 +32,13 @@ async function buildSnapshotForUser(userId: string) {
     .eq("user_id", userId)
     .maybeSingle();
 
+  // Blackout: skip snapshot between 12am and 6am Eastern
+  const nowET = new Date(new Date().toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const hourET = nowET.getHours();
+  if (hourET >= 0 && hourET < 6) {
+    return { message: "Snapshot skipped — overnight blackout (12am-6am ET)", skipped: true };
+  }
+
   // Only read events NEWER than last snapshot — never reprocess old data
   const lastSnapshotAt = existing?.last_snapshot_at
     ? new Date(existing.last_snapshot_at).toISOString()
