@@ -270,13 +270,20 @@ ${companyContext || "No integrations connected yet."}`;
 
       await new Promise(r => setTimeout(r, i > 0 ? 2000 : 0));
 
-      const response = await anthropic.messages.create({
-        model: useModel,
-        max_tokens: useModel === SONNET ? 2000 : 1500,
-        system: systemPrompt,
-        tools: TOOLS,
-        messages: currentMessages,
-      });
+      let response;
+      try {
+        response = await anthropic.messages.create({
+          model: useModel,
+          max_tokens: useModel === SONNET ? 2000 : 1500,
+          system: systemPrompt,
+          tools: TOOLS,
+          messages: currentMessages,
+        });
+      } catch (apiErr: any) {
+        console.error("Anthropic API error:", apiErr?.status, apiErr?.message, JSON.stringify(apiErr?.error));
+        console.error("Messages sent:", JSON.stringify(currentMessages).slice(0, 500));
+        throw apiErr;
+      }
 
       if (useModel === SONNET) {
         sonnetCalls++;
