@@ -18,7 +18,7 @@ async function buildSnapshotForUser(userId: string) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  // Cooldown: skip Claude if snapshot ran less than 45 minutes ago
+  // Cooldown: skip Claude if snapshot ran less than 90 minutes ago
   if (existing?.cached_at) {
     const minutesSinceLastRun = (Date.now() - new Date(existing.cached_at).getTime()) / 1000 / 60;
     if (minutesSinceLastRun < 45) {
@@ -67,7 +67,7 @@ Raw: ${(e.raw_data || "").slice(0, 300)}`
   ).join("\n\n");
 
   const snapshotResponse = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 2000,
     system: `You are a Chief Operating Officer maintaining an intelligent business snapshot.
 
@@ -100,7 +100,7 @@ Update the snapshot now. Keep unresolved items. Add new important items. Remove 
     }],
   });
 
-  trackUsage(userId, "snapshot", "claude-sonnet-4-5", snapshotResponse.usage.input_tokens, snapshotResponse.usage.output_tokens).catch(() => {});
+  trackUsage(userId, "snapshot", "claude-haiku-4-5-20251001", snapshotResponse.usage.input_tokens, snapshotResponse.usage.output_tokens).catch(() => {});
 
   const snapshot = snapshotResponse.content[0].type === "text" ? snapshotResponse.content[0].text : "";
 
