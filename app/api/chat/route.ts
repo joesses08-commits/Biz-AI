@@ -359,7 +359,7 @@ ${companyContext || "No integrations connected yet."}`;
     let pendingApproval: { action: string; details: string } | null = null;
     let finalText = "";
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       const response = await anthropic.messages.create({
         model: "claude-sonnet-4-5",
         max_tokens: 2000,
@@ -397,7 +397,9 @@ ${companyContext || "No integrations connected yet."}`;
           const result = await executeTool(toolUse.name, toolUse.input, user.id);
           pendingApproval = { action: (toolUse.input as any).action, details: (toolUse.input as any).details };
 
-          trackUsage(user.id, "chat", "claude-sonnet-4-5", totalInputTokens, totalOutputTokens).catch(() => {});
+          if (totalInputTokens > 0) {
+            trackUsage(user.id, "chat", "claude-sonnet-4-5", totalInputTokens, totalOutputTokens).catch(() => {});
+          }
 
           return NextResponse.json({
             message: finalText || `I'm ready to ${(toolUse.input as any).action.toLowerCase()}.`,
@@ -421,7 +423,9 @@ ${companyContext || "No integrations connected yet."}`;
       await new Promise(r => setTimeout(r, 500));
     }
 
-    trackUsage(user.id, "chat", "claude-sonnet-4-5", totalInputTokens, totalOutputTokens).catch(() => {});
+    if (totalInputTokens > 0) {
+      trackUsage(user.id, "chat", "claude-sonnet-4-5", totalInputTokens, totalOutputTokens).catch(() => {});
+    }
 
     let displayText = finalText;
     const brainUpdateMatch = finalText.match(/BRAIN_UPDATE:\s*(.+?)$/m);
