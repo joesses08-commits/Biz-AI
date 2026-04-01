@@ -98,7 +98,7 @@ ${recentEventsText}`;
       companyContext = await buildFullCompanyContext(user.id);
     }
 
-    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" });
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",

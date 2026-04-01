@@ -441,7 +441,7 @@ Return ONLY raw JSON, no markdown:
       const excelBuffer = await wb.xlsx.writeBuffer();
       const base64 = Buffer.from(excelBuffer).toString("base64");
 
-      const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+      const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "America/New_York" });
       const fileName = `${date} Factory Quote Comparison — ${job.job_name}.xlsx`;
 
       // Try to save to Google Drive

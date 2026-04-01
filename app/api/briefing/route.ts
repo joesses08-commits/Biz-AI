@@ -54,7 +54,7 @@ export async function GET(request: Request) {
           ? `\n\nACTIONS REQUIRED:\n${criticalEvents.map(e => `- ${e.analysis} → ${e.recommended_action}`).join("\n")}`
           : "";
 
-        const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+        const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" });
 
         // Use claude-haiku for cost savings
         const response = await anthropic.messages.create({

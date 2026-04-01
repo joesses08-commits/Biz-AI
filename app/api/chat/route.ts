@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(15);
 
-    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" });
 
     let companyContext = "";
 

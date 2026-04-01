@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     const { transcript, title, source, drive_file_id } = await request.json();
     if (!transcript) return NextResponse.json({ error: "No transcript provided" }, { status: 400 });
 
-    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "America/New_York" });
 
     // Get company context for better analysis
     const { data: profile } = await adminSupabase
