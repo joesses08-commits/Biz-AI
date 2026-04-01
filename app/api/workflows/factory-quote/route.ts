@@ -176,13 +176,7 @@ Return ONLY raw JSON, no markdown:
         };
       });
 
-      // Attach images to products by order (image 1 = product 1, image 2 = product 2)
-      const processedWithImages = processedProducts.map((p: any, i: number) => ({
-        ...p,
-        image_base64: imagesByRow[i + 1] || null,
-      }));
-
-      // Save to factory_quotes table
+      // Save to factory_quotes table — store raw file for image extraction later
       await supabaseAdmin.from("factory_quotes").insert({
         job_id,
         user_id: user.id,
@@ -190,7 +184,8 @@ Return ONLY raw JSON, no markdown:
         factory_email,
         attachment_name: file_name,
         raw_data: parsed.products || [],
-        processed_data: processedWithImages,
+        processed_data: processedProducts,
+        raw_file_base64: file_base64.slice(0, 500000) || null, // store file for image extraction
         status: "processed",
       });
 
@@ -229,11 +224,37 @@ Return ONLY raw JSON, no markdown:
 
       if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
-      // Collect all products across all factories
+      // Collect all products + extract images fresh from stored files
       const allProducts: any[] = [];
       for (const quote of (job.factory_quotes || [])) {
-        for (const product of (quote.processed_data || [])) {
-          allProducts.push(product);
+        // Extract images from stored raw file
+        const quoteImages: Record<number, string> = {};
+        if (quote.raw_file_base64) {
+          try {
+            const fileBuffer = Buffer.from(quote.raw_file_base64, "base64");
+            const zip = await JSZip.loadAsync(fileBuffer);
+            const mediaEntries: { name: string; data: string }[] = [];
+            for (const [path, file] of Object.entries(zip.files)) {
+              if (path.startsWith("xl/media/") && !(file as any).dir) {
+                const imgBuffer = await (file as any).async("base64");
+                const ext = path.split(".").pop() || "png";
+                mediaEntries.push({ name: path.split("/").pop() || "", data: `data:image/${ext};base64,${imgBuffer}` });
+              }
+            }
+            mediaEntries.sort((a, b) => {
+              const numA = parseInt(a.name.replace(/\D/g, "")) || 0;
+              const numB = parseInt(b.name.replace(/\D/g, "")) || 0;
+              return numA - numB;
+            });
+            mediaEntries.forEach((entry, i) => { quoteImages[i + 1] = entry.data; });
+          } catch (e) { console.error("Image re-extraction error:", e); }
+        }
+
+        for (let i = 0; i < (quote.processed_data || []).length; i++) {
+          allProducts.push({
+            ...quote.processed_data[i],
+            image_base64: quoteImages[i + 1] || null,
+          });
         }
       }
 
