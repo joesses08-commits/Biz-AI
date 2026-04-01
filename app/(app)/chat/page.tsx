@@ -50,6 +50,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pendingConversationState, setPendingConversationState] = useState<any[]>([]);
+  const [savedConversationState, setSavedConversationState] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -137,10 +138,20 @@ export default function ChatPage() {
         content: m.content,
       }));
 
+      // If we have a saved state from a cancelled approval, continue from there
+      let messagesToSend = history;
+      if (savedConversationState.length > 0) {
+        messagesToSend = [
+          ...savedConversationState,
+          { role: "user", content: content.trim() },
+        ];
+        setSavedConversationState([]);
+      }
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: messagesToSend }),
       });
 
       const data = await res.json();
@@ -256,9 +267,13 @@ export default function ChatPage() {
 
   const handleReject = (msg: Message) => {
     const currentId = activeId || conversations[0]?.id;
+    // Save conversation state so next message can continue from here
+    if (msg.conversationState) {
+      setSavedConversationState(msg.conversationState);
+    }
     setConversations(prev => prev.map(c =>
       c.id === currentId
-        ? { ...c, messages: [...c.messages, { id: generateId(), role: "user", content: "❌ Cancelled.", timestamp: new Date().toISOString() }, { id: generateId(), role: "assistant", content: "Got it — action cancelled. Let me know if you want to do something else.", timestamp: new Date().toISOString() }] }
+        ? { ...c, messages: [...c.messages, { id: generateId(), role: "user", content: "❌ Cancelled.", timestamp: new Date().toISOString() }, { id: generateId(), role: "assistant", content: "Got it — what would you like to change?", timestamp: new Date().toISOString() }] }
         : c
     ));
   };
