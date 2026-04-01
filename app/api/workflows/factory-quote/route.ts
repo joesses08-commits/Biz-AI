@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import Anthropic from "@anthropic-ai/sdk";
 import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
-import * as JSZip from "jszip";
+import JSZip from "jszip";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
