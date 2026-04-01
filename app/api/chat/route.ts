@@ -320,6 +320,17 @@ ${companyContext || "No integrations connected yet."}`;
             .map(t => t.type === "tool_use" ? { name: t.name, input: t.input } : null)
             .filter(Boolean);
 
+          // Add tool_result for the request_approval so conversation state is valid
+          const approvalResult: Anthropic.ToolResultBlockParam = {
+            type: "tool_result",
+            tool_use_id: toolUse.id,
+            content: JSON.stringify({ awaitingApproval: true }),
+          };
+          const stateWithResult = [
+            ...currentMessages,
+            { role: "user" as const, content: [approvalResult] },
+          ];
+
           if (totalSonnetIn > 0) trackUsage(user.id, "chat", SONNET, totalSonnetIn, totalSonnetOut).catch(() => {});
           if (totalHaikuIn > 0) trackUsage(user.id, "chat", HAIKU, totalHaikuIn, totalHaikuOut).catch(() => {});
 
@@ -327,7 +338,7 @@ ${companyContext || "No integrations connected yet."}`;
             message: finalText || `I'm ready to proceed. Here's what I'll do:`,
             pendingApproval,
             pendingTools,
-            conversationState: currentMessages,
+            conversationState: stateWithResult,
           });
         }
 
