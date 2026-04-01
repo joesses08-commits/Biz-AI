@@ -95,7 +95,11 @@ export async function writeSheet(userId: string, spreadsheetId: string, range: s
     }
   );
   const data = await res.json();
-  return { updated: data.updatedCells, range: data.updatedRange };
+  if (data.error) {
+    console.error("writeSheet error:", JSON.stringify(data.error));
+    return { error: data.error.message || "Write failed", status: res.status };
+  }
+  return { updated: data.updatedCells, range: data.updatedRange, success: true };
 }
 
 // ── APPEND ROW TO SHEET ────────────────────────────────────────────────────
