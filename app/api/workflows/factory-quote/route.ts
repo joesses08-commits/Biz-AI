@@ -87,38 +87,34 @@ export async function POST(req: NextRequest) {
         allData += `\nSHEET: ${sheetName}\n${csv}\n`;
       }
 
-      // Extract images from Excel zip
+      // Extract images from Excel zip — store in order, ignore row positions
       const imagesByRow: Record<number, string> = {};
       try {
         const zip = await JSZip.loadAsync(buffer);
-        const mediaFiles: Record<string, string> = {};
+
+        // Get all media files sorted by filename (image1, image2, image3...)
+        const mediaEntries: { name: string; data: string }[] = [];
         for (const [path, file] of Object.entries(zip.files)) {
           if (path.startsWith("xl/media/") && !(file as any).dir) {
             const imgBuffer = await (file as any).async("base64");
             const ext = path.split(".").pop() || "png";
             const fname = path.split("/").pop() || "";
-            mediaFiles[fname] = `data:image/${ext};base64,${imgBuffer}`;
+            mediaEntries.push({ name: fname, data: `data:image/${ext};base64,${imgBuffer}` });
           }
         }
-        for (const [path, file] of Object.entries(zip.files)) {
-          if (path.includes("drawings/drawing") && path.endsWith(".xml") && !(file as any).dir) {
-            const xml = await (file as any).async("string");
-            const relsPath = path.replace("drawings/drawing", "drawings/_rels/drawing").replace(".xml", ".xml.rels");
-            const relsFile = zip.files[relsPath];
-            if (relsFile) {
-              const relsXml = await (relsFile as any).async("string");
-              const rIdToImage: Record<string, string> = {};
-              const relMatches = [...relsXml.matchAll(/Target="[^"]*\/([^"\/]+\.(?:png|jpg|jpeg|gif|bmp))"[^>]*Id="(rId\d+)"/gi)];
-              for (const match of relMatches) { rIdToImage[match[2]] = match[1]; }
-              const anchorMatches = [...xml.matchAll(/<(?:xdr:)?(?:twoCellAnchor|oneCellAnchor)[^>]*>[\s\S]*?<(?:xdr:)?from>\s*<(?:xdr:)?col>\d+<\/(?:xdr:)?col>\s*<(?:xdr:)?colOff>\d+<\/(?:xdr:)?colOff>\s*<(?:xdr:)?row>(\d+)<\/(?:xdr:)?row>[\s\S]*?<a:blip[^>]*r:embed="(rId\d+)"/g)];
-              for (const match of anchorMatches) {
-                const row = parseInt(match[1]) + 1;
-                const imageName = rIdToImage[match[2]];
-                if (imageName && mediaFiles[imageName]) imagesByRow[row] = mediaFiles[imageName];
-              }
-            }
-          }
-        }
+
+        // Sort by filename so image1 < image2 < image10
+        mediaEntries.sort((a, b) => {
+          const numA = parseInt(a.name.replace(/\D/g, "")) || 0;
+          const numB = parseInt(b.name.replace(/\D/g, "")) || 0;
+          return numA - numB;
+        });
+
+        // Map in order: image 0 = product 1, image 1 = product 2, etc.
+        mediaEntries.forEach((entry, i) => {
+          imagesByRow[i + 1] = entry.data; // 1-indexed
+        });
+
       } catch (imgErr) { console.error("Image extraction error:", imgErr); }
 
       // Use Claude to extract products and pricing
@@ -184,10 +180,10 @@ Return ONLY raw JSON, no markdown:
         };
       });
 
-      // Attach images to products by row position
+      // Attach images to products by order (image 1 = product 1, image 2 = product 2)
       const processedWithImages = processedProducts.map((p: any, i: number) => ({
         ...p,
-        image_base64: imagesByRow[i + 2] || imagesByRow[i + 1] || null, // try row offset variations
+        image_base64: imagesByRow[i + 1] || null,
       }));
 
       // Save to factory_quotes table
