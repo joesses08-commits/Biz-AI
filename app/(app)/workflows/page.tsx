@@ -203,7 +203,6 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
     duty_pct: "30",
     tariff_pct: "20",
     freight: "0.15",
-    sell_price: "3.50",
   });
 
   const loadJobs = async () => {
@@ -233,7 +232,6 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
           duty_pct: newJob.duty_pct,
           tariff_pct: newJob.tariff_pct,
           freight: newJob.freight,
-          sell_price: newJob.sell_price,
         },
       }),
     });
@@ -319,7 +317,6 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
               { key: "duty_pct", label: "Duty %", placeholder: "30" },
               { key: "tariff_pct", label: "Tariff %", placeholder: "20" },
               { key: "freight", label: "Freight per unit ($)", placeholder: "0.15" },
-              { key: "sell_price", label: "Sell Price ($)", placeholder: "3.50" },
             ].map(field => (
               <div key={field.key}>
                 <label className="text-[11px] text-white/30 mb-1 block">{field.label}</label>

@@ -157,15 +157,13 @@ Return ONLY raw JSON, no markdown:
       const dutyPct = parseFloat(orderDetails.duty_pct || "30") / 100;
       const tariffPct = parseFloat(orderDetails.tariff_pct || "20") / 100;
       const freight = parseFloat(orderDetails.freight || "0.15");
-      const sellPrice = parseFloat(orderDetails.sell_price || "3.50");
 
-      // Calculate ELC and margin for each product
+      // Calculate ELC only — no sell price or margin (Uncle David sets sell prices manually)
       const processedProducts = (parsed.products || []).map((p: any) => {
         const firstCost = parseFloat(p.unit_cost) || 0;
         const afterDuty = firstCost * (1 + dutyPct);
         const afterTariff = afterDuty * (1 + tariffPct);
         const elc = afterTariff + freight;
-        const margin = sellPrice > 0 ? ((sellPrice - elc) / sellPrice * 100) : 0;
         return {
           ...p,
           factory_name: (factory_name || parsed.factory_name || "Unknown").replace(/_Quote$/, "").replace(/_/g, " "),
@@ -175,8 +173,6 @@ Return ONLY raw JSON, no markdown:
           tariff_pct: orderDetails.tariff_pct || "20",
           freight,
           elc: Math.round(elc * 100) / 100,
-          sell_price: sellPrice,
-          margin_pct: Math.round(margin * 100) / 100,
         };
       });
 
@@ -249,9 +245,9 @@ Return ONLY raw JSON, no markdown:
         productGroups[key].push(product);
       }
 
-      // Sort each group by margin descending
+      // Sort each group by ELC ascending (cheapest first)
       for (const key of Object.keys(productGroups)) {
-        productGroups[key].sort((a, b) => b.margin_pct - a.margin_pct);
+        productGroups[key].sort((a, b) => a.elc - b.elc);
       }
 
       // Build Excel workbook using ExcelJS for full styling + image support
@@ -272,7 +268,7 @@ Return ONLY raw JSON, no markdown:
         { header: "Tariff%", key: "tariff", width: 8 },
         { header: "Freight", key: "freight", width: 10 },
         { header: "ELC", key: "elc", width: 10 },
-        { header: "Sell", key: "sell", width: 10 },
+        { header: "Sell Price (fill in)", key: "sell", width: 18 },
         { header: "Margin%", key: "margin", width: 10 },
         { header: "MOQ", key: "moq", width: 8 },
         { header: "Lead Time (days)", key: "lead", width: 16 },
@@ -397,9 +393,6 @@ Return ONLY raw JSON, no markdown:
         const best = factories[0];
         const second = factories.length > 1 ? factories[1] : null;
         const savings = second ? Math.round((second.elc - best.elc) * 100) / 100 : 0;
-        const marginNum = parseFloat(best.margin_pct);
-        const isNegative = marginNum < 0;
-
         const negotiationTarget = second
           ? `Ask ${second.factory_name} to match $${best.first_cost}/unit`
           : "Only one quote received";
@@ -408,7 +401,7 @@ Return ONLY raw JSON, no markdown:
           product: productName,
           factory: best.factory_name,
           elc: best.elc,
-          margin: `${best.margin_pct}%`,
+          margin: "Fill in sell price on Comparison tab",
           savings: second
             ? savings > 0
               ? `$${savings} cheaper than ${second.factory_name}`
@@ -419,18 +412,10 @@ Return ONLY raw JSON, no markdown:
           target: negotiationTarget,
         });
 
-        // Yellow highlight best rows in summary
         row.eachCell((cell) => {
           cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
           cell.font = { bold: false, size: 10 };
         });
-
-        // Red for negative margin
-        if (isNegative) {
-          const marginCell = row.getCell("margin");
-          marginCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF4444" } };
-          marginCell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
-        }
 
         row.height = 18;
       }
