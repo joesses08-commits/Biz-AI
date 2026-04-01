@@ -108,8 +108,8 @@ export async function POST(req: NextRequest) {
             if (relsFile) {
               const relsXml = await (relsFile as any).async("string");
               const rIdToImage: Record<string, string> = {};
-              const relMatches = [...relsXml.matchAll(/Id="(rId\d+)"[^>]*Target="[^"]*\/([^"\/]+\.(?:png|jpg|jpeg|gif|bmp))"/gi)];
-              for (const match of relMatches) { rIdToImage[match[1]] = match[2]; }
+              const relMatches = [...relsXml.matchAll(/Target="[^"]*\/([^"\/]+\.(?:png|jpg|jpeg|gif|bmp))"[^>]*Id="(rId\d+)"/gi)];
+              for (const match of relMatches) { rIdToImage[match[2]] = match[1]; }
               const anchorMatches = [...xml.matchAll(/<(?:xdr:)?(?:twoCellAnchor|oneCellAnchor)[^>]*>[\s\S]*?<(?:xdr:)?from>\s*<(?:xdr:)?col>\d+<\/(?:xdr:)?col>\s*<(?:xdr:)?colOff>\d+<\/(?:xdr:)?colOff>\s*<(?:xdr:)?row>(\d+)<\/(?:xdr:)?row>[\s\S]*?<a:blip[^>]*r:embed="(rId\d+)"/g)];
               for (const match of anchorMatches) {
                 const row = parseInt(match[1]) + 1;
