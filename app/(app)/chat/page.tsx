@@ -5,11 +5,18 @@ import { Send, Plus, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 
+interface PendingApproval {
+  action: string;
+  details: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  pendingApproval?: PendingApproval;
+  conversationState?: any[];
 }
 
 interface Conversation {
@@ -42,6 +49,7 @@ export default function ChatPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingConversationState, setPendingConversationState] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -136,15 +144,36 @@ export default function ChatPage() {
       });
 
       const data = await res.json();
-      const responseText = res.status === 402
-        ? `⚠️ ${data.message} [Buy more tokens at myjimmy.ai/quota]`
-        : data.message || data.response || "Something went wrong.";
 
-      setConversations(prev => prev.map(c =>
-        c.id === currentId
-          ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? { ...m, content: responseText } : m) }
-          : c
-      ));
+      if (res.status === 402) {
+        const responseText = `⚠️ ${data.message} [Buy more tokens at myjimmy.ai/quota]`;
+        setConversations(prev => prev.map(c =>
+          c.id === currentId
+            ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? { ...m, content: responseText } : m) }
+            : c
+        ));
+      } else if (data.pendingApproval) {
+        // Store conversation state for continuation after approval
+        setPendingConversationState(data.conversationState || []);
+        setConversations(prev => prev.map(c =>
+          c.id === currentId
+            ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? {
+                ...m,
+                content: data.message || "I'm ready to proceed.",
+                pendingApproval: data.pendingApproval,
+                conversationState: data.conversationState,
+              } : m) }
+            : c
+        ));
+      } else {
+        const responseText = data.message || data.response || "Something went wrong.";
+        setPendingConversationState([]);
+        setConversations(prev => prev.map(c =>
+          c.id === currentId
+            ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? { ...m, content: responseText } : m) }
+            : c
+        ));
+      }
     } catch {
       setConversations(prev => prev.map(c =>
         c.id === currentId
@@ -176,6 +205,63 @@ export default function ChatPage() {
     if (days === 0) return "Today";
     if (days === 1) return "Yesterday";
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const handleApprove = async (msg: Message) => {
+    if (!msg.conversationState) return;
+    const currentId = activeConversationId || conversations[0]?.id;
+    setIsLoading(true);
+
+    const assistantMsg: Message = {
+      id: generateId(),
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+    };
+
+    setConversations(prev => prev.map(c =>
+      c.id === currentId
+        ? { ...c, messages: [...c.messages, { id: generateId(), role: "user", content: "✅ Approved — go ahead.", timestamp: new Date().toISOString() }, assistantMsg] }
+        : c
+    ));
+
+    try {
+      const continuationMessages = [
+        ...msg.conversationState,
+        { role: "user", content: "The user has approved this action. Please proceed and execute it now." },
+      ];
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: continuationMessages, approvedAction: true }),
+      });
+
+      const data = await res.json();
+      const responseText = data.message || "Done.";
+      setConversations(prev => prev.map(c =>
+        c.id === currentId
+          ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? { ...m, content: responseText } : m) }
+          : c
+      ));
+    } catch {
+      setConversations(prev => prev.map(c =>
+        c.id === currentId
+          ? { ...c, messages: c.messages.map(m => m.id === assistantMsg.id ? { ...m, content: "Something went wrong." } : m) }
+          : c
+      ));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReject = (msg: Message) => {
+    const currentId = activeConversationId || conversations[0]?.id;
+    setConversations(prev => prev.map(c =>
+      c.id === currentId
+        ? { ...c, messages: [...c.messages, { id: generateId(), role: "user", content: "❌ Cancelled.", timestamp: new Date().toISOString() }, { id: generateId(), role: "assistant", content: "Got it — action cancelled. Let me know if you want to do something else.", timestamp: new Date().toISOString() }] }
+        : c
+    ));
   };
 
   return (
@@ -270,6 +356,28 @@ export default function ChatPage() {
                     }`}>
                       {message.role === "user" ? (
                         <p className="text-sm font-medium leading-relaxed">{message.content}</p>
+                      ) : message.pendingApproval ? (
+                        <div className="space-y-3">
+                          {message.content && <ReactMarkdown>{message.content}</ReactMarkdown>}
+                          <div className="border border-amber-500/20 bg-amber-500/5 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                              <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Awaiting Your Approval</p>
+                            </div>
+                            <p className="text-sm font-semibold text-white mb-1">{message.pendingApproval.action}</p>
+                            <p className="text-xs text-white/50 mb-3 leading-relaxed">{message.pendingApproval.details}</p>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleApprove(message)}
+                                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
+                                ✓ Approve & Execute
+                              </button>
+                              <button onClick={() => handleReject(message)}
+                                className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs hover:text-white/60 transition">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       ) : message.content ? (
                         <div className="prose prose-invert prose-sm max-w-none
                           prose-p:text-white/70 prose-p:leading-relaxed prose-p:text-sm prose-p:my-1.5
