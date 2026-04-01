@@ -237,7 +237,7 @@ function FactoryQuoteManager({ userId }: { userId?: string }) {
     });
     setCreating(false);
     setShowNew(false);
-    setNewJob({ job_name: "", factories: "", duty_pct: "30", tariff_pct: "20", freight: "0.15", sell_price: "3.50" });
+    setNewJob({ job_name: "", factories: "", duty_pct: "30", tariff_pct: "20", freight: "0.15" });
     loadJobs();
   };
 
