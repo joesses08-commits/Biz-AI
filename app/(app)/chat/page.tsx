@@ -209,7 +209,7 @@ export default function ChatPage() {
 
   const handleApprove = async (msg: Message) => {
     if (!msg.conversationState) return;
-    const currentId = activeConversationId || conversations[0]?.id;
+    const currentId = activeId || conversations[0]?.id;
     setIsLoading(true);
 
     const assistantMsg: Message = {
@@ -256,7 +256,7 @@ export default function ChatPage() {
   };
 
   const handleReject = (msg: Message) => {
-    const currentId = activeConversationId || conversations[0]?.id;
+    const currentId = activeId || conversations[0]?.id;
     setConversations(prev => prev.map(c =>
       c.id === currentId
         ? { ...c, messages: [...c.messages, { id: generateId(), role: "user", content: "❌ Cancelled.", timestamp: new Date().toISOString() }, { id: generateId(), role: "assistant", content: "Got it — action cancelled. Let me know if you want to do something else.", timestamp: new Date().toISOString() }] }
