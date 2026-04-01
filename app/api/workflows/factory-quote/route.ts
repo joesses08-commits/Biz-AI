@@ -103,25 +103,37 @@ export async function POST(req: NextRequest) {
       if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
       if (!job.product_file_base64) return NextResponse.json({ error: "No product file attached to this job" }, { status: 400 });
 
+      // Use whichever email provider is connected — Gmail takes priority
       const { data: gmailConn } = await supabaseAdmin
         .from("gmail_connections")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      if (!gmailConn?.access_token) return NextResponse.json({ error: "Gmail not connected" }, { status: 400 });
+      const { data: msConn } = await supabaseAdmin
+        .from("microsoft_connections")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
-      const accessToken = await refreshGmailToken(gmailConn, user.id);
+      if (!gmailConn?.access_token && !msConn?.access_token) {
+        return NextResponse.json({ error: "No email provider connected. Connect Gmail or Outlook first." }, { status: 400 });
+      }
+
+      const useGmail = !!gmailConn?.access_token;
       const results: { factory: string; success: boolean; error?: string }[] = [];
 
-      // Fix base64 padding if needed
       const fileBase64 = job.product_file_base64.replace(/-/g, "+").replace(/_/g, "/");
       const fileName = job.product_file_name || "Product List.xlsx";
       const boundary = "boundary_" + Date.now();
 
-      for (const factory of (job.factories || [])) {
-        try {
-          const emailBody = `Hi ${factory.name},
+      // Gmail send
+      if (useGmail) {
+        const accessToken = await refreshGmailToken(gmailConn, user.id);
+
+        for (const factory of (job.factories || [])) {
+          try {
+            const emailBody = `Hi ${factory.name},
 
 I hope this message finds you well. Please find attached our product list for ${job.job_name}.
 
@@ -136,44 +148,106 @@ Please reply with your completed quote at your earliest convenience.
 Thank you,
 Jimmy AI – Procurement`;
 
-          // Build MIME email with attachment
-          const mime = [
-            `MIME-Version: 1.0`,
-            `To: ${factory.email}`,
-            `Subject: RFQ: ${job.job_name} – Please Quote Attached Product List`,
-            `Content-Type: multipart/mixed; boundary="${boundary}"`,
-            ``,
-            `--${boundary}`,
-            `Content-Type: text/plain; charset=utf-8`,
-            ``,
-            emailBody,
-            ``,
-            `--${boundary}`,
-            `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
-            `Content-Transfer-Encoding: base64`,
-            `Content-Disposition: attachment; filename="${fileName}"`,
-            ``,
-            fileBase64,
-            ``,
-            `--${boundary}--`,
-          ].join("\r\n");
+            const mime = [
+              `MIME-Version: 1.0`,
+              `To: ${factory.email}`,
+              `Subject: RFQ: ${job.job_name} – Please Quote Attached Product List`,
+              `Content-Type: multipart/mixed; boundary="${boundary}"`,
+              ``,
+              `--${boundary}`,
+              `Content-Type: text/plain; charset=utf-8`,
+              ``,
+              emailBody,
+              ``,
+              `--${boundary}`,
+              `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`,
+              `Content-Transfer-Encoding: base64`,
+              `Content-Disposition: attachment; filename="${fileName}"`,
+              ``,
+              fileBase64,
+              ``,
+              `--${boundary}--`,
+            ].join("\r\n");
 
-          const encoded = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+            const encoded = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-          const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ raw: encoded }),
-          });
+            const sendRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ raw: encoded }),
+            });
 
-          const sendData = await sendRes.json();
-          if (sendData.id) {
-            results.push({ factory: factory.name, success: true });
-          } else {
-            results.push({ factory: factory.name, success: false, error: sendData.error?.message || "Send failed" });
+            const sendData = await sendRes.json();
+            results.push({ factory: factory.name, success: !!sendData.id, error: sendData.error?.message });
+          } catch (err) {
+            results.push({ factory: factory.name, success: false, error: String(err) });
           }
-        } catch (err) {
-          results.push({ factory: factory.name, success: false, error: String(err) });
+        }
+      } else {
+        // Outlook send via Microsoft Graph
+        let accessToken = msConn.access_token;
+        if (new Date(msConn.expires_at) < new Date()) {
+          const refreshRes = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              refresh_token: msConn.refresh_token,
+              client_id: process.env.MICROSOFT_CLIENT_ID!,
+              client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
+              grant_type: "refresh_token",
+              scope: "Mail.Read Mail.Send Files.ReadWrite offline_access",
+            }),
+          });
+          const refreshData = await refreshRes.json();
+          if (refreshData.access_token) {
+            accessToken = refreshData.access_token;
+            await supabaseAdmin.from("microsoft_connections").update({
+              access_token: accessToken,
+              expires_at: new Date(Date.now() + refreshData.expires_in * 1000).toISOString(),
+            }).eq("user_id", user.id);
+          }
+        }
+
+        for (const factory of (job.factories || [])) {
+          try {
+            const sendRes = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: {
+                  subject: `RFQ: ${job.job_name} – Please Quote Attached Product List`,
+                  body: {
+                    contentType: "Text",
+                    content: `Hi ${factory.name},
+
+I hope this message finds you well. Please find attached our product list for ${job.job_name}.
+
+Could you please fill in your unit pricing in the attached file and send it back to us? We're looking for:
+- Unit price (USD)
+- MOQ
+- Lead time
+- Payment terms
+
+Please reply with your completed quote at your earliest convenience.
+
+Thank you,
+Jimmy AI – Procurement`,
+                  },
+                  toRecipients: [{ emailAddress: { address: factory.email } }],
+                  attachments: [{
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    name: fileName,
+                    contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    contentBytes: fileBase64,
+                  }],
+                },
+              }),
+            });
+
+            results.push({ factory: factory.name, success: sendRes.status === 202, error: sendRes.status !== 202 ? "Send failed" : undefined });
+          } catch (err) {
+            results.push({ factory: factory.name, success: false, error: String(err) });
+          }
         }
       }
 
@@ -183,7 +257,7 @@ Jimmy AI – Procurement`;
         updated_at: new Date().toISOString(),
       }).eq("id", job_id);
 
-      return NextResponse.json({ success: true, results });
+      return NextResponse.json({ success: true, results, provider: useGmail ? "gmail" : "outlook" });
     }
 
     // ── PROCESS RETURNED QUOTE FILE ──────────────────────────────────────
