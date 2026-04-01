@@ -337,7 +337,11 @@ Return ONLY raw JSON, no markdown:
                 extension: ext as "png" | "jpeg",
               });
               const rowNum = row.number;
-              ws.addImage(imageId, `A${rowNum}:A${rowNum}`);
+              ws.addImage(imageId, {
+                tl: { col: 0, row: rowNum - 1 },
+                ext: { width: 80, height: 60 },
+                editAs: "oneCell",
+              });
               row.height = 60; // taller row to show image
             } catch (imgErr) {
               console.error("Image embed error:", imgErr);
