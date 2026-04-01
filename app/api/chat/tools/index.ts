@@ -82,10 +82,47 @@ export async function readSheet(userId: string, spreadsheetId: string, range: st
   return { values: data.values || [], range: data.range };
 }
 
+// ── GET FORMULA CELLS ─────────────────────────────────────────────────────
+export async function getFormulaCells(userId: string, spreadsheetId: string, range: string) {
+  const token = await getGoogleToken(userId);
+  if (!token) return { error: "Google not connected" };
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?ranges=${encodeURIComponent(range)}&fields=sheets.data.rowData.values(userEnteredValue,userEnteredFormat)`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  const data = await res.json();
+  const formulaCells: string[] = [];
+  const rows = data.sheets?.[0]?.data?.[0]?.rowData || [];
+  // Parse range to get start col/row
+  const match = range.match(/([A-Z]+)(\d+)/);
+  if (match) {
+    const startRow = parseInt(match[2]);
+    rows.forEach((row: any, ri: number) => {
+      (row.values || []).forEach((cell: any, ci: number) => {
+        if (cell?.userEnteredValue?.formulaValue) {
+          const col = String.fromCharCode(65 + ci);
+          formulaCells.push(`${col}${startRow + ri}`);
+        }
+      });
+    });
+  }
+  return { formulaCells };
+}
+
 // ── WRITE SHEET ────────────────────────────────────────────────────────────
 export async function writeSheet(userId: string, spreadsheetId: string, range: string, values: any[][]) {
   const token = await getGoogleToken(userId);
   if (!token) return { error: "Google not connected" };
+
+  // Check for formula cells before writing
+  const formulaCheck = await getFormulaCells(userId, spreadsheetId, range);
+  if (formulaCheck.formulaCells?.length) {
+    return {
+      error: `Cannot write to formula cells: ${formulaCheck.formulaCells.join(", ")}. These cells contain formulas that would be overwritten. Please only write to input cells.`,
+      formulaCells: formulaCheck.formulaCells,
+    };
+  }
+
   const res = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
     {

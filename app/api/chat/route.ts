@@ -7,7 +7,7 @@ import { updateCompanyBrain, buildFullCompanyContext } from "@/lib/company-conte
 import { trackUsage } from "@/lib/track-usage";
 import { checkQuota } from "@/lib/quota";
 import {
-  findSheet, readSheet, writeSheet, appendRow,
+  findSheet, readSheet, writeSheet, appendRow, getFormulaCells,
   findExcel, readExcel, writeExcel,
   sendEmail, searchEmails,
   createActionItem, addCalendarEvent,
@@ -28,6 +28,18 @@ const HAIKU = "claude-haiku-4-5-20251001";
 
 // ── TOOL DEFINITIONS ───────────────────────────────────────────────────────
 const TOOLS: Anthropic.Tool[] = [
+  {
+    name: "get_formula_cells",
+    description: "Check which cells in a range contain formulas vs raw input values. Always call this before writing to a sheet to avoid overwriting formulas.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        spreadsheetId: { type: "string" },
+        range: { type: "string", description: "Range to check e.g. Sheet1!A1:Z10" },
+      },
+      required: ["spreadsheetId", "range"],
+    },
+  },
   {
     name: "find_sheet",
     description: "Find a Google Sheet by name in Google Drive",
@@ -113,6 +125,7 @@ const TOOLS: Anthropic.Tool[] = [
 // ── EXECUTE TOOL ───────────────────────────────────────────────────────────
 async function executeTool(name: string, input: any, userId: string): Promise<any> {
   switch (name) {
+    case "get_formula_cells": return getFormulaCells(userId, input.spreadsheetId, input.range);
     case "find_sheet": return findSheet(userId, input.name);
     case "read_sheet": return readSheet(userId, input.spreadsheetId, input.range);
     case "write_sheet": return writeSheet(userId, input.spreadsheetId, input.range, input.values);
@@ -228,7 +241,7 @@ HOW TO BEHAVE:
 
 TOOL USE RULES:
 - Always find_sheet or find_excel before reading/writing (you need the ID)
-- For stocks: read the sheet first to find the right row, calculate new values, then request_approval with exact changes, then write
+- For stocks: read the sheet first to find the right row, then call get_formula_cells on that row to identify input cells, calculate new values, then request_approval with exact changes showing only input cells, then write only to input cells
 - For emails: draft the full email body, request_approval showing the complete draft, then send
 - For calendar: show the exact events you're about to add, request_approval, then add them
 - If both Google and Microsoft are connected, ask which provider to use
