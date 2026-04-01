@@ -18,7 +18,6 @@ export default function SettingsPage() {
 
   const [brain, setBrain] = useState({
     company_name: "",
-    full_name: "",
     company_brief: "",
     company_brain: "",
     what_is_real: "",
@@ -45,6 +44,7 @@ export default function SettingsPage() {
 
   const [company, setCompany] = useState({
     industry: "",
+    full_name: "",
     website: "",
     currency: "USD",
     fiscal_year_start: "January",
@@ -76,8 +76,6 @@ export default function SettingsPage() {
         setCompany({
           industry: settings.industry || "",
           full_name: profileData?.full_name || "",
-          full_name: profileData?.full_name || "",
-          full_name: settings.full_name || "",
           website: settings.website || "",
           currency: settings.currency || "USD",
           fiscal_year_start: settings.fiscal_year_start || "January",
