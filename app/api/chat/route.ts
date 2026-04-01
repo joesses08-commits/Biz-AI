@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+export const maxDuration = 300;
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
@@ -415,6 +416,9 @@ ${companyContext || "No integrations connected yet."}`;
 
       // Add tool results to conversation
       currentMessages.push({ role: "user", content: toolResults });
+
+      // Small delay to avoid rate limiting
+      await new Promise(r => setTimeout(r, 500));
     }
 
     trackUsage(user.id, "chat", "claude-sonnet-4-5", totalInputTokens, totalOutputTokens).catch(() => {});
