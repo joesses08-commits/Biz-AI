@@ -196,9 +196,19 @@ export async function POST(request: NextRequest) {
 
     await supabaseAdmin.from("gmail_connections").update({ last_history_id: historyId }).eq("user_id", userId);
 
-    const messages = historyData.history?.flatMap((h: any) =>
+    let messages = historyData.history?.flatMap((h: any) =>
       (h.messagesAdded || []).map((m: any) => m.message)
     ) || [];
+
+    // Fallback: if history empty, fetch recent inbox messages directly
+    if (!messages.length) {
+      const recentRes = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&q=in:inbox`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const recentData = await recentRes.json();
+      messages = recentData.messages || [];
+    }
 
     if (!messages.length) return NextResponse.json({ received: true });
 
