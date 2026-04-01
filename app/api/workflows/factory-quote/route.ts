@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
       // Use Claude to extract products and pricing
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-5",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 4000,
         system: `You are extracting factory quote data from an Excel file. Extract every product with all its details.
 Return ONLY raw JSON, no markdown:
