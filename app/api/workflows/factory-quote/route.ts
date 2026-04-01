@@ -324,8 +324,6 @@ Return ONLY raw JSON, no markdown:
           else if (index === 2) competitiveness = "🥉 3rd Best";
           else competitiveness = `${index + 1}th`;
 
-          const marginNum = parseFloat(f.margin_pct);
-          const isNegative = marginNum < 0;
           const isBest = index === 0;
 
           const row = ws.addRow({
@@ -338,15 +336,24 @@ Return ONLY raw JSON, no markdown:
             tariff: `${f.tariff_pct}%`,
             freight: f.freight,
             elc: f.elc,
-            sell: f.sell_price,
-            margin: `${f.margin_pct}%`,
+            sell: "",
+            margin: "",
             moq: f.moq || "",
             lead: f.lead_time_days || "",
             comp: competitiveness,
             notes: f.notes || "",
           });
 
-          // Embed product image if available (only on first factory row per product)
+          // Add formula for margin — calculates when sell price is entered in col J
+          const rowNum2 = row.number;
+          const sellCell = row.getCell("sell");
+          const mCell = row.getCell("margin");
+          sellCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFACD" } };
+          sellCell.note = "Enter your sell price here";
+          mCell.value = { formula: `=IF(J${rowNum2}="","",((J${rowNum2}-I${rowNum2})/J${rowNum2}))` };
+          mCell.numFmt = "0.00%";
+
+          // Embed product image
           if (index === 0 && f.image_base64) {
             try {
               const imageData = f.image_base64.split(",")[1] || f.image_base64;
@@ -361,7 +368,7 @@ Return ONLY raw JSON, no markdown:
                 ext: { width: 80, height: 60 },
                 editAs: "oneCell",
               });
-              row.height = 60; // taller row to show image
+              row.height = 60;
             } catch (imgErr) {
               console.error("Image embed error:", imgErr);
             }
@@ -373,16 +380,10 @@ Return ONLY raw JSON, no markdown:
               cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFF00" } };
               cell.font = { bold: true, size: 10 };
             });
+            sellCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFACD" } };
           }
 
-          // Red for negative margin (override just the margin cell)
-          if (isNegative) {
-            const marginCell = row.getCell("margin");
-            marginCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFF4444" } };
-            marginCell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
-          }
-
-          row.height = 18;
+          row.height = isBest && f.image_base64 ? 60 : 18;
         });
 
         // Empty spacer row between products
