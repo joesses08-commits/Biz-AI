@@ -229,7 +229,7 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
       body: JSON.stringify({ action: "submit_for_approval", product_id }),
     });
     setSubmitting(null);
-    setSuccess("Submitted for approval — Uncle David has been notified");
+    setSuccess("Submitted for approval — Admin has been notified");
     setTimeout(() => setSuccess(""), 4000);
     load();
   };
