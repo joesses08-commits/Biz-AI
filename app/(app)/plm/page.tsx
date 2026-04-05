@@ -76,7 +76,7 @@ export default function PLMPage() {
   const [importResult, setImportResult] = useState<any>(null);
   const [newCollection, setNewCollection] = useState({ name:"", season:"", year: new Date().getFullYear().toString(), notes:"" });
   const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
-  const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"" });
+  const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"", role:"factory" });
 
   const load = async () => {
     const [plmRes, catRes, portalRes] = await Promise.all([
@@ -115,7 +115,8 @@ export default function PLMPage() {
   };
 
   const createPortalUser = async () => {
-    if (!newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id) return;
+    if (!newPortalUser.email || !newPortalUser.password) return;
+    if (newPortalUser.role === "factory" && !newPortalUser.factory_id) return;
     setSavingPortalUser(true);
     await fetch("/api/plm/portal-users", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"create", ...newPortalUser }) });
     setSavingPortalUser(false); setShowNewPortalUser(false);
@@ -578,30 +579,37 @@ export default function PLMPage() {
                 <p className="text-sm font-semibold text-white">Factory Portal Users</p>
                 <p className="text-xs text-white/30 mt-0.5">Manage who can log into portal.myjimmy.ai</p>
               </div>
-              <button onClick={() => setShowNewPortalUser(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
-                <Plus size={11} />Add Factory User
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => { setNewPortalUser({...newPortalUser, role: "factory"}); setShowNewPortalUser(true); }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/60 font-semibold hover:bg-white/5 transition">
+                  <Plus size={11} />Add Factory User
+                </button>
+                <button onClick={() => { setNewPortalUser({...newPortalUser, role: "designer"}); setShowNewPortalUser(true); }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+                  <Plus size={11} />Add Designer
+                </button>
+              </div>
             </div>
             {showNewPortalUser && (
               <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
-                <p className="text-xs font-semibold text-white/70">New Factory Portal User</p>
+                <p className="text-xs font-semibold text-white/70">New {newPortalUser.role === "designer" ? "Designer" : "Factory"} Portal User</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className={lc}>Name</label><input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})} placeholder="Factory contact name" className={ic} /></div>
-                  <div><label className={lc}>Email</label><input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})} placeholder="factory@example.com" className={ic} /></div>
+                  <div><label className={lc}>Name</label><input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})} placeholder={newPortalUser.role === "designer" ? "Designer name" : "Factory contact name"} className={ic} /></div>
+                  <div><label className={lc}>Email</label><input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})} placeholder="email@example.com" className={ic} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className={lc}>Password</label><input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})} placeholder="Temporary password" className={ic} /></div>
-                  <div>
-                    <label className={lc}>Factory</label>
-                    <select value={newPortalUser.factory_id} onChange={e => setNewPortalUser({...newPortalUser, factory_id: e.target.value})} className={ic}>
-                      <option value="">Select factory</option>
-                      {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                    </select>
-                  </div>
+                  {newPortalUser.role === "factory" && (
+                    <div>
+                      <label className={lc}>Factory</label>
+                      <select value={newPortalUser.factory_id} onChange={e => setNewPortalUser({...newPortalUser, factory_id: e.target.value})} className={ic}>
+                        <option value="">Select factory</option>
+                        {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={createPortalUser} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                    {savingPortalUser ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create User
+                  <button onClick={createPortalUser} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password || (newPortalUser.role === "factory" && !newPortalUser.factory_id)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                    {savingPortalUser ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create {newPortalUser.role === "designer" ? "Designer" : "Factory User"}
                   </button>
                   <button onClick={() => setShowNewPortalUser(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
                 </div>
@@ -627,7 +635,7 @@ export default function PLMPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Active</span>
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">{u.role === "designer" ? "Designer" : "Factory"}</span>
                       <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
                         {deletingPortalUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                       </button>

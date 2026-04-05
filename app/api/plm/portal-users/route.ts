@@ -26,7 +26,7 @@ export async function GET() {
 
   const { data } = await supabaseAdmin
     .from("factory_portal_users")
-    .select("id, name, email, factory_id, created_at, factory_catalog(name)")
+    .select("id, name, email, factory_id, role, created_at, factory_catalog(name)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -40,15 +40,15 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   if (body.action === "create") {
-    const { name, email, password, factory_id } = body;
+    const { name, email, password, factory_id, role } = body;
     const password_hash = crypto.createHash("sha256").update(password).digest("hex");
 
     const { error } = await supabaseAdmin.from("factory_portal_users").insert({
       user_id: user.id,
-      factory_id,
+      factory_id: factory_id || null,
       email: email.toLowerCase(),
       name,
-      role: "factory",
+      role: role || "factory",
       password_hash,
     });
 

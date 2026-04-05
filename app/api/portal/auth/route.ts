@@ -40,8 +40,10 @@ export async function POST(req: NextRequest) {
       id: portalUser.id,
       email: portalUser.email,
       name: portalUser.name,
+      role: portalUser.role || "factory",
       factory_id: portalUser.factory_id,
       factory_name: portalUser.factory_catalog?.name,
+      user_id: portalUser.user_id,
     },
   });
 }
