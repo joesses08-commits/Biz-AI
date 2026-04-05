@@ -20,12 +20,14 @@ async function getUser() {
   return user;
 }
 
-async function fetchImageBuffer(url: string): Promise<Buffer | null> {
+async function fetchImageBase64(url: string): Promise<{data: string, ext: string} | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
     const ab = await res.arrayBuffer();
-    return Buffer.from(ab);
+    const b64 = Buffer.from(ab).toString("base64");
+    const ext = url.split(".").pop()?.toLowerCase() || "jpeg";
+    return { data: b64, ext };
   } catch { return null; }
 }
 
@@ -125,12 +127,11 @@ export async function POST(req: NextRequest) {
 
     // Embed image if available
     if (showImages && p.images?.[0]) {
-      const imgBuffer = await fetchImageBuffer(p.images[0]);
-      if (imgBuffer) {
-        const ext = p.images[0].split(".").pop()?.toLowerCase() || "jpeg";
-        const mimeType = ext === "png" ? "png" : "jpeg";
+      const imgData = await fetchImageBase64(p.images[0]);
+      if (imgData) {
+        const mimeType = imgData.ext === "png" ? "png" : "jpeg";
         try {
-          const imgId = wb.addImage({ buffer: imgBuffer as unknown as Buffer, extension: mimeType });
+          const imgId = wb.addImage({ base64: imgData.data, extension: mimeType });
           ws.addImage(imgId, {
             tl: { col: 0, row: rowNum - 1 },
             ext: { width: IMG_SIZE, height: IMG_SIZE },
