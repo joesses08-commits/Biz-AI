@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Package, Plus, ChevronRight, Loader2, Layers, Factory,
-  CheckCircle, Clock, AlertCircle, X, Check, Trash2, Filter
+  CheckCircle, Clock, AlertCircle, X, Check, Trash2, Filter, Users, Key, Copy
 } from "lucide-react";
 
 const STAGES = [
@@ -62,12 +62,18 @@ export default function PLMPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [factories, setFactories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"collections" | "all_products">("collections");
+  const [activeTab, setActiveTab] = useState<"collections" | "all_products" | "factory_access">("collections");
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [saving, setSaving] = useState(false);
   const [filterStage, setFilterStage] = useState("");
   const [filterCollection, setFilterCollection] = useState("");
+  const [portalUsers, setPortalUsers] = useState<any[]>([]);
+  const [showNewPortalUser, setShowNewPortalUser] = useState(false);
+  const [newPortalUser, setNewPortalUser] = useState({ name: "", email: "", password: "", factory_id: "" });
+  const [savingPortalUser, setSavingPortalUser] = useState(false);
+  const [deletingPortalUser, setDeletingPortalUser] = useState<string | null>(null);
+  const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
 
   const [newCollection, setNewCollection] = useState({ name: "", season: "", year: new Date().getFullYear().toString(), notes: "" });
   const [newProduct, setNewProduct] = useState({
@@ -77,15 +83,18 @@ export default function PLMPage() {
   });
 
   const load = async () => {
-    const [plmRes, catRes] = await Promise.all([
+    const [plmRes, catRes, portalRes] = await Promise.all([
       fetch("/api/plm"),
       fetch("/api/catalog?type=factories"),
+      fetch("/api/plm/portal-users"),
     ]);
     const plmData = await plmRes.json();
     const catData = await catRes.json();
+    const portalData = await portalRes.json();
     setCollections(plmData.collections || []);
     setProducts(plmData.products || []);
     setFactories(catData.factories || []);
+    setPortalUsers(portalData.users || []);
     setLoading(false);
   };
 
@@ -305,6 +314,10 @@ export default function PLMPage() {
             className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "all_products" ? "bg-white text-black" : "text-white/40"}`}>
             All Products
           </button>
+          <button onClick={() => setActiveTab("factory_access")}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factory_access" ? "bg-white text-black" : "text-white/40"}`}>
+            Factory Access
+          </button>
         </div>
 
         {loading ? (
@@ -438,7 +451,113 @@ export default function PLMPage() {
               </div>
             )}
           </div>
-        )}
+        ) : activeTab === "factory_access" ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Factory Portal Users</p>
+                <p className="text-xs text-white/30 mt-0.5">Manage who can log into portal.myjimmy.ai</p>
+              </div>
+              <button onClick={() => setShowNewPortalUser(true)}
+                className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+                <Plus size={11} />Add Factory User
+              </button>
+            </div>
+
+            {showNewPortalUser && (
+              <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
+                <p className="text-xs font-semibold text-white/70">New Factory Portal User</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] text-white/30 mb-1 block">Name</label>
+                    <input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})}
+                      placeholder="Factory contact name" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-white/30 mb-1 block">Email</label>
+                    <input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})}
+                      placeholder="factory@example.com" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] text-white/30 mb-1 block">Password</label>
+                    <input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})}
+                      placeholder="Temporary password" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-white/30 mb-1 block">Factory</label>
+                    <select value={newPortalUser.factory_id} onChange={e => setNewPortalUser({...newPortalUser, factory_id: e.target.value})}
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                      <option value="">Select factory</option>
+                      {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    if (!newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id) return;
+                    setSavingPortalUser(true);
+                    await fetch("/api/plm/portal-users", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "create", ...newPortalUser }),
+                    });
+                    setSavingPortalUser(false);
+                    setShowNewPortalUser(false);
+                    setNewPortalUser({ name: "", email: "", password: "", factory_id: "" });
+                    load();
+                  }} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                    {savingPortalUser ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create User
+                  </button>
+                  <button onClick={() => setShowNewPortalUser(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {portalUsers.length === 0 && !showNewPortalUser ? (
+              <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
+                <Users size={28} className="text-white/10 mx-auto mb-3" />
+                <p className="text-white/30 text-sm">No factory portal users yet</p>
+                <p className="text-white/15 text-xs mt-1">Add a factory user so they can log into portal.myjimmy.ai</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {portalUsers.map(u => (
+                  <div key={u.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-5 py-4 bg-white/[0.01]">
+                    <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                      <Users size={13} className="text-white/30" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white">{u.name || u.email}</p>
+                      <div className="flex items-center gap-3">
+                        <p className="text-xs text-white/30">{u.email}</p>
+                        {u.factory_catalog && <p className="text-xs text-white/20">{u.factory_catalog.name}</p>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Active</span>
+                      <button onClick={async () => {
+                        setDeletingPortalUser(u.id);
+                        await fetch("/api/plm/portal-users", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ action: "delete", id: u.id }),
+                        });
+                        setDeletingPortalUser(null);
+                        load();
+                      }} disabled={deletingPortalUser === u.id}
+                        className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                        {deletingPortalUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );
