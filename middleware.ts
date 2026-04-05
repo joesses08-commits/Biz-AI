@@ -29,6 +29,8 @@ export async function middleware(request: NextRequest) {
     "/api/microsoft/push",
     "/api/workflows/factory-quote",
     "/api/plm",
+    "/api/portal",
+    "/portal",
     "/privacy",
     "/terms",
   ];
