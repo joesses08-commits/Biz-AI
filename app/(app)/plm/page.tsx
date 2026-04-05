@@ -2,51 +2,44 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet, Image } from "lucide-react";
+import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet } from "lucide-react";
 
-const STAGES = [
-  { key: "design_brief", label: "Design Brief", color: "#6b7280" },
-  { key: "sampling", label: "Sampling", color: "#8b5cf6" },
-  { key: "sample_approved", label: "Sample Approved", color: "#10b981" },
-  { key: "sample_rejected", label: "Sample Rejected", color: "#ef4444" },
-  { key: "rfq_sent", label: "RFQ Sent", color: "#3b82f6" },
-  { key: "factory_selected", label: "Factory Selected", color: "#3b82f6" },
-  { key: "po_issued", label: "PO Issued", color: "#f59e0b" },
-  { key: "production_started", label: "Production Started", color: "#f59e0b" },
-  { key: "production_complete", label: "Production Complete", color: "#10b981" },
-  { key: "qc_inspection", label: "QC Inspection", color: "#f59e0b" },
-  { key: "shipped", label: "Shipped", color: "#3b82f6" },
-  { key: "in_transit", label: "In Transit", color: "#3b82f6" },
-  { key: "customs", label: "Customs Clearance", color: "#f59e0b" },
-  { key: "delivered", label: "Delivered", color: "#10b981" },
-  { key: "active", label: "Active / Selling", color: "#10b981" },
-];
-
+const BATCH_STAGE_ORDER = ["rfq_sent","factory_selected","po_issued","production_started","production_complete","qc_inspection","shipped","in_transit","customs","delivered","active"];
+const BATCH_STAGE_LABELS: Record<string,string> = { rfq_sent:"RFQ Sent", factory_selected:"Factory Selected", po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", shipped:"Shipped", in_transit:"In Transit", customs:"Customs", delivered:"Delivered", active:"Active" };
+const BATCH_STAGE_COLORS: Record<string,string> = { rfq_sent:"#3b82f6", factory_selected:"#3b82f6", po_issued:"#f59e0b", production_started:"#f59e0b", production_complete:"#10b981", qc_inspection:"#f59e0b", shipped:"#3b82f6", in_transit:"#3b82f6", customs:"#f59e0b", delivered:"#10b981", active:"#10b981" };
 const SEASONS = ["Spring", "Summer", "Fall", "Winter", "Holiday", "Resort", "Pre-Fall"];
+const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
+const COLUMN_LABELS: Record<string,string> = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };
 
-function StageChip({ stage }: { stage: string }) {
-  const s = STAGES.find(s => s.key === stage);
-  if (!s) return null;
-  return (
-    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-      style={{ background: `${s.color}20`, color: s.color, border: `1px solid ${s.color}30` }}>
-      {s.label}
-    </span>
-  );
+function getProductStatus(product: any) {
+  const batches = product.plm_batches || [];
+  let statusKey: string | null = null;
+  let statusIdx = -1;
+  for (const b of batches) {
+    const idx = BATCH_STAGE_ORDER.indexOf(b.current_stage);
+    if (idx > statusIdx) { statusIdx = idx; statusKey = b.current_stage; }
+  }
+  return statusKey;
 }
 
 function getCollectionProgress(products: any[]) {
   if (!products?.length) return { total: 0, complete: 0, pct: 0 };
-  const complete = products.filter(p => ["delivered", "active"].includes(p.current_stage)).length;
+  const complete = products.filter(p => {
+    const status = getProductStatus(p);
+    return status === "delivered" || status === "active";
+  }).length;
   return { total: products.length, complete, pct: Math.round((complete / products.length) * 100) };
 }
 
 function getCollectionHealth(products: any[]) {
   if (!products?.length) return "empty";
   const delayed = products.filter(p => {
-    if (!p.stage_updated_at) return false;
-    const daysSince = (Date.now() - new Date(p.stage_updated_at).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSince > 14 && !["delivered", "active"].includes(p.current_stage);
+    const batches = p.plm_batches || [];
+    if (!batches.length) return false;
+    return batches.some((b: any) => {
+      const daysSince = (Date.now() - new Date(b.stage_updated_at).getTime()) / (1000 * 60 * 60 * 24);
+      return daysSince > 14 && b.current_stage !== "delivered" && b.current_stage !== "active";
+    });
   }).length;
   if (delayed > products.length * 0.3) return "at_risk";
   if (delayed > 0) return "warning";
@@ -60,32 +53,30 @@ export default function PLMPage() {
   const [factories, setFactories] = useState<any[]>([]);
   const [portalUsers, setPortalUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"collections" | "all_products" | "factory_access">("collections");
+  const [activeTab, setActiveTab] = useState<"collections"|"all_products"|"factory_access">("collections");
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [showNewPortalUser, setShowNewPortalUser] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingPortalUser, setSavingPortalUser] = useState(false);
-  const [deletingPortalUser, setDeletingPortalUser] = useState<string | null>(null);
+  const [deletingPortalUser, setDeletingPortalUser] = useState<string|null>(null);
   const [filterStage, setFilterStage] = useState("");
   const [filterCollection, setFilterCollection] = useState("");
-  const [newCollection, setNewCollection] = useState({ name: "", season: "", year: new Date().getFullYear().toString(), notes: "" });
-  const [newProduct, setNewProduct] = useState({ name: "", sku: "", description: "", specs: "", category: "", collection_id: "", factory_id: "", target_elc: "", target_sell_price: "", moq: "", order_quantity: "", notes: "" });
-  const [newPortalUser, setNewPortalUser] = useState({ name: "", email: "", password: "", factory_id: "" });
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [importStep, setImportStep] = useState<"upload"|"map"|"preview"|"done">("upload");
+  const [exportColumns, setExportColumns] = useState(["name","sku","description","specs","category","collection","current_stage"]);
+  const [exportPreset, setExportPreset] = useState("custom");
+  const [importing, setImporting] = useState(false);
+  const [importStep, setImportStep] = useState<"upload"|"map"|"done">("upload");
   const [importData, setImportData] = useState<any>(null);
   const [importMappings, setImportMappings] = useState<any>({});
   const [importCollection, setImportCollection] = useState("");
   const [importResult, setImportResult] = useState<any>(null);
-  const [exportColumns, setExportColumns] = useState(["name","sku","description","specs","category","collection","current_stage"]);
-  const [exportPreset, setExportPreset] = useState("custom");
-  const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
-  const COLUMN_LABELS: any = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };
+  const [newCollection, setNewCollection] = useState({ name:"", season:"", year: new Date().getFullYear().toString(), notes:"" });
+  const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
+  const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"" });
 
   const load = async () => {
     const [plmRes, catRes, portalRes] = await Promise.all([
@@ -108,48 +99,44 @@ export default function PLMPage() {
   const createCollection = async () => {
     if (!newCollection.name) return;
     setSaving(true);
-    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_collection", ...newCollection, year: parseInt(newCollection.year) }) });
-    setSaving(false);
-    setShowNewCollection(false);
-    setNewCollection({ name: "", season: "", year: new Date().getFullYear().toString(), notes: "" });
+    await fetch("/api/plm", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"create_collection", ...newCollection, year: parseInt(newCollection.year) }) });
+    setSaving(false); setShowNewCollection(false);
+    setNewCollection({ name:"", season:"", year: new Date().getFullYear().toString(), notes:"" });
     load();
   };
 
   const createProduct = async () => {
     if (!newProduct.name) return;
     setSaving(true);
-    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_product", ...newProduct, target_elc: newProduct.target_elc ? parseFloat(newProduct.target_elc) : null, target_sell_price: newProduct.target_sell_price ? parseFloat(newProduct.target_sell_price) : null, moq: newProduct.moq ? parseInt(newProduct.moq) : null, order_quantity: newProduct.order_quantity ? parseInt(newProduct.order_quantity) : null }) });
-    setSaving(false);
-    setShowNewProduct(false);
-    setNewProduct({ name: "", sku: "", description: "", specs: "", category: "", collection_id: "", factory_id: "", target_elc: "", target_sell_price: "", moq: "", order_quantity: "", notes: "" });
+    await fetch("/api/plm", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"create_product", ...newProduct, target_elc: newProduct.target_elc ? parseFloat(newProduct.target_elc) : null, target_sell_price: newProduct.target_sell_price ? parseFloat(newProduct.target_sell_price) : null, moq: newProduct.moq ? parseInt(newProduct.moq) : null, order_quantity: newProduct.order_quantity ? parseInt(newProduct.order_quantity) : null }) });
+    setSaving(false); setShowNewProduct(false);
+    setNewProduct({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
     load();
   };
 
   const createPortalUser = async () => {
     if (!newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id) return;
     setSavingPortalUser(true);
-    await fetch("/api/plm/portal-users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create", ...newPortalUser }) });
-    setSavingPortalUser(false);
-    setShowNewPortalUser(false);
-    setNewPortalUser({ name: "", email: "", password: "", factory_id: "" });
+    await fetch("/api/plm/portal-users", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"create", ...newPortalUser }) });
+    setSavingPortalUser(false); setShowNewPortalUser(false);
+    setNewPortalUser({ name:"", email:"", password:"", factory_id:"" });
     load();
   };
 
   const deletePortalUser = async (id: string) => {
     setDeletingPortalUser(id);
-    await fetch("/api/plm/portal-users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", id }) });
-    setDeletingPortalUser(null);
+    await fetch("/api/plm/portal-users", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"delete", id }) });
+    setDeletingPortalUser(null); load();
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!confirm("Delete this product?")) return;
+    await fetch("/api/plm", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"delete_product", id }) });
     load();
   };
 
-  const toggleProduct = (id: string) => {
-    setSelectedProducts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
-  const toggleAll = () => {
-    if (selectedProducts.length === filteredProducts.length) setSelectedProducts([]);
-    else setSelectedProducts(filteredProducts.map(p => p.id));
-  };
+  const toggleProduct = (id: string) => setSelectedProducts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const toggleAll = () => setSelectedProducts(selectedProducts.length === filteredProducts.length ? [] : filteredProducts.map(p => p.id));
 
   const applyPreset = (preset: string) => {
     setExportPreset(preset);
@@ -160,114 +147,65 @@ export default function PLMPage() {
 
   const handleExport = async () => {
     setExporting(true);
-    const res = await fetch("/api/plm/export", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product_ids: selectedProducts, columns: exportColumns, include_images: exportColumns.includes("images") }),
-    });
+    const res = await fetch("/api/plm/export", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ product_ids: selectedProducts, columns: exportColumns, include_images: exportColumns.includes("images") }) });
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `product-catalog-${Date.now()}.csv`;
-    a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `product-catalog-${Date.now()}.csv`; a.click();
     URL.revokeObjectURL(url);
-    setExporting(false);
-    setShowExportModal(false);
+    setExporting(false); setShowExportModal(false);
   };
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
-
     try {
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
-
-      // Store raw base64 for image extraction on server
       const uint8 = new Uint8Array(buffer);
       let binary = "";
       for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
       const base64 = btoa(binary);
-
-      const wb = XLSX.read(buffer, { type: "array" });
+      const wb = XLSX.read(buffer, { type:"array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-
-      // Find the real header row (first row where >3 cells have content)
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header:1, defval:"" });
       let headerRowIdx = 0;
       for (let i = 0; i < Math.min(10, raw.length); i++) {
-        const nonEmpty = raw[i].filter((c: any) => c !== null && c !== undefined && c !== "").length;
-        if (nonEmpty >= 3) { headerRowIdx = i; break; }
+        if (raw[i].filter((c: any) => c !== null && c !== undefined && c !== "").length >= 3) { headerRowIdx = i; break; }
       }
-
       const headers = raw[headerRowIdx].map((h: any) => String(h || "").trim()).filter((h: string) => h);
       const dataRows = raw.slice(headerRowIdx + 1).filter((row: any[]) => row.some((c: any) => c !== null && c !== undefined && c !== ""));
-
       const allRows = dataRows.map((row: any[], rowIdx: number) => {
-        const obj: Record<string, any> = {};
+        const obj: Record<string,any> = {};
         headers.forEach((h: string, i: number) => { obj[h] = row[i] !== undefined ? row[i] : ""; });
-        obj["__rowIndex"] = headerRowIdx + 1 + rowIdx; // actual Excel row (0-based)
+        obj["__rowIndex"] = headerRowIdx + 1 + rowIdx;
         return obj;
       });
-
       const sampleRows = allRows.slice(0, 3);
       setImportData({ headers, sample_rows: sampleRows, all_rows: allRows, file_base64: base64, header_row_idx: headerRowIdx });
-
-      const mapRes = await fetch("/api/plm/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "map", headers, sample_rows: sampleRows }),
-      });
+      const mapRes = await fetch("/api/plm/import", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"map", headers, sample_rows: sampleRows }) });
       const mapData = await mapRes.json();
       setImportMappings(mapData.mappings || {});
-    } catch (err) {
-      console.error("Import error:", err);
-    }
-
-    setImporting(false);
-    setImportStep("map");
+    } catch (err) { console.error("Import error:", err); }
+    setImporting(false); setImportStep("map");
   };
 
   const handleImport = async () => {
     setImporting(true);
-    const res = await fetch("/api/plm/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "import",
-        rows: importData.all_rows,
-        mappings: importMappings,
-        collection_id: importCollection,
-        file_base64: importData.file_base64,
-        header_row_idx: importData.header_row_idx,
-      }),
-    });
+    const res = await fetch("/api/plm/import", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"import", rows: importData.all_rows, mappings: importMappings, collection_id: importCollection, file_base64: importData.file_base64, header_row_idx: importData.header_row_idx }) });
     const data = await res.json();
-    setImportResult(data);
-    setImporting(false);
-    setImportStep("done");
-    load();
+    setImportResult(data); setImporting(false); setImportStep("done"); load();
   };
 
   const filteredProducts = products.filter(p => {
-    if (filterStage && p.current_stage !== filterStage) return false;
     if (filterCollection && p.collection_id !== filterCollection) return false;
+    if (filterStage) {
+      const status = getProductStatus(p);
+      if (filterStage === "no_batches" && (p.plm_batches || []).length > 0) return false;
+      if (filterStage !== "no_batches" && status !== filterStage) return false;
+    }
     return true;
   });
-
-  const deleteProduct = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
-    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id }) });
-    load();
-  };
-
-  const deleteProduct = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
-    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id }) });
-    load();
-  };
 
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
   const lc = "text-[11px] text-white/30 mb-1 block";
@@ -287,13 +225,16 @@ export default function PLMPage() {
             <p className="text-white/30 text-sm">Track every product from concept to shelf</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { setShowImportModal(true); setImportStep("upload"); setImportData(null); setImportResult(null); }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
+            <button onClick={() => { setShowImportModal(true); setImportStep("upload"); setImportData(null); setImportResult(null); }}
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
               <Upload size={11} />Import
             </button>
-            <button onClick={() => setShowNewProduct(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
+            <button onClick={() => setShowNewProduct(true)}
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
               <Plus size={11} />New Product
             </button>
-            <button onClick={() => setShowNewCollection(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+            <button onClick={() => setShowNewCollection(true)}
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
               <Layers size={11} />New Collection
             </button>
           </div>
@@ -301,6 +242,7 @@ export default function PLMPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 py-8">
+
         {/* Import Modal */}
         {showImportModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -312,26 +254,22 @@ export default function PLMPage() {
                 </div>
                 <button onClick={() => setShowImportModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
-
               {importStep === "upload" && (
-                <div>
-                  <label className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:border-white/20 transition">
-                    {importing ? <Loader2 size={24} className="animate-spin text-white/30 mb-3" /> : <FileSpreadsheet size={24} className="text-white/20 mb-3" />}
-                    <p className="text-sm text-white/40">{importing ? "Reading file & mapping columns..." : "Click to upload CSV or Excel"}</p>
-                    <p className="text-xs text-white/20 mt-1">Supports .csv, .xlsx, .xls</p>
-                    <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} disabled={importing} />
-                  </label>
-                </div>
+                <label className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:border-white/20 transition">
+                  {importing ? <Loader2 size={24} className="animate-spin text-white/30 mb-3" /> : <FileSpreadsheet size={24} className="text-white/20 mb-3" />}
+                  <p className="text-sm text-white/40">{importing ? "Reading file & mapping columns..." : "Click to upload CSV or Excel"}</p>
+                  <p className="text-xs text-white/20 mt-1">Supports .csv, .xlsx, .xls</p>
+                  <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} disabled={importing} />
+                </label>
               )}
-
               {importStep === "map" && importData && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
-                    <Check size={11} />Jimmy mapped {Object.values(importMappings).filter(v => v !== "ignore").length} of {importData.headers.length} columns. Review and adjust below.
+                    <Check size={11} />Jimmy mapped {Object.values(importMappings).filter(v => v !== "ignore").length} of {importData.headers.length} columns
                   </div>
                   <div>
-                    <label className="text-[11px] text-white/30 mb-2 block">Assign to Collection (optional)</label>
-                    <select value={importCollection} onChange={e => setImportCollection(e.target.value)} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                    <label className={lc}>Assign to Collection (optional)</label>
+                    <select value={importCollection} onChange={e => setImportCollection(e.target.value)} className={ic}>
                       <option value="">No collection</option>
                       {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
@@ -341,8 +279,7 @@ export default function PLMPage() {
                       <div key={header} className="flex items-center gap-3">
                         <span className="text-xs text-white/50 w-40 truncate flex-shrink-0">{header}</span>
                         <span className="text-white/20 text-xs">→</span>
-                        <select value={importMappings[header] || "ignore"} onChange={e => setImportMappings((prev: any) => ({...prev, [header]: e.target.value}))}
-                          className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white/60 text-xs focus:outline-none">
+                        <select value={importMappings[header] || "ignore"} onChange={e => setImportMappings((prev: any) => ({...prev, [header]: e.target.value}))} className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white/60 text-xs focus:outline-none">
                           <option value="ignore">Ignore</option>
                           <option value="name">Product Name</option>
                           <option value="sku">SKU</option>
@@ -370,7 +307,6 @@ export default function PLMPage() {
                   </div>
                 </div>
               )}
-
               {importStep === "done" && importResult && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
@@ -379,9 +315,7 @@ export default function PLMPage() {
                   {importResult.errors?.length > 0 && (
                     <div className="space-y-1">
                       <p className="text-xs text-white/30">{importResult.errors.length} errors:</p>
-                      {importResult.errors.map((e: string, i: number) => (
-                        <p key={i} className="text-xs text-red-400">{e}</p>
-                      ))}
+                      {importResult.errors.map((e: string, i: number) => <p key={i} className="text-xs text-red-400">{e}</p>)}
                     </div>
                   )}
                   <button onClick={() => setShowImportModal(false)} className="w-full py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Done</button>
@@ -402,10 +336,9 @@ export default function PLMPage() {
                 </div>
                 <button onClick={() => setShowExportModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
-
               <div>
                 <p className="text-[11px] text-white/30 mb-2">Presets</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   {[["buyer","Buyer Catalog"],["internal","Internal"],["factory","Factory Sheet"],["custom","Custom"]].map(([key, label]) => (
                     <button key={key} onClick={() => applyPreset(key)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${exportPreset === key ? "bg-white text-black border-white" : "border-white/[0.08] text-white/40 hover:text-white/70"}`}>
@@ -414,21 +347,17 @@ export default function PLMPage() {
                   ))}
                 </div>
               </div>
-
               <div>
                 <p className="text-[11px] text-white/30 mb-2">Columns to include</p>
                 <div className="grid grid-cols-2 gap-2">
                   {EXPORT_COLUMNS.map(col => (
                     <label key={col} className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" checked={exportColumns.includes(col)}
-                        onChange={e => setExportColumns(prev => e.target.checked ? [...prev, col] : prev.filter(c => c !== col))}
-                        className="rounded" />
+                      <input type="checkbox" checked={exportColumns.includes(col)} onChange={e => setExportColumns(prev => e.target.checked ? [...prev, col] : prev.filter(c => c !== col))} className="rounded" />
                       <span className="text-xs text-white/60">{COLUMN_LABELS[col]}</span>
                     </label>
                   ))}
                 </div>
               </div>
-
               <div className="flex gap-2">
                 <button onClick={handleExport} disabled={exporting || exportColumns.length === 0}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
@@ -449,10 +378,7 @@ export default function PLMPage() {
                 <p className="text-sm font-semibold text-white">New Collection</p>
                 <button onClick={() => setShowNewCollection(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
-              <div>
-                <label className={lc}>Collection Name *</label>
-                <input value={newCollection.name} onChange={e => setNewCollection({...newCollection, name: e.target.value})} placeholder="Spring 2026 Glass Collection" className={ic} />
-              </div>
+              <div><label className={lc}>Collection Name *</label><input value={newCollection.name} onChange={e => setNewCollection({...newCollection, name: e.target.value})} placeholder="Spring 2026 Glass Collection" className={ic} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={lc}>Season</label>
@@ -461,15 +387,9 @@ export default function PLMPage() {
                     {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className={lc}>Year</label>
-                  <input value={newCollection.year} onChange={e => setNewCollection({...newCollection, year: e.target.value})} placeholder="2026" className={ic} />
-                </div>
+                <div><label className={lc}>Year</label><input value={newCollection.year} onChange={e => setNewCollection({...newCollection, year: e.target.value})} placeholder="2026" className={ic} /></div>
               </div>
-              <div>
-                <label className={lc}>Notes</label>
-                <textarea value={newCollection.notes} onChange={e => setNewCollection({...newCollection, notes: e.target.value})} placeholder="Any notes..." rows={2} className={`${ic} resize-none`} />
-              </div>
+              <div><label className={lc}>Notes</label><textarea value={newCollection.notes} onChange={e => setNewCollection({...newCollection, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
               <div className="flex gap-2">
                 <button onClick={createCollection} disabled={saving || !newCollection.name} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Collection
@@ -511,14 +431,10 @@ export default function PLMPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lc}>Target ELC ($)</label><input value={newProduct.target_elc} onChange={e => setNewProduct({...newProduct, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
-                <div><label className={lc}>Target Sell Price ($)</label><input value={newProduct.target_sell_price} onChange={e => setNewProduct({...newProduct, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div><label className={lc}>Order Quantity</label><input value={newProduct.order_quantity} onChange={e => setNewProduct({...newProduct, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
                 <div><label className={lc}>Category</label><input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="Glassware" className={ic} /></div>
+                <div><label className={lc}>Order Quantity</label><input value={newProduct.order_quantity} onChange={e => setNewProduct({...newProduct, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
               </div>
-              <div><label className={lc}>Notes</label><textarea value={newProduct.notes} onChange={e => setNewProduct({...newProduct, notes: e.target.value})} placeholder="Any notes..." rows={2} className={`${ic} resize-none`} /></div>
+              <div><label className={lc}>Notes</label><textarea value={newProduct.notes} onChange={e => setNewProduct({...newProduct, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
               <div className="flex gap-2">
                 <button onClick={createProduct} disabled={saving || !newProduct.name} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Product
@@ -541,17 +457,15 @@ export default function PLMPage() {
         ) : activeTab === "collections" ? (
           <div className="space-y-4">
             {collections.length === 0 ? (
-              <div className="text-center py-20">
-                <Layers size={32} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No collections yet</p>
-              </div>
+              <div className="text-center py-20"><Layers size={32} className="text-white/10 mx-auto mb-3" /><p className="text-white/30 text-sm">No collections yet</p></div>
             ) : collections.map(collection => {
-              const progress = getCollectionProgress(collection.plm_products || []);
-              const health = getCollectionHealth(collection.plm_products || []);
-              const healthColors: any = { on_track: "#10b981", warning: "#f59e0b", at_risk: "#ef4444", empty: "#6b7280" };
-              const healthLabels: any = { on_track: "On Track", warning: "Some Delays", at_risk: "At Risk", empty: "No Products" };
+              const prods = collection.plm_products || [];
+              const progress = getCollectionProgress(prods);
+              const health = getCollectionHealth(prods);
+              const healthColors: Record<string,string> = { on_track:"#10b981", warning:"#f59e0b", at_risk:"#ef4444", empty:"#6b7280" };
+              const healthLabels: Record<string,string> = { on_track:"On Track", warning:"Some Delays", at_risk:"At Risk", empty:"No Products" };
               return (
-                <div key={collection.id} className="border border-white/[0.06] rounded-2xl bg-white/[0.01] overflow-hidden hover:border-white/10 transition cursor-pointer" onClick={() => router.push(`/plm?collection=${collection.id}`)}>
+                <div key={collection.id} className="border border-white/[0.06] rounded-2xl bg-white/[0.01] overflow-hidden hover:border-white/10 transition cursor-pointer" onClick={() => setActiveTab("all_products")}>
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
@@ -575,16 +489,6 @@ export default function PLMPage() {
                       </div>
                       <p className="text-[10px] text-white/20 mt-1">{progress.pct}% complete</p>
                     </div>
-                    {(collection.plm_products || []).length > 0 && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {Object.entries((collection.plm_products || []).reduce((acc: any, p: any) => { acc[p.current_stage] = (acc[p.current_stage] || 0) + 1; return acc; }, {})).map(([stage, count]: any) => (
-                          <div key={stage} className="flex items-center gap-1">
-                            <StageChip stage={stage} />
-                            <span className="text-[10px] text-white/30">×{count}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -596,7 +500,8 @@ export default function PLMPage() {
               <div className="flex items-center gap-2">
                 <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                   <option value="">All Stages</option>
-                  {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                  <option value="no_batches">Pre-production</option>
+                  {BATCH_STAGE_ORDER.map(s => <option key={s} value={s}>{BATCH_STAGE_LABELS[s]}</option>)}
                 </select>
                 <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                   <option value="">All Collections</option>
@@ -609,82 +514,60 @@ export default function PLMPage() {
                 )}
               </div>
               {selectedProducts.length > 0 && (
-                <button onClick={() => setShowExportModal(true)}
-                  className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
                   <Download size={11} />Export {selectedProducts.length} Selected
                 </button>
               )}
             </div>
             {filteredProducts.length === 0 ? (
-              <div className="text-center py-20">
-                <Package size={32} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No products yet</p>
-              </div>
+              <div className="text-center py-20"><Package size={32} className="text-white/10 mx-auto mb-3" /><p className="text-white/30 text-sm">No products yet</p></div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
                 <div className="flex items-center gap-3 px-4 py-2">
-                  <input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
-                    onChange={toggleAll} className="rounded" />
-                  <span className="text-[11px] text-white/30">
-                    {selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select all"}
-                  </span>
+                  <input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} onChange={toggleAll} className="rounded" />
+                  <span className="text-[11px] text-white/30">{selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select all"}</span>
                 </div>
-                {filteredProducts.map(product => (
-                  {(() => {
-                    // Derive status from batches
-                    const BATCH_STAGE_ORDER = ["rfq_sent","factory_selected","po_issued","production_started","production_complete","qc_inspection","shipped","in_transit","customs","delivered","active"];
-                    const BATCH_STAGE_LABELS: any = { rfq_sent:"RFQ Sent", factory_selected:"Factory Selected", po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", shipped:"Shipped", in_transit:"In Transit", customs:"Customs", delivered:"Delivered", active:"Active" };
-                    const BATCH_STAGE_COLORS: any = { rfq_sent:"#3b82f6", factory_selected:"#3b82f6", po_issued:"#f59e0b", production_started:"#f59e0b", production_complete:"#10b981", qc_inspection:"#f59e0b", shipped:"#3b82f6", in_transit:"#3b82f6", customs:"#f59e0b", delivered:"#10b981", active:"#10b981" };
-                    const batches = product.plm_batches || [];
-                    let statusKey = null;
-                    let statusIdx = -1;
-                    for (const b of batches) {
-                      const idx = BATCH_STAGE_ORDER.indexOf(b.current_stage);
-                      if (idx > statusIdx) { statusIdx = idx; statusKey = b.current_stage; }
-                    }
-                    const milestones = product.milestones || {};
-                    const lastMilestone = milestones.sample_approved ? "Sample Approved" : milestones.sampling ? "Sampling" : milestones.design_brief ? "Design Brief" : null;
-
-                    return (
-                      <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
-                        style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
-                        <input type="checkbox" checked={selectedProducts.includes(product.id)}
-                          onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />
-                        {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-semibold text-white">{product.name}</p>
-                            {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            {statusKey ? (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                                style={{ background: `${BATCH_STAGE_COLORS[statusKey]}20`, color: BATCH_STAGE_COLORS[statusKey], border: `1px solid ${BATCH_STAGE_COLORS[statusKey]}30` }}>
-                                {BATCH_STAGE_LABELS[statusKey]}
-                              </span>
-                            ) : lastMilestone ? (
-                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.06]">{lastMilestone}</span>
-                            ) : (
-                              <span className="text-[10px] text-white/20">No status</span>
-                            )}
-                            {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
-                            {product.factory_catalog && <span className="text-[10px] text-white/25 flex items-center gap-1"><Factory size={9} />{product.factory_catalog.name}</span>}
-                          </div>
+                {filteredProducts.map(product => {
+                  const statusKey = getProductStatus(product);
+                  const milestones = product.milestones || {};
+                  const lastMilestone = milestones.sample_approved ? "Sample Approved" : milestones.sampling ? "Sampling" : milestones.design_brief ? "Design Brief" : null;
+                  return (
+                    <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
+                      style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
+                      <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />
+                      {product.images?.[0] ? (
+                        <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-semibold text-white">{product.name}</p>
+                          {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button onClick={e => { e.stopPropagation(); deleteProduct(product.id); }} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
-                            <Trash2 size={12} />
-                          </button>
-                          <ChevronRight size={14} className="text-white/20 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
+                        <div className="flex items-center gap-3">
+                          {statusKey ? (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${BATCH_STAGE_COLORS[statusKey]}20`, color: BATCH_STAGE_COLORS[statusKey], border: `1px solid ${BATCH_STAGE_COLORS[statusKey]}30` }}>
+                              {BATCH_STAGE_LABELS[statusKey]}
+                            </span>
+                          ) : lastMilestone ? (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.06]">{lastMilestone}</span>
+                          ) : (
+                            <span className="text-[10px] text-white/20">Pre-production</span>
+                          )}
+                          {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
+                          {product.factory_catalog && <span className="text-[10px] text-white/25 flex items-center gap-1"><Factory size={9} />{product.factory_catalog.name}</span>}
                         </div>
                       </div>
-                    );
-                  })()}
-                ))}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => deleteProduct(product.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                          <Trash2 size={12} />
+                        </button>
+                        <ChevronRight size={14} className="text-white/20 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -699,7 +582,6 @@ export default function PLMPage() {
                 <Plus size={11} />Add Factory User
               </button>
             </div>
-
             {showNewPortalUser && (
               <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
                 <p className="text-xs font-semibold text-white/70">New Factory Portal User</p>
@@ -725,12 +607,10 @@ export default function PLMPage() {
                 </div>
               </div>
             )}
-
             {portalUsers.length === 0 && !showNewPortalUser ? (
               <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
                 <Users size={28} className="text-white/10 mx-auto mb-3" />
                 <p className="text-white/30 text-sm">No factory portal users yet</p>
-                <p className="text-white/15 text-xs mt-1">Add a factory user so they can log into portal.myjimmy.ai</p>
               </div>
             ) : (
               <div className="space-y-2">
