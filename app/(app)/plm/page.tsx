@@ -618,30 +618,65 @@ export default function PLMPage() {
                   </span>
                 </div>
                 {filteredProducts.map(product => (
-                  <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
-                    style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
-                    <input type="checkbox" checked={selectedProducts.includes(product.id)}
-                      onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />
-                    {product.images?.[0] && (
-                      <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-semibold text-white">{product.name}</p>
-                        {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
+                  {(() => {
+                    // Derive status from batches
+                    const BATCH_STAGE_ORDER = ["rfq_sent","factory_selected","po_issued","production_started","production_complete","qc_inspection","shipped","in_transit","customs","delivered","active"];
+                    const BATCH_STAGE_LABELS: any = { rfq_sent:"RFQ Sent", factory_selected:"Factory Selected", po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", shipped:"Shipped", in_transit:"In Transit", customs:"Customs", delivered:"Delivered", active:"Active" };
+                    const BATCH_STAGE_COLORS: any = { rfq_sent:"#3b82f6", factory_selected:"#3b82f6", po_issued:"#f59e0b", production_started:"#f59e0b", production_complete:"#10b981", qc_inspection:"#f59e0b", shipped:"#3b82f6", in_transit:"#3b82f6", customs:"#f59e0b", delivered:"#10b981", active:"#10b981" };
+                    const batches = product.plm_batches || [];
+                    let statusKey = null;
+                    let statusIdx = -1;
+                    for (const b of batches) {
+                      const idx = BATCH_STAGE_ORDER.indexOf(b.current_stage);
+                      if (idx > statusIdx) { statusIdx = idx; statusKey = b.current_stage; }
+                    }
+                    const milestones = product.milestones || {};
+                    const lastMilestone = milestones.sample_approved ? "Sample Approved" : milestones.sampling ? "Sampling" : milestones.design_brief ? "Design Brief" : null;
+
+                    return (
+                      <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
+                        style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
+                        <input type="checkbox" checked={selectedProducts.includes(product.id)}
+                          onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />
+                        {product.images?.[0] ? (
+                          <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-semibold text-white">{product.name}</p>
+                            {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {statusKey ? (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{ background: `${BATCH_STAGE_COLORS[statusKey]}20`, color: BATCH_STAGE_COLORS[statusKey], border: `1px solid ${BATCH_STAGE_COLORS[statusKey]}30` }}>
+                                {BATCH_STAGE_LABELS[statusKey]}
+                              </span>
+                            ) : lastMilestone ? (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.06]">{lastMilestone}</span>
+                            ) : (
+                              <span className="text-[10px] text-white/20">No status</span>
+                            )}
+                            {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
+                            {product.factory_catalog && <span className="text-[10px] text-white/25 flex items-center gap-1"><Factory size={9} />{product.factory_catalog.name}</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={async (e) => {
+                            e.stopPropagation();
+                            if (!confirm("Delete this product?")) return;
+                            await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id: product.id }) });
+                            load();
+                          }} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                            <Trash2 size={12} />
+                          </button>
+                          <ChevronRight size={14} className="text-white/20 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <StageChip stage={product.current_stage} />
-                        {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
-                        {product.factory_catalog && <span className="text-[10px] text-white/25 flex items-center gap-1"><Factory size={9} />{product.factory_catalog.name}</span>}
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      {product.target_elc && <p className="text-xs text-white/40">ELC ${product.target_elc}</p>}
-                      <p className="text-[10px] text-white/20">{new Date(product.stage_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
-                    </div>
-                    <ChevronRight size={14} className="text-white/20 flex-shrink-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
-                  </div>
+                    );
+                  })()}
                 ))}
               </div>
             )}
