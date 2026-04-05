@@ -184,6 +184,10 @@ export default function PLMPage() {
     try {
       const XLSX = await import("xlsx");
       const buffer = await file.arrayBuffer();
+
+      // Store raw base64 for image extraction on server
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
       const wb = XLSX.read(buffer, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
@@ -198,14 +202,15 @@ export default function PLMPage() {
       const headers = raw[headerRowIdx].map((h: any) => String(h || "").trim()).filter((h: string) => h);
       const dataRows = raw.slice(headerRowIdx + 1).filter((row: any[]) => row.some((c: any) => c !== null && c !== undefined && c !== ""));
 
-      const allRows = dataRows.map((row: any[]) => {
+      const allRows = dataRows.map((row: any[], rowIdx: number) => {
         const obj: Record<string, any> = {};
         headers.forEach((h: string, i: number) => { obj[h] = row[i] !== undefined ? row[i] : ""; });
+        obj["__rowIndex"] = headerRowIdx + 1 + rowIdx; // actual Excel row (0-based)
         return obj;
       });
 
       const sampleRows = allRows.slice(0, 3);
-      setImportData({ headers, sample_rows: sampleRows, all_rows: allRows });
+      setImportData({ headers, sample_rows: sampleRows, all_rows: allRows, file_base64: base64, header_row_idx: headerRowIdx });
 
       const mapRes = await fetch("/api/plm/import", {
         method: "POST",
@@ -227,7 +232,14 @@ export default function PLMPage() {
     const res = await fetch("/api/plm/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "import", rows: importData.all_rows, mappings: importMappings, collection_id: importCollection }),
+      body: JSON.stringify({
+        action: "import",
+        rows: importData.all_rows,
+        mappings: importMappings,
+        collection_id: importCollection,
+        file_base64: importData.file_base64,
+        header_row_idx: importData.header_row_idx,
+      }),
     });
     const data = await res.json();
     setImportResult(data);
