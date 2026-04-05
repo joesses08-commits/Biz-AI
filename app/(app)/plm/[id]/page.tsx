@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Package, ArrowLeft, Factory, Layers, Check, Loader2,
-  X, ChevronDown, ChevronUp, Plus, Clock, User, FileText, ImagePlus, Trash2
+  X, ChevronDown, ChevronUp, Plus, Clock, User, FileText, ImagePlus, Trash2, Pencil
 } from "lucide-react";
 
 const STAGES = [
@@ -37,11 +37,24 @@ export default function ProductPage() {
   const [showStageModal, setShowStageModal] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [factories, setFactories] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
 
   const load = async () => {
-    const res = await fetch(`/api/plm?type=product&id=${id}`);
-    const data = await res.json();
-    setProduct(data.product);
+    const [prodRes, catRes, colRes] = await Promise.all([
+      fetch(`/api/plm?type=product&id=${id}`),
+      fetch("/api/catalog?type=factories"),
+      fetch("/api/plm?type=collections"),
+    ]);
+    const prodData = await prodRes.json();
+    const catData = await catRes.json();
+    const colData = await colRes.json();
+    setProduct(prodData.product);
+    setFactories(catData.factories || []);
+    setCollections(colData.collections || []);
     setLoading(false);
   };
 
@@ -71,6 +84,49 @@ export default function ProductPage() {
     });
     setUpdatingStage(false);
     setShowStageModal(false);
+    load();
+  };
+
+  const openEdit = () => {
+    setEditForm({
+      name: product.name || "",
+      sku: product.sku || "",
+      description: product.description || "",
+      specs: product.specs || "",
+      category: product.category || "",
+      collection_id: product.collection_id || "",
+      factory_id: product.factory_id || "",
+      target_elc: product.target_elc || "",
+      actual_elc: product.actual_elc || "",
+      target_sell_price: product.target_sell_price || "",
+      moq: product.moq || "",
+      order_quantity: product.order_quantity || "",
+      linked_po_number: product.linked_po_number || "",
+      notes: product.notes || "",
+    });
+    setShowEditModal(true);
+  };
+
+  const saveEdit = async () => {
+    setSavingEdit(true);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "update_product",
+        id: product.id,
+        ...editForm,
+        target_elc: editForm.target_elc ? parseFloat(editForm.target_elc) : null,
+        actual_elc: editForm.actual_elc ? parseFloat(editForm.actual_elc) : null,
+        target_sell_price: editForm.target_sell_price ? parseFloat(editForm.target_sell_price) : null,
+        moq: editForm.moq ? parseInt(editForm.moq) : null,
+        order_quantity: editForm.order_quantity ? parseInt(editForm.order_quantity) : null,
+        collection_id: editForm.collection_id || null,
+        factory_id: editForm.factory_id || null,
+      }),
+    });
+    setSavingEdit(false);
+    setShowEditModal(false);
     load();
   };
 
@@ -111,6 +167,69 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Edit Product Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Edit Product</p>
+              <button onClick={() => setShowEditModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            {(() => {
+              const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
+              const lc = "text-[11px] text-white/30 mb-1 block";
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lc}>Product Name</label><input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={ic} /></div>
+                    <div><label className={lc}>SKU</label><input value={editForm.sku} onChange={e => setEditForm({...editForm, sku: e.target.value})} className={ic} /></div>
+                  </div>
+                  <div><label className={lc}>Description</label><input value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className={ic} /></div>
+                  <div><label className={lc}>Specs</label><textarea value={editForm.specs} onChange={e => setEditForm({...editForm, specs: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lc}>Category</label><input value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} className={ic} /></div>
+                    <div><label className={lc}>PO Number</label><input value={editForm.linked_po_number} onChange={e => setEditForm({...editForm, linked_po_number: e.target.value})} className={ic} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={lc}>Collection</label>
+                      <select value={editForm.collection_id} onChange={e => setEditForm({...editForm, collection_id: e.target.value})} className={ic}>
+                        <option value="">No collection</option>
+                        {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={lc}>Factory</label>
+                      <select value={editForm.factory_id} onChange={e => setEditForm({...editForm, factory_id: e.target.value})} className={ic}>
+                        <option value="">Not assigned</option>
+                        {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lc}>Target ELC ($)</label><input value={editForm.target_elc} onChange={e => setEditForm({...editForm, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
+                    <div><label className={lc}>Actual ELC ($)</label><input value={editForm.actual_elc} onChange={e => setEditForm({...editForm, actual_elc: e.target.value})} placeholder="2.30" className={ic} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lc}>Target Sell Price ($)</label><input value={editForm.target_sell_price} onChange={e => setEditForm({...editForm, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
+                    <div><label className={lc}>Order Quantity</label><input value={editForm.order_quantity} onChange={e => setEditForm({...editForm, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
+                  </div>
+                  <div><label className={lc}>MOQ</label><input value={editForm.moq} onChange={e => setEditForm({...editForm, moq: e.target.value})} placeholder="300" className={ic} /></div>
+                  <div><label className={lc}>Notes</label><textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
+                </div>
+              );
+            })()}
+            <div className="flex gap-2">
+              <button onClick={saveEdit} disabled={savingEdit}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {savingEdit ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Changes
+              </button>
+              <button onClick={() => setShowEditModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stage update modal */}
       {showStageModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -168,7 +287,12 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Stage selector */}
+            {/* Edit + Stage selector */}
+            <div className="flex items-center gap-2">
+            <button onClick={openEdit}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition text-sm bg-white/[0.02]">
+              <Pencil size={13} />Edit
+            </button>
             <div className="relative">
               <button onClick={() => setShowStageMenu(!showStageMenu)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition"
@@ -190,6 +314,7 @@ export default function ProductPage() {
                   ))}
                 </div>
               )}
+            </div>
             </div>
           </div>
         </div>
