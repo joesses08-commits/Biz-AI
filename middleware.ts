@@ -28,6 +28,7 @@ export async function middleware(request: NextRequest) {
     "/api/events/snapshot",
     "/api/microsoft/push",
     "/api/workflows/factory-quote",
+    "/api/plm",
     "/privacy",
     "/terms",
   ];

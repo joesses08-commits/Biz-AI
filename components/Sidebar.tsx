@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import {
+import { Package,
   LayoutDashboard,
   MessageSquare,
   CheckSquare,
@@ -93,6 +93,7 @@ export default function Sidebar() {
         <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" description="Business metrics" />
         <NavItem href="/chat" icon={MessageSquare} label="AI Analyst" description="Ask questions" />
         <NavItem href="/actions" icon={CheckSquare} label="Action Tracker" description="Tasks & deadlines" />
+        <NavItem href="/plm" icon={Package} label="Product Lifecycle" description="SKUs & collections" />
         <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
         <NavItem href="/meetings" icon={Video} label="Meetings" description="Transcripts & actions" />
 
