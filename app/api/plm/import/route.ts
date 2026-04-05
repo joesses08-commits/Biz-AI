@@ -96,7 +96,7 @@ Respond ONLY with a JSON object like:
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       try {
-        const product: any = {
+        const product: Record<string, any> = {
           user_id: user.id,
           current_stage: "design_brief",
           stage_updated_at: new Date().toISOString(),
