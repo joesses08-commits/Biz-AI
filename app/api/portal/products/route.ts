@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
   if (!batches || batches.length === 0) return NextResponse.json({ products: [] });
 
-  const productIds = [...new Set(batches.map((b: any) => b.product_id))];
+  const productIds = Array.from(new Set(batches.map((b: any) => b.product_id)));
 
   const { data: products } = await supabaseAdmin
     .from("plm_products")
