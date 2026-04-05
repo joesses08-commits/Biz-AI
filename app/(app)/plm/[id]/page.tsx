@@ -4,14 +4,16 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Package, ArrowLeft, Factory, Layers, Check, Loader2,
-  X, ChevronDown, ChevronUp, Plus, Clock, User, FileText, ImagePlus, Trash2, Pencil
+  X, ChevronDown, Plus, ImagePlus, Trash2, Pencil, CheckSquare, Square
 } from "lucide-react";
 
-const STAGES = [
-  { key: "design_brief", label: "Design Brief", color: "#6b7280" },
-  { key: "sampling", label: "Sampling", color: "#8b5cf6" },
-  { key: "sample_approved", label: "Sample Approved", color: "#10b981" },
-  { key: "sample_rejected", label: "Sample Rejected", color: "#ef4444" },
+const MILESTONES = [
+  { key: "design_brief", label: "Design Brief" },
+  { key: "sampling", label: "Sampling" },
+  { key: "sample_approved", label: "Sample Approved" },
+];
+
+const BATCH_STAGES = [
   { key: "rfq_sent", label: "RFQ Sent", color: "#3b82f6" },
   { key: "factory_selected", label: "Factory Selected", color: "#3b82f6" },
   { key: "po_issued", label: "PO Issued", color: "#f59e0b" },
@@ -25,30 +27,47 @@ const STAGES = [
   { key: "active", label: "Active / Selling", color: "#10b981" },
 ];
 
+function getProductStatus(batches: any[]) {
+  if (!batches?.length) return null;
+  const order = BATCH_STAGES.map(s => s.key);
+  let mostAdvanced = batches[0]?.current_stage;
+  for (const b of batches) {
+    if (order.indexOf(b.current_stage) > order.indexOf(mostAdvanced)) {
+      mostAdvanced = b.current_stage;
+    }
+  }
+  return BATCH_STAGES.find(s => s.key === mostAdvanced);
+}
+
 export default function ProductPage() {
   const { id } = useParams();
   const router = useRouter();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [updatingStage, setUpdatingStage] = useState(false);
-  const [showStageMenu, setShowStageMenu] = useState(false);
-  const [stageNote, setStageNote] = useState("");
-  const [selectedStage, setSelectedStage] = useState("");
-  const [showStageModal, setShowStageModal] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [deletingImage, setDeletingImage] = useState<string | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showNewBatch, setShowNewBatch] = useState(false);
-  const [newBatchQty, setNewBatchQty] = useState("");
-  const [newBatchNote, setNewBatchNote] = useState("");
-  const [savingBatch, setSavingBatch] = useState(false);
-  const [updatingBatch, setUpdatingBatch] = useState<string | null>(null);
-  const [selectedBatchStage, setSelectedBatchStage] = useState<{batchId: string, stage: string, note: string} | null>(null);
-  const [showBatchStageModal, setShowBatchStageModal] = useState(false);
-  const [editForm, setEditForm] = useState<any>({});
-  const [savingEdit, setSavingEdit] = useState(false);
   const [factories, setFactories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
+
+  // Edit
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  // Batch
+  const [showNewBatch, setShowNewBatch] = useState(false);
+  const [newBatch, setNewBatch] = useState({ quantity: "", notes: "", stage: "rfq_sent" });
+  const [savingBatch, setSavingBatch] = useState(false);
+
+  // Batch stage update
+  const [editingBatch, setEditingBatch] = useState<any>(null);
+  const [batchStageForm, setBatchStageForm] = useState({ stage: "", note: "" });
+  const [updatingBatch, setUpdatingBatch] = useState(false);
+
+  // Images
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
+
+  // Milestones
+  const [togglingMilestone, setTogglingMilestone] = useState<string | null>(null);
 
   const load = async () => {
     const [prodRes, catRes, colRes] = await Promise.all([
@@ -67,67 +86,15 @@ export default function ProductPage() {
 
   useEffect(() => { load(); }, [id]);
 
-  const currentStage = STAGES.find(s => s.key === product?.current_stage);
-  const currentStageIndex = STAGES.findIndex(s => s.key === product?.current_stage);
-
-  const openStageUpdate = (stage: string) => {
-    setSelectedStage(stage);
-    setStageNote("");
-    setShowStageModal(true);
-    setShowStageMenu(false);
-  };
-
-  const updateStage = async () => {
-    setUpdatingStage(true);
+  const toggleMilestone = async (key: string) => {
+    setTogglingMilestone(key);
+    const current = product?.milestones?.[key] || false;
     await fetch("/api/plm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "update_stage",
-        product_id: id,
-        stage: selectedStage,
-        notes: stageNote,
-      }),
+      body: JSON.stringify({ action: "update_milestone", product_id: id, milestone: key, value: !current }),
     });
-    setUpdatingStage(false);
-    setShowStageModal(false);
-    load();
-  };
-
-  const createBatch = async () => {
-    setSavingBatch(true);
-    await fetch("/api/plm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create_batch", product_id: id, quantity: newBatchQty ? parseInt(newBatchQty) : null, notes: newBatchNote }),
-    });
-    setSavingBatch(false);
-    setShowNewBatch(false);
-    setNewBatchQty("");
-    setNewBatchNote("");
-    load();
-  };
-
-  const updateBatchStage = async () => {
-    if (!selectedBatchStage) return;
-    setUpdatingBatch(selectedBatchStage.batchId);
-    await fetch("/api/plm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_batch_stage", batch_id: selectedBatchStage.batchId, product_id: id, stage: selectedBatchStage.stage, notes: selectedBatchStage.note }),
-    });
-    setUpdatingBatch(null);
-    setShowBatchStageModal(false);
-    setSelectedBatchStage(null);
-    load();
-  };
-
-  const deleteBatch = async (batchId: string) => {
-    await fetch("/api/plm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "delete_batch", id: batchId }),
-    });
+    setTogglingMilestone(null);
     load();
   };
 
@@ -157,9 +124,7 @@ export default function ProductPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action: "update_product",
-        id: product.id,
-        ...editForm,
+        action: "update_product", id: product.id, ...editForm,
         target_elc: editForm.target_elc ? parseFloat(editForm.target_elc) : null,
         actual_elc: editForm.actual_elc ? parseFloat(editForm.actual_elc) : null,
         target_sell_price: editForm.target_sell_price ? parseFloat(editForm.target_sell_price) : null,
@@ -171,6 +136,46 @@ export default function ProductPage() {
     });
     setSavingEdit(false);
     setShowEditModal(false);
+    load();
+  };
+
+  const createBatch = async () => {
+    setSavingBatch(true);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create_batch", product_id: id, quantity: newBatch.quantity ? parseInt(newBatch.quantity) : null, notes: newBatch.notes, stage: newBatch.stage }),
+    });
+    setSavingBatch(false);
+    setShowNewBatch(false);
+    setNewBatch({ quantity: "", notes: "", stage: "rfq_sent" });
+    load();
+  };
+
+  const openBatchEdit = (batch: any) => {
+    setEditingBatch(batch);
+    setBatchStageForm({ stage: batch.current_stage, note: "" });
+  };
+
+  const saveBatchStage = async () => {
+    if (!editingBatch) return;
+    setUpdatingBatch(true);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_batch_stage", batch_id: editingBatch.id, product_id: id, stage: batchStageForm.stage, notes: batchStageForm.note }),
+    });
+    setUpdatingBatch(false);
+    setEditingBatch(null);
+    load();
+  };
+
+  const deleteBatch = async (batchId: string) => {
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete_batch", id: batchId }),
+    });
     load();
   };
 
@@ -209,98 +214,61 @@ export default function ProductPage() {
     </div>
   );
 
+  const batches = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
+  const productStatus = getProductStatus(batches);
+  const milestones = product.milestones || {};
+  const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
+  const lc = "text-[11px] text-white/30 mb-1 block";
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Batch Stage Modal */}
-      {showBatchStageModal && selectedBatchStage && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-white">Update Batch Stage</p>
-              <button onClick={() => setShowBatchStageModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
-            </div>
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
-              {STAGES.map(stage => (
-                <button key={stage.key} onClick={() => setSelectedBatchStage({...selectedBatchStage, stage: stage.key})}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${selectedBatchStage.stage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                  <span className="text-white/70">{stage.label}</span>
-                  {selectedBatchStage.stage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
-                </button>
-              ))}
-            </div>
-            <div>
-              <label className="text-[11px] text-white/30 mb-1 block">Notes</label>
-              <textarea value={selectedBatchStage.note} onChange={e => setSelectedBatchStage({...selectedBatchStage, note: e.target.value})}
-                placeholder="e.g. DHL tracking #123456" rows={2}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={updateBatchStage} disabled={!!updatingBatch}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                {updatingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Update Stage
-              </button>
-              <button onClick={() => setShowBatchStageModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Edit Product Modal */}
+      {/* Edit Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-3 my-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-white">Edit Product</p>
+              <p className="text-sm font-semibold">Edit Product</p>
               <button onClick={() => setShowEditModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
             </div>
-            {(() => {
-              const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
-              const lc = "text-[11px] text-white/30 mb-1 block";
-              return (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className={lc}>Product Name</label><input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={ic} /></div>
-                    <div><label className={lc}>SKU</label><input value={editForm.sku} onChange={e => setEditForm({...editForm, sku: e.target.value})} className={ic} /></div>
-                  </div>
-                  <div><label className={lc}>Description</label><input value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className={ic} /></div>
-                  <div><label className={lc}>Specs</label><textarea value={editForm.specs} onChange={e => setEditForm({...editForm, specs: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className={lc}>Category</label><input value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} className={ic} /></div>
-                    <div><label className={lc}>PO Number</label><input value={editForm.linked_po_number} onChange={e => setEditForm({...editForm, linked_po_number: e.target.value})} className={ic} /></div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className={lc}>Collection</label>
-                      <select value={editForm.collection_id} onChange={e => setEditForm({...editForm, collection_id: e.target.value})} className={ic}>
-                        <option value="">No collection</option>
-                        {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className={lc}>Factory</label>
-                      <select value={editForm.factory_id} onChange={e => setEditForm({...editForm, factory_id: e.target.value})} className={ic}>
-                        <option value="">Not assigned</option>
-                        {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className={lc}>Target ELC ($)</label><input value={editForm.target_elc} onChange={e => setEditForm({...editForm, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
-                    <div><label className={lc}>Actual ELC ($)</label><input value={editForm.actual_elc} onChange={e => setEditForm({...editForm, actual_elc: e.target.value})} placeholder="2.30" className={ic} /></div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className={lc}>Target Sell Price ($)</label><input value={editForm.target_sell_price} onChange={e => setEditForm({...editForm, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
-                    <div><label className={lc}>Order Quantity</label><input value={editForm.order_quantity} onChange={e => setEditForm({...editForm, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
-                  </div>
-                  <div><label className={lc}>MOQ</label><input value={editForm.moq} onChange={e => setEditForm({...editForm, moq: e.target.value})} placeholder="300" className={ic} /></div>
-                  <div><label className={lc}>Notes</label><textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
-                </div>
-              );
-            })()}
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className={lc}>Product Name</label><input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={ic} /></div>
+              <div><label className={lc}>SKU</label><input value={editForm.sku} onChange={e => setEditForm({...editForm, sku: e.target.value})} className={ic} /></div>
+            </div>
+            <div><label className={lc}>Description</label><input value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className={ic} /></div>
+            <div><label className={lc}>Specs</label><textarea value={editForm.specs} onChange={e => setEditForm({...editForm, specs: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className={lc}>Category</label><input value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} className={ic} /></div>
+              <div><label className={lc}>PO Number</label><input value={editForm.linked_po_number} onChange={e => setEditForm({...editForm, linked_po_number: e.target.value})} className={ic} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={lc}>Collection</label>
+                <select value={editForm.collection_id} onChange={e => setEditForm({...editForm, collection_id: e.target.value})} className={ic}>
+                  <option value="">No collection</option>
+                  {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={lc}>Factory</label>
+                <select value={editForm.factory_id} onChange={e => setEditForm({...editForm, factory_id: e.target.value})} className={ic}>
+                  <option value="">Not assigned</option>
+                  {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className={lc}>Target ELC ($)</label><input value={editForm.target_elc} onChange={e => setEditForm({...editForm, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
+              <div><label className={lc}>Actual ELC ($)</label><input value={editForm.actual_elc} onChange={e => setEditForm({...editForm, actual_elc: e.target.value})} placeholder="2.30" className={ic} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className={lc}>Target Sell Price ($)</label><input value={editForm.target_sell_price} onChange={e => setEditForm({...editForm, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
+              <div><label className={lc}>Order Quantity</label><input value={editForm.order_quantity} onChange={e => setEditForm({...editForm, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
+            </div>
+            <div><label className={lc}>MOQ</label><input value={editForm.moq} onChange={e => setEditForm({...editForm, moq: e.target.value})} placeholder="300" className={ic} /></div>
+            <div><label className={lc}>Notes</label><textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
             <div className="flex gap-2">
-              <button onClick={saveEdit} disabled={savingEdit}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+              <button onClick={saveEdit} disabled={savingEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                 {savingEdit ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Changes
               </button>
               <button onClick={() => setShowEditModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
@@ -309,34 +277,36 @@ export default function ProductPage() {
         </div>
       )}
 
-      {/* Stage update modal */}
-      {showStageModal && (
+      {/* Batch Stage Modal */}
+      {editingBatch && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-white">Update Stage</p>
-              <button onClick={() => setShowStageModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              <p className="text-sm font-semibold">Update Batch #{editingBatch.batch_number}</p>
+              <button onClick={() => setEditingBatch(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
             </div>
-            <div className="p-3 rounded-xl border border-white/[0.08] bg-white/[0.02]">
-              <p className="text-[10px] text-white/30 mb-1">Moving to</p>
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ background: STAGES.find(s => s.key === selectedStage)?.color }} />
-                <p className="text-sm font-semibold text-white">{STAGES.find(s => s.key === selectedStage)?.label}</p>
-              </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {BATCH_STAGES.map(stage => (
+                <button key={stage.key} onClick={() => setBatchStageForm({...batchStageForm, stage: stage.key})}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${batchStageForm.stage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                  <span className="text-white/70">{stage.label}</span>
+                  {batchStageForm.stage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
+                </button>
+              ))}
             </div>
             <div>
-              <label className="text-[11px] text-white/30 mb-1 block">Notes (optional)</label>
-              <textarea value={stageNote} onChange={e => setStageNote(e.target.value)}
-                placeholder="Any notes about this stage update..."
-                rows={3} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 resize-none" />
+              <label className={lc}>Notes (optional)</label>
+              <textarea value={batchStageForm.note} onChange={e => setBatchStageForm({...batchStageForm, note: e.target.value})}
+                placeholder="e.g. DHL tracking #123456, arrived at port" rows={2}
+                className={`${ic} resize-none`} />
             </div>
             <div className="flex gap-2">
-              <button onClick={updateStage} disabled={updatingStage}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
-                {updatingStage ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-                Update Stage
+              <button onClick={saveBatchStage} disabled={updatingBatch}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {updatingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Update Stage
               </button>
-              <button onClick={() => setShowStageModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              <button onClick={() => setEditingBatch(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -345,8 +315,7 @@ export default function ProductPage() {
       {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-5xl mx-auto">
-          <button onClick={() => router.push("/plm")}
-            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition mb-4">
+          <button onClick={() => router.push("/plm")} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition mb-4">
             <ArrowLeft size={12} />Back to PLM
           </button>
           <div className="flex items-start justify-between">
@@ -354,121 +323,167 @@ export default function ProductPage() {
               <div className="flex items-center gap-3 mb-1">
                 <h1 className="text-2xl font-bold tracking-tight">{product.name}</h1>
                 {product.sku && <span className="text-xs text-white/30 font-mono bg-white/[0.04] px-2 py-0.5 rounded-lg">{product.sku}</span>}
+                {productStatus && (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${productStatus.color}20`, color: productStatus.color, border: `1px solid ${productStatus.color}30` }}>
+                    {productStatus.label}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-3 text-xs text-white/30">
-                {product.plm_collections && (
-                  <span className="flex items-center gap-1"><Layers size={10} />{product.plm_collections.name}</span>
-                )}
-                {product.factory_catalog && (
-                  <span className="flex items-center gap-1"><Factory size={10} />{product.factory_catalog.name}</span>
-                )}
+                {product.plm_collections && <span className="flex items-center gap-1"><Layers size={10} />{product.plm_collections.name}</span>}
+                {product.factory_catalog && <span className="flex items-center gap-1"><Factory size={10} />{product.factory_catalog.name}</span>}
                 {product.category && <span>{product.category}</span>}
               </div>
             </div>
-
-            {/* Edit + Stage selector */}
-            <div className="flex items-center gap-2">
-            <button onClick={openEdit}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition text-sm bg-white/[0.02]">
+            <button onClick={openEdit} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition text-sm bg-white/[0.02]">
               <Pencil size={13} />Edit
             </button>
-            <div className="relative">
-              <button onClick={() => setShowStageMenu(!showStageMenu)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition"
-                style={{ borderColor: `${currentStage?.color}40`, background: `${currentStage?.color}15`, color: currentStage?.color }}>
-                <div className="w-2 h-2 rounded-full" style={{ background: currentStage?.color }} />
-                {currentStage?.label}
-                <ChevronDown size={12} />
-              </button>
-
-              {showStageMenu && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-[#111] border border-white/10 rounded-xl overflow-hidden z-10 shadow-2xl">
-                  {STAGES.map((stage, i) => (
-                    <button key={stage.key} onClick={() => openStageUpdate(stage.key)}
-                      className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs hover:bg-white/[0.04] transition text-left ${stage.key === product.current_stage ? "bg-white/[0.04]" : ""}`}>
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                      <span className="text-white/70">{stage.label}</span>
-                      {stage.key === product.current_stage && <Check size={10} className="text-white/30 ml-auto" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-8 py-8 grid grid-cols-3 gap-8">
-        {/* Left — details */}
         <div className="col-span-2 space-y-6">
 
-          {/* Product details */}
+          {/* Pre-production Milestones */}
+          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Pre-Production Milestones</p>
+            <div className="space-y-2">
+              {MILESTONES.map(m => {
+                const done = !!milestones[m.key];
+                return (
+                  <button key={m.key} onClick={() => toggleMilestone(m.key)} disabled={togglingMilestone === m.key}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition text-left hover:bg-white/[0.02]"
+                    style={{ borderColor: done ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.06)", background: done ? "rgba(16,185,129,0.05)" : "" }}>
+                    {togglingMilestone === m.key ? (
+                      <Loader2 size={14} className="animate-spin text-white/30 flex-shrink-0" />
+                    ) : done ? (
+                      <CheckSquare size={14} className="text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <Square size={14} className="text-white/20 flex-shrink-0" />
+                    )}
+                    <span className={`text-sm font-medium ${done ? "text-emerald-400" : "text-white/40"}`}>{m.label}</span>
+                    {done && <span className="text-[10px] text-emerald-400/50 ml-auto">Complete</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Production Batches */}
+          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest">Production Batches</p>
+              <button onClick={() => setShowNewBatch(!showNewBatch)}
+                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+                <Plus size={11} />Add Batch
+              </button>
+            </div>
+
+            {showNewBatch && (
+              <div className="border border-white/[0.08] rounded-xl p-4 mb-4 space-y-3 bg-white/[0.02]">
+                <p className="text-xs text-white/40">New Batch</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={lc}>Quantity</label>
+                    <input value={newBatch.quantity} onChange={e => setNewBatch({...newBatch, quantity: e.target.value})} placeholder="500" className={ic} />
+                  </div>
+                  <div>
+                    <label className={lc}>Starting Stage</label>
+                    <select value={newBatch.stage} onChange={e => setNewBatch({...newBatch, stage: e.target.value})} className={ic}>
+                      {BATCH_STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className={lc}>Notes</label>
+                  <input value={newBatch.notes} onChange={e => setNewBatch({...newBatch, notes: e.target.value})} placeholder="e.g. Reorder, holiday rush" className={ic} />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={createBatch} disabled={savingBatch}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                    {savingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Batch
+                  </button>
+                  <button onClick={() => setShowNewBatch(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {batches.length === 0 ? (
+              <div className="text-center py-8 border border-dashed border-white/[0.06] rounded-xl">
+                <p className="text-xs text-white/20">No batches yet</p>
+                <p className="text-[11px] text-white/15 mt-1">Add a batch once RFQ is sent to start tracking production</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {batches.map((batch: any) => {
+                  const stage = BATCH_STAGES.find(s => s.key === batch.current_stage);
+                  const stageHistory = (batch.plm_batch_stages || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                  return (
+                    <div key={batch.id} className="border border-white/[0.06] rounded-xl overflow-hidden">
+                      <div className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-semibold text-white">Batch #{batch.batch_number}</span>
+                              {batch.quantity && <span className="text-[11px] text-white/40">{batch.quantity.toLocaleString()} units</span>}
+                            </div>
+                            {batch.notes && <p className="text-[11px] text-white/30">{batch.notes}</p>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openBatchEdit(batch)}
+                            className="text-xs px-3 py-1.5 rounded-lg border font-semibold transition"
+                            style={{ borderColor: `${stage?.color}40`, background: `${stage?.color}15`, color: stage?.color }}>
+                            {stage?.label} <ChevronDown size={10} className="inline ml-1" />
+                          </button>
+                          <button onClick={() => deleteBatch(batch.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                      {stageHistory.length > 1 && (
+                        <div className="border-t border-white/[0.04] px-4 py-3 space-y-1.5">
+                          {stageHistory.slice(0, 3).map((sh: any) => {
+                            const s = BATCH_STAGES.find(s => s.key === sh.stage);
+                            return (
+                              <div key={sh.id} className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s?.color || "#6b7280" }} />
+                                <span className="text-[11px] text-white/40">{s?.label || sh.stage}</span>
+                                {sh.notes && <span className="text-[11px] text-white/25">· {sh.notes}</span>}
+                                <span className="text-[10px] text-white/20 ml-auto">
+                                  {new Date(sh.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Product Details */}
           <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
             <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Product Details</p>
             <div className="grid grid-cols-2 gap-4">
-              {product.description && (
-                <div className="col-span-2">
-                  <p className="text-[10px] text-white/30 mb-1">Description</p>
-                  <p className="text-sm text-white/70">{product.description}</p>
-                </div>
-              )}
-              {product.specs && (
-                <div className="col-span-2">
-                  <p className="text-[10px] text-white/30 mb-1">Specs</p>
-                  <p className="text-sm text-white/60 whitespace-pre-wrap">{product.specs}</p>
-                </div>
-              )}
-              {product.target_elc && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-1">Target ELC</p>
-                  <p className="text-sm text-white/70 font-semibold">${product.target_elc}</p>
-                </div>
-              )}
-              {product.actual_elc && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-1">Actual ELC</p>
-                  <p className="text-sm text-white/70 font-semibold">${product.actual_elc}</p>
-                </div>
-              )}
-              {product.target_sell_price && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-1">Target Sell Price</p>
-                  <p className="text-sm text-white/70 font-semibold">${product.target_sell_price}</p>
-                </div>
-              )}
+              {product.description && <div className="col-span-2"><p className="text-[10px] text-white/30 mb-1">Description</p><p className="text-sm text-white/70">{product.description}</p></div>}
+              {product.specs && <div className="col-span-2"><p className="text-[10px] text-white/30 mb-1">Specs</p><p className="text-sm text-white/60 whitespace-pre-wrap">{product.specs}</p></div>}
+              {product.target_elc && <div><p className="text-[10px] text-white/30 mb-1">Target ELC</p><p className="text-sm text-white/70 font-semibold">${product.target_elc}</p></div>}
+              {product.actual_elc && <div><p className="text-[10px] text-white/30 mb-1">Actual ELC</p><p className="text-sm text-white/70 font-semibold">${product.actual_elc}</p></div>}
+              {product.target_sell_price && <div><p className="text-[10px] text-white/30 mb-1">Target Sell Price</p><p className="text-sm text-white/70 font-semibold">${product.target_sell_price}</p></div>}
               {product.target_elc && product.target_sell_price && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-1">Target Margin</p>
-                  <p className="text-sm text-emerald-400 font-semibold">
-                    {Math.round(((product.target_sell_price - product.target_elc) / product.target_sell_price) * 100)}%
-                  </p>
+                <div><p className="text-[10px] text-white/30 mb-1">Target Margin</p>
+                  <p className="text-sm text-emerald-400 font-semibold">{Math.round(((product.target_sell_price - product.target_elc) / product.target_sell_price) * 100)}%</p>
                 </div>
               )}
-              {product.order_quantity && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-1">Order Quantity</p>
-                  <p className="text-sm text-white/70">{product.order_quantity.toLocaleString()} units</p>
-                </div>
-              )}
-              {product.moq && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-1">MOQ</p>
-                  <p className="text-sm text-white/70">{product.moq.toLocaleString()} units</p>
-                </div>
-              )}
-              {product.linked_po_number && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-1">PO Number</p>
-                  <p className="text-sm text-white/70 font-mono">{product.linked_po_number}</p>
-                </div>
-              )}
-              {product.notes && (
-                <div className="col-span-2">
-                  <p className="text-[10px] text-white/30 mb-1">Notes</p>
-                  <p className="text-sm text-white/60">{product.notes}</p>
-                </div>
-              )}
+              {product.order_quantity && <div><p className="text-[10px] text-white/30 mb-1">Order Quantity</p><p className="text-sm text-white/70">{product.order_quantity.toLocaleString()} units</p></div>}
+              {product.moq && <div><p className="text-[10px] text-white/30 mb-1">MOQ</p><p className="text-sm text-white/70">{product.moq.toLocaleString()} units</p></div>}
+              {product.linked_po_number && <div><p className="text-[10px] text-white/30 mb-1">PO Number</p><p className="text-sm text-white/70 font-mono">{product.linked_po_number}</p></div>}
+              {product.notes && <div className="col-span-2"><p className="text-[10px] text-white/30 mb-1">Notes</p><p className="text-sm text-white/60">{product.notes}</p></div>}
             </div>
           </div>
 
@@ -507,172 +522,54 @@ export default function ProductPage() {
               </div>
             )}
           </div>
-
-          {/* Production Batches */}
-          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] text-white/25 uppercase tracking-widest">Production Batches</p>
-              <button onClick={() => setShowNewBatch(!showNewBatch)}
-                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
-                <Plus size={11} />Add Batch
-              </button>
-            </div>
-
-            {showNewBatch && (
-              <div className="border border-white/[0.08] rounded-xl p-4 mb-4 space-y-3 bg-white/[0.02]">
-                <p className="text-xs text-white/40">New Production Batch</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] text-white/30 mb-1 block">Quantity</label>
-                    <input value={newBatchQty} onChange={e => setNewBatchQty(e.target.value)} placeholder="500 units"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-white/30 mb-1 block">Notes</label>
-                    <input value={newBatchNote} onChange={e => setNewBatchNote(e.target.value)} placeholder="e.g. Reorder batch"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={createBatch} disabled={savingBatch}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                    {savingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Batch
-                  </button>
-                  <button onClick={() => setShowNewBatch(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-                </div>
-              </div>
-            )}
-
-            {(!product.plm_batches || product.plm_batches.length === 0) ? (
-              <div className="text-center py-6 border border-dashed border-white/[0.06] rounded-xl">
-                <p className="text-xs text-white/20">No batches yet — add a batch to track multiple production runs</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {(product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number).map((batch: any) => {
-                  const stage = STAGES.find(s => s.key === batch.current_stage);
-                  return (
-                    <div key={batch.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-white">Batch #{batch.batch_number}</span>
-                          {batch.quantity && <span className="text-[11px] text-white/40">{batch.quantity.toLocaleString()} units</span>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => { setSelectedBatchStage({ batchId: batch.id, stage: batch.current_stage, note: "" }); setShowBatchStageModal(true); }}
-                            className="text-[11px] px-3 py-1.5 rounded-lg border transition font-medium"
-                            style={{ borderColor: `${stage?.color}40`, background: `${stage?.color}15`, color: stage?.color }}>
-                            {stage?.label}
-                          </button>
-                          <button onClick={() => deleteBatch(batch.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
-                            <Trash2 size={11} />
-                          </button>
-                        </div>
-                      </div>
-                      {batch.notes && <p className="text-xs text-white/30">{batch.notes}</p>}
-                      <p className="text-[10px] text-white/20 mt-1">
-                        Updated {new Date(batch.stage_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Stage Timeline */}
-          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-6">Stage History</p>
-            <div className="space-y-4">
-              {(product.plm_stages || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((stage: any, i: number) => {
-                const stageInfo = STAGES.find(s => s.key === stage.stage);
-                return (
-                  <div key={stage.id} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0"
-                        style={{ borderColor: stageInfo?.color, background: `${stageInfo?.color}20` }}>
-                        {i === 0 && <div className="w-2 h-2 rounded-full" style={{ background: stageInfo?.color }} />}
-                      </div>
-                      {i < (product.plm_stages?.length || 0) - 1 && (
-                        <div className="w-px h-full mt-1 bg-white/[0.06]" />
-                      )}
-                    </div>
-                    <div className="pb-4 flex-1">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <p className="text-xs font-semibold text-white/80">{stageInfo?.label || stage.stage}</p>
-                        <p className="text-[10px] text-white/25">
-                          {new Date(stage.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })}
-                        </p>
-                      </div>
-                      {stage.updated_by && <p className="text-[10px] text-white/25 mb-1">{stage.updated_by_role === "factory" ? "🏭" : "👤"} {stage.updated_by}</p>}
-                      {stage.notes && <p className="text-xs text-white/40 bg-white/[0.02] rounded-lg px-3 py-2 mt-1">{stage.notes}</p>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
-        {/* Right — progress + quick info */}
+        {/* Right sidebar */}
         <div className="space-y-4">
-          {/* Overall progress */}
           <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Overall Progress</p>
-            <div className="mb-3">
-              <div className="flex justify-between mb-1.5">
-                <span className="text-[10px] text-white/30">Stage {currentStageIndex + 1} of {STAGES.length}</span>
-                <span className="text-[10px] text-white/40">{Math.round(((currentStageIndex + 1) / STAGES.length) * 100)}%</span>
+            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Status Summary</p>
+            {productStatus ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] text-white/30 mb-1">Overall Status</p>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${productStatus.color}20`, color: productStatus.color, border: `1px solid ${productStatus.color}30` }}>
+                    {productStatus.label}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] text-white/30 mb-2">Batches</p>
+                  {batches.map((b: any) => {
+                    const s = BATCH_STAGES.find(s => s.key === b.current_stage);
+                    return (
+                      <div key={b.id} className="flex items-center justify-between py-1.5">
+                        <span className="text-[11px] text-white/50">Batch #{b.batch_number}{b.quantity ? ` · ${b.quantity.toLocaleString()} units` : ""}</span>
+                        <span className="text-[10px] font-medium" style={{ color: s?.color }}>{s?.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="w-full bg-white/[0.05] rounded-full h-1.5">
-                <div className="h-1.5 rounded-full transition-all" style={{ width: `${((currentStageIndex + 1) / STAGES.length) * 100}%`, background: currentStage?.color }} />
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-white/30">No batches yet</p>
+                <div className="space-y-1">
+                  {MILESTONES.map(m => (
+                    <div key={m.key} className="flex items-center gap-2">
+                      <div className={`w-1.5 h-1.5 rounded-full ${milestones[m.key] ? "bg-emerald-400" : "bg-white/10"}`} />
+                      <span className={`text-[11px] ${milestones[m.key] ? "text-emerald-400" : "text-white/25"}`}>{m.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <p className="text-xs text-white/50 font-medium" style={{ color: currentStage?.color }}>{currentStage?.label}</p>
+            )}
           </div>
 
-          {/* All stages mini list */}
-          <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">All Stages</p>
-            <div className="space-y-1.5">
-              {STAGES.map((stage, i) => {
-                const isPast = i < currentStageIndex;
-                const isCurrent = i === currentStageIndex;
-                const isFuture = i > currentStageIndex;
-                return (
-                  <div key={stage.key} className={`flex items-center gap-2 py-1 px-2 rounded-lg ${isCurrent ? "bg-white/[0.04]" : ""}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0`}
-                      style={{ background: isPast || isCurrent ? stage.color : "#374151" }} />
-                    <span className={`text-[11px] ${isCurrent ? "text-white font-semibold" : isPast ? "text-white/40 line-through" : "text-white/20"}`}>
-                      {stage.label}
-                    </span>
-                    {isCurrent && <div className="w-1.5 h-1.5 rounded-full bg-white/40 animate-pulse ml-auto" />}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Created info */}
           <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
             <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Info</p>
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-[11px] text-white/30">Created</span>
-                <span className="text-[11px] text-white/50">
-                  {new Date(product.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[11px] text-white/30">Last updated</span>
-                <span className="text-[11px] text-white/50">
-                  {new Date(product.stage_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[11px] text-white/30">Stage changes</span>
-                <span className="text-[11px] text-white/50">{product.plm_stages?.length || 0}</span>
-              </div>
+              <div className="flex justify-between"><span className="text-[11px] text-white/30">Created</span><span className="text-[11px] text-white/50">{new Date(product.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
+              <div className="flex justify-between"><span className="text-[11px] text-white/30">Batches</span><span className="text-[11px] text-white/50">{batches.length}</span></div>
+              <div className="flex justify-between"><span className="text-[11px] text-white/30">Total units</span><span className="text-[11px] text-white/50">{batches.reduce((sum: number, b: any) => sum + (b.quantity || 0), 0).toLocaleString()}</span></div>
             </div>
           </div>
         </div>

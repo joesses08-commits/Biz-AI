@@ -22,13 +22,12 @@ async function getUser() {
 export async function GET(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const type = req.nextUrl.searchParams.get("type");
 
   if (type === "collections") {
     const { data } = await supabaseAdmin
       .from("plm_collections")
-      .select("*, plm_products(id, current_stage, status)")
+      .select("*, plm_products(id, milestones, plm_batches(current_stage))")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     return NextResponse.json({ collections: data || [] });
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
     const collectionId = req.nextUrl.searchParams.get("collection_id");
     let query = supabaseAdmin
       .from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email)")
+      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (collectionId) query = query.eq("collection_id", collectionId);
@@ -50,16 +49,15 @@ export async function GET(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
     const { data } = await supabaseAdmin
       .from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*)")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*))")
       .eq("id", id)
       .single();
     return NextResponse.json({ product: data });
   }
 
-  // Default — return everything
   const [{ data: collections }, { data: products }] = await Promise.all([
-    supabaseAdmin.from("plm_collections").select("*, plm_products(id, current_stage, status)").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabaseAdmin.from("plm_products").select("*, plm_collections(name), factory_catalog(name)").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabaseAdmin.from("plm_collections").select("*, plm_products(id, milestones, plm_batches(current_stage))").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabaseAdmin.from("plm_products").select("*, plm_collections(name), factory_catalog(name), plm_batches(*)").eq("user_id", user.id).order("created_at", { ascending: false }),
   ]);
 
   return NextResponse.json({ collections: collections || [], products: products || [] });
@@ -68,7 +66,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
   const body = await req.json();
   const { action } = body;
 
@@ -88,76 +85,50 @@ export async function POST(req: NextRequest) {
       collection_id: collection_id || null,
       factory_id: factory_id || null,
       target_elc, target_sell_price, moq, order_quantity, notes,
+      milestones: {},
       current_stage: "design_brief",
       stage_updated_at: new Date().toISOString(),
     }).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    // Log initial stage
     await supabaseAdmin.from("plm_stages").insert({
       product_id: data.id, user_id: user.id,
       stage: "design_brief", notes: "Product created",
       updated_by: user.email, updated_by_role: "admin",
     });
-
     return NextResponse.json({ success: true, product: data });
   }
 
-  if (action === "update_stage") {
-    const { product_id, stage, notes } = body;
-    await supabaseAdmin.from("plm_products").update({
-      current_stage: stage,
-      stage_updated_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq("id", product_id).eq("user_id", user.id);
-
+  if (action === "update_milestone") {
+    const { product_id, milestone, value } = body;
+    const { data: product } = await supabaseAdmin.from("plm_products").select("milestones").eq("id", product_id).single();
+    const milestones = { ...(product?.milestones || {}), [milestone]: value };
+    await supabaseAdmin.from("plm_products").update({ milestones, updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
+    // Log to stage history
     await supabaseAdmin.from("plm_stages").insert({
-      product_id, user_id: user.id, stage, notes: notes || "",
+      product_id, user_id: user.id,
+      stage: milestone, notes: value ? `${milestone.replace(/_/g, " ")} marked complete` : `${milestone.replace(/_/g, " ")} unmarked`,
       updated_by: user.email, updated_by_role: "admin",
     });
-
-    return NextResponse.json({ success: true });
-  }
-
-  if (action === "update_product") {
-    const { id, ...updates } = body;
-    delete updates.action;
-    const { data, error } = await supabaseAdmin.from("plm_products")
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq("id", id).eq("user_id", user.id).select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ success: true, product: data });
-  }
-
-  if (action === "delete_product") {
-    await supabaseAdmin.from("plm_stages").delete().eq("product_id", body.id);
-    await supabaseAdmin.from("plm_products").delete().eq("id", body.id).eq("user_id", user.id);
-    return NextResponse.json({ success: true });
-  }
-
-  if (action === "delete_collection") {
-    await supabaseAdmin.from("plm_collections").delete().eq("id", body.id).eq("user_id", user.id);
     return NextResponse.json({ success: true });
   }
 
   if (action === "create_batch") {
-    const { product_id, quantity, notes } = body;
-    // Get current batch count
+    const { product_id, quantity, notes, stage } = body;
     const { data: existing } = await supabaseAdmin.from("plm_batches").select("batch_number").eq("product_id", product_id).order("batch_number", { ascending: false }).limit(1);
     const nextBatch = (existing?.[0]?.batch_number || 0) + 1;
     const { data, error } = await supabaseAdmin.from("plm_batches").insert({
       product_id, user_id: user.id,
       batch_number: nextBatch,
       quantity: quantity || null,
-      current_stage: "design_brief",
+      current_stage: stage || "rfq_sent",
       stage_updated_at: new Date().toISOString(),
       notes: notes || "",
     }).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    // Log initial stage
     await supabaseAdmin.from("plm_batch_stages").insert({
       batch_id: data.id, product_id, user_id: user.id,
-      stage: "design_brief", notes: "Batch created",
+      stage: stage || "rfq_sent",
+      notes: "Batch created",
       updated_by: user.email, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true, batch: data });
@@ -181,6 +152,29 @@ export async function POST(req: NextRequest) {
   if (action === "delete_batch") {
     await supabaseAdmin.from("plm_batch_stages").delete().eq("batch_id", body.id);
     await supabaseAdmin.from("plm_batches").delete().eq("id", body.id).eq("user_id", user.id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "update_product") {
+    const { id, ...updates } = body;
+    delete updates.action;
+    const { data, error } = await supabaseAdmin.from("plm_products")
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", id).eq("user_id", user.id).select().single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, product: data });
+  }
+
+  if (action === "delete_product") {
+    await supabaseAdmin.from("plm_stages").delete().eq("product_id", body.id);
+    await supabaseAdmin.from("plm_batch_stages").delete().eq("product_id", body.id);
+    await supabaseAdmin.from("plm_batches").delete().eq("product_id", body.id);
+    await supabaseAdmin.from("plm_products").delete().eq("id", body.id).eq("user_id", user.id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "delete_collection") {
+    await supabaseAdmin.from("plm_collections").delete().eq("id", body.id).eq("user_id", user.id);
     return NextResponse.json({ success: true });
   }
 
