@@ -104,9 +104,10 @@ Respond ONLY with a JSON object like:
         };
 
         // Apply mappings
-        for (const [header, field] of Object.entries(mappings)) {
+        for (const [header, fieldRaw] of Object.entries(mappings)) {
+          const field = fieldRaw as string;
           if (field === "ignore" || !field) continue;
-          const val = row[header];
+          const val = (row as Record<string, any>)[header];
           if (!val && val !== 0) continue;
 
           if (field === "target_elc" || field === "target_sell_price") {
