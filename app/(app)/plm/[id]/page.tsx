@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Package, ArrowLeft, Factory, Layers, Check, Loader2,
-  X, Plus, ImagePlus, Trash2, Pencil, CheckSquare, Square, Clock, ChevronRight
+  X, Plus, ImagePlus, Trash2, Pencil
 } from "lucide-react";
 
 // ── DEVELOPMENT STAGES (product level) ───────────────────────
@@ -97,13 +97,7 @@ export default function ProductPage() {
   const [factories, setFactories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
 
-  // Milestone PIN
-  const [milestoneConfirm, setMilestoneConfirm] = useState<{key: string, label: string} | null>(null);
-  const [milestoneUncheck, setMilestoneUncheck] = useState<{key: string, label: string} | null>(null);
-  const [adminPin, setAdminPin] = useState("");
-  const [pinError, setPinError] = useState("");
-  const [submittingPin, setSubmittingPin] = useState(false);
-  const [togglingMilestone, setTogglingMilestone] = useState<string | null>(null);
+
 
   // Dev stage
   const [updatingDevStage, setUpdatingDevStage] = useState(false);
@@ -165,40 +159,7 @@ export default function ProductPage() {
     load();
   };
 
-  const toggleMilestone = async (key: string, value: boolean, force = false, pin = "") => {
-    setTogglingMilestone(key);
-    const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_milestone", product_id: id, milestone: key, value, force, pin }) });
-    const data = await res.json();
-    setTogglingMilestone(null);
-    if (data.error === "pin_required") return;
-    load();
-  };
 
-  const handleMilestoneClick = (key: string, label: string, currentValue: boolean) => {
-    if (!currentValue) setMilestoneConfirm({ key, label });
-    else { setAdminPin(""); setPinError(""); setMilestoneUncheck({ key, label }); }
-  };
-
-  const confirmMilestone = async () => {
-    if (!milestoneConfirm) return;
-    await toggleMilestone(milestoneConfirm.key, true);
-    setMilestoneConfirm(null);
-  };
-
-  const submitUncheckPin = async () => {
-    if (!milestoneUncheck) return;
-    setSubmittingPin(true);
-    setPinError("");
-    const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_milestone", product_id: id, milestone: milestoneUncheck.key, value: false, force: true, pin: adminPin }) });
-    const data = await res.json();
-    setSubmittingPin(false);
-    if (data.error === "pin_required") { setPinError("Incorrect PIN. Try again."); return; }
-    setMilestoneUncheck(null);
-    setAdminPin("");
-    load();
-  };
 
   const createOrder = async () => {
     setSavingOrder(true);
@@ -266,7 +227,7 @@ export default function ProductPage() {
   if (!product) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><p className="text-white/30">Product not found</p></div>;
 
   const orders = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
-  const milestones = product.milestones || {};
+
   const currentDevStage = stageInfo(product.current_stage || "concept");
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
   const lc = "text-[10px] text-white/30 uppercase tracking-widest mb-1 block";
@@ -282,39 +243,6 @@ export default function ProductPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
-      {/* Milestone confirm modal */}
-      {milestoneConfirm && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <p className="text-sm font-semibold">Mark as Complete?</p>
-            <p className="text-xs text-white/40">Are you sure <strong className="text-white/60">{milestoneConfirm.label}</strong> is complete? This cannot be undone without an admin PIN.</p>
-            <div className="flex gap-2">
-              <button onClick={confirmMilestone} className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-semibold">Yes, Mark Complete</button>
-              <button onClick={() => setMilestoneConfirm(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PIN modal */}
-      {milestoneUncheck && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <p className="text-sm font-semibold">Admin Override</p>
-            <p className="text-xs text-white/40">Enter your admin PIN to uncheck <strong className="text-white/60">{milestoneUncheck.label}</strong>.</p>
-            <input type="password" value={adminPin} onChange={e => setAdminPin(e.target.value)} placeholder="Enter PIN"
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
-              onKeyDown={e => e.key === "Enter" && submitUncheckPin()} />
-            {pinError && <p className="text-xs text-red-400">{pinError}</p>}
-            <div className="flex gap-2">
-              <button onClick={submitUncheckPin} disabled={!adminPin || submittingPin} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                {submittingPin ? "Checking..." : "Confirm"}
-              </button>
-              <button onClick={() => { setMilestoneUncheck(null); setAdminPin(""); setPinError(""); }} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Approve banner */}
       {showApproveBanner && product?.approval_status === "pending_review" && !approveSuccess && (
@@ -392,42 +320,41 @@ export default function ProductPage() {
               </span>
             </div>
 
-            {/* Dev stage selector */}
-            <div className="px-6 py-4 border-b border-white/[0.04]">
-              <p className={lc}>Current Stage</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {DEV_STAGES.map(s => (
-                  <button key={s.key} onClick={() => updateDevStage(s.key)} disabled={updatingDevStage}
-                    className={`text-xs px-3 py-1.5 rounded-full border transition font-medium ${product.current_stage === s.key ? "border-current" : "border-white/[0.06] text-white/30 hover:text-white/60 hover:border-white/20"}`}
-                    style={product.current_stage === s.key ? { borderColor: s.color, color: s.color, background: `${s.color}15` } : {}}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Milestones */}
-            <div className="px-6 py-4">
-              <p className={lc}>Milestones</p>
-              <div className="space-y-2 mt-2">
-                {[
-                  { key: "design_brief", label: "Design Brief" },
-                  { key: "sampling", label: "Sampling" },
-                  { key: "sample_approved", label: "Sample Approved" },
-                ].map(m => {
-                  const done = !!milestones[m.key];
-                  return (
-                    <button key={m.key} onClick={() => handleMilestoneClick(m.key, m.label, done)} disabled={togglingMilestone === m.key}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition text-left hover:bg-white/[0.02]"
-                      style={{ borderColor: done ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.06)", background: done ? "rgba(16,185,129,0.05)" : "" }}>
-                      {togglingMilestone === m.key ? <Loader2 size={14} className="animate-spin text-white/30" /> :
-                        done ? <CheckSquare size={14} className="text-emerald-400" /> : <Square size={14} className="text-white/20" />}
-                      <span className={`text-sm font-medium ${done ? "text-emerald-400" : "text-white/40"}`}>{m.label}</span>
-                      {done && <span className="text-[10px] text-emerald-400/50 ml-auto">Complete</span>}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Dev stage — prev/next navigation */}
+            <div className="px-6 py-5">
+              {(() => {
+                const currentIdx = DEV_STAGES.findIndex(s => s.key === (product.current_stage || "concept"));
+                const prev = currentIdx > 0 ? DEV_STAGES[currentIdx - 1] : null;
+                const next = currentIdx < DEV_STAGES.length - 1 ? DEV_STAGES[currentIdx + 1] : null;
+                const current = DEV_STAGES[currentIdx] || DEV_STAGES[0];
+                return (
+                  <div className="space-y-4">
+                    {/* Progress bar */}
+                    <div className="w-full bg-white/[0.05] rounded-full h-1">
+                      <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / DEV_STAGES.length) * 100}%`, background: current.color }} />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <button onClick={() => prev && updateDevStage(prev.key)} disabled={!prev || updatingDevStage}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
+                        ← {prev ? prev.label : "Start"}
+                      </button>
+                      <div className="text-center">
+                        <div className="flex items-center gap-2 justify-center">
+                          <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
+                          <span className="text-sm font-semibold text-white">{current.label}</span>
+                        </div>
+                        <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {DEV_STAGES.length}</p>
+                      </div>
+                      <button onClick={() => next && updateDevStage(next.key)} disabled={!next || updatingDevStage}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
+                        style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
+                        {next ? next.label : "Complete"} →
+                      </button>
+                    </div>
+                    {updatingDevStage && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
