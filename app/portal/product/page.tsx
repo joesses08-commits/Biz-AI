@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Package, ArrowLeft, Factory, Check, Loader2, X } from "lucide-react";
 
 const SAMPLE_STAGES = [
@@ -26,8 +26,7 @@ function stageInfo(key: string) {
 
 export default function PortalProductPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const productId = searchParams.get("id");
+  const productId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") : null;
 
   const [product, setProduct] = useState<any>(null);
   const [portalUser, setPortalUser] = useState<any>(null);
