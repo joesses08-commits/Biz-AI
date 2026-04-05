@@ -152,7 +152,7 @@ async function detectAndProcessShipmentEmail(
     const combinedText = (subject + " " + body).toLowerCase();
 
     // Must contain shipment-related keywords
-    const shipmentKeywords = ["shipped", "shipment", "in transit", "out for delivery", "delivered", "customs", "clearance", "dispatched"];
+    const shipmentKeywords = ["shipped", "shipment", "in transit", "out for delivery", "delivered", "customs", "clearance", "tracking", "on its way", "dispatched"];
     const hasShipmentKeyword = shipmentKeywords.some(k => combinedText.includes(k));
     if (!hasShipmentKeyword) return false;
 
@@ -164,25 +164,58 @@ async function detectAndProcessShipmentEmail(
     else if (combinedText.includes("shipped") || combinedText.includes("dispatched") || combinedText.includes("shipment")) detectedStage = "shipped";
     if (!detectedStage) return false;
 
-    // Extract PO number from email — match exactly what Uncle David typed into the batch
+    // Extract tracking number (common formats: UPS 1Z, FedEx 12-digit, DHL 10-digit, generic)
+    const trackingPatterns = [
+      /(1Z[A-Z0-9]{16})/i,           // UPS
+      /([0-9]{12,22})/,               // FedEx / generic numeric
+      /([A-Z]{2}[0-9]{9}[A-Z]{2})/i, // USPS international
+      /(JD[0-9]{18})/i,               // DHL
+    ];
+    let trackingNumber: string | null = null;
     const fullText = subject + " " + body;
+    for (const pattern of trackingPatterns) {
+      const match = fullText.match(pattern);
+      if (match) { trackingNumber = match[1]; break; }
+    }
+
+    // Extract PO number (format: PO-XXXX or PO XXXX)
     const poMatch = fullText.match(/PO[-\s]?([A-Z0-9-]{3,20})/i);
-    if (!poMatch) return false;
-    const poNumber = poMatch[0].replace(/\s/g, "-").toUpperCase();
+    const poNumber = poMatch ? poMatch[0] : null;
 
-    // Find batch by PO number
-    const { data: batch } = await supabaseAdmin
-      .from("plm_batches")
-      .select("id, product_id, current_stage")
-      .eq("user_id", userId)
-      .ilike("linked_po_number", poNumber)
-      .single();
+    if (!trackingNumber && !poNumber) return false;
 
-    if (!batch) return false;
+    // Find matching shipment by tracking number
+    let shipment: any = null;
+    if (trackingNumber) {
+      const { data } = await supabaseAdmin
+        .from("plm_shipments")
+        .select("*, plm_batches(product_id, current_stage)")
+        .eq("user_id", userId)
+        .eq("tracking_number", trackingNumber)
+        .single();
+      if (data) shipment = data;
+    }
+
+    // Fallback: find by PO number on batch
+    if (!shipment && poNumber) {
+      const { data: batch } = await supabaseAdmin
+        .from("plm_batches")
+        .select("*, plm_shipments(*)")
+        .eq("user_id", userId)
+        .eq("linked_po_number", poNumber)
+        .single();
+      if (batch?.plm_shipments?.[0]) shipment = { ...batch.plm_shipments[0], plm_batches: batch };
+    }
+
+    if (!shipment) return false;
+
+    const batchId = shipment.batch_id;
+    const productId = shipment.plm_batches?.product_id || shipment.product_id;
+    const currentStage = shipment.plm_batches?.current_stage;
 
     // Only advance, never go backwards
     const stageOrder = ["po_issued","production_started","production_complete","qc_inspection","shipped","in_transit","customs","delivered","active"];
-    const currentIdx = stageOrder.indexOf(batch.current_stage);
+    const currentIdx = stageOrder.indexOf(currentStage);
     const detectedIdx = stageOrder.indexOf(detectedStage);
     if (detectedIdx <= currentIdx) return false;
 
@@ -191,11 +224,11 @@ async function detectAndProcessShipmentEmail(
       current_stage: detectedStage,
       stage_updated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq("id", batch.id);
+    }).eq("id", batchId);
 
     await supabaseAdmin.from("plm_batch_stages").insert({
-      batch_id: batch.id,
-      product_id: batch.product_id,
+      batch_id: batchId,
+      product_id: productId,
       user_id: userId,
       stage: detectedStage,
       notes: `Auto-detected from email: "${subject.slice(0, 100)}"`,
@@ -203,15 +236,22 @@ async function detectAndProcessShipmentEmail(
       updated_by_role: "ai",
     });
 
+    // Update shipment record
+    await supabaseAdmin.from("plm_shipments").update({
+      current_stage: detectedStage,
+      tracking_number: trackingNumber || shipment.tracking_number,
+      updated_at: new Date().toISOString(),
+    }).eq("id", shipment.id);
+
     // Log company event
     await supabaseAdmin.from("company_events").insert({
       user_id: userId,
       source: "Gmail",
       event_type: "plm_stage_auto_updated",
-      title: `Batch auto-updated to "${detectedStage.replace(/_/g, " ")}"`,
-      summary: `Jimmy detected a shipment email from ${fromEmail} and automatically advanced batch ${poNumber} to ${detectedStage.replace(/_/g, " ")}.`,
+      title: `Shipment auto-updated to "${detectedStage.replace(/_/g, " ")}"`,
+      summary: `Jimmy detected a shipment email from ${fromEmail} and automatically advanced the batch stage${trackingNumber ? ` (tracking: ${trackingNumber})` : ""}${poNumber ? ` (PO: ${poNumber})` : ""}.`,
       importance: "high",
-      raw_data: { batch_id: batch.id, product_id: batch.product_id, stage: detectedStage, po_number: poNumber, subject },
+      raw_data: { batch_id: batchId, product_id: productId, stage: detectedStage, tracking_number: trackingNumber, po_number: poNumber, subject },
       created_at: new Date().toISOString(),
     });
 
