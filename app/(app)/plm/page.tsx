@@ -4,9 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet } from "lucide-react";
 
-const BATCH_STAGE_ORDER = ["rfq_sent","factory_selected","po_issued","production_started","production_complete","qc_inspection","shipped","in_transit","customs","delivered","active"];
-const BATCH_STAGE_LABELS: Record<string,string> = { rfq_sent:"RFQ Sent", factory_selected:"Factory Selected", po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", shipped:"Shipped", in_transit:"In Transit", customs:"Customs", delivered:"Delivered", active:"Active" };
-const BATCH_STAGE_COLORS: Record<string,string> = { rfq_sent:"#3b82f6", factory_selected:"#3b82f6", po_issued:"#f59e0b", production_started:"#f59e0b", production_complete:"#10b981", qc_inspection:"#f59e0b", shipped:"#3b82f6", in_transit:"#3b82f6", customs:"#f59e0b", delivered:"#10b981", active:"#10b981" };
+const BATCH_STAGE_ORDER = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
+const BATCH_STAGE_LABELS: Record<string,string> = { po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", ready_to_ship:"Ready to Ship", shipped:"Shipped" };
+const BATCH_STAGE_COLORS: Record<string,string> = { po_issued:"#f59e0b", production_started:"#f59e0b", production_complete:"#10b981", qc_inspection:"#f59e0b", ready_to_ship:"#3b82f6", shipped:"#10b981" };
+const DEV_STAGE_LABELS: Record<string,string> = { concept:"Concept", artwork_sent:"Artwork Sent", quotes_received:"Quotes Received", samples_requested:"Samples Requested", sample_production:"Sample Production", sample_complete:"Sample Complete", sample_shipped:"Sample Shipped", sample_arrived:"Sample Arrived", sample_approved:"Sample Approved" };
+const DEV_STAGE_COLORS: Record<string,string> = { concept:"#6b7280", artwork_sent:"#8b5cf6", quotes_received:"#3b82f6", samples_requested:"#f59e0b", sample_production:"#f59e0b", sample_complete:"#f59e0b", sample_shipped:"#3b82f6", sample_arrived:"#10b981", sample_approved:"#10b981" };
 const SEASONS = ["Spring", "Summer", "Fall", "Winter", "Holiday", "Resort", "Pre-Fall"];
 const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
 const COLUMN_LABELS: Record<string,string> = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };

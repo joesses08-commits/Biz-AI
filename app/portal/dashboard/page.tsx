@@ -22,7 +22,19 @@ const STAGES = [
   { key: "active", label: "Active / Selling", color: "#10b981" },
 ];
 
-const FACTORY_STAGES = ["production_started","production_complete","qc_inspection","shipped","in_transit","customs","delivered"];
+const SAMPLE_STAGES = [
+  { key: "sample_production", label: "Sample Production", color: "#f59e0b" },
+  { key: "sample_complete", label: "Sample Complete", color: "#f59e0b" },
+  { key: "sample_shipped", label: "Sample Shipped", color: "#3b82f6" },
+];
+const PRODUCTION_STAGES = [
+  { key: "production_started", label: "Production Started", color: "#f59e0b" },
+  { key: "production_complete", label: "Production Complete", color: "#10b981" },
+  { key: "qc_inspection", label: "QC Inspection", color: "#f59e0b" },
+  { key: "ready_to_ship", label: "Ready to Ship", color: "#3b82f6" },
+  { key: "shipped", label: "Shipped", color: "#10b981" },
+];
+const FACTORY_STAGES = PRODUCTION_STAGES.map(s => s.key);
 const MILESTONES = [{ key: "design_brief", label: "Design Brief" },{ key: "sampling", label: "Sampling" }];
 const SEASONS = ["Spring","Summer","Fall","Winter","Holiday","Resort","Pre-Fall"];
 
@@ -85,17 +97,32 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <p className="text-sm font-semibold">Update: {selectedProduct.name}</p>
               <button onClick={() => setShowModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
             </div>
-            <div>
-              <label className={lc}>Select new stage</label>
-              <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                {STAGES.filter(s => FACTORY_STAGES.includes(s.key)).map(stage => (
-                  <button key={stage.key} onClick={() => setSelectedStage(stage.key)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${selectedStage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                    <span className="text-white/70">{stage.label}</span>
-                    {selectedStage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
-                  </button>
-                ))}
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Sample Stages</p>
+                <div className="space-y-1.5">
+                  {SAMPLE_STAGES.map(stage => (
+                    <button key={stage.key} onClick={() => setSelectedStage(stage.key)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${selectedStage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                      <span className="text-white/70">{stage.label}</span>
+                      {selectedStage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Production Stages</p>
+                <div className="space-y-1.5">
+                  {PRODUCTION_STAGES.map(stage => (
+                    <button key={stage.key} onClick={() => setSelectedStage(stage.key)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${selectedStage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                      <span className="text-white/70">{stage.label}</span>
+                      {selectedStage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div>
