@@ -32,9 +32,7 @@ function getProductStatus(batches: any[]) {
   const order = BATCH_STAGES.map(s => s.key);
   let mostAdvanced = batches[0]?.current_stage;
   for (const b of batches) {
-    if (order.indexOf(b.current_stage) > order.indexOf(mostAdvanced)) {
-      mostAdvanced = b.current_stage;
-    }
+    if (order.indexOf(b.current_stage) > order.indexOf(mostAdvanced)) mostAdvanced = b.current_stage;
   }
   return BATCH_STAGES.find(s => s.key === mostAdvanced);
 }
@@ -47,20 +45,25 @@ export default function ProductPage() {
   const [factories, setFactories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
 
-  // Edit
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState<any>({});
-  const [savingEdit, setSavingEdit] = useState(false);
+  // Product edit
+  const [showEditProduct, setShowEditProduct] = useState(false);
+  const [editProduct, setEditProduct] = useState<any>({});
+  const [savingProduct, setSavingProduct] = useState(false);
 
-  // Batch
-  const [showNewBatch, setShowNewBatch] = useState(false);
-  const [newBatch, setNewBatch] = useState({ quantity: "", notes: "", stage: "rfq_sent" });
-  const [savingBatch, setSavingBatch] = useState(false);
+  // Batch edit
+  const [editingBatch, setEditingBatch] = useState<any>(null);
+  const [editBatchForm, setEditBatchForm] = useState<any>({});
+  const [savingBatchEdit, setSavingBatchEdit] = useState(false);
 
   // Batch stage update
-  const [editingBatch, setEditingBatch] = useState<any>(null);
+  const [stagingBatch, setStagingBatch] = useState<any>(null);
   const [batchStageForm, setBatchStageForm] = useState({ stage: "", note: "" });
-  const [updatingBatch, setUpdatingBatch] = useState(false);
+  const [updatingStage, setUpdatingStage] = useState(false);
+
+  // New batch
+  const [showNewBatch, setShowNewBatch] = useState(false);
+  const [newBatch, setNewBatch] = useState({ quantity: "", stage: "rfq_sent", factory_id: "", target_elc: "", actual_elc: "", target_sell_price: "", order_quantity: "", moq: "", linked_po_number: "", batch_notes: "" });
+  const [savingBatch, setSavingBatch] = useState(false);
 
   // Images
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -98,44 +101,82 @@ export default function ProductPage() {
     load();
   };
 
-  const openEdit = () => {
-    setEditForm({
+  const openEditProduct = () => {
+    setEditProduct({
       name: product.name || "",
       sku: product.sku || "",
       description: product.description || "",
       specs: product.specs || "",
       category: product.category || "",
       collection_id: product.collection_id || "",
-      factory_id: product.factory_id || "",
-      target_elc: product.target_elc || "",
-      actual_elc: product.actual_elc || "",
-      target_sell_price: product.target_sell_price || "",
-      moq: product.moq || "",
-      order_quantity: product.order_quantity || "",
-      linked_po_number: product.linked_po_number || "",
       notes: product.notes || "",
     });
-    setShowEditModal(true);
+    setShowEditProduct(true);
   };
 
-  const saveEdit = async () => {
-    setSavingEdit(true);
+  const saveProduct = async () => {
+    setSavingProduct(true);
     await fetch("/api/plm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_product", id: product.id, ...editProduct, collection_id: editProduct.collection_id || null }),
+    });
+    setSavingProduct(false);
+    setShowEditProduct(false);
+    load();
+  };
+
+  const openEditBatch = (batch: any) => {
+    setEditBatchForm({
+      factory_id: batch.factory_id || "",
+      target_elc: batch.target_elc || "",
+      actual_elc: batch.actual_elc || "",
+      target_sell_price: batch.target_sell_price || "",
+      order_quantity: batch.order_quantity || "",
+      moq: batch.moq || "",
+      linked_po_number: batch.linked_po_number || "",
+      batch_notes: batch.batch_notes || "",
+    });
+    setEditingBatch(batch);
+  };
+
+  const saveBatchEdit = async () => {
+    setSavingBatchEdit(true);
+    await fetch("/api/plm/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action: "update_product", id: product.id, ...editForm,
-        target_elc: editForm.target_elc ? parseFloat(editForm.target_elc) : null,
-        actual_elc: editForm.actual_elc ? parseFloat(editForm.actual_elc) : null,
-        target_sell_price: editForm.target_sell_price ? parseFloat(editForm.target_sell_price) : null,
-        moq: editForm.moq ? parseInt(editForm.moq) : null,
-        order_quantity: editForm.order_quantity ? parseInt(editForm.order_quantity) : null,
-        collection_id: editForm.collection_id || null,
-        factory_id: editForm.factory_id || null,
+        action: "update_batch",
+        id: editingBatch.id,
+        ...editBatchForm,
+        factory_id: editBatchForm.factory_id || null,
+        target_elc: editBatchForm.target_elc ? parseFloat(editBatchForm.target_elc) : null,
+        actual_elc: editBatchForm.actual_elc ? parseFloat(editBatchForm.actual_elc) : null,
+        target_sell_price: editBatchForm.target_sell_price ? parseFloat(editBatchForm.target_sell_price) : null,
+        order_quantity: editBatchForm.order_quantity ? parseInt(editBatchForm.order_quantity) : null,
+        moq: editBatchForm.moq ? parseInt(editBatchForm.moq) : null,
       }),
     });
-    setSavingEdit(false);
-    setShowEditModal(false);
+    setSavingBatchEdit(false);
+    setEditingBatch(null);
+    load();
+  };
+
+  const openBatchStage = (batch: any) => {
+    setStagingBatch(batch);
+    setBatchStageForm({ stage: batch.current_stage, note: "" });
+  };
+
+  const saveBatchStage = async () => {
+    if (!stagingBatch) return;
+    setUpdatingStage(true);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_batch_stage", batch_id: stagingBatch.id, product_id: id, stage: batchStageForm.stage, notes: batchStageForm.note }),
+    });
+    setUpdatingStage(false);
+    setStagingBatch(null);
     load();
   };
 
@@ -144,29 +185,23 @@ export default function ProductPage() {
     await fetch("/api/plm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create_batch", product_id: id, quantity: newBatch.quantity ? parseInt(newBatch.quantity) : null, notes: newBatch.notes, stage: newBatch.stage }),
+      body: JSON.stringify({
+        action: "create_batch", product_id: id,
+        quantity: newBatch.quantity ? parseInt(newBatch.quantity) : null,
+        stage: newBatch.stage,
+        factory_id: newBatch.factory_id || null,
+        target_elc: newBatch.target_elc ? parseFloat(newBatch.target_elc) : null,
+        actual_elc: newBatch.actual_elc ? parseFloat(newBatch.actual_elc) : null,
+        target_sell_price: newBatch.target_sell_price ? parseFloat(newBatch.target_sell_price) : null,
+        order_quantity: newBatch.order_quantity ? parseInt(newBatch.order_quantity) : null,
+        moq: newBatch.moq ? parseInt(newBatch.moq) : null,
+        linked_po_number: newBatch.linked_po_number || null,
+        batch_notes: newBatch.batch_notes || null,
+      }),
     });
     setSavingBatch(false);
     setShowNewBatch(false);
-    setNewBatch({ quantity: "", notes: "", stage: "rfq_sent" });
-    load();
-  };
-
-  const openBatchEdit = (batch: any) => {
-    setEditingBatch(batch);
-    setBatchStageForm({ stage: batch.current_stage, note: "" });
-  };
-
-  const saveBatchStage = async () => {
-    if (!editingBatch) return;
-    setUpdatingBatch(true);
-    await fetch("/api/plm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_batch_stage", batch_id: editingBatch.id, product_id: id, stage: batchStageForm.stage, notes: batchStageForm.note }),
-    });
-    setUpdatingBatch(false);
-    setEditingBatch(null);
+    setNewBatch({ quantity: "", stage: "rfq_sent", factory_id: "", target_elc: "", actual_elc: "", target_sell_price: "", order_quantity: "", moq: "", linked_po_number: "", batch_notes: "" });
     load();
   };
 
@@ -202,17 +237,8 @@ export default function ProductPage() {
     load();
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <Loader2 size={20} className="animate-spin text-white/20" />
-    </div>
-  );
-
-  if (!product) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <p className="text-white/30">Product not found</p>
-    </div>
-  );
+  if (loading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 size={20} className="animate-spin text-white/20" /></div>;
+  if (!product) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><p className="text-white/30">Product not found</p></div>;
 
   const batches = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
   const productStatus = getProductStatus(batches);
@@ -220,70 +246,95 @@ export default function ProductPage() {
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
   const lc = "text-[11px] text-white/30 mb-1 block";
 
+  const BatchFinancialForm = ({ form, setForm }: { form: any, setForm: any }) => (
+    <div className="space-y-3">
+      <div>
+        <label className={lc}>Factory</label>
+        <select value={form.factory_id} onChange={e => setForm({...form, factory_id: e.target.value})} className={ic}>
+          <option value="">Not assigned</option>
+          {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className={lc}>Target ELC ($)</label><input value={form.target_elc} onChange={e => setForm({...form, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
+        <div><label className={lc}>Actual ELC ($)</label><input value={form.actual_elc} onChange={e => setForm({...form, actual_elc: e.target.value})} placeholder="2.30" className={ic} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className={lc}>Target Sell Price ($)</label><input value={form.target_sell_price} onChange={e => setForm({...form, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
+        <div><label className={lc}>Order Quantity</label><input value={form.order_quantity} onChange={e => setForm({...form, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div><label className={lc}>MOQ</label><input value={form.moq} onChange={e => setForm({...form, moq: e.target.value})} placeholder="300" className={ic} /></div>
+        <div><label className={lc}>PO Number</label><input value={form.linked_po_number} onChange={e => setForm({...form, linked_po_number: e.target.value})} placeholder="PO-2026-001" className={ic} /></div>
+      </div>
+      <div><label className={lc}>Notes</label><textarea value={form.batch_notes} onChange={e => setForm({...form, batch_notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
-      {/* Edit Modal */}
-      {showEditModal && (
+      {/* Edit Product Modal */}
+      {showEditProduct && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-3 my-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Edit Product</p>
-              <button onClick={() => setShowEditModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              <button onClick={() => setShowEditProduct(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className={lc}>Product Name</label><input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={ic} /></div>
-              <div><label className={lc}>SKU</label><input value={editForm.sku} onChange={e => setEditForm({...editForm, sku: e.target.value})} className={ic} /></div>
+              <div><label className={lc}>Product Name</label><input value={editProduct.name} onChange={e => setEditProduct({...editProduct, name: e.target.value})} className={ic} /></div>
+              <div><label className={lc}>SKU</label><input value={editProduct.sku} onChange={e => setEditProduct({...editProduct, sku: e.target.value})} className={ic} /></div>
             </div>
-            <div><label className={lc}>Description</label><input value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className={ic} /></div>
-            <div><label className={lc}>Specs</label><textarea value={editForm.specs} onChange={e => setEditForm({...editForm, specs: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
+            <div><label className={lc}>Description</label><input value={editProduct.description} onChange={e => setEditProduct({...editProduct, description: e.target.value})} className={ic} /></div>
+            <div><label className={lc}>Specs</label><textarea value={editProduct.specs} onChange={e => setEditProduct({...editProduct, specs: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div><label className={lc}>Category</label><input value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} className={ic} /></div>
-              <div><label className={lc}>PO Number</label><input value={editForm.linked_po_number} onChange={e => setEditForm({...editForm, linked_po_number: e.target.value})} className={ic} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+              <div><label className={lc}>Category</label><input value={editProduct.category} onChange={e => setEditProduct({...editProduct, category: e.target.value})} className={ic} /></div>
               <div>
                 <label className={lc}>Collection</label>
-                <select value={editForm.collection_id} onChange={e => setEditForm({...editForm, collection_id: e.target.value})} className={ic}>
+                <select value={editProduct.collection_id} onChange={e => setEditProduct({...editProduct, collection_id: e.target.value})} className={ic}>
                   <option value="">No collection</option>
                   {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div>
-                <label className={lc}>Factory</label>
-                <select value={editForm.factory_id} onChange={e => setEditForm({...editForm, factory_id: e.target.value})} className={ic}>
-                  <option value="">Not assigned</option>
-                  {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
-              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={lc}>Target ELC ($)</label><input value={editForm.target_elc} onChange={e => setEditForm({...editForm, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
-              <div><label className={lc}>Actual ELC ($)</label><input value={editForm.actual_elc} onChange={e => setEditForm({...editForm, actual_elc: e.target.value})} placeholder="2.30" className={ic} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={lc}>Target Sell Price ($)</label><input value={editForm.target_sell_price} onChange={e => setEditForm({...editForm, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
-              <div><label className={lc}>Order Quantity</label><input value={editForm.order_quantity} onChange={e => setEditForm({...editForm, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
-            </div>
-            <div><label className={lc}>MOQ</label><input value={editForm.moq} onChange={e => setEditForm({...editForm, moq: e.target.value})} placeholder="300" className={ic} /></div>
-            <div><label className={lc}>Notes</label><textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
+            <div><label className={lc}>Notes</label><textarea value={editProduct.notes} onChange={e => setEditProduct({...editProduct, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
             <div className="flex gap-2">
-              <button onClick={saveEdit} disabled={savingEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                {savingEdit ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Changes
+              <button onClick={saveProduct} disabled={savingProduct} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {savingProduct ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Changes
               </button>
-              <button onClick={() => setShowEditModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              <button onClick={() => setShowEditProduct(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Batch Modal */}
+      {editingBatch && !stagingBatch && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Edit Batch #{editingBatch.batch_number}</p>
+              <button onClick={() => setEditingBatch(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <BatchFinancialForm form={editBatchForm} setForm={setEditBatchForm} />
+            <div className="flex gap-2">
+              <button onClick={saveBatchEdit} disabled={savingBatchEdit} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {savingBatchEdit ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Batch
+              </button>
+              <button onClick={() => setEditingBatch(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Batch Stage Modal */}
-      {editingBatch && (
+      {stagingBatch && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Update Batch #{editingBatch.batch_number}</p>
-              <button onClick={() => setEditingBatch(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              <p className="text-sm font-semibold">Update Batch #{stagingBatch.batch_number} Stage</p>
+              <button onClick={() => setStagingBatch(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
             </div>
             <div className="space-y-1.5 max-h-64 overflow-y-auto">
               {BATCH_STAGES.map(stage => (
@@ -298,15 +349,13 @@ export default function ProductPage() {
             <div>
               <label className={lc}>Notes (optional)</label>
               <textarea value={batchStageForm.note} onChange={e => setBatchStageForm({...batchStageForm, note: e.target.value})}
-                placeholder="e.g. DHL tracking #123456, arrived at port" rows={2}
-                className={`${ic} resize-none`} />
+                placeholder="e.g. DHL #123456, arrived at port" rows={2} className={`${ic} resize-none`} />
             </div>
             <div className="flex gap-2">
-              <button onClick={saveBatchStage} disabled={updatingBatch}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                {updatingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Update Stage
+              <button onClick={saveBatchStage} disabled={updatingStage} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {updatingStage ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Update Stage
               </button>
-              <button onClick={() => setEditingBatch(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              <button onClick={() => setStagingBatch(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -331,12 +380,11 @@ export default function ProductPage() {
               </div>
               <div className="flex items-center gap-3 text-xs text-white/30">
                 {product.plm_collections && <span className="flex items-center gap-1"><Layers size={10} />{product.plm_collections.name}</span>}
-                {product.factory_catalog && <span className="flex items-center gap-1"><Factory size={10} />{product.factory_catalog.name}</span>}
                 {product.category && <span>{product.category}</span>}
               </div>
             </div>
-            <button onClick={openEdit} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition text-sm bg-white/[0.02]">
-              <Pencil size={13} />Edit
+            <button onClick={openEditProduct} className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition text-sm bg-white/[0.02]">
+              <Pencil size={13} />Edit Product
             </button>
           </div>
         </div>
@@ -355,13 +403,7 @@ export default function ProductPage() {
                   <button key={m.key} onClick={() => toggleMilestone(m.key)} disabled={togglingMilestone === m.key}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition text-left hover:bg-white/[0.02]"
                     style={{ borderColor: done ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.06)", background: done ? "rgba(16,185,129,0.05)" : "" }}>
-                    {togglingMilestone === m.key ? (
-                      <Loader2 size={14} className="animate-spin text-white/30 flex-shrink-0" />
-                    ) : done ? (
-                      <CheckSquare size={14} className="text-emerald-400 flex-shrink-0" />
-                    ) : (
-                      <Square size={14} className="text-white/20 flex-shrink-0" />
-                    )}
+                    {togglingMilestone === m.key ? <Loader2 size={14} className="animate-spin text-white/30 flex-shrink-0" /> : done ? <CheckSquare size={14} className="text-emerald-400 flex-shrink-0" /> : <Square size={14} className="text-white/20 flex-shrink-0" />}
                     <span className={`text-sm font-medium ${done ? "text-emerald-400" : "text-white/40"}`}>{m.label}</span>
                     {done && <span className="text-[10px] text-emerald-400/50 ml-auto">Complete</span>}
                   </button>
@@ -374,15 +416,14 @@ export default function ProductPage() {
           <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[10px] text-white/25 uppercase tracking-widest">Production Batches</p>
-              <button onClick={() => setShowNewBatch(!showNewBatch)}
-                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+              <button onClick={() => setShowNewBatch(!showNewBatch)} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
                 <Plus size={11} />Add Batch
               </button>
             </div>
 
             {showNewBatch && (
-              <div className="border border-white/[0.08] rounded-xl p-4 mb-4 space-y-3 bg-white/[0.02]">
-                <p className="text-xs text-white/40">New Batch</p>
+              <div className="border border-white/[0.08] rounded-xl p-5 mb-4 space-y-4 bg-white/[0.02]">
+                <p className="text-xs font-semibold text-white/60">New Production Batch</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={lc}>Quantity</label>
@@ -395,13 +436,9 @@ export default function ProductPage() {
                     </select>
                   </div>
                 </div>
-                <div>
-                  <label className={lc}>Notes</label>
-                  <input value={newBatch.notes} onChange={e => setNewBatch({...newBatch, notes: e.target.value})} placeholder="e.g. Reorder, holiday rush" className={ic} />
-                </div>
+                <BatchFinancialForm form={newBatch} setForm={setNewBatch} />
                 <div className="flex gap-2">
-                  <button onClick={createBatch} disabled={savingBatch}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                  <button onClick={createBatch} disabled={savingBatch} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                     {savingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Batch
                   </button>
                   <button onClick={() => setShowNewBatch(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
@@ -412,48 +449,67 @@ export default function ProductPage() {
             {batches.length === 0 ? (
               <div className="text-center py-8 border border-dashed border-white/[0.06] rounded-xl">
                 <p className="text-xs text-white/20">No batches yet</p>
-                <p className="text-[11px] text-white/15 mt-1">Add a batch once RFQ is sent to start tracking production</p>
+                <p className="text-[11px] text-white/15 mt-1">Add a batch once RFQ is sent</p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {batches.map((batch: any) => {
                   const stage = BATCH_STAGES.find(s => s.key === batch.current_stage);
+                  const batchFactory = factories.find(f => f.id === batch.factory_id);
+                  const margin = batch.target_elc && batch.target_sell_price
+                    ? Math.round(((batch.target_sell_price - batch.target_elc) / batch.target_sell_price) * 100)
+                    : null;
                   const stageHistory = (batch.plm_batch_stages || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
                   return (
                     <div key={batch.id} className="border border-white/[0.06] rounded-xl overflow-hidden">
-                      <div className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-sm font-semibold text-white">Batch #{batch.batch_number}</span>
-                              {batch.quantity && <span className="text-[11px] text-white/40">{batch.quantity.toLocaleString()} units</span>}
-                            </div>
-                            {batch.notes && <p className="text-[11px] text-white/30">{batch.notes}</p>}
+                      {/* Batch header */}
+                      <div className="p-4 flex items-center justify-between bg-white/[0.01]">
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-sm font-bold text-white">Batch #{batch.batch_number}</span>
+                            {batch.quantity && <span className="text-[11px] text-white/40">{batch.quantity.toLocaleString()} units</span>}
+                            {batchFactory && <span className="text-[11px] text-white/30 flex items-center gap-1"><Factory size={9} />{batchFactory.name}</span>}
                           </div>
+                          {batch.linked_po_number && <span className="text-[10px] text-white/25 font-mono">PO: {batch.linked_po_number}</span>}
                         </div>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => openBatchEdit(batch)}
+                          <button onClick={() => openBatchStage(batch)}
                             className="text-xs px-3 py-1.5 rounded-lg border font-semibold transition"
                             style={{ borderColor: `${stage?.color}40`, background: `${stage?.color}15`, color: stage?.color }}>
                             {stage?.label} <ChevronDown size={10} className="inline ml-1" />
+                          </button>
+                          <button onClick={() => openEditBatch(batch)} className="p-1.5 rounded-lg text-white/20 hover:text-white/60 hover:bg-white/[0.04] transition">
+                            <Pencil size={11} />
                           </button>
                           <button onClick={() => deleteBatch(batch.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
                             <Trash2 size={11} />
                           </button>
                         </div>
                       </div>
+
+                      {/* Batch financials */}
+                      {(batch.target_elc || batch.target_sell_price || batch.order_quantity) && (
+                        <div className="px-4 py-3 border-t border-white/[0.04] flex gap-6">
+                          {batch.target_elc && <div><p className="text-[10px] text-white/25">ELC</p><p className="text-xs text-white/60 font-semibold">${batch.target_elc}</p></div>}
+                          {batch.actual_elc && <div><p className="text-[10px] text-white/25">Actual ELC</p><p className="text-xs text-white/60 font-semibold">${batch.actual_elc}</p></div>}
+                          {batch.target_sell_price && <div><p className="text-[10px] text-white/25">Sell Price</p><p className="text-xs text-white/60 font-semibold">${batch.target_sell_price}</p></div>}
+                          {margin !== null && <div><p className="text-[10px] text-white/25">Margin</p><p className="text-xs text-emerald-400 font-semibold">{margin}%</p></div>}
+                          {batch.order_quantity && <div><p className="text-[10px] text-white/25">Qty</p><p className="text-xs text-white/60 font-semibold">{batch.order_quantity.toLocaleString()}</p></div>}
+                          {batch.moq && <div><p className="text-[10px] text-white/25">MOQ</p><p className="text-xs text-white/60 font-semibold">{batch.moq.toLocaleString()}</p></div>}
+                        </div>
+                      )}
+
+                      {/* Stage history */}
                       {stageHistory.length > 1 && (
                         <div className="border-t border-white/[0.04] px-4 py-3 space-y-1.5">
-                          {stageHistory.slice(0, 3).map((sh: any) => {
+                          {stageHistory.slice(0, 4).map((sh: any) => {
                             const s = BATCH_STAGES.find(s => s.key === sh.stage);
                             return (
                               <div key={sh.id} className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s?.color || "#6b7280" }} />
                                 <span className="text-[11px] text-white/40">{s?.label || sh.stage}</span>
                                 {sh.notes && <span className="text-[11px] text-white/25">· {sh.notes}</span>}
-                                <span className="text-[10px] text-white/20 ml-auto">
-                                  {new Date(sh.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                </span>
+                                <span className="text-[10px] text-white/20 ml-auto">{new Date(sh.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                               </div>
                             );
                           })}
@@ -472,17 +528,6 @@ export default function ProductPage() {
             <div className="grid grid-cols-2 gap-4">
               {product.description && <div className="col-span-2"><p className="text-[10px] text-white/30 mb-1">Description</p><p className="text-sm text-white/70">{product.description}</p></div>}
               {product.specs && <div className="col-span-2"><p className="text-[10px] text-white/30 mb-1">Specs</p><p className="text-sm text-white/60 whitespace-pre-wrap">{product.specs}</p></div>}
-              {product.target_elc && <div><p className="text-[10px] text-white/30 mb-1">Target ELC</p><p className="text-sm text-white/70 font-semibold">${product.target_elc}</p></div>}
-              {product.actual_elc && <div><p className="text-[10px] text-white/30 mb-1">Actual ELC</p><p className="text-sm text-white/70 font-semibold">${product.actual_elc}</p></div>}
-              {product.target_sell_price && <div><p className="text-[10px] text-white/30 mb-1">Target Sell Price</p><p className="text-sm text-white/70 font-semibold">${product.target_sell_price}</p></div>}
-              {product.target_elc && product.target_sell_price && (
-                <div><p className="text-[10px] text-white/30 mb-1">Target Margin</p>
-                  <p className="text-sm text-emerald-400 font-semibold">{Math.round(((product.target_sell_price - product.target_elc) / product.target_sell_price) * 100)}%</p>
-                </div>
-              )}
-              {product.order_quantity && <div><p className="text-[10px] text-white/30 mb-1">Order Quantity</p><p className="text-sm text-white/70">{product.order_quantity.toLocaleString()} units</p></div>}
-              {product.moq && <div><p className="text-[10px] text-white/30 mb-1">MOQ</p><p className="text-sm text-white/70">{product.moq.toLocaleString()} units</p></div>}
-              {product.linked_po_number && <div><p className="text-[10px] text-white/30 mb-1">PO Number</p><p className="text-sm text-white/70 font-mono">{product.linked_po_number}</p></div>}
               {product.notes && <div className="col-span-2"><p className="text-[10px] text-white/30 mb-1">Notes</p><p className="text-sm text-white/60">{product.notes}</p></div>}
             </div>
           </div>
@@ -527,23 +572,23 @@ export default function ProductPage() {
         {/* Right sidebar */}
         <div className="space-y-4">
           <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Status Summary</p>
+            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Status</p>
             {productStatus ? (
               <div className="space-y-3">
                 <div>
-                  <p className="text-[10px] text-white/30 mb-1">Overall Status</p>
+                  <p className="text-[10px] text-white/30 mb-1.5">Overall</p>
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${productStatus.color}20`, color: productStatus.color, border: `1px solid ${productStatus.color}30` }}>
                     {productStatus.label}
                   </span>
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/30 mb-2">Batches</p>
+                  <p className="text-[10px] text-white/30 mb-2">All Batches</p>
                   {batches.map((b: any) => {
                     const s = BATCH_STAGES.find(s => s.key === b.current_stage);
                     return (
-                      <div key={b.id} className="flex items-center justify-between py-1.5">
-                        <span className="text-[11px] text-white/50">Batch #{b.batch_number}{b.quantity ? ` · ${b.quantity.toLocaleString()} units` : ""}</span>
-                        <span className="text-[10px] font-medium" style={{ color: s?.color }}>{s?.label}</span>
+                      <div key={b.id} className="flex items-center justify-between py-1.5 border-b border-white/[0.04] last:border-0">
+                        <span className="text-[11px] text-white/50">#{b.batch_number}{b.quantity ? ` · ${b.quantity.toLocaleString()}` : ""}</span>
+                        <span className="text-[10px] font-semibold" style={{ color: s?.color }}>{s?.label}</span>
                       </div>
                     );
                   })}
@@ -551,15 +596,13 @@ export default function ProductPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-xs text-white/30">No batches yet</p>
-                <div className="space-y-1">
-                  {MILESTONES.map(m => (
-                    <div key={m.key} className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${milestones[m.key] ? "bg-emerald-400" : "bg-white/10"}`} />
-                      <span className={`text-[11px] ${milestones[m.key] ? "text-emerald-400" : "text-white/25"}`}>{m.label}</span>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs text-white/25 mb-3">Pre-production</p>
+                {MILESTONES.map(m => (
+                  <div key={m.key} className="flex items-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${milestones[m.key] ? "bg-emerald-400" : "bg-white/10"}`} />
+                    <span className={`text-[11px] ${milestones[m.key] ? "text-emerald-400" : "text-white/25"}`}>{m.label}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
