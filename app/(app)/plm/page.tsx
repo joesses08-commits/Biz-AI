@@ -55,7 +55,7 @@ export default function PLMPage() {
   const [factories, setFactories] = useState<any[]>([]);
   const [portalUsers, setPortalUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"collections"|"all_products"|"factory_access"|"designer_access">("collections");
+  const [activeTab, setActiveTab] = useState<"collections"|"all_products"|"factory_access"|"designer_access">("all_products");
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [showNewPortalUser, setShowNewPortalUser] = useState(false);
@@ -458,8 +458,8 @@ export default function PLMPage() {
 
         {/* Tabs */}
         <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-0.5 w-fit mb-8">
-          <button onClick={() => setActiveTab("collections")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "collections" ? "bg-white text-black" : "text-white/40"}`}>Collections</button>
           <button onClick={() => setActiveTab("all_products")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "all_products" ? "bg-white text-black" : "text-white/40"}`}>All Products</button>
+          <button onClick={() => setActiveTab("collections")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "collections" ? "bg-white text-black" : "text-white/40"}`}>Collections</button>
           <button onClick={() => setActiveTab("factory_access")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factory_access" ? "bg-white text-black" : "text-white/40"}`}>Factory Access</button>
           <button onClick={() => setActiveTab("designer_access")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "designer_access" ? "bg-white text-black" : "text-white/40"}`}>Designer Access</button>
         </div>
@@ -563,10 +563,12 @@ export default function PLMPage() {
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${BATCH_STAGE_COLORS[statusKey]}20`, color: BATCH_STAGE_COLORS[statusKey], border: `1px solid ${BATCH_STAGE_COLORS[statusKey]}30` }}>
                               {BATCH_STAGE_LABELS[statusKey]}
                             </span>
-                          ) : lastMilestone ? (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.06]">{lastMilestone}</span>
+                          ) : product.current_stage && DEV_STAGE_LABELS[product.current_stage] ? (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${DEV_STAGE_COLORS[product.current_stage]}20`, color: DEV_STAGE_COLORS[product.current_stage], border: `1px solid ${DEV_STAGE_COLORS[product.current_stage]}30` }}>
+                              {DEV_STAGE_LABELS[product.current_stage]}
+                            </span>
                           ) : (
-                            <span className="text-[10px] text-white/20">Pre-production</span>
+                            <span className="text-[10px] text-white/20">Concept</span>
                           )}
                           {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
                           {product.factory_catalog && <span className="text-[10px] text-white/25 flex items-center gap-1"><Factory size={9} />{product.factory_catalog.name}</span>}
