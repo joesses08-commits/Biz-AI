@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   Package, ArrowLeft, Factory, Layers, Check, Loader2,
   X, ChevronDown, Plus, ImagePlus, Trash2, Pencil, CheckSquare, Square
@@ -40,6 +40,10 @@ function getProductStatus(batches: any[]) {
 export default function ProductPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const showApproveBanner = searchParams.get("approve") === "1";
+  const [approvingProduct, setApprovingProduct] = useState(false);
+  const [approveSuccess, setApproveSuccess] = useState(false);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [factories, setFactories] = useState<any[]>([]);
@@ -71,6 +75,18 @@ export default function ProductPage() {
 
   // Milestones
   const [togglingMilestone, setTogglingMilestone] = useState<string | null>(null);
+
+  const approveProduct = async () => {
+    setApprovingProduct(true);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "approve_product", id }),
+    });
+    setApprovingProduct(false);
+    setApproveSuccess(true);
+    load();
+  };
 
   const load = async () => {
     const [prodRes, catRes, colRes] = await Promise.all([
@@ -276,6 +292,26 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Approve banner */}
+      {showApproveBanner && product?.approval_status === "pending_review" && !approveSuccess && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-amber-400" />
+            <p className="text-sm text-amber-300 font-medium">Designer submitted this product for approval</p>
+          </div>
+          <button onClick={approveProduct} disabled={approvingProduct}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition disabled:opacity-50">
+            {approvingProduct ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+            Approve Product
+          </button>
+        </div>
+      )}
+      {approveSuccess && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-emerald-500/10 border-b border-emerald-500/20 px-6 py-3 flex items-center gap-2">
+          <Check size={14} className="text-emerald-400" />
+          <p className="text-sm text-emerald-300 font-medium">Product approved successfully</p>
+        </div>
+      )}
 
       {/* Edit Product Modal */}
       {showEditProduct && (

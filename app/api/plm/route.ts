@@ -173,6 +173,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "approve_product") {
+    const { id } = body;
+    await supabaseAdmin.from("plm_products").update({
+      approval_status: "approved",
+      updated_at: new Date().toISOString(),
+    }).eq("id", id).eq("user_id", user.id);
+    // Log to stage history
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id: id, user_id: user.id,
+      stage: "design_brief", notes: "Product approved by admin",
+      updated_by: user.email, updated_by_role: "admin",
+    });
+    return NextResponse.json({ success: true });
+  }
+
   if (action === "delete_collection") {
     await supabaseAdmin.from("plm_collections").delete().eq("id", body.id).eq("user_id", user.id);
     return NextResponse.json({ success: true });

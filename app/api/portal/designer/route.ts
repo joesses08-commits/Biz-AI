@@ -66,10 +66,9 @@ export async function POST(req: NextRequest) {
 
   if (body.action === "update_product") {
     const { id, name, sku, description, specs, category, collection_id, notes } = body;
-    // Only allow updating products that are pending or in design phase
     const { data: existing } = await supabaseAdmin
       .from("plm_products")
-      .select("approval_status, user_id")
+      .select("user_id")
       .eq("id", id)
       .single();
     if (!existing || existing.user_id !== portalUser.user_id) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -81,6 +80,17 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }).eq("id", id);
     return NextResponse.json({ success: true });
+  }
+
+  if (body.action === "create_collection") {
+    const { name, season, year, notes } = body;
+    const { data, error } = await supabaseAdmin.from("plm_collections").insert({
+      user_id: portalUser.user_id,
+      name, season, year: year ? parseInt(year) : null, notes,
+      status: "active",
+    }).select().single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, collection: data });
   }
 
   if (body.action === "toggle_milestone") {
@@ -136,7 +146,7 @@ export async function POST(req: NextRequest) {
                 ${product.sku ? `<p style="margin:0;font-size:12px;color:#888">SKU: ${product.sku}</p>` : ""}
               </div>
               <p style="font-size:13px;color:#666">Log into Jimmy AI to review and approve this product.</p>
-              <a href="https://myjimmy.ai/plm" style="display:inline-block;margin-top:12px;padding:10px 20px;background:#000;color:#fff;border-radius:8px;text-decoration:none;font-size:13px">Review in PLM</a>
+              <a href="https://myjimmy.ai/plm/${product_id}?approve=1" style="display:inline-block;margin-top:12px;padding:10px 20px;background:#000;color:#fff;border-radius:8px;text-decoration:none;font-size:13px">Approve Product</a>
             </div>
           `,
         }),
