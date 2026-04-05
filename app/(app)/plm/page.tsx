@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Package, Plus, ChevronRight, Loader2, Layers, Factory,
-  CheckCircle, Clock, AlertCircle, X, Check, Trash2, Filter, Users, Key, Copy
-} from "lucide-react";
+import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users } from "lucide-react";
 
 const STAGES = [
   { key: "design_brief", label: "Design Brief", color: "#6b7280" },
@@ -61,26 +58,20 @@ export default function PLMPage() {
   const [collections, setCollections] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [factories, setFactories] = useState<any[]>([]);
+  const [portalUsers, setPortalUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"collections" | "all_products" | "factory_access">("collections");
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [filterStage, setFilterStage] = useState("");
-  const [filterCollection, setFilterCollection] = useState("");
-  const [portalUsers, setPortalUsers] = useState<any[]>([]);
   const [showNewPortalUser, setShowNewPortalUser] = useState(false);
-  const [newPortalUser, setNewPortalUser] = useState({ name: "", email: "", password: "", factory_id: "" });
+  const [saving, setSaving] = useState(false);
   const [savingPortalUser, setSavingPortalUser] = useState(false);
   const [deletingPortalUser, setDeletingPortalUser] = useState<string | null>(null);
-  const [copiedPassword, setCopiedPassword] = useState<string | null>(null);
-
+  const [filterStage, setFilterStage] = useState("");
+  const [filterCollection, setFilterCollection] = useState("");
   const [newCollection, setNewCollection] = useState({ name: "", season: "", year: new Date().getFullYear().toString(), notes: "" });
-  const [newProduct, setNewProduct] = useState({
-    name: "", sku: "", description: "", specs: "", category: "",
-    collection_id: "", factory_id: "", target_elc: "", target_sell_price: "",
-    moq: "", order_quantity: "", notes: "",
-  });
+  const [newProduct, setNewProduct] = useState({ name: "", sku: "", description: "", specs: "", category: "", collection_id: "", factory_id: "", target_elc: "", target_sell_price: "", moq: "", order_quantity: "", notes: "" });
+  const [newPortalUser, setNewPortalUser] = useState({ name: "", email: "", password: "", factory_id: "" });
 
   const load = async () => {
     const [plmRes, catRes, portalRes] = await Promise.all([
@@ -103,11 +94,7 @@ export default function PLMPage() {
   const createCollection = async () => {
     if (!newCollection.name) return;
     setSaving(true);
-    await fetch("/api/plm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create_collection", ...newCollection, year: parseInt(newCollection.year) }),
-    });
+    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_collection", ...newCollection, year: parseInt(newCollection.year) }) });
     setSaving(false);
     setShowNewCollection(false);
     setNewCollection({ name: "", season: "", year: new Date().getFullYear().toString(), notes: "" });
@@ -117,21 +104,27 @@ export default function PLMPage() {
   const createProduct = async () => {
     if (!newProduct.name) return;
     setSaving(true);
-    await fetch("/api/plm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "create_product",
-        ...newProduct,
-        target_elc: newProduct.target_elc ? parseFloat(newProduct.target_elc) : null,
-        target_sell_price: newProduct.target_sell_price ? parseFloat(newProduct.target_sell_price) : null,
-        moq: newProduct.moq ? parseInt(newProduct.moq) : null,
-        order_quantity: newProduct.order_quantity ? parseInt(newProduct.order_quantity) : null,
-      }),
-    });
+    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_product", ...newProduct, target_elc: newProduct.target_elc ? parseFloat(newProduct.target_elc) : null, target_sell_price: newProduct.target_sell_price ? parseFloat(newProduct.target_sell_price) : null, moq: newProduct.moq ? parseInt(newProduct.moq) : null, order_quantity: newProduct.order_quantity ? parseInt(newProduct.order_quantity) : null }) });
     setSaving(false);
     setShowNewProduct(false);
     setNewProduct({ name: "", sku: "", description: "", specs: "", category: "", collection_id: "", factory_id: "", target_elc: "", target_sell_price: "", moq: "", order_quantity: "", notes: "" });
+    load();
+  };
+
+  const createPortalUser = async () => {
+    if (!newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id) return;
+    setSavingPortalUser(true);
+    await fetch("/api/plm/portal-users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create", ...newPortalUser }) });
+    setSavingPortalUser(false);
+    setShowNewPortalUser(false);
+    setNewPortalUser({ name: "", email: "", password: "", factory_id: "" });
+    load();
+  };
+
+  const deletePortalUser = async (id: string) => {
+    setDeletingPortalUser(id);
+    await fetch("/api/plm/portal-users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", id }) });
+    setDeletingPortalUser(null);
     load();
   };
 
@@ -141,12 +134,11 @@ export default function PLMPage() {
     return true;
   });
 
-  const inputClass = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
-  const labelClass = "text-[11px] text-white/30 mb-1 block";
+  const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
+  const lc = "text-[11px] text-white/30 mb-1 block";
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-start justify-between">
           <div>
@@ -155,19 +147,15 @@ export default function PLMPage() {
                 <Package size={14} className="text-white/60" />
               </div>
               <h1 className="text-xl font-bold tracking-tight">Product Lifecycle</h1>
-              <span className="text-[10px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">
-                {products.length} SKUs
-              </span>
+              <span className="text-[10px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">{products.length} SKUs</span>
             </div>
             <p className="text-white/30 text-sm">Track every product from concept to shelf</p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowNewProduct(true)}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
+            <button onClick={() => setShowNewProduct(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
               <Plus size={11} />New Product
             </button>
-            <button onClick={() => setShowNewCollection(true)}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+            <button onClick={() => setShowNewCollection(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
               <Layers size={11} />New Collection
             </button>
           </div>
@@ -184,32 +172,28 @@ export default function PLMPage() {
                 <button onClick={() => setShowNewCollection(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
               <div>
-                <label className={labelClass}>Collection Name *</label>
-                <input value={newCollection.name} onChange={e => setNewCollection({...newCollection, name: e.target.value})}
-                  placeholder="Spring 2026 Glass Collection" className={inputClass} />
+                <label className={lc}>Collection Name *</label>
+                <input value={newCollection.name} onChange={e => setNewCollection({...newCollection, name: e.target.value})} placeholder="Spring 2026 Glass Collection" className={ic} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>Season</label>
-                  <select value={newCollection.season} onChange={e => setNewCollection({...newCollection, season: e.target.value})} className={inputClass}>
+                  <label className={lc}>Season</label>
+                  <select value={newCollection.season} onChange={e => setNewCollection({...newCollection, season: e.target.value})} className={ic}>
                     <option value="">Select season</option>
                     {SEASONS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>Year</label>
-                  <input value={newCollection.year} onChange={e => setNewCollection({...newCollection, year: e.target.value})}
-                    placeholder="2026" className={inputClass} />
+                  <label className={lc}>Year</label>
+                  <input value={newCollection.year} onChange={e => setNewCollection({...newCollection, year: e.target.value})} placeholder="2026" className={ic} />
                 </div>
               </div>
               <div>
-                <label className={labelClass}>Notes</label>
-                <textarea value={newCollection.notes} onChange={e => setNewCollection({...newCollection, notes: e.target.value})}
-                  placeholder="Any notes about this collection..." rows={2} className={`${inputClass} resize-none`} />
+                <label className={lc}>Notes</label>
+                <textarea value={newCollection.notes} onChange={e => setNewCollection({...newCollection, notes: e.target.value})} placeholder="Any notes..." rows={2} className={`${ic} resize-none`} />
               </div>
               <div className="flex gap-2">
-                <button onClick={createCollection} disabled={saving || !newCollection.name}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
+                <button onClick={createCollection} disabled={saving || !newCollection.name} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Collection
                 </button>
                 <button onClick={() => setShowNewCollection(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
@@ -227,75 +211,38 @@ export default function PLMPage() {
                 <button onClick={() => setShowNewProduct(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>Product Name *</label>
-                  <input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})}
-                    placeholder="16oz Glass Dog Cup" className={inputClass} />
-                </div>
-                <div>
-                  <label className={labelClass}>SKU</label>
-                  <input value={newProduct.sku} onChange={e => setNewProduct({...newProduct, sku: e.target.value})}
-                    placeholder="GL-001" className={inputClass} />
-                </div>
+                <div><label className={lc}>Product Name *</label><input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} placeholder="16oz Glass Dog Cup" className={ic} /></div>
+                <div><label className={lc}>SKU</label><input value={newProduct.sku} onChange={e => setNewProduct({...newProduct, sku: e.target.value})} placeholder="GL-001" className={ic} /></div>
               </div>
-              <div>
-                <label className={labelClass}>Description</label>
-                <input value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}
-                  placeholder="Brief product description" className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Specs</label>
-                <textarea value={newProduct.specs} onChange={e => setNewProduct({...newProduct, specs: e.target.value})}
-                  placeholder="Material, size, color, technique..." rows={2} className={`${inputClass} resize-none`} />
-              </div>
+              <div><label className={lc}>Description</label><input value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} placeholder="Brief product description" className={ic} /></div>
+              <div><label className={lc}>Specs</label><textarea value={newProduct.specs} onChange={e => setNewProduct({...newProduct, specs: e.target.value})} placeholder="Material, size, color..." rows={2} className={`${ic} resize-none`} /></div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelClass}>Collection</label>
-                  <select value={newProduct.collection_id} onChange={e => setNewProduct({...newProduct, collection_id: e.target.value})} className={inputClass}>
+                  <label className={lc}>Collection</label>
+                  <select value={newProduct.collection_id} onChange={e => setNewProduct({...newProduct, collection_id: e.target.value})} className={ic}>
                     <option value="">No collection</option>
                     {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className={labelClass}>Factory</label>
-                  <select value={newProduct.factory_id} onChange={e => setNewProduct({...newProduct, factory_id: e.target.value})} className={inputClass}>
+                  <label className={lc}>Factory</label>
+                  <select value={newProduct.factory_id} onChange={e => setNewProduct({...newProduct, factory_id: e.target.value})} className={ic}>
                     <option value="">Not assigned</option>
                     {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>Target ELC ($)</label>
-                  <input value={newProduct.target_elc} onChange={e => setNewProduct({...newProduct, target_elc: e.target.value})}
-                    placeholder="2.50" className={inputClass} />
-                </div>
-                <div>
-                  <label className={labelClass}>Target Sell Price ($)</label>
-                  <input value={newProduct.target_sell_price} onChange={e => setNewProduct({...newProduct, target_sell_price: e.target.value})}
-                    placeholder="12.99" className={inputClass} />
-                </div>
+                <div><label className={lc}>Target ELC ($)</label><input value={newProduct.target_elc} onChange={e => setNewProduct({...newProduct, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
+                <div><label className={lc}>Target Sell Price ($)</label><input value={newProduct.target_sell_price} onChange={e => setNewProduct({...newProduct, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelClass}>Order Quantity</label>
-                  <input value={newProduct.order_quantity} onChange={e => setNewProduct({...newProduct, order_quantity: e.target.value})}
-                    placeholder="500" className={inputClass} />
-                </div>
-                <div>
-                  <label className={labelClass}>Category</label>
-                  <input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})}
-                    placeholder="Glassware" className={inputClass} />
-                </div>
+                <div><label className={lc}>Order Quantity</label><input value={newProduct.order_quantity} onChange={e => setNewProduct({...newProduct, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
+                <div><label className={lc}>Category</label><input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="Glassware" className={ic} /></div>
               </div>
-              <div>
-                <label className={labelClass}>Notes</label>
-                <textarea value={newProduct.notes} onChange={e => setNewProduct({...newProduct, notes: e.target.value})}
-                  placeholder="Any notes..." rows={2} className={`${inputClass} resize-none`} />
-              </div>
+              <div><label className={lc}>Notes</label><textarea value={newProduct.notes} onChange={e => setNewProduct({...newProduct, notes: e.target.value})} placeholder="Any notes..." rows={2} className={`${ic} resize-none`} /></div>
               <div className="flex gap-2">
-                <button onClick={createProduct} disabled={saving || !newProduct.name}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
+                <button onClick={createProduct} disabled={saving || !newProduct.name} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Product
                 </button>
                 <button onClick={() => setShowNewProduct(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
@@ -306,18 +253,9 @@ export default function PLMPage() {
 
         {/* Tabs */}
         <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-0.5 w-fit mb-8">
-          <button onClick={() => setActiveTab("collections")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "collections" ? "bg-white text-black" : "text-white/40"}`}>
-            Collections
-          </button>
-          <button onClick={() => setActiveTab("all_products")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "all_products" ? "bg-white text-black" : "text-white/40"}`}>
-            All Products
-          </button>
-          <button onClick={() => setActiveTab("factory_access")}
-            className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factory_access" ? "bg-white text-black" : "text-white/40"}`}>
-            Factory Access
-          </button>
+          <button onClick={() => setActiveTab("collections")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "collections" ? "bg-white text-black" : "text-white/40"}`}>Collections</button>
+          <button onClick={() => setActiveTab("all_products")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "all_products" ? "bg-white text-black" : "text-white/40"}`}>All Products</button>
+          <button onClick={() => setActiveTab("factory_access")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factory_access" ? "bg-white text-black" : "text-white/40"}`}>Factory Access</button>
         </div>
 
         {loading ? (
@@ -328,27 +266,20 @@ export default function PLMPage() {
               <div className="text-center py-20">
                 <Layers size={32} className="text-white/10 mx-auto mb-3" />
                 <p className="text-white/30 text-sm">No collections yet</p>
-                <p className="text-white/15 text-xs mt-1">Create a collection to group your products by season</p>
               </div>
             ) : collections.map(collection => {
               const progress = getCollectionProgress(collection.plm_products || []);
               const health = getCollectionHealth(collection.plm_products || []);
-              const healthColors = { on_track: "#10b981", warning: "#f59e0b", at_risk: "#ef4444", empty: "#6b7280" };
-              const healthLabels = { on_track: "On Track", warning: "Some Delays", at_risk: "At Risk", empty: "No Products" };
-
+              const healthColors: any = { on_track: "#10b981", warning: "#f59e0b", at_risk: "#ef4444", empty: "#6b7280" };
+              const healthLabels: any = { on_track: "On Track", warning: "Some Delays", at_risk: "At Risk", empty: "No Products" };
               return (
-                <div key={collection.id} className="border border-white/[0.06] rounded-2xl bg-white/[0.01] overflow-hidden hover:border-white/10 transition cursor-pointer"
-                  onClick={() => router.push(`/plm?collection=${collection.id}`)}>
+                <div key={collection.id} className="border border-white/[0.06] rounded-2xl bg-white/[0.01] overflow-hidden hover:border-white/10 transition cursor-pointer" onClick={() => router.push(`/plm?collection=${collection.id}`)}>
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-base font-semibold text-white">{collection.name}</h3>
-                          {collection.season && (
-                            <span className="text-[10px] text-white/30 bg-white/[0.04] px-2 py-0.5 rounded-full">
-                              {collection.season} {collection.year}
-                            </span>
-                          )}
+                          {collection.season && <span className="text-[10px] text-white/30 bg-white/[0.04] px-2 py-0.5 rounded-full">{collection.season} {collection.year}</span>}
                         </div>
                         <p className="text-xs text-white/30">{progress.total} products · {progress.complete} delivered</p>
                       </div>
@@ -360,24 +291,15 @@ export default function PLMPage() {
                         <ChevronRight size={14} className="text-white/20" />
                       </div>
                     </div>
-
-                    {/* Progress bar */}
                     <div className="mb-4">
                       <div className="w-full bg-white/[0.05] rounded-full h-1.5">
                         <div className="h-1.5 rounded-full bg-emerald-500 transition-all" style={{ width: `${progress.pct}%` }} />
                       </div>
                       <p className="text-[10px] text-white/20 mt-1">{progress.pct}% complete</p>
                     </div>
-
-                    {/* Stage breakdown */}
                     {(collection.plm_products || []).length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
-                        {Object.entries(
-                          (collection.plm_products || []).reduce((acc: any, p: any) => {
-                            acc[p.current_stage] = (acc[p.current_stage] || 0) + 1;
-                            return acc;
-                          }, {})
-                        ).map(([stage, count]: any) => (
+                        {Object.entries((collection.plm_products || []).reduce((acc: any, p: any) => { acc[p.current_stage] = (acc[p.current_stage] || 0) + 1; return acc; }, {})).map(([stage, count]: any) => (
                           <div key={stage} className="flex items-center gap-1">
                             <StageChip stage={stage} />
                             <span className="text-[10px] text-white/30">×{count}</span>
@@ -390,40 +312,32 @@ export default function PLMPage() {
               );
             })}
           </div>
-        ) : (
+        ) : activeTab === "all_products" ? (
           <div>
-            {/* Filters */}
             <div className="flex items-center gap-2 mb-6">
-              <select value={filterStage} onChange={e => setFilterStage(e.target.value)}
-                className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+              <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                 <option value="">All Stages</option>
                 {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
               </select>
-              <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)}
-                className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+              <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                 <option value="">All Collections</option>
                 {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               {(filterStage || filterCollection) && (
-                <button onClick={() => { setFilterStage(""); setFilterCollection(""); }}
-                  className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1">
+                <button onClick={() => { setFilterStage(""); setFilterCollection(""); }} className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1">
                   <X size={10} />Clear
                 </button>
               )}
             </div>
-
             {filteredProducts.length === 0 ? (
               <div className="text-center py-20">
                 <Package size={32} className="text-white/10 mx-auto mb-3" />
                 <p className="text-white/30 text-sm">No products yet</p>
-                <p className="text-white/15 text-xs mt-1">Add your first product to start tracking</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
                 {filteredProducts.map(product => (
-                  <div key={product.id}
-                    className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer flex items-center gap-4"
-                    onClick={() => router.push(`/plm/${product.id}`)}>
+                  <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer flex items-center gap-4" onClick={() => router.push(`/plm/${product.id}`)}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-sm font-semibold text-white">{product.name}</p>
@@ -431,14 +345,8 @@ export default function PLMPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         <StageChip stage={product.current_stage} />
-                        {product.plm_collections && (
-                          <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>
-                        )}
-                        {product.factory_catalog && (
-                          <span className="text-[10px] text-white/25 flex items-center gap-1">
-                            <Factory size={9} />{product.factory_catalog.name}
-                          </span>
-                        )}
+                        {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
+                        {product.factory_catalog && <span className="text-[10px] text-white/25 flex items-center gap-1"><Factory size={9} />{product.factory_catalog.name}</span>}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -451,15 +359,14 @@ export default function PLMPage() {
               </div>
             )}
           </div>
-        ) : activeTab === "factory_access" ? (
+        ) : (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-white">Factory Portal Users</p>
                 <p className="text-xs text-white/30 mt-0.5">Manage who can log into portal.myjimmy.ai</p>
               </div>
-              <button onClick={() => setShowNewPortalUser(true)}
-                className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+              <button onClick={() => setShowNewPortalUser(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
                 <Plus size={11} />Add Factory User
               </button>
             </div>
@@ -468,47 +375,21 @@ export default function PLMPage() {
               <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
                 <p className="text-xs font-semibold text-white/70">New Factory Portal User</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] text-white/30 mb-1 block">Name</label>
-                    <input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})}
-                      placeholder="Factory contact name" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-white/30 mb-1 block">Email</label>
-                    <input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})}
-                      placeholder="factory@example.com" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
-                  </div>
+                  <div><label className={lc}>Name</label><input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})} placeholder="Factory contact name" className={ic} /></div>
+                  <div><label className={lc}>Email</label><input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})} placeholder="factory@example.com" className={ic} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
+                  <div><label className={lc}>Password</label><input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})} placeholder="Temporary password" className={ic} /></div>
                   <div>
-                    <label className="text-[11px] text-white/30 mb-1 block">Password</label>
-                    <input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})}
-                      placeholder="Temporary password" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
-                  </div>
-                  <div>
-                    <label className="text-[11px] text-white/30 mb-1 block">Factory</label>
-                    <select value={newPortalUser.factory_id} onChange={e => setNewPortalUser({...newPortalUser, factory_id: e.target.value})}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                    <label className={lc}>Factory</label>
+                    <select value={newPortalUser.factory_id} onChange={e => setNewPortalUser({...newPortalUser, factory_id: e.target.value})} className={ic}>
                       <option value="">Select factory</option>
                       {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={async () => {
-                    if (!newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id) return;
-                    setSavingPortalUser(true);
-                    await fetch("/api/plm/portal-users", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "create", ...newPortalUser }),
-                    });
-                    setSavingPortalUser(false);
-                    setShowNewPortalUser(false);
-                    setNewPortalUser({ name: "", email: "", password: "", factory_id: "" });
-                    load();
-                  }} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                  <button onClick={createPortalUser} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                     {savingPortalUser ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create User
                   </button>
                   <button onClick={() => setShowNewPortalUser(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
@@ -538,17 +419,7 @@ export default function PLMPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Active</span>
-                      <button onClick={async () => {
-                        setDeletingPortalUser(u.id);
-                        await fetch("/api/plm/portal-users", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ action: "delete", id: u.id }),
-                        });
-                        setDeletingPortalUser(null);
-                        load();
-                      }} disabled={deletingPortalUser === u.id}
-                        className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                      <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
                         {deletingPortalUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                       </button>
                     </div>
@@ -557,7 +428,7 @@ export default function PLMPage() {
               </div>
             )}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
