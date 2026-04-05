@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users } from "lucide-react";
+import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet, Image } from "lucide-react";
 
 const STAGES = [
   { key: "design_brief", label: "Design Brief", color: "#6b7280" },
@@ -72,6 +72,20 @@ export default function PLMPage() {
   const [newCollection, setNewCollection] = useState({ name: "", season: "", year: new Date().getFullYear().toString(), notes: "" });
   const [newProduct, setNewProduct] = useState({ name: "", sku: "", description: "", specs: "", category: "", collection_id: "", factory_id: "", target_elc: "", target_sell_price: "", moq: "", order_quantity: "", notes: "" });
   const [newPortalUser, setNewPortalUser] = useState({ name: "", email: "", password: "", factory_id: "" });
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [importStep, setImportStep] = useState<"upload"|"map"|"preview"|"done">("upload");
+  const [importData, setImportData] = useState<any>(null);
+  const [importMappings, setImportMappings] = useState<any>({});
+  const [importCollection, setImportCollection] = useState("");
+  const [importResult, setImportResult] = useState<any>(null);
+  const [exportColumns, setExportColumns] = useState(["name","sku","description","specs","category","collection","current_stage"]);
+  const [exportPreset, setExportPreset] = useState("custom");
+  const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
+  const COLUMN_LABELS: any = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };
 
   const load = async () => {
     const [plmRes, catRes, portalRes] = await Promise.all([
@@ -128,6 +142,86 @@ export default function PLMPage() {
     load();
   };
 
+  const toggleProduct = (id: string) => {
+    setSelectedProducts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleAll = () => {
+    if (selectedProducts.length === filteredProducts.length) setSelectedProducts([]);
+    else setSelectedProducts(filteredProducts.map(p => p.id));
+  };
+
+  const applyPreset = (preset: string) => {
+    setExportPreset(preset);
+    if (preset === "buyer") setExportColumns(["name","sku","description","specs","category","collection","target_sell_price","current_stage","images"]);
+    else if (preset === "internal") setExportColumns([...EXPORT_COLUMNS]);
+    else if (preset === "factory") setExportColumns(["name","sku","specs","order_quantity","moq","current_stage"]);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    const res = await fetch("/api/plm/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_ids: selectedProducts, columns: exportColumns, include_images: exportColumns.includes("images") }),
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `product-catalog-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExporting(false);
+    setShowExportModal(false);
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    const text = await file.text();
+    const lines = text.split("\n").filter(l => l.trim());
+    const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
+    const rows = lines.slice(1, 4).map(line => {
+      const vals = line.split(",").map(v => v.replace(/"/g, "").trim());
+      const obj: any = {};
+      headers.forEach((h, i) => obj[h] = vals[i] || "");
+      return obj;
+    });
+    const allRows = lines.slice(1).map(line => {
+      const vals = line.split(",").map(v => v.replace(/"/g, "").trim());
+      const obj: any = {};
+      headers.forEach((h, i) => obj[h] = vals[i] || "");
+      return obj;
+    });
+    setImportData({ headers, sample_rows: rows, all_rows: allRows });
+    // Map columns with Haiku
+    const mapRes = await fetch("/api/plm/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "map", headers, sample_rows: rows }),
+    });
+    const mapData = await mapRes.json();
+    setImportMappings(mapData.mappings || {});
+    setImporting(false);
+    setImportStep("map");
+  };
+
+  const handleImport = async () => {
+    setImporting(true);
+    const res = await fetch("/api/plm/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "import", rows: importData.all_rows, mappings: importMappings, collection_id: importCollection }),
+    });
+    const data = await res.json();
+    setImportResult(data);
+    setImporting(false);
+    setImportStep("done");
+    load();
+  };
+
   const filteredProducts = products.filter(p => {
     if (filterStage && p.current_stage !== filterStage) return false;
     if (filterCollection && p.collection_id !== filterCollection) return false;
@@ -152,6 +246,9 @@ export default function PLMPage() {
             <p className="text-white/30 text-sm">Track every product from concept to shelf</p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={() => { setShowImportModal(true); setImportStep("upload"); setImportData(null); setImportResult(null); }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
+              <Upload size={11} />Import
+            </button>
             <button onClick={() => setShowNewProduct(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
               <Plus size={11} />New Product
             </button>
@@ -163,6 +260,146 @@ export default function PLMPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-8 py-8">
+        {/* Import Modal */}
+        {showImportModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-4 my-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Import Products from Spreadsheet</p>
+                  <p className="text-xs text-white/30 mt-0.5">Upload a CSV or Excel file — Jimmy will map the columns automatically</p>
+                </div>
+                <button onClick={() => setShowImportModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              </div>
+
+              {importStep === "upload" && (
+                <div>
+                  <label className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:border-white/20 transition">
+                    {importing ? <Loader2 size={24} className="animate-spin text-white/30 mb-3" /> : <FileSpreadsheet size={24} className="text-white/20 mb-3" />}
+                    <p className="text-sm text-white/40">{importing ? "Reading file & mapping columns..." : "Click to upload CSV or Excel"}</p>
+                    <p className="text-xs text-white/20 mt-1">Supports .csv, .xlsx, .xls</p>
+                    <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} disabled={importing} />
+                  </label>
+                </div>
+              )}
+
+              {importStep === "map" && importData && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                    <Check size={11} />Jimmy mapped {Object.values(importMappings).filter(v => v !== "ignore").length} of {importData.headers.length} columns. Review and adjust below.
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-white/30 mb-2 block">Assign to Collection (optional)</label>
+                    <select value={importCollection} onChange={e => setImportCollection(e.target.value)} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                      <option value="">No collection</option>
+                      {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {importData.headers.map((header: string) => (
+                      <div key={header} className="flex items-center gap-3">
+                        <span className="text-xs text-white/50 w-40 truncate flex-shrink-0">{header}</span>
+                        <span className="text-white/20 text-xs">→</span>
+                        <select value={importMappings[header] || "ignore"} onChange={e => setImportMappings((prev: any) => ({...prev, [header]: e.target.value}))}
+                          className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white/60 text-xs focus:outline-none">
+                          <option value="ignore">Ignore</option>
+                          <option value="name">Product Name</option>
+                          <option value="sku">SKU</option>
+                          <option value="description">Description</option>
+                          <option value="specs">Specs</option>
+                          <option value="category">Category</option>
+                          <option value="collection">Collection</option>
+                          <option value="factory">Factory</option>
+                          <option value="target_elc">ELC ($)</option>
+                          <option value="target_sell_price">Sell Price ($)</option>
+                          <option value="moq">MOQ</option>
+                          <option value="order_quantity">Order Qty</option>
+                          <option value="notes">Notes</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-white/30">{importData.all_rows.length} products will be imported</p>
+                  <div className="flex gap-2">
+                    <button onClick={handleImport} disabled={importing} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                      {importing ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                      {importing ? "Importing..." : `Import ${importData.all_rows.length} Products`}
+                    </button>
+                    <button onClick={() => setShowImportModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {importStep === "done" && importResult && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                    <Check size={11} />Successfully imported {importResult.created} products
+                  </div>
+                  {importResult.errors?.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-xs text-white/30">{importResult.errors.length} errors:</p>
+                      {importResult.errors.map((e: string, i: number) => (
+                        <p key={i} className="text-xs text-red-400">{e}</p>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={() => setShowImportModal(false)} className="w-full py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Done</button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Export Modal */}
+        {showExportModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Export Product Catalog</p>
+                  <p className="text-xs text-white/30 mt-0.5">{selectedProducts.length} products selected</p>
+                </div>
+                <button onClick={() => setShowExportModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              </div>
+
+              <div>
+                <p className="text-[11px] text-white/30 mb-2">Presets</p>
+                <div className="flex gap-2">
+                  {[["buyer","Buyer Catalog"],["internal","Internal"],["factory","Factory Sheet"],["custom","Custom"]].map(([key, label]) => (
+                    <button key={key} onClick={() => applyPreset(key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${exportPreset === key ? "bg-white text-black border-white" : "border-white/[0.08] text-white/40 hover:text-white/70"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[11px] text-white/30 mb-2">Columns to include</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {EXPORT_COLUMNS.map(col => (
+                    <label key={col} className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={exportColumns.includes(col)}
+                        onChange={e => setExportColumns(prev => e.target.checked ? [...prev, col] : prev.filter(c => c !== col))}
+                        className="rounded" />
+                      <span className="text-xs text-white/60">{COLUMN_LABELS[col]}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={handleExport} disabled={exporting || exportColumns.length === 0}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                  {exporting ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
+                  {exporting ? "Exporting..." : "Export CSV"}
+                </button>
+                <button onClick={() => setShowExportModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* New Collection Modal */}
         {showNewCollection && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -314,18 +551,26 @@ export default function PLMPage() {
           </div>
         ) : activeTab === "all_products" ? (
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
-                <option value="">All Stages</option>
-                {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
-              <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
-                <option value="">All Collections</option>
-                {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-              {(filterStage || filterCollection) && (
-                <button onClick={() => { setFilterStage(""); setFilterCollection(""); }} className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1">
-                  <X size={10} />Clear
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                  <option value="">All Stages</option>
+                  {STAGES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+                <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                  <option value="">All Collections</option>
+                  {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {(filterStage || filterCollection) && (
+                  <button onClick={() => { setFilterStage(""); setFilterCollection(""); }} className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1">
+                    <X size={10} />Clear
+                  </button>
+                )}
+              </div>
+              {selectedProducts.length > 0 && (
+                <button onClick={() => setShowExportModal(true)}
+                  className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+                  <Download size={11} />Export {selectedProducts.length} Selected
                 </button>
               )}
             </div>
@@ -336,9 +581,22 @@ export default function PLMPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center gap-3 px-4 py-2">
+                  <input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0}
+                    onChange={toggleAll} className="rounded" />
+                  <span className="text-[11px] text-white/30">
+                    {selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select all"}
+                  </span>
+                </div>
                 {filteredProducts.map(product => (
-                  <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer flex items-center gap-4" onClick={() => router.push(`/plm/${product.id}`)}>
-                    <div className="flex-1 min-w-0">
+                  <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
+                    style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
+                    <input type="checkbox" checked={selectedProducts.includes(product.id)}
+                      onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />
+                    {product.images?.[0] && (
+                      <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-sm font-semibold text-white">{product.name}</p>
                         {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
@@ -353,7 +611,7 @@ export default function PLMPage() {
                       {product.target_elc && <p className="text-xs text-white/40">ELC ${product.target_elc}</p>}
                       <p className="text-[10px] text-white/20">{new Date(product.stage_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
                     </div>
-                    <ChevronRight size={14} className="text-white/20 flex-shrink-0" />
+                    <ChevronRight size={14} className="text-white/20 flex-shrink-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
                   </div>
                 ))}
               </div>
