@@ -45,11 +45,6 @@ const lc = "text-[10px] text-white/30 mb-1.5 block uppercase tracking-widest";
 function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [updatingStage, setUpdatingStage] = useState(false);
-  const [selectedStage, setSelectedStage] = useState("");
-  const [stageNote, setStageNote] = useState("");
-  const [showModal, setShowModal] = useState(false);
   const [success, setSuccess] = useState("");
 
   useEffect(() => { loadProducts(); }, []);
@@ -63,82 +58,13 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     setLoading(false);
   };
 
-  const openUpdate = (product: any) => {
-    setSelectedProduct(product);
-    setSelectedStage(product.current_stage);
-    setStageNote("");
-    setShowModal(true);
-  };
 
-  const updateStage = async () => {
-    if (!selectedStage || !selectedProduct) return;
-    setUpdatingStage(true);
-    const token = localStorage.getItem("portal_token");
-    await fetch("/api/portal/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ product_id: selectedProduct.id, stage: selectedStage, notes: stageNote }),
-    });
-    setUpdatingStage(false);
-    setShowModal(false);
-    setSuccess(`Updated ${selectedProduct.name} to ${STAGES.find(s => s.key === selectedStage)?.label}`);
-    setTimeout(() => setSuccess(""), 3000);
-    loadProducts();
-  };
 
   const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-      {showModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Update: {selectedProduct.name}</p>
-              <button onClick={() => setShowModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Sample Stages</p>
-                <div className="space-y-1.5">
-                  {SAMPLE_STAGES.map(stage => (
-                    <button key={stage.key} onClick={() => setSelectedStage(stage.key)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${selectedStage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                      <span className="text-white/70">{stage.label}</span>
-                      {selectedStage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Production Stages</p>
-                <div className="space-y-1.5">
-                  {PRODUCTION_STAGES.map(stage => (
-                    <button key={stage.key} onClick={() => setSelectedStage(stage.key)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${selectedStage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
-                      <span className="text-white/70">{stage.label}</span>
-                      {selectedStage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className={lc}>Notes (optional)</label>
-              <textarea value={stageNote} onChange={e => setStageNote(e.target.value)} placeholder="e.g. Shipped via DHL" rows={3} className={`${ic} resize-none`} />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={updateStage} disabled={updatingStage || !selectedStage}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                {updatingStage ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Update Stage
-              </button>
-              <button onClick={() => setShowModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+
       <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
@@ -174,7 +100,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                     </div>
                     {product.plm_collections && <p className="text-[10px] text-white/20 mt-0.5">{product.plm_collections.name}</p>}
                   </div>
-                  <button onClick={() => openUpdate(product)} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/80 border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-lg transition flex-shrink-0">Update</button>
+                  <button onClick={() => router.push(`/portal/product?id=${product.id}`)} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/80 border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-lg transition flex-shrink-0">View →</button>
                 </div>
               );
             })}</div>}
