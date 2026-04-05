@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
     const { data } = await supabaseAdmin
       .from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*)")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*)")
       .eq("id", id)
       .single();
     return NextResponse.json({ product: data });
@@ -137,6 +137,50 @@ export async function POST(req: NextRequest) {
 
   if (action === "delete_collection") {
     await supabaseAdmin.from("plm_collections").delete().eq("id", body.id).eq("user_id", user.id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "create_batch") {
+    const { product_id, quantity, notes } = body;
+    // Get current batch count
+    const { data: existing } = await supabaseAdmin.from("plm_batches").select("batch_number").eq("product_id", product_id).order("batch_number", { ascending: false }).limit(1);
+    const nextBatch = (existing?.[0]?.batch_number || 0) + 1;
+    const { data, error } = await supabaseAdmin.from("plm_batches").insert({
+      product_id, user_id: user.id,
+      batch_number: nextBatch,
+      quantity: quantity || null,
+      current_stage: "design_brief",
+      stage_updated_at: new Date().toISOString(),
+      notes: notes || "",
+    }).select().single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // Log initial stage
+    await supabaseAdmin.from("plm_batch_stages").insert({
+      batch_id: data.id, product_id, user_id: user.id,
+      stage: "design_brief", notes: "Batch created",
+      updated_by: user.email, updated_by_role: "admin",
+    });
+    return NextResponse.json({ success: true, batch: data });
+  }
+
+  if (action === "update_batch_stage") {
+    const { batch_id, product_id, stage, notes } = body;
+    await supabaseAdmin.from("plm_batches").update({
+      current_stage: stage,
+      stage_updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("id", batch_id).eq("user_id", user.id);
+    await supabaseAdmin.from("plm_batch_stages").insert({
+      batch_id, product_id, user_id: user.id,
+      stage, notes: notes || "",
+      updated_by: user.email, updated_by_role: "admin",
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "delete_batch") {
+    await supabaseAdmin.from("plm_batch_stages").delete().eq("batch_id", body.id);
+    await supabaseAdmin.from("plm_batches").delete().eq("id", body.id).eq("user_id", user.id);
     return NextResponse.json({ success: true });
   }
 

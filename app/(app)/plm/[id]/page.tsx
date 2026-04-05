@@ -38,6 +38,13 @@ export default function ProductPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showNewBatch, setShowNewBatch] = useState(false);
+  const [newBatchQty, setNewBatchQty] = useState("");
+  const [newBatchNote, setNewBatchNote] = useState("");
+  const [savingBatch, setSavingBatch] = useState(false);
+  const [updatingBatch, setUpdatingBatch] = useState<string | null>(null);
+  const [selectedBatchStage, setSelectedBatchStage] = useState<{batchId: string, stage: string, note: string} | null>(null);
+  const [showBatchStageModal, setShowBatchStageModal] = useState(false);
   const [editForm, setEditForm] = useState<any>({});
   const [savingEdit, setSavingEdit] = useState(false);
   const [factories, setFactories] = useState<any[]>([]);
@@ -84,6 +91,43 @@ export default function ProductPage() {
     });
     setUpdatingStage(false);
     setShowStageModal(false);
+    load();
+  };
+
+  const createBatch = async () => {
+    setSavingBatch(true);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create_batch", product_id: id, quantity: newBatchQty ? parseInt(newBatchQty) : null, notes: newBatchNote }),
+    });
+    setSavingBatch(false);
+    setShowNewBatch(false);
+    setNewBatchQty("");
+    setNewBatchNote("");
+    load();
+  };
+
+  const updateBatchStage = async () => {
+    if (!selectedBatchStage) return;
+    setUpdatingBatch(selectedBatchStage.batchId);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_batch_stage", batch_id: selectedBatchStage.batchId, product_id: id, stage: selectedBatchStage.stage, notes: selectedBatchStage.note }),
+    });
+    setUpdatingBatch(null);
+    setShowBatchStageModal(false);
+    setSelectedBatchStage(null);
+    load();
+  };
+
+  const deleteBatch = async (batchId: string) => {
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete_batch", id: batchId }),
+    });
     load();
   };
 
@@ -167,6 +211,41 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Batch Stage Modal */}
+      {showBatchStageModal && selectedBatchStage && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Update Batch Stage</p>
+              <button onClick={() => setShowBatchStageModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+              {STAGES.map(stage => (
+                <button key={stage.key} onClick={() => setSelectedBatchStage({...selectedBatchStage, stage: stage.key})}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${selectedBatchStage.stage === stage.key ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: stage.color }} />
+                  <span className="text-white/70">{stage.label}</span>
+                  {selectedBatchStage.stage === stage.key && <Check size={10} className="text-white/50 ml-auto" />}
+                </button>
+              ))}
+            </div>
+            <div>
+              <label className="text-[11px] text-white/30 mb-1 block">Notes</label>
+              <textarea value={selectedBatchStage.note} onChange={e => setSelectedBatchStage({...selectedBatchStage, note: e.target.value})}
+                placeholder="e.g. DHL tracking #123456" rows={2}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={updateBatchStage} disabled={!!updatingBatch}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {updatingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Update Stage
+              </button>
+              <button onClick={() => setShowBatchStageModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Product Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -425,6 +504,78 @@ export default function ProductPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Production Batches */}
+          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest">Production Batches</p>
+              <button onClick={() => setShowNewBatch(!showNewBatch)}
+                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+                <Plus size={11} />Add Batch
+              </button>
+            </div>
+
+            {showNewBatch && (
+              <div className="border border-white/[0.08] rounded-xl p-4 mb-4 space-y-3 bg-white/[0.02]">
+                <p className="text-xs text-white/40">New Production Batch</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] text-white/30 mb-1 block">Quantity</label>
+                    <input value={newBatchQty} onChange={e => setNewBatchQty(e.target.value)} placeholder="500 units"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-white/30 mb-1 block">Notes</label>
+                    <input value={newBatchNote} onChange={e => setNewBatchNote(e.target.value)} placeholder="e.g. Reorder batch"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none" />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={createBatch} disabled={savingBatch}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                    {savingBatch ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Batch
+                  </button>
+                  <button onClick={() => setShowNewBatch(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {(!product.plm_batches || product.plm_batches.length === 0) ? (
+              <div className="text-center py-6 border border-dashed border-white/[0.06] rounded-xl">
+                <p className="text-xs text-white/20">No batches yet — add a batch to track multiple production runs</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {(product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number).map((batch: any) => {
+                  const stage = STAGES.find(s => s.key === batch.current_stage);
+                  return (
+                    <div key={batch.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-white">Batch #{batch.batch_number}</span>
+                          {batch.quantity && <span className="text-[11px] text-white/40">{batch.quantity.toLocaleString()} units</span>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => { setSelectedBatchStage({ batchId: batch.id, stage: batch.current_stage, note: "" }); setShowBatchStageModal(true); }}
+                            className="text-[11px] px-3 py-1.5 rounded-lg border transition font-medium"
+                            style={{ borderColor: `${stage?.color}40`, background: `${stage?.color}15`, color: stage?.color }}>
+                            {stage?.label}
+                          </button>
+                          <button onClick={() => deleteBatch(batch.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                      {batch.notes && <p className="text-xs text-white/30">{batch.notes}</p>}
+                      <p className="text-[10px] text-white/20 mt-1">
+                        Updated {new Date(batch.stage_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
