@@ -146,24 +146,6 @@ export async function POST(req: NextRequest) {
       stage, notes: notes || "",
       updated_by: user.email, updated_by_role: "admin",
     });
-    // Auto-create shipment record when PO is issued
-    if (stage === "po_issued") {
-      const { data: existingShipment } = await supabaseAdmin
-        .from("plm_shipments")
-        .select("id")
-        .eq("batch_id", batch_id)
-        .single();
-      if (!existingShipment) {
-        await supabaseAdmin.from("plm_shipments").insert({
-          user_id: user.id,
-          batch_id,
-          product_id,
-          current_stage: "po_issued",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-      }
-    }
     return NextResponse.json({ success: true });
   }
 
