@@ -52,9 +52,10 @@ async function extractImagesFromExcel(base64: string): Promise<Map<number, Buffe
     if (drawingFile) {
       const xml = await drawingFile.async("string");
       // Extract <xdr:from><xdr:row> values — these are the row anchors (0-indexed)
-      const rowMatches = xml.matchAll(/<xdr:from>\s*<xdr:col>\d+<\/xdr:col>\s*<xdr:colOff>\d+<\/xdr:colOff>\s*<xdr:row>(\d+)<\/xdr:row>/g);
-      for (const match of rowMatches) {
-        rowAnchors.push(parseInt(match[1]));
+      const rowRegex = /<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/g;
+      let rowMatch;
+      while ((rowMatch = rowRegex.exec(xml)) !== null) {
+        rowAnchors.push(parseInt(rowMatch[1]));
       }
     }
 
