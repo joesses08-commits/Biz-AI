@@ -120,7 +120,7 @@ export default function PLMPage() {
     setSavingPortalUser(true);
     await fetch("/api/plm/portal-users", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"create", ...newPortalUser }) });
     setSavingPortalUser(false); setShowNewPortalUser(false);
-    setNewPortalUser({ name:"", email:"", password:"", factory_id:"" });
+    setNewPortalUser({ name:"", email:"", password:"", factory_id:"", role:"factory" });
     load();
   };
 
