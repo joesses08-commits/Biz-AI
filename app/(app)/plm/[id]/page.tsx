@@ -352,6 +352,30 @@ export default function ProductPage() {
                       </button>
                     </div>
                     {updatingDevStage && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
+
+                    {/* Full stage timeline */}
+                    <div className="border-t border-white/[0.04] pt-4 space-y-1">
+                      {DEV_STAGES.map((s, i) => {
+                        const isPast = i < currentIdx;
+                        const isCurrent = i === currentIdx;
+                        return (
+                          <button key={s.key} onClick={() => updateDevStage(s.key)} disabled={updatingDevStage}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.03] transition text-left">
+                            <div className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition"
+                              style={isCurrent ? { borderColor: s.color, background: `${s.color}20` } : isPast ? { borderColor: "#10b981", background: "#10b98120" } : { borderColor: "rgba(255,255,255,0.1)" }}>
+                              {isPast ? <Check size={10} className="text-emerald-400" /> :
+                               isCurrent ? <div className="w-2 h-2 rounded-full" style={{ background: s.color }} /> :
+                               <div className="w-1.5 h-1.5 rounded-full bg-white/10" />}
+                            </div>
+                            <span className="text-xs font-medium transition"
+                              style={isCurrent ? { color: s.color } : isPast ? { color: "rgba(255,255,255,0.4)" } : { color: "rgba(255,255,255,0.2)" }}>
+                              {s.label}
+                            </span>
+                            {isCurrent && <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${s.color}20`, color: s.color }}>Current</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}

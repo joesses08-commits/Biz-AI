@@ -166,10 +166,20 @@ export async function POST(req: NextRequest) {
   if (action === "update_product") {
     const { id, ...updates } = body;
     delete updates.action;
+    const { data: existing } = await supabaseAdmin.from("plm_products").select("current_stage").eq("id", id).single();
     const { data, error } = await supabaseAdmin.from("plm_products")
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", id).eq("user_id", user.id).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // Log stage change to history
+    if (updates.current_stage && updates.current_stage !== existing?.current_stage) {
+      await supabaseAdmin.from("plm_stages").insert({
+        product_id: id, user_id: user.id,
+        stage: updates.current_stage,
+        notes: "Development stage updated",
+        updated_by: user.email, updated_by_role: "admin",
+      });
+    }
     return NextResponse.json({ success: true, product: data });
   }
 
