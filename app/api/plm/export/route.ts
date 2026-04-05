@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
         const ext = p.images[0].split(".").pop()?.toLowerCase() || "jpeg";
         const mimeType = ext === "png" ? "png" : "jpeg";
         try {
-          const imgId = wb.addImage({ buffer: imgBuffer, extension: mimeType });
+          const imgId = wb.addImage({ buffer: imgBuffer as unknown as Buffer, extension: mimeType });
           ws.addImage(imgId, {
             tl: { col: 0, row: rowNum - 1 },
             ext: { width: IMG_SIZE, height: IMG_SIZE },
