@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   if (body.action === "update_batch") {
-    const { id, factory_id, target_elc, actual_elc, target_sell_price, order_quantity, moq, linked_po_number, batch_notes } = body;
+    const { id, factory_id, target_elc, actual_elc, target_sell_price, order_quantity, moq, linked_po_number, tracking_number, batch_notes } = body;
     const { error } = await supabaseAdmin.from("plm_batches").update({
       factory_id: factory_id || null,
       target_elc: target_elc || null,
@@ -35,10 +35,18 @@ export async function POST(req: NextRequest) {
       order_quantity: order_quantity || null,
       moq: moq || null,
       linked_po_number: linked_po_number || null,
+      tracking_number: tracking_number || null,
       batch_notes: batch_notes || null,
       updated_at: new Date().toISOString(),
     }).eq("id", id).eq("user_id", user.id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // Sync tracking number to plm_shipments if a shipment record exists for this batch
+    if (tracking_number) {
+      await supabaseAdmin.from("plm_shipments").update({
+        tracking_number,
+        updated_at: new Date().toISOString(),
+      }).eq("batch_id", id);
+    }
     return NextResponse.json({ success: true });
   }
 

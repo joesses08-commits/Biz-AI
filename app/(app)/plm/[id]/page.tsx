@@ -62,7 +62,7 @@ export default function ProductPage() {
 
   // New batch
   const [showNewBatch, setShowNewBatch] = useState(false);
-  const [newBatch, setNewBatch] = useState({ quantity: "", stage: "rfq_sent", factory_id: "", target_elc: "", actual_elc: "", target_sell_price: "", order_quantity: "", moq: "", linked_po_number: "", batch_notes: "" });
+  const [newBatch, setNewBatch] = useState({ quantity: "", stage: "rfq_sent", factory_id: "", target_elc: "", actual_elc: "", target_sell_price: "", order_quantity: "", moq: "", linked_po_number: "", tracking_number: "", batch_notes: "" });
   const [savingBatch, setSavingBatch] = useState(false);
 
   // Images
@@ -135,6 +135,7 @@ export default function ProductPage() {
       order_quantity: batch.order_quantity || "",
       moq: batch.moq || "",
       linked_po_number: batch.linked_po_number || "",
+      tracking_number: batch.tracking_number || "",
       batch_notes: batch.batch_notes || "",
     });
     setEditingBatch(batch);
@@ -196,12 +197,13 @@ export default function ProductPage() {
         order_quantity: newBatch.order_quantity ? parseInt(newBatch.order_quantity) : null,
         moq: newBatch.moq ? parseInt(newBatch.moq) : null,
         linked_po_number: newBatch.linked_po_number || null,
+        tracking_number: newBatch.tracking_number || null,
         batch_notes: newBatch.batch_notes || null,
       }),
     });
     setSavingBatch(false);
     setShowNewBatch(false);
-    setNewBatch({ quantity: "", stage: "rfq_sent", factory_id: "", target_elc: "", actual_elc: "", target_sell_price: "", order_quantity: "", moq: "", linked_po_number: "", batch_notes: "" });
+    setNewBatch({ quantity: "", stage: "rfq_sent", factory_id: "", target_elc: "", actual_elc: "", target_sell_price: "", order_quantity: "", moq: "", linked_po_number: "", tracking_number: "", batch_notes: "" });
     load();
   };
 
@@ -267,6 +269,7 @@ export default function ProductPage() {
         <div><label className={lc}>MOQ</label><input value={form.moq} onChange={e => setForm({...form, moq: e.target.value})} placeholder="300" className={ic} /></div>
         <div><label className={lc}>PO Number</label><input value={form.linked_po_number} onChange={e => setForm({...form, linked_po_number: e.target.value})} placeholder="PO-2026-001" className={ic} /></div>
       </div>
+      <div><label className={lc}>Tracking Number</label><input value={form.tracking_number} onChange={e => setForm({...form, tracking_number: e.target.value})} placeholder="1Z999AA10123456784" className={ic} /></div>
       <div><label className={lc}>Notes</label><textarea value={form.batch_notes} onChange={e => setForm({...form, batch_notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
     </div>
   );
