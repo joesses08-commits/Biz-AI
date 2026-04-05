@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Package, ArrowLeft, Factory, Layers, Check, Loader2,
-  X, ChevronDown, ChevronUp, Plus, Clock, User, FileText
+  X, ChevronDown, ChevronUp, Plus, Clock, User, FileText, ImagePlus, Trash2
 } from "lucide-react";
 
 const STAGES = [
@@ -35,6 +35,8 @@ export default function ProductPage() {
   const [stageNote, setStageNote] = useState("");
   const [selectedStage, setSelectedStage] = useState("");
   const [showStageModal, setShowStageModal] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const load = async () => {
     const res = await fetch(`/api/plm?type=product&id=${id}`);
@@ -69,6 +71,29 @@ export default function ProductPage() {
     });
     setUpdatingStage(false);
     setShowStageModal(false);
+    load();
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("product_id", id as string);
+    await fetch("/api/plm/upload", { method: "POST", body: formData });
+    setUploadingImage(false);
+    load();
+  };
+
+  const handleImageDelete = async (url: string) => {
+    setDeletingImage(url);
+    await fetch("/api/plm/upload", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ product_id: id, url }),
+    });
+    setDeletingImage(null);
     load();
   };
 
@@ -241,6 +266,42 @@ export default function ProductPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Images */}
+          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest">Product Images</p>
+              <label className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 cursor-pointer transition px-3 py-1.5 rounded-lg border border-white/[0.06] hover:border-white/10">
+                {uploadingImage ? <Loader2 size={11} className="animate-spin" /> : <ImagePlus size={11} />}
+                {uploadingImage ? "Uploading..." : "Add Image"}
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+              </label>
+            </div>
+            {(product.images || []).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 border border-dashed border-white/[0.06] rounded-xl">
+                <ImagePlus size={20} className="text-white/10 mb-2" />
+                <p className="text-xs text-white/20">No images yet</p>
+                <label className="mt-2 text-xs text-white/30 hover:text-white/60 cursor-pointer transition underline underline-offset-2">
+                  Upload one
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                </label>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {(product.images || []).map((url: string) => (
+                  <div key={url} className="relative group rounded-xl overflow-hidden border border-white/[0.06] aspect-square">
+                    <img src={url} alt="Product" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                      <button onClick={() => handleImageDelete(url)} disabled={deletingImage === url}
+                        className="p-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition">
+                        {deletingImage === url ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Stage Timeline */}
