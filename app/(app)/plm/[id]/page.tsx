@@ -101,6 +101,16 @@ export default function ProductPage() {
 
   // Dev stage
   const [updatingDevStage, setUpdatingDevStage] = useState(false);
+  const [devStageNote, setDevStageNote] = useState("");
+  const [pendingDevStage, setPendingDevStage] = useState<string | null>(null);
+
+  // Order factory edit
+  const [editingOrderFactory, setEditingOrderFactory] = useState<string | null>(null);
+  const [orderFactoryVal, setOrderFactoryVal] = useState("");
+  const [savingOrderFactory, setSavingOrderFactory] = useState(false);
+
+  // Order stage note
+  const [orderStageNote, setOrderStageNote] = useState<Record<string, string>>({});
 
   // Orders
   const [showNewOrder, setShowNewOrder] = useState(false);
@@ -151,11 +161,31 @@ export default function ProductPage() {
     load();
   };
 
-  const updateDevStage = async (stage: string) => {
+  const updateDevStage = async (stage: string, note?: string) => {
     setUpdatingDevStage(true);
+    const noteText = note || devStageNote;
+    // Build new notes: append "Stage: [note]" to existing notes
+    let updatedNotes = product.notes || "";
+    if (noteText) {
+      const stageLabel = DEV_STAGES.find(s => s.key === stage)?.label || stage;
+      const entry = `${stageLabel}: ${noteText}`;
+      updatedNotes = updatedNotes ? `${updatedNotes}
+${entry}` : entry;
+    }
     await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_product", id: product.id, current_stage: stage }) });
+      body: JSON.stringify({ action: "update_product", id: product.id, current_stage: stage, ...(noteText ? { notes: updatedNotes } : {}) }) });
     setUpdatingDevStage(false);
+    setPendingDevStage(null);
+    setDevStageNote("");
+    load();
+  };
+
+  const saveOrderFactory = async (orderId: string) => {
+    setSavingOrderFactory(true);
+    await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_batch", id: orderId, factory_id: orderFactoryVal || null }) });
+    setSavingOrderFactory(false);
+    setEditingOrderFactory(null);
     load();
   };
 
@@ -183,9 +213,11 @@ export default function ProductPage() {
 
   const updateOrderStage = async (orderId: string, stage: string) => {
     setUpdatingOrderStage(orderId);
+    const note = orderStageNote[orderId] || "";
     await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_batch_stage", batch_id: orderId, product_id: id, stage }) });
+      body: JSON.stringify({ action: "update_batch_stage", batch_id: orderId, product_id: id, stage, notes: note }) });
     setUpdatingOrderStage(null);
+    setOrderStageNote(prev => ({ ...prev, [orderId]: "" }));
     load();
   };
 
@@ -345,12 +377,28 @@ export default function ProductPage() {
                         </div>
                         <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {DEV_STAGES.length}</p>
                       </div>
-                      <button onClick={() => next && updateDevStage(next.key)} disabled={!next || updatingDevStage}
+                      <button onClick={() => next && setPendingDevStage(next.key)} disabled={!next || updatingDevStage}
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
                         style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
                         {next ? next.label : "Complete"} →
                       </button>
                     </div>
+                    {/* Note + confirm when advancing */}
+                    {pendingDevStage && (
+                      <div className="border border-white/[0.08] rounded-xl p-3 space-y-2 bg-white/[0.01]">
+                        <p className="text-xs text-white/50">Advancing to <strong className="text-white/70">{DEV_STAGES.find(s => s.key === pendingDevStage)?.label}</strong></p>
+                        <input value={devStageNote} onChange={e => setDevStageNote(e.target.value)}
+                          placeholder="Add a note (e.g. sent to factories A, B, C)..."
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none" />
+                        <div className="flex gap-2">
+                          <button onClick={() => updateDevStage(pendingDevStage)} disabled={updatingDevStage}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
+                            {updatingDevStage ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />} Confirm
+                          </button>
+                          <button onClick={() => { setPendingDevStage(null); setDevStageNote(""); }} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                        </div>
+                      </div>
+                    )}
                     {updatingDevStage && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
 
                     {/* Full stage timeline */}
@@ -439,9 +487,27 @@ export default function ProductPage() {
                   <div key={order.id} className="px-6 py-4 space-y-3">
                     {/* Order header */}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold">Order #{order.batch_number}</span>
-                        {orderFactory && <span className="text-xs text-white/30 flex items-center gap-1"><Factory size={9} />{orderFactory.name}</span>}
+                        {editingOrderFactory === order.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <select value={orderFactoryVal} onChange={e => setOrderFactoryVal(e.target.value)}
+                              className="bg-white/[0.04] border border-white/20 rounded-lg px-2 py-1 text-white/70 text-xs focus:outline-none">
+                              <option value="">No factory</option>
+                              {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                            </select>
+                            <button onClick={() => saveOrderFactory(order.id)} disabled={savingOrderFactory}
+                              className="px-2 py-1 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
+                              {savingOrderFactory ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                            </button>
+                            <button onClick={() => setEditingOrderFactory(null)} className="px-2 py-1 rounded-lg border border-white/[0.06] text-white/30 text-xs">✕</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => { setEditingOrderFactory(order.id); setOrderFactoryVal(order.factory_id || ""); }}
+                            className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition">
+                            <Factory size={9} />{orderFactory ? orderFactory.name : "Assign factory"}<Pencil size={8} className="ml-0.5" />
+                          </button>
+                        )}
                         {order.linked_po_number && <span className="text-[10px] text-white/25 font-mono">PO: {order.linked_po_number}</span>}
                       </div>
                       <button onClick={() => deleteOrder(order.id)} disabled={deletingOrder === order.id}
@@ -450,21 +516,68 @@ export default function ProductPage() {
                       </button>
                     </div>
 
-                    {/* Production stage buttons */}
-                    <div>
-                      <p className={lc}>Production Stage</p>
-                      <div className="flex flex-wrap gap-1.5 mt-1.5">
-                        {ORDER_STAGES.map(s => (
-                          <button key={s.key} onClick={() => updateOrderStage(order.id, s.key)}
-                            disabled={updatingOrderStage === order.id}
-                            className={`text-xs px-2.5 py-1 rounded-full border transition font-medium ${order.current_stage === s.key ? "border-current" : "border-white/[0.06] text-white/30 hover:text-white/60"}`}
-                            style={order.current_stage === s.key ? { borderColor: s.color, color: s.color, background: `${s.color}15` } : {}}>
-                            {s.label}
-                          </button>
-                        ))}
-                        {updatingOrderStage === order.id && <Loader2 size={12} className="animate-spin text-white/30 self-center" />}
-                      </div>
-                    </div>
+                    {/* Production stage — prev/next + timeline */}
+                    {(() => {
+                      const devComplete = product.current_stage === "sample_approved";
+                      if (!devComplete) return (
+                        <div className="border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-white/20" />
+                          <p className="text-xs text-white/30">Production unlocks once development reaches Sample Approved</p>
+                        </div>
+                      );
+                      const orderCurrentIdx = ORDER_STAGES.findIndex(s => s.key === order.current_stage);
+                      const orderPrev = orderCurrentIdx > 0 ? ORDER_STAGES[orderCurrentIdx - 1] : null;
+                      const orderNext = orderCurrentIdx < ORDER_STAGES.length - 1 ? ORDER_STAGES[orderCurrentIdx + 1] : null;
+                      const orderCurrent = ORDER_STAGES[orderCurrentIdx] || ORDER_STAGES[0];
+                      return (
+                        <div className="space-y-3">
+                          <div className="w-full bg-white/[0.05] rounded-full h-1">
+                            <div className="h-1 rounded-full transition-all" style={{ width: `${((orderCurrentIdx + 1) / ORDER_STAGES.length) * 100}%`, background: orderCurrent.color }} />
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <button onClick={() => orderPrev && updateOrderStage(order.id, orderPrev.key)} disabled={!orderPrev || updatingOrderStage === order.id}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition text-xs disabled:opacity-20 disabled:cursor-not-allowed">
+                              ← {orderPrev ? orderPrev.label : "Start"}
+                            </button>
+                            <div className="text-center">
+                              <div className="flex items-center gap-1.5 justify-center">
+                                <div className="w-2 h-2 rounded-full" style={{ background: orderCurrent.color }} />
+                                <span className="text-xs font-semibold text-white">{orderCurrent.label}</span>
+                              </div>
+                              <p className="text-[10px] text-white/25 mt-0.5">{orderCurrentIdx + 1} of {ORDER_STAGES.length}</p>
+                            </div>
+                            <button onClick={() => orderNext && updateOrderStage(order.id, orderNext.key)} disabled={!orderNext || updatingOrderStage === order.id}
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs transition disabled:opacity-20 disabled:cursor-not-allowed"
+                              style={orderNext ? { borderColor: `${orderNext.color}40`, color: orderNext.color, background: `${orderNext.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
+                              {orderNext ? orderNext.label : "Complete"} →
+                            </button>
+                          </div>
+                          {/* Note input */}
+                          <input value={orderStageNote[order.id] || ""} onChange={e => setOrderStageNote(prev => ({ ...prev, [order.id]: e.target.value }))}
+                            placeholder="Add a note to this stage update..."
+                            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition" />
+                          {/* Timeline */}
+                          <div className="border-t border-white/[0.04] pt-3 space-y-1">
+                            {ORDER_STAGES.map((s, i) => {
+                              const isPast = i < orderCurrentIdx;
+                              const isCurrent = i === orderCurrentIdx;
+                              return (
+                                <div key={s.key} className="flex items-center gap-2.5 px-2 py-1">
+                                  <div className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
+                                    style={isCurrent ? { borderColor: s.color, background: `${s.color}20` } : isPast ? { borderColor: "#10b981", background: "#10b98120" } : { borderColor: "rgba(255,255,255,0.08)" }}>
+                                    {isPast ? <Check size={8} className="text-emerald-400" /> :
+                                     isCurrent ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: s.color }} /> :
+                                     <div className="w-1 h-1 rounded-full bg-white/10" />}
+                                  </div>
+                                  <span className="text-xs" style={isCurrent ? { color: s.color, fontWeight: 600 } : isPast ? { color: "rgba(255,255,255,0.4)" } : { color: "rgba(255,255,255,0.15)" }}>{s.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {updatingOrderStage === order.id && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
+                        </div>
+                      );
+                    })()}
 
                     {/* Order financials — inline editable */}
                     <div className="grid grid-cols-4 gap-3">
