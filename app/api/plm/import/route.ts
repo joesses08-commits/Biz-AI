@@ -51,8 +51,8 @@ async function extractImagesFromExcel(base64: string): Promise<Map<number, Buffe
     const drawingFile = zip.files["xl/drawings/drawing1.xml"];
     if (drawingFile) {
       const xml = await drawingFile.async("string");
-      // Extract <xdr:from><xdr:row> values — these are the row anchors (0-indexed)
-      const rowRegex = /<xdr:from>[\s\S]*?<xdr:row>(\d+)<\/xdr:row>/g;
+      // Extract row anchors — works with both namespaced and non-namespaced XML
+      const rowRegex = /<(?:xdr:)?from>[\s\S]*?<(?:xdr:)?row>(\d+)<\/(?:xdr:)?row>/g;
       let rowMatch;
       while ((rowMatch = rowRegex.exec(xml)) !== null) {
         rowAnchors.push(parseInt(rowMatch[1]));
@@ -187,13 +187,14 @@ Respond ONLY with a JSON object like:
           updated_by: user.email, updated_by_role: "admin",
         });
 
-        // Try to attach image — check current row and adjacent rows
+        // Try to attach image — XML rows are 0-indexed, excelRow is 0-indexed row index
+        // Check current row and a wider window to handle slight offsets
         let imageBuffer: Buffer | undefined;
-        for (const rowOffset of [0, -1, 1, -2, 2]) {
+        for (const rowOffset of [0, 1, -1, 2, -2, 3, -3]) {
           const imgRow = excelRow + rowOffset;
           if (imagesByRow.has(imgRow)) {
             imageBuffer = imagesByRow.get(imgRow);
-            imagesByRow.delete(imgRow); // consume so it's not reused
+            imagesByRow.delete(imgRow);
             break;
           }
         }
