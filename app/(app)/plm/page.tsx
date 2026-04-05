@@ -257,6 +257,18 @@ export default function PLMPage() {
     return true;
   });
 
+  const deleteProduct = async (id: string) => {
+    if (!confirm("Delete this product?")) return;
+    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id }) });
+    load();
+  };
+
+  const deleteProduct = async (id: string) => {
+    if (!confirm("Delete this product?")) return;
+    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id }) });
+    load();
+  };
+
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
   const lc = "text-[11px] text-white/30 mb-1 block";
 
@@ -664,12 +676,7 @@ export default function PLMPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <button onClick={async (e) => {
-                            e.stopPropagation();
-                            if (!confirm("Delete this product?")) return;
-                            await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_product", id: product.id }) });
-                            load();
-                          }} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                          <button onClick={e => { e.stopPropagation(); deleteProduct(product.id); }} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
                             <Trash2 size={12} />
                           </button>
                           <ChevronRight size={14} className="text-white/20 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
