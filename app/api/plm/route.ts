@@ -99,14 +99,22 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "update_milestone") {
-    const { product_id, milestone, value } = body;
+    const { product_id, milestone, value, force, pin } = body;
     const { data: product } = await supabaseAdmin.from("plm_products").select("milestones").eq("id", product_id).single();
-    const milestones = { ...(product?.milestones || {}), [milestone]: value };
+    const currentMilestones = product?.milestones || {};
+
+    // Prevent unchecking unless admin provides correct PIN
+    if (!value && currentMilestones[milestone] === true) {
+      if (!force || pin !== process.env.ADMIN_MILESTONE_PIN) {
+        return NextResponse.json({ error: "pin_required" }, { status: 403 });
+      }
+    }
+
+    const milestones = { ...currentMilestones, [milestone]: value };
     await supabaseAdmin.from("plm_products").update({ milestones, updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
-    // Log to stage history
     await supabaseAdmin.from("plm_stages").insert({
       product_id, user_id: user.id,
-      stage: milestone, notes: value ? `${milestone.replace(/_/g, " ")} marked complete` : `${milestone.replace(/_/g, " ")} unmarked`,
+      stage: milestone, notes: value ? `${milestone.replace(/_/g, " ")} marked complete` : `${milestone.replace(/_/g, " ")} unmarked by admin`,
       updated_by: user.email, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Package, ArrowLeft, Factory, Layers, Check, Loader2,
   X, ChevronDown, Plus, ImagePlus, Trash2, Pencil, CheckSquare, Square
@@ -40,8 +40,7 @@ function getProductStatus(batches: any[]) {
 export default function ProductPage() {
   const { id } = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const showApproveBanner = searchParams.get("approve") === "1";
+  const showApproveBanner = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("approve") === "1";
   const [approvingProduct, setApprovingProduct] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
   const [product, setProduct] = useState<any>(null);
@@ -75,6 +74,11 @@ export default function ProductPage() {
 
   // Milestones
   const [togglingMilestone, setTogglingMilestone] = useState<string | null>(null);
+  const [milestoneConfirm, setMilestoneConfirm] = useState<{key: string, label: string} | null>(null);
+  const [milestoneUncheck, setMilestoneUncheck] = useState<{key: string, label: string} | null>(null);
+  const [adminPin, setAdminPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [submittingPin, setSubmittingPin] = useState(false);
 
   const approveProduct = async () => {
     setApprovingProduct(true);
@@ -105,15 +109,52 @@ export default function ProductPage() {
 
   useEffect(() => { load(); }, [id]);
 
-  const toggleMilestone = async (key: string) => {
+  const toggleMilestone = async (key: string, value: boolean, force = false, pin = "") => {
     setTogglingMilestone(key);
-    const current = product?.milestones?.[key] || false;
-    await fetch("/api/plm", {
+    const res = await fetch("/api/plm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_milestone", product_id: id, milestone: key, value: !current }),
+      body: JSON.stringify({ action: "update_milestone", product_id: id, milestone: key, value, force, pin }),
     });
+    const data = await res.json();
     setTogglingMilestone(null);
+    if (data.error === "pin_required") return;
+    load();
+  };
+
+  const handleMilestoneClick = (key: string, label: string, currentValue: boolean) => {
+    if (!currentValue) {
+      setMilestoneConfirm({ key, label });
+    } else {
+      setAdminPin("");
+      setPinError("");
+      setMilestoneUncheck({ key, label });
+    }
+  };
+
+  const confirmMilestone = async () => {
+    if (!milestoneConfirm) return;
+    await toggleMilestone(milestoneConfirm.key, true);
+    setMilestoneConfirm(null);
+  };
+
+  const submitUncheckPin = async () => {
+    if (!milestoneUncheck) return;
+    setSubmittingPin(true);
+    setPinError("");
+    const res = await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_milestone", product_id: id, milestone: milestoneUncheck.key, value: false, force: true, pin: adminPin }),
+    });
+    const data = await res.json();
+    setSubmittingPin(false);
+    if (data.error === "pin_required") {
+      setPinError("Incorrect PIN. Try again.");
+      return;
+    }
+    setMilestoneUncheck(null);
+    setAdminPin("");
     load();
   };
 
@@ -292,6 +333,43 @@ export default function ProductPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Milestone confirm modal */}
+      {milestoneConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Mark as Complete?</p>
+            <p className="text-xs text-white/40">Are you sure <strong className="text-white/60">{milestoneConfirm.label}</strong> is complete? This cannot be undone without an admin PIN.</p>
+            <div className="flex gap-2">
+              <button onClick={confirmMilestone} className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition">
+                Yes, Mark Complete
+              </button>
+              <button onClick={() => setMilestoneConfirm(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Milestone uncheck PIN modal */}
+      {milestoneUncheck && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Admin Override</p>
+            <p className="text-xs text-white/40">Enter your admin PIN to uncheck <strong className="text-white/60">{milestoneUncheck.label}</strong>.</p>
+            <input type="password" value={adminPin} onChange={e => setAdminPin(e.target.value)} placeholder="Enter PIN"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/20 transition text-center tracking-widest"
+              onKeyDown={e => e.key === "Enter" && submitUncheckPin()} />
+            {pinError && <p className="text-xs text-red-400">{pinError}</p>}
+            <div className="flex gap-2">
+              <button onClick={submitUncheckPin} disabled={!adminPin || submittingPin}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {submittingPin ? "Checking..." : "Confirm"}
+              </button>
+              <button onClick={() => { setMilestoneUncheck(null); setAdminPin(""); setPinError(""); }} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Approve banner */}
       {showApproveBanner && product?.approval_status === "pending_review" && !approveSuccess && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between">
@@ -439,7 +517,7 @@ export default function ProductPage() {
               {MILESTONES.map(m => {
                 const done = !!milestones[m.key];
                 return (
-                  <button key={m.key} onClick={() => toggleMilestone(m.key)} disabled={togglingMilestone === m.key}
+                  <button key={m.key} onClick={() => handleMilestoneClick(m.key, m.label, !!milestones[m.key])} disabled={togglingMilestone === m.key}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition text-left hover:bg-white/[0.02]"
                     style={{ borderColor: done ? "rgba(16,185,129,0.3)" : "rgba(255,255,255,0.06)", background: done ? "rgba(16,185,129,0.05)" : "" }}>
                     {togglingMilestone === m.key ? <Loader2 size={14} className="animate-spin text-white/30 flex-shrink-0" /> : done ? <CheckSquare size={14} className="text-emerald-400 flex-shrink-0" /> : <Square size={14} className="text-white/20 flex-shrink-0" />}

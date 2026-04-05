@@ -64,6 +64,7 @@ export default function PLMPage() {
   const [deletingPortalUser, setDeletingPortalUser] = useState<string|null>(null);
   const [filterStage, setFilterStage] = useState("");
   const [filterCollection, setFilterCollection] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [exporting, setExporting] = useState(false);
   const [exportColumns, setExportColumns] = useState(["name","sku","description","specs","category","collection","current_stage"]);
@@ -199,6 +200,13 @@ export default function PLMPage() {
   };
 
   const filteredProducts = products.filter(p => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchName = p.name?.toLowerCase().includes(q);
+      const matchSku = p.sku?.toLowerCase().includes(q);
+      const matchCollection = p.plm_collections?.name?.toLowerCase().includes(q);
+      if (!matchName && !matchSku && !matchCollection) return false;
+    }
     if (filterCollection && p.collection_id !== filterCollection) return false;
     if (filterStage) {
       const status = getProductStatus(p);
@@ -500,6 +508,7 @@ export default function PLMPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition w-44" />
                 <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                   <option value="">All Stages</option>
                   <option value="no_batches">Pre-production</option>
@@ -510,7 +519,7 @@ export default function PLMPage() {
                   {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 {(filterStage || filterCollection) && (
-                  <button onClick={() => { setFilterStage(""); setFilterCollection(""); }} className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1">
+                  <button onClick={() => { setFilterStage(""); setFilterCollection(""); setSearchQuery(""); }} className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1">
                     <X size={10} />Clear
                   </button>
                 )}
