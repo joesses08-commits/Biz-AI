@@ -601,7 +601,7 @@ export default function PLMPage() {
                   <div><label className={lc}>Email</label><input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})} placeholder="factory@example.com" className={ic} /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className={lc}>Password</label><input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})} placeholder="Temporary password" className={ic} /></div>
+                  <div><label className={lc}>Password</label><input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})} placeholder="Password" className={ic} /></div>
                   <div>
                     <label className={lc}>Factory</label>
                     <select value={newPortalUser.factory_id} onChange={e => setNewPortalUser({...newPortalUser, factory_id: e.target.value})} className={ic}>
@@ -666,7 +666,7 @@ export default function PLMPage() {
                   <div><label className={lc}>Name</label><input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})} placeholder="Designer name" className={ic} /></div>
                   <div><label className={lc}>Email</label><input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})} placeholder="designer@example.com" className={ic} /></div>
                 </div>
-                <div><label className={lc}>Password</label><input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})} placeholder="Temporary password" className={ic} /></div>
+                <div><label className={lc}>Password</label><input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})} placeholder="Password" className={ic} /></div>
                 <div className="flex gap-2">
                   <button onClick={createPortalUser} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                     {savingPortalUser ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Designer
