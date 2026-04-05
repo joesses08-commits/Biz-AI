@@ -181,6 +181,8 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
   // Other
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -193,6 +195,31 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
     setProducts(data.products || []);
     setCollections(data.collections || []);
     setLoading(false);
+  };
+
+  const uploadImage = async (productId: string, file: File) => {
+    setUploadingImage(productId);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("product_id", productId);
+    await fetch("/api/portal/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token()}` },
+      body: formData,
+    });
+    setUploadingImage(null);
+    load();
+  };
+
+  const deleteImage = async (productId: string, url: string) => {
+    setDeletingImage(url);
+    await fetch("/api/portal/upload", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+      body: JSON.stringify({ product_id: productId, url }),
+    });
+    setDeletingImage(null);
+    load();
   };
 
   const createProduct = async () => {
@@ -399,6 +426,26 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
 
                         {isExpanded && (
                           <div className="border-t border-white/[0.04] px-4 pb-4 pt-3 space-y-4">
+                            {/* Images */}
+                            <div>
+                              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">Images</p>
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                {(product.images || []).map((url: string) => (
+                                  <div key={url} className="relative group">
+                                    <img src={url} alt="" className="w-16 h-16 rounded-lg object-cover border border-white/[0.06]" />
+                                    <button onClick={() => deleteImage(product.id, url)} disabled={deletingImage === url}
+                                      className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/70 text-white/60 hover:text-red-400 items-center justify-center hidden group-hover:flex transition">
+                                      <X size={8} />
+                                    </button>
+                                  </div>
+                                ))}
+                                <label className="w-16 h-16 rounded-lg border border-dashed border-white/[0.12] flex items-center justify-center cursor-pointer hover:border-white/20 transition">
+                                  {uploadingImage === product.id ? <Loader2 size={14} className="animate-spin text-white/30" /> : <Plus size={14} className="text-white/20" />}
+                                  <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadImage(product.id, e.target.files[0]); }} />
+                                </label>
+                              </div>
+                            </div>
+
                             {/* Milestones */}
                             <div>
                               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">Milestones</p>
