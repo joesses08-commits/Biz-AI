@@ -269,11 +269,11 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
     load();
   };
 
-  const toggleMilestone = async (product_id: string, milestone: string, value: boolean) => {
+  const checkMilestone = async (product_id: string, milestone: string) => {
     await fetch("/api/portal/designer", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-      body: JSON.stringify({ action: "toggle_milestone", product_id, milestone, value }),
+      body: JSON.stringify({ action: "toggle_milestone", product_id, milestone, value: true }),
     });
     load();
   };
@@ -411,6 +411,7 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
                               <p className="text-sm font-semibold">{product.name}</p>
                               {product.sku && <span className="text-[10px] font-mono text-white/30">{product.sku}</span>}
                               {isPendingReview && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Pending Approval</span>}
+                              {product.approval_status === "approved" && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">✓ Design Complete</span>}
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage?.color }} />
@@ -451,12 +452,15 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
                               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-2">Milestones</p>
                               <div className="space-y-1.5">
                                 {MILESTONES.map(m => (
-                                  <button key={m.key} onClick={() => toggleMilestone(product.id, m.key, !milestones[m.key])}
-                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-white/[0.06] hover:bg-white/[0.03] transition text-left">
+                                  <button key={m.key}
+                                    onClick={() => { if (!milestones[m.key] && window.confirm(`Mark "${m.label}" as complete? This cannot be undone.`)) checkMilestone(product.id, m.key); }}
+                                    disabled={!!milestones[m.key]}
+                                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border transition text-left ${milestones[m.key] ? "border-emerald-500/20 bg-emerald-500/5 cursor-default" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
                                     <div className={`w-4 h-4 rounded flex items-center justify-center border transition ${milestones[m.key] ? "bg-emerald-500 border-emerald-500" : "border-white/20"}`}>
                                       {milestones[m.key] && <Check size={10} className="text-white" />}
                                     </div>
-                                    <span className="text-xs text-white/60">{m.label}</span>
+                                    <span className={`text-xs ${milestones[m.key] ? "text-emerald-400" : "text-white/60"}`}>{m.label}</span>
+                                    {milestones[m.key] && <span className="text-[10px] text-emerald-400/50 ml-auto">Complete</span>}
                                   </button>
                                 ))}
                               </div>

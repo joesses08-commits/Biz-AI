@@ -183,14 +183,16 @@ export async function POST(req: NextRequest) {
 
   if (action === "approve_product") {
     const { id } = body;
+    // Mark approved + auto-complete all milestones
     await supabaseAdmin.from("plm_products").update({
       approval_status: "approved",
+      milestones: { design_brief: true, sampling: true, sample_approved: true },
       updated_at: new Date().toISOString(),
     }).eq("id", id).eq("user_id", user.id);
     // Log to stage history
     await supabaseAdmin.from("plm_stages").insert({
       product_id: id, user_id: user.id,
-      stage: "design_brief", notes: "Product approved by admin",
+      stage: "sample_approved", notes: "Product approved by admin — all pre-production milestones marked complete",
       updated_by: user.email, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });

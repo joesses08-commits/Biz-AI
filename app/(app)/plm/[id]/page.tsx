@@ -372,22 +372,41 @@ export default function ProductPage() {
 
       {/* Approve banner */}
       {showApproveBanner && product?.approval_status === "pending_review" && !approveSuccess && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-amber-400" />
-            <p className="text-sm text-amber-300 font-medium">Designer submitted this product for approval</p>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-amber-500/30 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <div className="w-3 h-3 rounded-full bg-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Pending Approval</p>
+                <p className="text-xs text-white/40">A designer submitted this product for your review</p>
+              </div>
+            </div>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-1">
+              <p className="text-sm font-semibold text-white">{product?.name}</p>
+              {product?.sku && <p className="text-xs text-white/30 font-mono">{product.sku}</p>}
+              {product?.description && <p className="text-xs text-white/40 mt-1">{product.description}</p>}
+              {product?.specs && <p className="text-xs text-white/30 mt-1">{product.specs}</p>}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={approveProduct} disabled={approvingProduct}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition disabled:opacity-50">
+                {approvingProduct ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                Approve Product
+              </button>
+              <button onClick={() => window.history.replaceState({}, "", window.location.pathname)}
+                className="px-4 rounded-xl border border-white/[0.08] text-white/30 text-sm hover:text-white/60 transition">
+                Review First
+              </button>
+            </div>
           </div>
-          <button onClick={approveProduct} disabled={approvingProduct}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition disabled:opacity-50">
-            {approvingProduct ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-            Approve Product
-          </button>
         </div>
       )}
       {approveSuccess && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-emerald-500/10 border-b border-emerald-500/20 px-6 py-3 flex items-center gap-2">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-6 py-3 flex items-center gap-2 shadow-xl">
           <Check size={14} className="text-emerald-400" />
-          <p className="text-sm text-emerald-300 font-medium">Product approved successfully</p>
+          <p className="text-sm text-emerald-300 font-medium">Product approved — all milestones marked complete</p>
         </div>
       )}
 
