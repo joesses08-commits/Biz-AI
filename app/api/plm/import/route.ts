@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { action } = body;
 
-  // Step 1 — map columns using Haiku
   if (action === "map") {
     const { headers, sample_rows } = body;
 
@@ -39,17 +38,19 @@ Sample data (first 3 rows): ${JSON.stringify(sample_rows)}
 
 Map each header to one of these fields (or "ignore" if not relevant):
 - name (product name, required)
-- sku (product code, item number)
+- sku (product code, item number, SKU)
 - description (product description)
-- specs (specifications, material, size, color, dimensions)
+- specs (specifications, material, size, color, dimensions, finish)
 - category (product category, type)
 - collection (collection name, season)
 - factory (factory name, supplier, vendor)
-- target_elc (cost, ELC, unit cost, FOB price)
+- target_elc (cost, ELC, unit cost, FOB price, unit price)
 - target_sell_price (sell price, retail price, wholesale price)
-- moq (minimum order quantity)
-- order_quantity (order qty, units)
-- notes (notes, comments, remarks)
+- moq (minimum order quantity, MOQ)
+- order_quantity (order qty, units, qty requested)
+- notes (notes, comments, remarks, lead time)
+
+Important: "Photo" or image columns should be "ignore". Combine material + size + color into specs if separate.
 
 Respond ONLY with a JSON object like:
 {
@@ -57,7 +58,7 @@ Respond ONLY with a JSON object like:
     "ORIGINAL_HEADER": "field_name_or_ignore"
   },
   "confidence": "high/medium/low",
-  "notes": "any important notes about the mapping"
+  "notes": "any important notes"
 }`;
 
     const res = await anthropic.messages.create({
@@ -70,25 +71,14 @@ Respond ONLY with a JSON object like:
     const start = raw.indexOf("{");
     const end = raw.lastIndexOf("}");
     const parsed = JSON.parse(raw.slice(start, end + 1));
-
     return NextResponse.json(parsed);
   }
 
-  // Step 2 — create products from confirmed mappings
   if (action === "import") {
-    const { rows, mappings, collection_id, images } = body;
+    const { rows, mappings, collection_id } = body;
 
-    // Get factories for name matching
-    const { data: factories } = await supabaseAdmin
-      .from("factory_catalog")
-      .select("id, name")
-      .eq("user_id", user.id);
-
-    // Get collections for name matching
-    const { data: collections } = await supabaseAdmin
-      .from("plm_collections")
-      .select("id, name")
-      .eq("user_id", user.id);
+    const { data: factories } = await supabaseAdmin.from("factory_catalog").select("id, name").eq("user_id", user.id);
+    const { data: collections } = await supabaseAdmin.from("plm_collections").select("id, name").eq("user_id", user.id);
 
     const created = [];
     const errors = [];
@@ -103,19 +93,17 @@ Respond ONLY with a JSON object like:
           status: "active",
         };
 
-        // Apply mappings
         for (const [header, fieldRaw] of Object.entries(mappings)) {
           const field = fieldRaw as string;
           if (field === "ignore" || !field) continue;
           const val = (row as Record<string, any>)[header];
-          if (!val && val !== 0) continue;
+          if (val === null || val === undefined || val === "") continue;
 
           if (field === "target_elc" || field === "target_sell_price") {
             product[field] = parseFloat(String(val).replace(/[^0-9.]/g, "")) || null;
           } else if (field === "moq" || field === "order_quantity") {
             product[field] = parseInt(String(val)) || null;
           } else if (field === "factory") {
-            // Match factory name to ID
             const match = factories?.find(f => f.name.toLowerCase().includes(String(val).toLowerCase()) || String(val).toLowerCase().includes(f.name.toLowerCase()));
             if (match) product.factory_id = match.id;
           } else if (field === "collection") {
@@ -125,29 +113,22 @@ Respond ONLY with a JSON object like:
               const match = collections?.find(c => c.name.toLowerCase().includes(String(val).toLowerCase()));
               if (match) product.collection_id = match.id;
             }
+          } else if (field === "specs") {
+            // Append to specs if already set (combine material + size + color)
+            product[field] = product[field] ? `${product[field]}, ${String(val)}` : String(val);
           } else {
             product[field] = String(val);
           }
         }
 
+        // Apply collection_id override
+        if (collection_id && !product.collection_id) product.collection_id = collection_id;
+
         if (!product.name) { errors.push(`Row ${i + 1}: missing product name`); continue; }
-
-        // Attach image if available
-        let imageUrl = null;
-        if (images && images[i]) {
-          const imgBuffer = Buffer.from(images[i], "base64");
-          const path = `${user.id}/imports/${Date.now()}_${i}.jpg`;
-          await supabaseAdmin.storage.from("plm-images").upload(path, imgBuffer, { contentType: "image/jpeg", upsert: false });
-          const { data: { publicUrl } } = supabaseAdmin.storage.from("plm-images").getPublicUrl(path);
-          imageUrl = publicUrl;
-        }
-
-        if (imageUrl) product.images = [imageUrl];
 
         const { data, error } = await supabaseAdmin.from("plm_products").insert(product).select().single();
         if (error) { errors.push(`Row ${i + 1}: ${error.message}`); continue; }
 
-        // Log initial stage
         await supabaseAdmin.from("plm_stages").insert({
           product_id: data.id, user_id: user.id,
           stage: "design_brief", notes: "Imported from spreadsheet",

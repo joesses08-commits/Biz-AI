@@ -180,30 +180,44 @@ export default function PLMPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setImporting(true);
-    const text = await file.text();
-    const lines = text.split("\n").filter(l => l.trim());
-    const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
-    const rows = lines.slice(1, 4).map(line => {
-      const vals = line.split(",").map(v => v.replace(/"/g, "").trim());
-      const obj: any = {};
-      headers.forEach((h, i) => obj[h] = vals[i] || "");
-      return obj;
-    });
-    const allRows = lines.slice(1).map(line => {
-      const vals = line.split(",").map(v => v.replace(/"/g, "").trim());
-      const obj: any = {};
-      headers.forEach((h, i) => obj[h] = vals[i] || "");
-      return obj;
-    });
-    setImportData({ headers, sample_rows: rows, all_rows: allRows });
-    // Map columns with Haiku
-    const mapRes = await fetch("/api/plm/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "map", headers, sample_rows: rows }),
-    });
-    const mapData = await mapRes.json();
-    setImportMappings(mapData.mappings || {});
+
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+
+      // Find the real header row (first row where >3 cells have content)
+      let headerRowIdx = 0;
+      for (let i = 0; i < Math.min(10, raw.length); i++) {
+        const nonEmpty = raw[i].filter((c: any) => c !== null && c !== undefined && c !== "").length;
+        if (nonEmpty >= 3) { headerRowIdx = i; break; }
+      }
+
+      const headers = raw[headerRowIdx].map((h: any) => String(h || "").trim()).filter((h: string) => h);
+      const dataRows = raw.slice(headerRowIdx + 1).filter((row: any[]) => row.some((c: any) => c !== null && c !== undefined && c !== ""));
+
+      const allRows = dataRows.map((row: any[]) => {
+        const obj: Record<string, any> = {};
+        headers.forEach((h: string, i: number) => { obj[h] = row[i] !== undefined ? row[i] : ""; });
+        return obj;
+      });
+
+      const sampleRows = allRows.slice(0, 3);
+      setImportData({ headers, sample_rows: sampleRows, all_rows: allRows });
+
+      const mapRes = await fetch("/api/plm/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "map", headers, sample_rows: sampleRows }),
+      });
+      const mapData = await mapRes.json();
+      setImportMappings(mapData.mappings || {});
+    } catch (err) {
+      console.error("Import error:", err);
+    }
+
     setImporting(false);
     setImportStep("map");
   };
