@@ -110,14 +110,11 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }).eq("id", product_id);
 
-    // Get owner email to notify Uncle David
-    const { data: ownerProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", portalUser.user_id)
-      .single();
+    // Get owner email from Supabase Auth
+    const { data: { user: ownerUser } } = await supabaseAdmin.auth.admin.getUserById(portalUser.user_id);
+    const ownerEmail = ownerUser?.email;
 
-    if (ownerProfile?.email) {
+    if (ownerEmail) {
       await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -126,7 +123,7 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           from: "Jimmy AI <onboarding@resend.dev>",
-          to: ownerProfile.email,
+          to: ownerEmail,
           subject: `Designer submitted ${product.name} for approval`,
           html: `
             <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
