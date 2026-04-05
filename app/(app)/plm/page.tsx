@@ -186,7 +186,10 @@ export default function PLMPage() {
       const buffer = await file.arrayBuffer();
 
       // Store raw base64 for image extraction on server
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      const uint8 = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
+      const base64 = btoa(binary);
 
       const wb = XLSX.read(buffer, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
