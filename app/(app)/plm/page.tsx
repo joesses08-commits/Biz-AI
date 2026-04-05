@@ -150,7 +150,7 @@ export default function PLMPage() {
     const res = await fetch("/api/plm/export", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ product_ids: selectedProducts, columns: exportColumns, include_images: exportColumns.includes("images") }) });
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `product-catalog-${Date.now()}.csv`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `product-catalog-${Date.now()}.xlsx`; a.click();
     URL.revokeObjectURL(url);
     setExporting(false); setShowExportModal(false);
   };
@@ -362,7 +362,7 @@ export default function PLMPage() {
                 <button onClick={handleExport} disabled={exporting || exportColumns.length === 0}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {exporting ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
-                  {exporting ? "Exporting..." : "Export CSV"}
+                  {exporting ? "Exporting..." : "Export Excel"}
                 </button>
                 <button onClick={() => setShowExportModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
               </div>
