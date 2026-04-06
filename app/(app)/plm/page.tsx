@@ -227,6 +227,10 @@ export default function PLMPage() {
     if (filterCollection && p.collection_id !== filterCollection) return false;
     if (filterStage) {
       const status = getProductStatus(p);
+      if (DEV_STAGE_LABELS[filterStage]) {
+        // Dev stage filter — match current_stage and no production batches
+        return p.current_stage === filterStage && !status;
+      }
       if (filterStage === "no_batches" && (p.plm_batches || []).length > 0) return false;
       if (filterStage !== "no_batches" && status !== filterStage) return false;
     }
@@ -743,8 +747,12 @@ export default function PLMPage() {
                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition w-44" />
                 <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                   <option value="">All Stages</option>
-                  <option value="no_batches">Pre-production</option>
-                  {BATCH_STAGE_ORDER.map(s => <option key={s} value={s}>{BATCH_STAGE_LABELS[s]}</option>)}
+                  <optgroup label="Development">
+                    {Object.entries(DEV_STAGE_LABELS).map(([key, label]) => <option key={key} value={key}>{label as string}</option>)}
+                  </optgroup>
+                  <optgroup label="Production">
+                    {BATCH_STAGE_ORDER.map(s => <option key={s} value={s}>{BATCH_STAGE_LABELS[s]}</option>)}
+                  </optgroup>
                 </select>
                 <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                   <option value="">All Collections</option>
