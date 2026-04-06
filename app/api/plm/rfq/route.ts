@@ -58,6 +58,11 @@ export async function POST(req: NextRequest) {
 
   if (!products?.length) return NextResponse.json({ error: "Products not found" }, { status: 404 });
 
+  // Check if any product has an image
+  const hasImages = products.some((p: any) => p.images && p.images.length > 0);
+  const hasRefUrls = products.some((p: any) => p.reference_url);
+  const imageColOffset = hasImages ? 1 : 0;
+
   // Build Excel
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("RFQ");
@@ -67,9 +72,7 @@ export async function POST(req: NextRequest) {
     font: { bold: true, color: { argb: "FFFFFFFF" } },
     fill: { type: "pattern", pattern: "solid", fgColor: { argb: "FF1a1a2e" } },
     alignment: { horizontal: "center", vertical: "middle" },
-    border: {
-      bottom: { style: "thin", color: { argb: "FF444444" } },
-    },
+    border: { bottom: { style: "thin", color: { argb: "FF444444" } } },
   };
 
   const askStyle: Partial<ExcelJS.Style> = {
@@ -78,12 +81,24 @@ export async function POST(req: NextRequest) {
     alignment: { horizontal: "center", vertical: "middle" },
   };
 
-  // Build columns
-  const columns: { header: string; key: string; width: number; isAsk?: boolean }[] = [];
-  
-  (include || []).forEach((key: string) => {
+  // Build columns — image first if any, then info, then ref url, then ask-for
+  const columns: { header: string; key: string; width: number; isAsk?: boolean; isImage?: boolean }[] = [];
+
+  if (hasImages) {
+    columns.push({ header: "Image", key: "_image", width: 15, isImage: true });
+  }
+
+  (include || []).filter((k: string) => k !== "images").forEach((key: string) => {
     columns.push({ header: INCLUDE_LABELS[key] || key, key, width: 25 });
   });
+
+  // Add image URLs as text column if included
+  if ((include || []).includes("images")) {
+    columns.push({ header: "Image URL", key: "images", width: 30 });
+  }
+
+  // Reference URL column
+  columns.push({ header: "Reference / Dropbox Link", key: "reference_url", width: 35 });
 
   (ask_for || []).forEach((key: string) => {
     columns.push({ header: ASK_FOR_LABELS[key] || key, key: `ask_${key}`, width: 20, isAsk: true });
@@ -96,33 +111,60 @@ export async function POST(req: NextRequest) {
   headerRow.height = 30;
   columns.forEach((col, i) => {
     const cell = headerRow.getCell(i + 1);
-    Object.assign(cell, col.isAsk ? askStyle : headerStyle);
+    if (col.isImage) {
+      Object.assign(cell, { ...headerStyle, value: "Image" });
+    } else {
+      Object.assign(cell, col.isAsk ? askStyle : headerStyle);
+    }
   });
 
-  // Add product rows
-  products.forEach((product: any) => {
+  // Add product rows with images
+  const ROW_HEIGHT = 80;
+  for (let pi = 0; pi < products.length; pi++) {
+    const product = products[pi] as any;
+    const rowNum = pi + 2;
     const row: any = {};
-    (include || []).forEach((key: string) => {
+
+    (include || []).filter((k: string) => k !== "images").forEach((key: string) => {
       if (key === "collection") row[key] = product.plm_collections?.name || "";
-      else if (key === "images") row[key] = (product.images || []).join(", ");
       else row[key] = product[key] || "";
     });
-    (ask_for || []).forEach((key: string) => {
-      row[`ask_${key}`] = "";
-    });
-    sheet.addRow(row);
-  });
+    if ((include || []).includes("images")) row["images"] = (product.images || []).join(", ");
+    row["reference_url"] = product.reference_url || "";
+    (ask_for || []).forEach((key: string) => { row[`ask_${key}`] = ""; });
 
-  // Style data rows
-  for (let i = 2; i <= products.length + 1; i++) {
-    const row = sheet.getRow(i);
-    row.height = 20;
+    const excelRow = sheet.addRow(row);
+    excelRow.height = hasImages ? ROW_HEIGHT : 20;
+
+    // Embed image in column A if product has one
+    if (hasImages) {
+      const imageUrl = product.images?.[0];
+      if (imageUrl) {
+        try {
+          const imgRes = await fetch(imageUrl);
+          if (imgRes.ok) {
+            const imgBuffer = await imgRes.arrayBuffer();
+            const ext = imageUrl.split(".").pop()?.toLowerCase() || "jpeg";
+            const mimeMap: any = { jpg: "jpeg", jpeg: "jpeg", png: "png", gif: "gif" };
+            const imgType = mimeMap[ext] || "jpeg";
+            const imageId = workbook.addImage({ buffer: Buffer.from(imgBuffer), extension: imgType as any });
+            sheet.addImage(imageId, {
+              tl: { col: 0, row: rowNum - 1 },
+              ext: { width: 80, height: 80 },
+            });
+          }
+        } catch {}
+      }
+    }
+
+    // Style data cells
     columns.forEach((col, j) => {
-      const cell = row.getCell(j + 1);
+      const cell = excelRow.getCell(j + 1);
       cell.border = { bottom: { style: "hair", color: { argb: "FF333333" } } };
       if (col.isAsk) {
         cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF9E6" } };
       }
+      cell.alignment = { vertical: "top", wrapText: true };
     });
   }
 

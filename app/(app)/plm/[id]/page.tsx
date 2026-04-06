@@ -248,6 +248,14 @@ ${entry}` : entry;
     load();
   };
 
+  const setCoverImage = async (url: string) => {
+    const images = product.images || [];
+    const reordered = [url, ...images.filter((img: string) => img !== url)];
+    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_product", id: product.id, images: reordered }) });
+    load();
+  };
+
   const handleImageDelete = async (url: string) => {
     setDeletingImage(url);
     await fetch("/api/plm/upload", { method: "DELETE", headers: { "Content-Type": "application/json" },
@@ -635,6 +643,7 @@ ${entry}` : entry;
                 {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
+            <InlineField label="Reference / Dropbox Link" value={product.reference_url || ""} onSave={v => saveField("reference_url", v)} />
             <InlineField label="Notes" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline />
           </div>
 
@@ -659,13 +668,22 @@ ${entry}` : entry;
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-3">
-                {(product.images || []).map((url: string) => (
-                  <div key={url} className="relative group rounded-xl overflow-hidden border border-white/[0.06] aspect-square">
+                {(product.images || []).map((url: string, idx: number) => (
+                  <div key={url} className={`relative group rounded-xl overflow-hidden border aspect-square ${idx === 0 ? "border-blue-500/40" : "border-white/[0.06]"}`}>
                     <img src={url} alt="Product" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    {idx === 0 && (
+                      <div className="absolute top-1.5 left-1.5 text-[9px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">Cover</div>
+                    )}
+                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1.5">
+                      {idx !== 0 && (
+                        <button onClick={() => setCoverImage(url)}
+                          className="text-[10px] px-2 py-1 rounded-lg bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:bg-blue-500/50 transition">
+                          Set as Cover
+                        </button>
+                      )}
                       <button onClick={() => handleImageDelete(url)} disabled={deletingImage === url}
-                        className="p-2 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition">
-                        {deletingImage === url ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        className="p-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition">
+                        {deletingImage === url ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                       </button>
                     </div>
                   </div>
