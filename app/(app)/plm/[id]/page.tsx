@@ -1001,7 +1001,7 @@ ${entry}` : entry;
                                             Mark Sample Arrived
                                           </button>
                                         )}
-                                        {sr.current_stage === "sample_arrived" && (
+                                        {sr.current_stage === "sample_arrived" && sr.label !== "additional" && (
                                           <div className="space-y-2">
                                             <p className="text-[10px] text-white/25 uppercase tracking-widest">Review</p>
                                             <div className="flex gap-1.5 flex-wrap">
