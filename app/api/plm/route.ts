@@ -310,27 +310,29 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Update product stage + notes
+    // Update product stage + notes (only if not a force/additional request)
     const factoryNames = (factories || []).map((f: any) => f.name).join(", ");
-    const noteEntry = note
-      ? `Samples Requested: requested from ${factoryNames} — ${note}`
-      : `Samples Requested: requested from ${factoryNames}`;
-    const { data: product } = await supabaseAdmin.from("plm_products").select("notes").eq("id", product_id).single();
-    const updatedNotes = product?.notes ? `${product.notes}
+    if (!force) {
+      const noteEntry = note
+        ? `Samples Requested: requested from ${factoryNames} — ${note}`
+        : `Samples Requested: requested from ${factoryNames}`;
+      const { data: product } = await supabaseAdmin.from("plm_products").select("notes").eq("id", product_id).single();
+      const updatedNotes = product?.notes ? `${product.notes}
 ${noteEntry}` : noteEntry;
 
-    await supabaseAdmin.from("plm_products").update({
-      current_stage: "samples_requested",
-      notes: updatedNotes,
-      updated_at: new Date().toISOString(),
-    }).eq("id", product_id).eq("user_id", user.id);
+      await supabaseAdmin.from("plm_products").update({
+        current_stage: "samples_requested",
+        notes: updatedNotes,
+        updated_at: new Date().toISOString(),
+      }).eq("id", product_id).eq("user_id", user.id);
 
-    await supabaseAdmin.from("plm_stages").insert({
-      product_id, user_id: user.id,
-      stage: "samples_requested",
-      notes: `Sample requested from ${factoryNames}`,
-      updated_by: user.email, updated_by_role: "admin",
-    });
+      await supabaseAdmin.from("plm_stages").insert({
+        product_id, user_id: user.id,
+        stage: "samples_requested",
+        notes: `Sample requested from ${factoryNames}`,
+        updated_by: user.email, updated_by_role: "admin",
+      });
+    }
 
     // Get user profile for sign-off name
     const { data: userProfile } = await supabaseAdmin
