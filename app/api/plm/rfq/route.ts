@@ -169,5 +169,11 @@ export async function POST(req: NextRequest) {
     created_at: new Date().toISOString(),
   });
 
-  return NextResponse.json({ success: true, job_id: job.id, job_name: jobName });
+  return NextResponse.json({ 
+    success: true, 
+    job_id: job.id, 
+    job_name: jobName,
+    file_base64: base64,
+    file_name: `RFQ_${Date.now()}.xlsx`
+  });
 }

@@ -486,6 +486,17 @@ export default function PLMPage() {
                     const data = await res.json();
                     if (data.job_id) {
                       setRfqJobId(data.job_id);
+                      // Auto-download the Excel file
+                      if (data.file_base64) {
+                        const bytes = Uint8Array.from(atob(data.file_base64), c => c.charCodeAt(0));
+                        const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = data.file_name || "RFQ.xlsx";
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }
                       load();
                     }
                   } finally {
