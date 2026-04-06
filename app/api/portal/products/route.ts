@@ -22,11 +22,12 @@ export async function GET(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // ALL sample requests for this factory (including killed/approved for history)
+  // ALL sample requests for this factory (all statuses for full history)
   const { data: sampleRequests } = await supabaseAdmin
     .from("plm_sample_requests")
-    .select("product_id, current_stage, status, id")
-    .eq("factory_id", portalUser.factory_id);
+    .select("product_id, current_stage, status, id, created_at")
+    .eq("factory_id", portalUser.factory_id)
+    .order("created_at", { ascending: true });
 
   // Products with production orders for this factory (all statuses for history)
   const { data: batches } = await supabaseAdmin

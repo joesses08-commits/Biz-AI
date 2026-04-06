@@ -69,13 +69,15 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     sample_complete: "Sample Complete",
     sample_shipped: "Sample Shipped",
     sample_arrived: "Sample Arrived",
-    killed: "Killed",
+    revision_requested: "Revision Requested",
+    killed: "Ended",
   };
   const SAMPLE_STAGE_COLORS: Record<string,string> = {
     sample_production: "#f59e0b",
-    sample_complete: "#f59e0b",
+    sample_complete: "#10b981",
     sample_shipped: "#3b82f6",
-    sample_arrived: "#10b981",
+    sample_arrived: "#8b5cf6",
+    revision_requested: "#f59e0b",
     killed: "#ef4444",
   };
 
@@ -162,13 +164,13 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                   {isProductKilled && (
                     <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                      <p className="text-xs text-red-300">We have decided not to move forward with this product. No further action needed.</p>
+                      <p className="text-xs text-red-300">This product is no longer moving forward. No further action needed.</p>
                     </div>
                   )}
                   {!isProductKilled && allKilled && !anyApproved && (
                     <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                      <p className="text-xs text-red-300">We have moved forward with another factory for this product. Please disregard any pending samples.</p>
+                      <p className="text-xs text-red-300">We have selected another factory for this product. Please disregard any pending samples — thank you for your time.</p>
                     </div>
                   )}
 
@@ -179,8 +181,8 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                       const isKilledRound = sr.status === "killed";
                       const isApprovedRound = sr.status === "approved";
                       const isRevisionRound = sr.status === "revision";
-                      const isActive = !isKilledRound && !isApprovedRound;
-                      const roundLabel = roundIdx === 0 ? "Round 1" : `Round ${roundIdx + 1} — Revision`;
+                      const isActive = sr.status === "requested" && roundIdx === allSampleRequests.length - 1;
+                      const roundLabel = roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
 
                       return (
                         <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>

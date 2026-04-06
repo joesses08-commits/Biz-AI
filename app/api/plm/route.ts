@@ -430,17 +430,62 @@ ${senderName}`;
     if (outcome) updates.status = outcome;
     if (notes) updates.notes = notes;
 
-    // Handle revision — reset stage to sample_production
+    // Handle revision — mark current request as revision_complete, create new request for round 2
     if (outcome === "revision") {
-      updates.current_stage = "sample_production";
-      updates.status = "revision";
+      // Close current request with revision status
+      await supabaseAdmin.from("plm_sample_requests").update({
+        status: "revision",
+        notes: notes || "",
+        updated_at: new Date().toISOString(),
+      }).eq("id", sample_request_id);
+
+      // Log revision stage to current request
+      await supabaseAdmin.from("plm_sample_stages").insert({
+        sample_request_id, product_id, factory_id, user_id: user.id,
+        stage: "revision_requested",
+        notes: notes || "Revision requested",
+        updated_by: user.email, updated_by_role: "admin",
+      });
+
+      // Create new request for next round
+      const { data: newReq } = await supabaseAdmin.from("plm_sample_requests").insert({
+        product_id, factory_id, user_id: user.id,
+        status: "requested",
+        current_stage: "sample_production",
+        notes: notes || "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }).select().single();
+
+      if (newReq) {
+        await supabaseAdmin.from("plm_sample_stages").insert({
+          sample_request_id: newReq.id, product_id, factory_id, user_id: user.id,
+          stage: "sample_production",
+          notes: "Revision round started",
+          updated_by: user.email, updated_by_role: "admin",
+        });
+      }
+
+      // Log to product notes
+      const { data: factoryDataRev } = await supabaseAdmin.from("factory_catalog").select("name").eq("id", factory_id).single();
+      const { data: productDataRev } = await supabaseAdmin.from("plm_products").select("notes").eq("id", product_id).single();
+      const revNote = `Revision Requested to ${factoryDataRev?.name || "factory"}: ${notes || ""}`;
+      const revNotes = productDataRev?.notes ? `${productDataRev.notes}
+${revNote}` : revNote;
+      await supabaseAdmin.from("plm_products").update({ notes: revNotes, updated_at: new Date().toISOString() }).eq("id", product_id);
+      await supabaseAdmin.from("plm_stages").insert({
+        product_id, user_id: user.id, stage: "samples_requested",
+        notes: revNote, updated_by: user.email, updated_by_role: "admin",
+      });
+
+      return NextResponse.json({ success: true });
     }
 
     await supabaseAdmin.from("plm_sample_requests").update(updates).eq("id", sample_request_id);
 
     await supabaseAdmin.from("plm_sample_stages").insert({
       sample_request_id, product_id, factory_id, user_id: user.id,
-      stage: outcome === "revision" ? "sample_production" : stage,
+      stage,
       notes: notes || "",
       updated_by: user.email, updated_by_role: "admin",
     });
