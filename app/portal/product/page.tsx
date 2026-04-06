@@ -35,6 +35,7 @@ export default function PortalProductPage() {
   const [updatingSample, setUpdatingSample] = useState(false);
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
   const [sampleNote, setSampleNote] = useState("");
+  const [pendingSampleStage, setPendingSampleStage] = useState<{stage: string, srId: string} | null>(null);
   const [orderNotes, setOrderNotes] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -215,7 +216,7 @@ export default function PortalProductPage() {
 
               {/* Nav arrows */}
               <div className="flex items-center justify-between gap-4 px-5 py-4">
-                <button onClick={() => prev && updateSampleStage(prev.key, sr.id)} disabled={!prev || updatingSample}
+                <button onClick={() => prev && setPendingSampleStage({ stage: prev.key, srId: sr.id })} disabled={!prev || updatingSample}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
                   ← {prev ? prev.label : "Start"}
                 </button>
@@ -226,39 +227,39 @@ export default function PortalProductPage() {
                   </div>
                   <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {SAMPLE_STAGES.length}</p>
                 </div>
-                <button onClick={() => next && updateSampleStage(next.key, sr.id)} disabled={!next || updatingSample}
+                <button onClick={() => next && setPendingSampleStage({ stage: next.key, srId: sr.id })} disabled={!next || updatingSample}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
                   style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
                   {next ? next.label : "Complete"} →
                 </button>
               </div>
 
-              {/* Note input */}
-              <div className="px-5 pb-4 space-y-2">
-                <p className="text-[10px] text-white/25 uppercase tracking-widest">Note for this stage (optional)</p>
-                <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
-                  placeholder="e.g. Sample dispatched via DHL, tracking #1234"
-                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
-                {sampleNote.trim() && (
-                  <button onClick={async () => {
-                    if (!sr.current_stage) return;
-                    setUpdatingSample(true);
-                    await fetch("/api/portal/update", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-                      body: JSON.stringify({ product_id: productId, sample_request_id: sr.id, stage: sr.current_stage, notes: sampleNote }),
-                    });
-                    setUpdatingSample(false);
-                    setSampleNote("");
-                    setSuccess("Note saved");
-                    setTimeout(() => setSuccess(""), 3000);
-                    load();
-                  }} disabled={updatingSample}
-                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 text-white/60 hover:text-white hover:bg-white/[0.09] transition">
-                    Save Note
-                  </button>
-                )}
-              </div>
+              {/* Pending stage confirm with note */}
+              {pendingSampleStage && pendingSampleStage.srId === sr.id && (
+                <div className="mx-5 mb-4 border border-white/10 rounded-xl p-4 space-y-3 bg-white/[0.02]">
+                  <p className="text-xs text-white/60 font-medium">
+                    Moving to: <span className="text-white">{SAMPLE_STAGES.find(s => s.key === pendingSampleStage.stage)?.label}</span>
+                  </p>
+                  <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
+                    placeholder="Add a note (optional) — e.g. dispatched via DHL, tracking #1234"
+                    rows={2} autoFocus
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                  <div className="flex gap-2">
+                    <button onClick={async () => {
+                      setUpdatingSample(true);
+                      await updateSampleStage(pendingSampleStage.stage, pendingSampleStage.srId);
+                      setPendingSampleStage(null);
+                      setSampleNote("");
+                      setUpdatingSample(false);
+                    }} disabled={updatingSample}
+                      className="flex-1 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
+                      {updatingSample ? "Saving..." : "Confirm"}
+                    </button>
+                    <button onClick={() => { setPendingSampleStage(null); setSampleNote(""); }}
+                      className="px-4 rounded-xl border border-white/[0.08] text-white/30 text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
 
               {/* Stage timeline */}
               <div className="border-t border-white/[0.05] px-5 py-4">
