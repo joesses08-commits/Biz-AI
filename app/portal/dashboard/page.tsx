@@ -47,6 +47,10 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"samples"|"orders">("samples");
   const [collapsedSamples, setCollapsedSamples] = useState<Record<string, boolean>>({});
+  const [maxSamples, setMaxSamples] = useState(50);
+  const [editingMax, setEditingMax] = useState(false);
+  const [maxInput, setMaxInput] = useState("50");
+  const [savingMax, setSavingMax] = useState(false);
 
   useEffect(() => { loadProducts(); }, []);
 
@@ -57,12 +61,42 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     if (res.status === 401) { router.push("/portal"); return; }
     const data = await res.json();
     setProducts(data.products || []);
+    if (data.max_samples) { setMaxSamples(data.max_samples); setMaxInput(String(data.max_samples)); }
     setLoading(false);
   };
 
   const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
 
-  const sampleProducts = products.filter(p => p._has_sample).sort((a: any, b: any) => { const pa = a._sample_priority ?? 99999; const pb = b._sample_priority ?? 99999; return pa - pb; });
+  const saveMax = async () => {
+    setSavingMax(true);
+    await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_max_samples", factory_id: portalUser?.factory_id, max_samples: parseInt(maxInput) || 50 }) });
+    setMaxSamples(parseInt(maxInput) || 50);
+    setSavingMax(false);
+    setEditingMax(false);
+  };
+
+  const allSampleProducts = products.filter(p => p._has_sample);
+  const activeSamples = allSampleProducts.filter(p => {
+    const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
+    const active = reqs.find((s: any) => s.status === "requested");
+    return active && (p._sample_priority != null && p._sample_priority <= maxSamples);
+  }).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
+  const upcomingSamples = allSampleProducts.filter(p => {
+    const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
+    const active = reqs.find((s: any) => s.status === "requested");
+    return active && (p._sample_priority == null || p._sample_priority > maxSamples);
+  }).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
+  const historySamples = allSampleProducts.filter(p => {
+    const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
+    const hasActive = reqs.some((s: any) => s.status === "requested");
+    return !hasActive;
+  }).sort((a: any, b: any) => {
+    const aApproved = (a.plm_sample_requests || []).some((s: any) => s.status === "approved") ? 0 : 1;
+    const bApproved = (b.plm_sample_requests || []).some((s: any) => s.status === "approved") ? 0 : 1;
+    return aApproved - bApproved;
+  });
+  const sampleProducts = allSampleProducts;
   const orderProducts = products.filter(p => p._has_production);
 
   const SAMPLE_STAGE_LABELS: Record<string,string> = {
@@ -89,6 +123,143 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     qc_inspection: "QC Inspection",
     ready_to_ship: "Ready to Ship",
     shipped: "Shipped",
+  };
+
+  const renderSampleProduct = (product: any, isUpcoming: boolean) => {
+    const allSampleRequests = (product.plm_sample_requests || [])
+      .filter((s: any) => s.factory_id === portalUser?.factory_id)
+      .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const isProductKilled = product.status === "killed";
+    const allKilled = allSampleRequests.every((s: any) => s.status === "killed");
+    const anyApproved = allSampleRequests.some((s: any) => s.status === "approved");
+    const currentStage = product._sample_request?.current_stage || allSampleRequests[allSampleRequests.length - 1]?.current_stage;
+    const stageColor = SAMPLE_STAGE_COLORS[currentStage] || "#6b7280";
+    const stageLabel = SAMPLE_STAGE_LABELS[currentStage] || (currentStage || "").replace(/_/g, " ");
+
+    return (
+      <div key={product.id} className={`border rounded-2xl overflow-hidden ${isUpcoming ? "border-amber-500/10 bg-amber-500/[0.02]" : anyApproved ? "border-emerald-500/10 bg-emerald-500/[0.01]" : allKilled || isProductKilled ? "border-red-500/10 bg-red-500/[0.01]" : "border-white/[0.07] bg-white/[0.01]"}`}>
+        {/* Product header */}
+        <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
+          {product.images?.[0] ? (
+            <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+          ) : (
+            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+              <Package size={16} className="text-white/20" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <p className="text-sm font-semibold">{product.name}</p>
+              {product.sku && <span className="text-[10px] font-mono text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">{product.sku}</span>}
+            </div>
+            {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            {isUpcoming && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Upcoming</span>}
+            {!isUpcoming && !anyApproved && product._sample_priority != null && (
+              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">Priority #{product._sample_priority}</span>
+            )}
+            {anyApproved && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Approved ✓</span>}
+            {product._sample_label && (
+              <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+                product._sample_label === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                product._sample_label === "additional" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                "bg-white/[0.04] border-white/[0.06] text-white/40"
+              }`}>
+                {product._sample_label === "revision" ? "Revision" : product._sample_label === "additional" ? "Additional" : "First Sample"}
+              </span>
+            )}
+            {currentStage && !anyApproved && !allKilled && !isProductKilled && (
+              <span className="text-[10px] font-semibold px-2 py-1 rounded-full border" style={{ background: `${stageColor}15`, borderColor: `${stageColor}40`, color: stageColor }}>
+                {stageLabel}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Kill notifications */}
+        {isProductKilled && (
+          <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+            <p className="text-xs text-red-300">This product is no longer moving forward. No further action needed.</p>
+          </div>
+        )}
+        {!isProductKilled && allKilled && !anyApproved && (
+          <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+            <p className="text-xs text-red-300">We have selected another factory for this product. Please disregard any pending samples — thank you for your time.</p>
+          </div>
+        )}
+
+        {/* Round history */}
+        <div className="divide-y divide-white/[0.04]">
+          {allSampleRequests.map((sr: any, roundIdx: number) => {
+            const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            const isKilledRound = sr.status === "killed";
+            const isApprovedRound = sr.status === "approved";
+            const isRevisionRound = sr.status === "revision";
+            const isActive = sr.status === "requested" && roundIdx === allSampleRequests.length - 1;
+            const roundLabel = sr.label === "additional" ? `Additional Sample ${roundIdx + 1}` : roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
+            const collapseKey = `${product.id}-${sr.id}`;
+            const isCollapsed = collapsedSamples[collapseKey] ?? !isActive;
+
+            return (
+              <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsedSamples(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
+                    {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
+                    {isKilledRound && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Ended</span>}
+                    {isRevisionRound && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-white/20">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    {isCollapsed ? <ChevronDown size={12} className="text-white/20" /> : <ChevronUp size={12} className="text-white/20" />}
+                  </div>
+                </div>
+                {!isCollapsed && isRevisionRound && sr.notes && (
+                  <div className="flex items-start gap-2 bg-amber-500/[0.06] border border-amber-500/15 rounded-xl px-3 py-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1" />
+                    <p className="text-[11px] text-amber-300/70">{sr.notes}</p>
+                  </div>
+                )}
+                {!isCollapsed && (
+                  <div className="space-y-1.5">
+                    {stages.map((stage: any, si: number) => {
+                      const sc = SAMPLE_STAGE_COLORS[stage.stage] || "#6b7280";
+                      const sl = SAMPLE_STAGE_LABELS[stage.stage] || stage.stage;
+                      const isLast = si === stages.length - 1 && isActive;
+                      return (
+                        <div key={stage.id} className="flex items-start gap-2.5">
+                          <div className="flex flex-col items-center flex-shrink-0 mt-1">
+                            <div className="w-2 h-2 rounded-full" style={{ background: isLast ? sc : "#10b981" }} />
+                            {si < stages.length - 1 && <div className="w-px h-4 bg-white/10 mt-1" />}
+                          </div>
+                          <div className="flex-1 min-w-0 pb-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium" style={{ color: isLast ? sc : "rgba(255,255,255,0.5)" }}>{sl}</span>
+                              <span className="text-[10px] text-white/20 flex-shrink-0">{new Date(stage.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                            </div>
+                            {stage.notes && stage.notes !== "Sample requested" && <p className="text-[11px] text-white/30 mt-0.5">{stage.notes}</p>}
+                            <span className="text-[10px] text-white/20">{stage.updated_by_role === "factory" ? "You" : "Admin"}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {isActive && !isCollapsed && (
+                  <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
+                    Update Sample Status →
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -126,146 +297,82 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
         ) : activeTab === "samples" ? (
-          <div className="space-y-4">
-            {sampleProducts.length === 0 ? (
+          <div className="space-y-6">
+            {/* Capacity bar */}
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-xs font-semibold text-white/70">Active Sample Capacity</p>
+                  <p className="text-[10px] text-white/30 mt-0.5">Samples you can actively work on at once</p>
+                </div>
+                {editingMax ? (
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={maxInput} onChange={e => setMaxInput(e.target.value)}
+                      className="w-16 bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1 text-white/70 text-xs focus:outline-none text-center" />
+                    <button onClick={saveMax} disabled={savingMax} className="text-xs px-3 py-1 rounded-lg bg-white text-black font-semibold disabled:opacity-40">
+                      {savingMax ? "..." : "Save"}
+                    </button>
+                    <button onClick={() => setEditingMax(false)} className="text-xs px-2 py-1 rounded-lg border border-white/[0.06] text-white/30">Cancel</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingMax(true)} className="text-xs text-white/30 hover:text-white/60 border border-white/[0.06] px-3 py-1 rounded-lg transition">
+                    Adjust limit ({maxSamples})
+                  </button>
+                )}
+              </div>
+              <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+                <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min((activeSamples.length / maxSamples) * 100, 100)}%`, background: activeSamples.length >= maxSamples ? "#ef4444" : "#3b82f6" }} />
+              </div>
+              <p className="text-[10px] text-white/30 mt-1.5">{activeSamples.length} / {maxSamples} active · {upcomingSamples.length} upcoming</p>
+            </div>
+
+            {allSampleProducts.length === 0 ? (
               <div className="text-center py-20">
                 <Package size={28} className="text-white/10 mx-auto mb-3" />
                 <p className="text-white/30 text-sm">No sample requests yet</p>
                 <p className="text-white/15 text-xs mt-1">Sample requests will appear here when admin sends them</p>
               </div>
-            ) : sampleProducts.map(product => {
-              const allSampleRequests = (product._all_sample_requests || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-              const activeSr = product._sample_request;
-              const isProductKilled = product.status === "killed";
-              const allKilled = allSampleRequests.every((s: any) => s.status === "killed");
-              const anyApproved = allSampleRequests.some((s: any) => s.status === "approved");
+            ) : null}
 
-              return (
-                <div key={product.id} className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
-                  {/* Product header */}
-                  <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                        <Package size={16} className="text-white/20" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <p className="text-sm font-semibold">{product.name}</p>
-                        {product.sku && <span className="text-[10px] font-mono text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">{product.sku}</span>}
-                      </div>
-                      {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
-                    </div>
-                    {anyApproved && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 flex-shrink-0">Approved ✓</span>}
-                    {!anyApproved && product._sample_priority != null && (
-                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20 flex-shrink-0">
-                        Priority #{product._sample_priority}
-                      </span>
-                    )}
-                    {product._sample_label && (
-                      <span className={`text-[10px] font-semibold px-2 py-1 rounded-full flex-shrink-0 border ${
-                        product._sample_label === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
-                        product._sample_label === "additional" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
-                        "bg-white/[0.04] border-white/[0.06] text-white/30"
-                      }`}>
-                        {product._sample_label === "revision" ? "Revision" : product._sample_label === "additional" ? "Additional" : "Initial"}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Kill notifications */}
-                  {isProductKilled && (
-                    <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                      <p className="text-xs text-red-300">This product is no longer moving forward. No further action needed.</p>
-                    </div>
-                  )}
-                  {!isProductKilled && allKilled && !anyApproved && (
-                    <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
-                      <p className="text-xs text-red-300">We have selected another factory for this product. Please disregard any pending samples — thank you for your time.</p>
-                    </div>
-                  )}
-
-                  {/* Round history */}
-                  <div className="divide-y divide-white/[0.04]">
-                    {allSampleRequests.map((sr: any, roundIdx: number) => {
-                      const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                      const isKilledRound = sr.status === "killed";
-                      const isApprovedRound = sr.status === "approved";
-                      const isRevisionRound = sr.status === "revision";
-                      const isActive = sr.status === "requested" && roundIdx === allSampleRequests.length - 1;
-                      const roundLabel = roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
-                      const collapseKey = `${product.id}-${sr.id}`;
-                      const isCollapsed = collapsedSamples[collapseKey] ?? !isActive;
-
-                      return (
-                        <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
-                          {/* Round header */}
-                          <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsedSamples(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
-                              {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
-                              {isKilledRound && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Ended</span>}
-                              {isRevisionRound && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-white/20">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                              {isCollapsed ? <ChevronDown size={12} className="text-white/20" /> : <ChevronUp size={12} className="text-white/20" />}
-                            </div>
-                          </div>
-
-                          {/* Revision note */}
-                          {!isCollapsed && isRevisionRound && sr.notes && (
-                            <div className="flex items-start gap-2 bg-amber-500/[0.06] border border-amber-500/15 rounded-xl px-3 py-2">
-                              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1" />
-                              <p className="text-[11px] text-amber-300/70">{sr.notes}</p>
-                            </div>
-                          )}
-
-                          {/* Stage timeline */}
-                          {!isCollapsed && <div className="space-y-1.5">
-                            {stages.map((stage: any, si: number) => {
-                              const stageColor = SAMPLE_STAGE_COLORS[stage.stage] || "#6b7280";
-                              const stageLabel = SAMPLE_STAGE_LABELS[stage.stage] || stage.stage;
-                              const isLast = si === stages.length - 1 && isActive;
-                              return (
-                                <div key={stage.id} className="flex items-start gap-2.5">
-                                  <div className="flex flex-col items-center flex-shrink-0 mt-1">
-                                    <div className="w-2 h-2 rounded-full" style={{ background: isLast ? stageColor : "#10b981" }} />
-                                    {si < stages.length - 1 && <div className="w-px h-4 bg-white/10 mt-1" />}
-                                  </div>
-                                  <div className="flex-1 min-w-0 pb-1">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-xs font-medium" style={{ color: isLast ? stageColor : "rgba(255,255,255,0.5)" }}>{stageLabel}</span>
-                                      <span className="text-[10px] text-white/20 flex-shrink-0">{new Date(stage.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                                    </div>
-                                    {stage.notes && stage.notes !== "Sample requested" && (
-                                      <p className="text-[11px] text-white/30 mt-0.5">{stage.notes}</p>
-                                    )}
-                                    <span className="text-[10px] text-white/20">{stage.updated_by_role === "factory" ? "You" : "Admin"}</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>}
-
-                          {/* Update button for active round */}
-                          {isActive && !isCollapsed && (
-                            <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
-                              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
-                              Update Sample Status →
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+            {/* Active Priority Section */}
+            {activeSamples.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-blue-400" />
+                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Active Priority · {activeSamples.length}</p>
                 </div>
-              );
-            })}
+                <div className="space-y-4">
+                {activeSamples.map(product => renderSampleProduct(product, false))}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming Section */}
+            {upcomingSamples.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-amber-400" />
+                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Upcoming · {upcomingSamples.length}</p>
+                </div>
+                <div className="space-y-4">
+                {upcomingSamples.map(product => renderSampleProduct(product, true))}
+                </div>
+              </div>
+            )}
+
+            {/* History Section */}
+            {historySamples.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-white/20" />
+                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">History · {historySamples.length}</p>
+                </div>
+                <div className="space-y-4">
+                {historySamples.map(product => renderSampleProduct(product, false))}
+                </div>
+              </div>
+            )}
+
           </div>
         ) : (
           <div className="space-y-6">
@@ -392,6 +499,7 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
     if (res.status === 401) { router.push("/portal"); return; }
     const data = await res.json();
     setProducts(data.products || []);
+    if (data.max_samples) { setMaxSamples(data.max_samples); setMaxInput(String(data.max_samples)); }
     setCollections(data.collections || []);
     setLoading(false);
   };
@@ -492,6 +600,15 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
 
   const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
 
+  const saveMax = async () => {
+    setSavingMax(true);
+    await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_max_samples", factory_id: portalUser?.factory_id, max_samples: parseInt(maxInput) || 50 }) });
+    setMaxSamples(parseInt(maxInput) || 50);
+    setSavingMax(false);
+    setEditingMax(false);
+  };
+
   const ProductForm = ({ form, setForm }: { form: any; setForm: any }) => (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -513,6 +630,143 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
       <div><label className={lc}>Notes</label><textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} placeholder="Any additional notes..." rows={2} className={`${ic} resize-none`} /></div>
     </div>
   );
+
+  const renderSampleProduct = (product: any, isUpcoming: boolean) => {
+    const allSampleRequests = (product.plm_sample_requests || [])
+      .filter((s: any) => s.factory_id === portalUser?.factory_id)
+      .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const isProductKilled = product.status === "killed";
+    const allKilled = allSampleRequests.every((s: any) => s.status === "killed");
+    const anyApproved = allSampleRequests.some((s: any) => s.status === "approved");
+    const currentStage = product._sample_request?.current_stage || allSampleRequests[allSampleRequests.length - 1]?.current_stage;
+    const stageColor = SAMPLE_STAGE_COLORS[currentStage] || "#6b7280";
+    const stageLabel = SAMPLE_STAGE_LABELS[currentStage] || (currentStage || "").replace(/_/g, " ");
+
+    return (
+      <div key={product.id} className={`border rounded-2xl overflow-hidden ${isUpcoming ? "border-amber-500/10 bg-amber-500/[0.02]" : anyApproved ? "border-emerald-500/10 bg-emerald-500/[0.01]" : allKilled || isProductKilled ? "border-red-500/10 bg-red-500/[0.01]" : "border-white/[0.07] bg-white/[0.01]"}`}>
+        {/* Product header */}
+        <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
+          {product.images?.[0] ? (
+            <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+          ) : (
+            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+              <Package size={16} className="text-white/20" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <p className="text-sm font-semibold">{product.name}</p>
+              {product.sku && <span className="text-[10px] font-mono text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">{product.sku}</span>}
+            </div>
+            {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            {isUpcoming && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Upcoming</span>}
+            {!isUpcoming && !anyApproved && product._sample_priority != null && (
+              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">Priority #{product._sample_priority}</span>
+            )}
+            {anyApproved && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Approved ✓</span>}
+            {product._sample_label && (
+              <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+                product._sample_label === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                product._sample_label === "additional" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                "bg-white/[0.04] border-white/[0.06] text-white/40"
+              }`}>
+                {product._sample_label === "revision" ? "Revision" : product._sample_label === "additional" ? "Additional" : "First Sample"}
+              </span>
+            )}
+            {currentStage && !anyApproved && !allKilled && !isProductKilled && (
+              <span className="text-[10px] font-semibold px-2 py-1 rounded-full border" style={{ background: `${stageColor}15`, borderColor: `${stageColor}40`, color: stageColor }}>
+                {stageLabel}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Kill notifications */}
+        {isProductKilled && (
+          <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+            <p className="text-xs text-red-300">This product is no longer moving forward. No further action needed.</p>
+          </div>
+        )}
+        {!isProductKilled && allKilled && !anyApproved && (
+          <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+            <p className="text-xs text-red-300">We have selected another factory for this product. Please disregard any pending samples — thank you for your time.</p>
+          </div>
+        )}
+
+        {/* Round history */}
+        <div className="divide-y divide-white/[0.04]">
+          {allSampleRequests.map((sr: any, roundIdx: number) => {
+            const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            const isKilledRound = sr.status === "killed";
+            const isApprovedRound = sr.status === "approved";
+            const isRevisionRound = sr.status === "revision";
+            const isActive = sr.status === "requested" && roundIdx === allSampleRequests.length - 1;
+            const roundLabel = sr.label === "additional" ? `Additional Sample ${roundIdx + 1}` : roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
+            const collapseKey = `${product.id}-${sr.id}`;
+            const isCollapsed = collapsedSamples[collapseKey] ?? !isActive;
+
+            return (
+              <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsedSamples(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
+                    {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
+                    {isKilledRound && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Ended</span>}
+                    {isRevisionRound && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-white/20">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    {isCollapsed ? <ChevronDown size={12} className="text-white/20" /> : <ChevronUp size={12} className="text-white/20" />}
+                  </div>
+                </div>
+                {!isCollapsed && isRevisionRound && sr.notes && (
+                  <div className="flex items-start gap-2 bg-amber-500/[0.06] border border-amber-500/15 rounded-xl px-3 py-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1" />
+                    <p className="text-[11px] text-amber-300/70">{sr.notes}</p>
+                  </div>
+                )}
+                {!isCollapsed && (
+                  <div className="space-y-1.5">
+                    {stages.map((stage: any, si: number) => {
+                      const sc = SAMPLE_STAGE_COLORS[stage.stage] || "#6b7280";
+                      const sl = SAMPLE_STAGE_LABELS[stage.stage] || stage.stage;
+                      const isLast = si === stages.length - 1 && isActive;
+                      return (
+                        <div key={stage.id} className="flex items-start gap-2.5">
+                          <div className="flex flex-col items-center flex-shrink-0 mt-1">
+                            <div className="w-2 h-2 rounded-full" style={{ background: isLast ? sc : "#10b981" }} />
+                            {si < stages.length - 1 && <div className="w-px h-4 bg-white/10 mt-1" />}
+                          </div>
+                          <div className="flex-1 min-w-0 pb-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium" style={{ color: isLast ? sc : "rgba(255,255,255,0.5)" }}>{sl}</span>
+                              <span className="text-[10px] text-white/20 flex-shrink-0">{new Date(stage.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                            </div>
+                            {stage.notes && stage.notes !== "Sample requested" && <p className="text-[11px] text-white/30 mt-0.5">{stage.notes}</p>}
+                            <span className="text-[10px] text-white/20">{stage.updated_by_role === "factory" ? "You" : "Admin"}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {isActive && !isCollapsed && (
+                  <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
+                    Update Sample Status →
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">

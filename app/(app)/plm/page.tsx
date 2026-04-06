@@ -1172,18 +1172,23 @@ export default function PLMPage() {
                                   }`}>
                                     {sample.label === "revision" ? "Revision" : sample.label === "additional" ? "Additional" : "First Sample"}
                                   </span>
-                                  {/* Stage badge */}
-                                  {sample.current_stage && (
-                                    <span className="text-xs px-3 py-1 rounded-full border bg-white/[0.05] border-white/[0.12] text-white/50 font-medium">
-                                      {sample.current_stage.replace(/_/g, " ").replace(/\w/g, (c: string) => c.toUpperCase())}
+                                  {/* Stage badge with color */}
+                                  {sample.current_stage && (() => {
+                                    const stageColorMap: Record<string,string> = { sample_production: "#f59e0b", sample_complete: "#10b981", sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", revision_requested: "#f59e0b" };
+                                    const sc = stageColorMap[sample.current_stage] || "#6b7280";
+                                    const sl = sample.current_stage.replace(/_/g, " ").replace(/\w/g, (c: string) => c.toUpperCase());
+                                    return (
+                                      <span className="text-xs px-3 py-1 rounded-full border font-medium" style={{ background: `${sc}15`, borderColor: `${sc}40`, color: sc }}>
+                                        {sl}
+                                      </span>
+                                    );
+                                  })()}
+                                  {/* Upcoming badge only if over capacity */}
+                                  {!isPrioritized && (
+                                    <span className="text-xs px-3 py-1 rounded-full border font-medium bg-amber-500/10 border-amber-500/20 text-amber-400">
+                                      Upcoming
                                     </span>
                                   )}
-                                  {/* Pending/Upcoming badge */}
-                                  <span className={`text-xs px-3 py-1 rounded-full border font-medium ${
-                                    isPrioritized ? "bg-white/[0.04] border-white/[0.08] text-white/40" : "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                                  }`}>
-                                    {isPrioritized ? "Pending" : "Upcoming"}
-                                  </span>
                                   {!isPrioritized && <span className="text-[10px] text-amber-400/60">Upcoming</span>}
                                 </div>
                                 {/* Drag handle */}

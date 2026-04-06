@@ -22,6 +22,10 @@ export async function GET(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Get factory max_samples
+  const { data: factoryData } = await supabaseAdmin.from("factory_catalog").select("max_samples").eq("id", portalUser.factory_id).single();
+  const maxSamples = factoryData?.max_samples || 50;
+
   // ALL sample requests for this factory (all statuses for full history)
   const { data: sampleRequests } = await supabaseAdmin
     .from("plm_sample_requests")
@@ -71,5 +75,5 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ products: tagged });
+  return NextResponse.json({ products: tagged, max_samples: maxSamples });
 }
