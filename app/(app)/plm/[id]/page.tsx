@@ -746,100 +746,108 @@ ${entry}` : entry;
                     {!showRequestButton && <p className="text-[11px] text-white/15 mt-1">Available after quotes are received</p>}
                   </div>
                 ) : (() => {
-                  // Group sample requests by factory
+                  const STAGE_KEYS = ["sample_production","sample_complete","sample_shipped","sample_arrived"];
+                  const STAGE_LABELS: Record<string,string> = { sample_production:"Production", sample_complete:"Complete", sample_shipped:"Shipped", sample_arrived:"Arrived" };
+                  const STAGE_COLORS: Record<string,string> = { sample_production:"#f59e0b", sample_complete:"#10b981", sample_shipped:"#3b82f6", sample_arrived:"#8b5cf6" };
+
+                  // Group by factory
                   const byFactory: Record<string, any[]> = {};
                   sampleRequests.forEach((sr: any) => {
                     const fid = sr.factory_id;
                     if (!byFactory[fid]) byFactory[fid] = [];
                     byFactory[fid].push(sr);
                   });
+
                   return (
                     <div className="divide-y divide-white/[0.04]">
                       {Object.entries(byFactory).map(([factoryId, rounds]) => {
                         const sortedRounds = [...rounds].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                         const factory = sortedRounds[0]?.factory_catalog;
-                        const activeRound = sortedRounds.find((r: any) => r.status === "requested") || sortedRounds[sortedRounds.length - 1];
                         const allKilled = sortedRounds.every((r: any) => r.status === "killed");
                         const anyApproved = sortedRounds.some((r: any) => r.status === "approved");
                         const latestRound = sortedRounds[sortedRounds.length - 1];
 
                         return (
                           <div key={factoryId} className="px-6 py-4 space-y-3">
-                            {/* Factory header */}
+                            {/* Factory name */}
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <Factory size={12} className="text-white/30" />
                                 <span className="text-sm font-semibold text-white">{factory?.name}</span>
-                                {anyApproved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved ✓</span>}
+                                {anyApproved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">✓ Approved</span>}
                                 {allKilled && !anyApproved && (
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>
                                     <button onClick={() => triggerSampleOutcome(latestRound.id, factoryId, latestRound.current_stage, "", "unkill")}
-                                      className="text-[10px] text-white/30 hover:text-white/60 underline transition">Revive</button>
+                                      className="text-[10px] text-white/30 hover:text-white/60 underline">Revive</button>
                                   </div>
                                 )}
-                                {!allKilled && !anyApproved && latestRound?.status === "revision" && (
-                                  <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Round {sortedRounds.length}</span>
-                                )}
                               </div>
-                              {activeRound && !allKilled && !anyApproved && (
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${SAMPLE_STAGES.find(s => s.key === activeRound.current_stage)?.color || "#6b7280"}20`, color: SAMPLE_STAGES.find(s => s.key === activeRound.current_stage)?.color || "#6b7280" }}>
-                                  {SAMPLE_STAGES.find(s => s.key === activeRound.current_stage)?.label || activeRound.current_stage}
-                                </span>
-                              )}
                             </div>
 
-                            {/* Rounds */}
+                            {/* Rounds as horizontal boxes */}
                             <div className="space-y-2">
                               {sortedRounds.map((sr: any, roundIdx: number) => {
                                 const isActive = sr.status === "requested";
-                                const isKilledRound = sr.status === "killed";
-                                const isApprovedRound = sr.status === "approved";
-                                const isRevisionRound = sr.status === "revision";
-                                const roundLabel = roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
+                                const isKilled = sr.status === "killed";
+                                const isApproved = sr.status === "approved";
+                                const isRevision = sr.status === "revision";
+                                const roundLabel = roundIdx === 0 ? "Round 1" : `Round ${roundIdx + 1} — Revision`;
                                 const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                                const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
+                                const completedStageKeys = stages.map((s: any) => s.stage).filter((k: string) => STAGE_KEYS.includes(k));
+                                const lastCompletedIdx = Math.max(...completedStageKeys.map((k: string) => STAGE_KEYS.indexOf(k)));
+                                const revisionNote_text = stages.find((s: any) => s.stage === "revision_requested")?.notes;
 
                                 return (
-                                  <div key={sr.id} className={`border rounded-xl overflow-hidden ${isKilledRound ? "border-red-500/10 opacity-50" : isApprovedRound ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isActive ? "border-white/[0.08] bg-white/[0.01]" : "border-amber-500/15 bg-amber-500/[0.02]"}`}>
-                                    {/* Round header */}
-                                    <div className="px-3 py-2 border-b border-white/[0.05] flex items-center justify-between">
-                                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
-                                      <div className="flex items-center gap-1.5">
-                                        {isApprovedRound && <span className="text-[10px] text-emerald-400">✓ Approved</span>}
-                                        {isKilledRound && <span className="text-[10px] text-red-400">Ended</span>}
-                                        {isRevisionRound && <span className="text-[10px] text-amber-400">Revision Requested</span>}
-                                      </div>
-                                    </div>
+                                  <div key={sr.id} className={`border rounded-2xl p-4 space-y-3 ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-white/[0.08] bg-white/[0.01]"}`}>
+                                    {/* Round label */}
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
 
-                                    {/* Stage history */}
-                                    <div className="px-3 py-2 space-y-1.5">
-                                      {stages.map((h: any, hi: number) => {
-                                        const s = [...SAMPLE_STAGES, {key:"revision_requested",label:"Revision Requested",color:"#f59e0b"}, {key:"killed",label:"Ended",color:"#ef4444"}].find(st => st.key === h.stage);
-                                        const isLast = hi === stages.length - 1;
+                                    {/* Horizontal stage pills */}
+                                    <div className="flex items-center gap-1 flex-wrap">
+                                      {STAGE_KEYS.map((key, i) => {
+                                        const idx = STAGE_KEYS.indexOf(key);
+                                        const isCompleted = idx <= lastCompletedIdx;
+                                        const isCurrent = isActive && idx === lastCompletedIdx;
+                                        const color = STAGE_COLORS[key];
                                         return (
-                                          <div key={h.id} className="flex items-start gap-2">
-                                            <div className="flex flex-col items-center flex-shrink-0 mt-0.5">
-                                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: isLast && isActive ? s?.color || "#6b7280" : "#10b981" }} />
-                                              {hi < stages.length - 1 && <div className="w-px h-3 bg-white/10 mt-0.5" />}
+                                          <div key={key} className="flex items-center gap-1">
+                                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${
+                                              isCompleted && !isCurrent ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
+                                              isCurrent ? `border-amber-500/30 bg-amber-500/10 text-amber-300` :
+                                              "border-white/[0.05] text-white/15"
+                                            }`}>
+                                              {isCompleted && !isCurrent && <Check size={8} />}
+                                              {isCurrent && <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: color }} />}
+                                              {STAGE_LABELS[key]}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                              <div className="flex items-center justify-between gap-2">
-                                                <span className="text-[11px]" style={{ color: isLast && isActive ? s?.color || "#6b7280" : "rgba(255,255,255,0.4)" }}>{s?.label || h.stage}</span>
-                                                <span className="text-[10px] text-white/15 flex-shrink-0">{new Date(h.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
-                                              </div>
-                                              {h.notes && h.notes !== "Sample requested" && h.notes !== "Revision round started" && (
-                                                <p className="text-[10px] text-white/25 mt-0.5">{h.notes}</p>
-                                              )}
-                                            </div>
+                                            {i < STAGE_KEYS.length - 1 && <span className="text-white/10 text-[10px]">→</span>}
                                           </div>
                                         );
                                       })}
                                     </div>
 
+                                    {/* Result */}
+                                    {isApproved && (
+                                      <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
+                                        <Check size={12} /> Approved — {factory?.name} selected for production
+                                      </div>
+                                    )}
+                                    {isRevision && (
+                                      <div className="flex items-start gap-2 text-amber-400 text-xs">
+                                        <span className="font-semibold flex-shrink-0">↩ Revision:</span>
+                                        <span className="text-amber-300/70">{revisionNote_text || "Revision requested"}</span>
+                                      </div>
+                                    )}
+                                    {isKilled && (
+                                      <div className="flex items-center gap-2 text-red-400 text-xs">
+                                        <X size={12} /> {stages.find((s: any) => s.stage === "killed")?.notes || "Ended"}
+                                      </div>
+                                    )}
+
                                     {/* Active round actions */}
                                     {isActive && (
-                                      <div className="px-3 pb-3 space-y-2 border-t border-white/[0.05] pt-2">
+                                      <div className="space-y-2 pt-1 border-t border-white/[0.05]">
                                         {sr.current_stage === "sample_shipped" && (
                                           <button onClick={() => updateSampleStage(sr.id, factoryId, "sample_arrived", "Sample marked as arrived by admin")}
                                             disabled={updatingSampleStage === sr.id}
@@ -858,7 +866,7 @@ ${entry}` : entry;
                                               </button>
                                               <button onClick={() => setShowRevisionInput(showRevisionInput === sr.id ? null : sr.id)}
                                                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
-                                                Request Revision
+                                                ↩ Request Revision
                                               </button>
                                               <button onClick={() => triggerSampleOutcome(sr.id, factoryId, sr.current_stage, "Sample killed for this factory", "killed")}
                                                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
