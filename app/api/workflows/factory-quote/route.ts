@@ -662,6 +662,27 @@ Return ONLY raw JSON, no markdown:
         updated_at: new Date().toISOString(),
       }).eq("id", job_id);
 
+      // Update PLM products to quotes_received
+      const buildJob = await supabaseAdmin.from("factory_quote_jobs").select("order_details").eq("id", job_id).single();
+      const buildOrderDetails = buildJob.data?.order_details as any;
+      const buildPlmIds = buildOrderDetails?.plm_product_ids || [];
+      if (buildPlmIds.length > 0) {
+        for (const productId of buildPlmIds) {
+          await supabaseAdmin.from("plm_products").update({
+            current_stage: "quotes_received",
+            updated_at: new Date().toISOString(),
+          }).eq("id", productId);
+          await supabaseAdmin.from("plm_stages").insert({
+            product_id: productId,
+            user_id: user.id,
+            stage: "quotes_received",
+            notes: "Comparison sheet built — quotes received from all factories",
+            updated_by: user.email || "jimmy",
+            updated_by_role: "admin",
+          });
+        }
+      }
+
       return NextResponse.json({ success: true, fileName, sheetUrl, base64, aiRecommendation });
     }
 
