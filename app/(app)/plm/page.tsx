@@ -126,6 +126,7 @@ export default function PLMPage() {
   };
 
   useEffect(() => { load(); }, []);
+  useEffect(() => { if (activeTab === "prioritization" && prioFactories.length === 0 && !prioLoading) loadPrioritization(); }, [activeTab]);
 
   const loadPrioritization = async () => {
     setPrioLoading(true);
@@ -1041,7 +1042,7 @@ export default function PLMPage() {
         )} 
 
         {activeTab === "prioritization" && (
-          <div className="space-y-6" onMouseEnter={() => { if (prioFactories.length === 0 && !prioLoading) loadPrioritization(); }}>
+          <div className="space-y-6">
             {prioLoading ? (
               <div className="flex items-center justify-center py-20"><Loader2 size={18} className="animate-spin text-white/20" /></div>
             ) : prioFactories.length === 0 ? (
@@ -1075,7 +1076,7 @@ export default function PLMPage() {
                   const max = factory?.max_samples || 50;
                   const orderedIds = prioOrder[prioActiveFactory] || [];
                   const orderedSamples = orderedIds.map(id => prioSamples.find((s: any) => s.id === id)).filter(Boolean);
-                  const prioritizedCount = orderedSamples.filter((s: any) => s.priority_order != null).length;
+                  const prioritizedCount = orderedSamples.length;
 
                   return (
                     <div className="space-y-4">
@@ -1098,14 +1099,14 @@ export default function PLMPage() {
                               ) : (
                                 <button onClick={() => setPrioMaxEditing(prev => ({ ...prev, [prioActiveFactory]: String(max) }))}
                                   className="flex items-center gap-1.5 text-sm font-semibold text-white/70 hover:text-white transition">
-                                  Max {max} samples
+                                  {max} samples allowed
                                   <span className="text-[10px] text-white/25 border border-white/[0.08] px-1.5 py-0.5 rounded">edit</span>
                                 </button>
                               )}
                             </div>
                           </div>
                           <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${prioritizedCount >= max ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/[0.03] border-white/[0.08] text-white/60"}`}>
-                            {prioritizedCount} / {max} priorities used
+                            {prioritizedCount} / {max} samples
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -1164,11 +1165,11 @@ export default function PLMPage() {
                                 {/* Status */}
                                 <div className="flex items-center gap-2">
                                   <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                    sample.status === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : "bg-white/[0.04] border-white/[0.06] text-white/30"
+                                    sample.status === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : isPrioritized ? "bg-white/[0.04] border-white/[0.06] text-white/30" : "bg-amber-500/5 border-amber-500/10 text-amber-400/50"
                                   }`}>
-                                    {sample.status === "revision" ? "Revision" : "Pending"}
+                                    {sample.status === "revision" ? "Revision" : isPrioritized ? "Pending" : "Upcoming"}
                                   </span>
-                                  {!isPrioritized && <span className="text-[10px] text-white/20">Above capacity</span>}
+                                  {!isPrioritized && <span className="text-[10px] text-amber-400/60">Upcoming</span>}
                                 </div>
                                 {/* Drag handle */}
                                 <div className="flex flex-col gap-0.5 flex-shrink-0 opacity-30">

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     .from("plm_sample_requests")
     .select("*, plm_products(id, name, sku, images), factory_catalog(id, name)")
     .eq("user_id", user.id)
-    .in("status", ["requested", "revision"])
+    .in("status", ["requested", "revision"])  // only active pending samples
     .order("priority_order", { ascending: true, nullsFirst: false });
 
   return NextResponse.json({ factories: factories || [], samples: samples || [] });

@@ -46,6 +46,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"samples"|"orders">("samples");
+  const [collapsedSamples, setCollapsedSamples] = useState<Record<string, boolean>>({});
 
   useEffect(() => { loadProducts(); }, []);
 
@@ -188,22 +189,27 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                       const isRevisionRound = sr.status === "revision";
                       const isActive = sr.status === "requested" && roundIdx === allSampleRequests.length - 1;
                       const roundLabel = roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
+                      const collapseKey = `${product.id}-${sr.id}`;
+                      const isCollapsed = collapsedSamples[collapseKey] ?? !isActive;
 
                       return (
                         <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
                           {/* Round header */}
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsedSamples(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
                             <div className="flex items-center gap-2">
                               <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
                               {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
                               {isKilledRound && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Ended</span>}
                               {isRevisionRound && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
                             </div>
-                            <span className="text-[10px] text-white/20">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-white/20">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                              {isCollapsed ? <ChevronDown size={12} className="text-white/20" /> : <ChevronUp size={12} className="text-white/20" />}
+                            </div>
                           </div>
 
                           {/* Revision note */}
-                          {isRevisionRound && sr.notes && (
+                          {!isCollapsed && isRevisionRound && sr.notes && (
                             <div className="flex items-start gap-2 bg-amber-500/[0.06] border border-amber-500/15 rounded-xl px-3 py-2">
                               <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1" />
                               <p className="text-[11px] text-amber-300/70">{sr.notes}</p>
@@ -211,7 +217,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                           )}
 
                           {/* Stage timeline */}
-                          <div className="space-y-1.5">
+                          {!isCollapsed && <div className="space-y-1.5">
                             {stages.map((stage: any, si: number) => {
                               const stageColor = SAMPLE_STAGE_COLORS[stage.stage] || "#6b7280";
                               const stageLabel = SAMPLE_STAGE_LABELS[stage.stage] || stage.stage;
@@ -235,10 +241,10 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                                 </div>
                               );
                             })}
-                          </div>
+                          </div>}
 
                           {/* Update button for active round */}
-                          {isActive && (
+                          {isActive && !isCollapsed && (
                             <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
                               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
                               Update Sample Status →
