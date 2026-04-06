@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { google } from "googleapis";
-
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -38,11 +36,6 @@ export async function POST(req: NextRequest) {
     const useOutlook = provider === "outlook" || (!provider && !gmailConn && msConn);
 
     if (useGmail && gmailConn) {
-      const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
-      auth.setCredentials({ access_token: gmailConn.access_token, refresh_token: gmailConn.refresh_token });
-      const gmail = google.gmail({ version: "v1", auth });
-
-      // Encode HTML as base64 attachment
       const htmlB64 = Buffer.from(html).toString("base64url");
       const boundary = "----=_boundary_" + Date.now();
       const rawEmail = [
@@ -66,7 +59,11 @@ export async function POST(req: NextRequest) {
       ].join("\r\n");
 
       const encoded = Buffer.from(rawEmail).toString("base64url");
-      await gmail.users.messages.send({ userId: "me", requestBody: { raw: encoded } });
+      await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/send`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${gmailConn.access_token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ raw: encoded }),
+      });
     } else if (useOutlook && msConn) {
       await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
         method: "POST",
@@ -213,7 +210,7 @@ Best regards,
 ${buyerContact || buyerCompany}`;
 
   // Check email providers
-  const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("id").eq("user_id", user.id).single();
+  const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("id, access_token").eq("user_id", user.id).single();
   const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("id").eq("user_id", user.id).single();
   const both_connected = !!gmailConn && !!msConn;
 
