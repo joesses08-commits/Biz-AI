@@ -164,6 +164,15 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                         Priority #{product._sample_priority}
                       </span>
                     )}
+                    {product._sample_label && (
+                      <span className={`text-[10px] font-semibold px-2 py-1 rounded-full flex-shrink-0 border ${
+                        product._sample_label === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                        product._sample_label === "additional" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                        "bg-white/[0.04] border-white/[0.06] text-white/30"
+                      }`}>
+                        {product._sample_label === "revision" ? "Revision" : product._sample_label === "additional" ? "Additional" : "Initial"}
+                      </span>
+                    )}
                   </div>
 
                   {/* Kill notifications */}

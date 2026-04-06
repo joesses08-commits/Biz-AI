@@ -1164,10 +1164,19 @@ export default function PLMPage() {
                                 </div>
                                 {/* Status */}
                                 <div className="flex items-center gap-2">
+                                  {/* Type badge */}
                                   <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                    sample.status === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : isPrioritized ? "bg-white/[0.04] border-white/[0.06] text-white/30" : "bg-amber-500/5 border-amber-500/10 text-amber-400/50"
+                                    sample.label === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                                    sample.label === "additional" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
+                                    "bg-white/[0.04] border-white/[0.06] text-white/30"
                                   }`}>
-                                    {sample.status === "revision" ? "Revision" : isPrioritized ? "Pending" : "Upcoming"}
+                                    {sample.label === "revision" ? "Revision" : sample.label === "additional" ? "Additional" : "Initial"}
+                                  </span>
+                                  {/* Pending/Upcoming badge */}
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                    isPrioritized ? "bg-white/[0.04] border-white/[0.06] text-white/30" : "bg-amber-500/5 border-amber-500/10 text-amber-400/50"
+                                  }`}>
+                                    {isPrioritized ? "Pending" : "Upcoming"}
                                   </span>
                                   {!isPrioritized && <span className="text-[10px] text-amber-400/60">Upcoming</span>}
                                 </div>

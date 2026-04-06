@@ -531,6 +531,7 @@ ${senderName}`;
         product_id, factory_id, user_id: user.id,
         status: "requested",
         current_stage: "sample_production",
+        label: "revision",
         notes: notes || "",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),

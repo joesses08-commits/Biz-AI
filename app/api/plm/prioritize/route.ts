@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     .from("plm_sample_requests")
     .select("*, plm_products(id, name, sku, images), factory_catalog(id, name)")
     .eq("user_id", user.id)
-    .in("status", ["requested", "revision"])  // only active pending samples
+    .in("status", ["requested"])
     .order("priority_order", { ascending: true, nullsFirst: false });
 
   return NextResponse.json({ factories: factories || [], samples: samples || [] });
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from("plm_sample_requests").update({ priority_order: i + 1 }).eq("id", ordered_ids[i]).eq("user_id", user.id);
     }
     // Clear priority for samples not in the list (unprioritized)
-    const { data: allForFactory } = await supabaseAdmin.from("plm_sample_requests").select("id").eq("factory_id", factory_id).eq("user_id", user.id).in("status", ["requested", "revision"]);
+    const { data: allForFactory } = await supabaseAdmin.from("plm_sample_requests").select("id").eq("factory_id", factory_id).eq("user_id", user.id).in("status", ["requested"]);
     const unprioritized = (allForFactory || []).filter((s: any) => !ordered_ids.includes(s.id));
     for (const s of unprioritized) {
       await supabaseAdmin.from("plm_sample_requests").update({ priority_order: null }).eq("id", s.id);

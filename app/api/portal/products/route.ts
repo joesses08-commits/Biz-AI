@@ -55,12 +55,15 @@ export async function GET(req: NextRequest) {
     const hasAnySample = factorySampleRequests.length > 0;
     const hasAnyBatch = factoryBatches.length > 0;
     const activeSampleReq = factorySampleRequests.find((s: any) => s.status !== "killed" && s.status !== "approved");
-    const samplePriority = activeSampleReq ? (sampleRequests || []).find((sr: any) => sr.id === activeSampleReq.id)?.priority_order : null;
+    const matchedSr = activeSampleReq ? (sampleRequests || []).find((sr: any) => sr.id === activeSampleReq.id) : null;
+    const samplePriority = matchedSr?.priority_order ?? null;
+    const sampleLabel = matchedSr?.label ?? null;
     return {
       ...p,
       _has_sample: hasAnySample,
       _has_production: hasAnyBatch,
       _sample_priority: samplePriority,
+      _sample_label: sampleLabel,
       _sample_request: activeSample || factorySampleRequests[factorySampleRequests.length - 1],
       _all_sample_requests: factorySampleRequests,
       plm_batches: factoryBatches,
