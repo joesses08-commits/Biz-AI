@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   // ALL sample requests for this factory (all statuses for full history)
   const { data: sampleRequests } = await supabaseAdmin
     .from("plm_sample_requests")
-    .select("product_id, current_stage, status, id, created_at, priority_order")
+    .select("product_id, current_stage, status, id, created_at, priority_order, label")
     .eq("factory_id", portalUser.factory_id)
     .order("priority_order", { ascending: true, nullsFirst: false });
 
