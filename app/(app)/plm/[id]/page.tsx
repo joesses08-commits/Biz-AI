@@ -430,6 +430,19 @@ ${entry}` : entry;
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
+      {/* Locked banner */}
+      {isKilled && (
+        <div className="bg-red-500/10 border-b border-red-500/20 px-8 py-2.5 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+          <p className="text-xs text-red-400 font-medium">This product has been killed — the page is read-only. Revive it from the status menu to make changes.</p>
+        </div>
+      )}
+      {isHold && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-8 py-2.5 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+          <p className="text-xs text-amber-400 font-medium">This product is on hold — stages, samples and orders are locked. Product info can still be edited.</p>
+        </div>
+      )}
 
       {/* Sample Request Modal */}
       {showSampleModal && (
@@ -776,7 +789,7 @@ ${entry}` : entry;
                         const isPast = i < currentIdx;
                         const isCurrent = i === currentIdx;
                         return (
-                          <button key={s.key} onClick={() => updateDevStage(s.key)} disabled={updatingDevStage}
+                          <button key={s.key} onClick={() => updateDevStage(s.key)} disabled={updatingDevStage || isLocked}
                             className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.03] transition text-left">
                             <div className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition"
                               style={isCurrent ? { borderColor: s.color, background: `${s.color}20` } : isPast ? { borderColor: "#10b981", background: "#10b98120" } : { borderColor: "rgba(255,255,255,0.1)" }}>
@@ -1057,10 +1070,12 @@ ${entry}` : entry;
                 <p className="text-sm font-semibold text-white">Production Orders</p>
                 <p className="text-xs text-white/30 mt-0.5">PO issued through shipped — factory updates these</p>
               </div>
-              <button onClick={() => setShowNewOrder(!showNewOrder)}
-                className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
-                <Plus size={11} />New Order
-              </button>
+              {!isLocked && (
+                <button onClick={() => setShowNewOrder(!showNewOrder)}
+                  className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+                  <Plus size={11} />New Order
+                </button>
+              )}
             </div>
 
             {showNewOrder && (
@@ -1155,7 +1170,7 @@ ${entry}` : entry;
                             <div className="h-1 rounded-full transition-all" style={{ width: `${((orderCurrentIdx + 1) / ORDER_STAGES.length) * 100}%`, background: orderCurrent.color }} />
                           </div>
                           <div className="flex items-center justify-between gap-3">
-                            <button onClick={() => orderPrev && updateOrderStage(order.id, orderPrev.key)} disabled={!orderPrev || updatingOrderStage === order.id}
+                            <button onClick={() => orderPrev && updateOrderStage(order.id, orderPrev.key)} disabled={!orderPrev || updatingOrderStage === order.id || isLocked}
                               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition text-xs disabled:opacity-20 disabled:cursor-not-allowed">
                               ← {orderPrev ? orderPrev.label : "Start"}
                             </button>
@@ -1166,7 +1181,7 @@ ${entry}` : entry;
                               </div>
                               <p className="text-[10px] text-white/25 mt-0.5">{orderCurrentIdx + 1} of {ORDER_STAGES.length}</p>
                             </div>
-                            <button onClick={() => orderNext && updateOrderStage(order.id, orderNext.key)} disabled={!orderNext || updatingOrderStage === order.id}
+                            <button onClick={() => orderNext && updateOrderStage(order.id, orderNext.key)} disabled={!orderNext || updatingOrderStage === order.id || isLocked}
                               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs transition disabled:opacity-20 disabled:cursor-not-allowed"
                               style={orderNext ? { borderColor: `${orderNext.color}40`, color: orderNext.color, background: `${orderNext.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
                               {orderNext ? orderNext.label : "Complete"} →
