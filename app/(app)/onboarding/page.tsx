@@ -34,6 +34,8 @@ interface SourceProgress {
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [companyName, setCompanyName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [companyAddress, setCompanyAddress] = useState("");
   const [companyBrief, setCompanyBrief] = useState("");
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -77,13 +79,19 @@ export default function OnboardingPage() {
   async function saveCompanyBrief() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (user && companyBrief.trim()) {
+    if (user) {
       await supabase.from("company_profiles").upsert({
         user_id: user.id,
         company_name: companyName.trim(),
         company_brief: companyBrief.trim(),
         updated_at: new Date().toISOString(),
       });
+      if (companyAddress.trim()) {
+        await supabase.from("company_settings").upsert({ user_id: user.id, address: companyAddress.trim() }, { onConflict: "user_id" });
+      }
+      if (contactName.trim()) {
+        await supabase.from("profiles").update({ full_name: contactName.trim() }).eq("id", user.id);
+      }
     }
     setSaving(false);
     setCurrentStep(2);
@@ -253,6 +261,16 @@ export default function OnboardingPage() {
               <div>
                 <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">Company Name</label>
                 <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Acme Corp"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition" />
+              </div>
+              <div>
+                <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">Your Name</label>
+                <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Joey Esses"
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition" />
+              </div>
+              <div>
+                <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">Company Address</label>
+                <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} placeholder="123 Main St, Brooklyn NY 11201"
                   className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition" />
               </div>
               <div>
