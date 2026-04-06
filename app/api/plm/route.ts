@@ -55,12 +55,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ product: data });
   }
 
-  const [{ data: collections }, { data: products }] = await Promise.all([
+  const [{ data: collections }, { data: products }, { data: factories }] = await Promise.all([
     supabaseAdmin.from("plm_collections").select("*, plm_products(id, milestones, plm_batches(current_stage))").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabaseAdmin.from("plm_products").select("*, plm_collections(name), factory_catalog(name), plm_batches(*)").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").eq("user_id", user.id).order("name", { ascending: true }),
   ]);
 
-  return NextResponse.json({ collections: collections || [], products: products || [] });
+  return NextResponse.json({ collections: collections || [], products: products || [], factories: factories || [] });
 }
 
 export async function POST(req: NextRequest) {
