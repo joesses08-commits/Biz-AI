@@ -170,6 +170,13 @@ export default function PortalProductPage() {
               <p className="text-sm text-white/60 whitespace-pre-wrap">{product.specs}</p>
             </div>
           )}
+          {product.reference_url && (
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Reference / Dropbox</p>
+              <a href={product.reference_url} target="_blank" rel="noopener noreferrer"
+                className="text-sm text-blue-400 hover:text-blue-300 underline break-all">{product.reference_url}</a>
+            </div>
+          )}
           {product.factory_notes && (
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Notes from Admin</p>
@@ -228,10 +235,29 @@ export default function PortalProductPage() {
 
               {/* Note input */}
               <div className="px-5 pb-4 space-y-2">
-                <p className="text-[10px] text-white/25 uppercase tracking-widest">Add a note (optional)</p>
+                <p className="text-[10px] text-white/25 uppercase tracking-widest">Note for this stage (optional)</p>
                 <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
                   placeholder="e.g. Sample dispatched via DHL, tracking #1234"
                   rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                {sampleNote.trim() && (
+                  <button onClick={async () => {
+                    if (!sr.current_stage) return;
+                    setUpdatingSample(true);
+                    await fetch("/api/portal/update", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+                      body: JSON.stringify({ product_id: productId, sample_request_id: sr.id, stage: sr.current_stage, notes: sampleNote }),
+                    });
+                    setUpdatingSample(false);
+                    setSampleNote("");
+                    setSuccess("Note saved");
+                    setTimeout(() => setSuccess(""), 3000);
+                    load();
+                  }} disabled={updatingSample}
+                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-white/[0.06] border border-white/10 text-white/60 hover:text-white hover:bg-white/[0.09] transition">
+                    Save Note
+                  </button>
+                )}
               </div>
 
               {/* Stage timeline */}
