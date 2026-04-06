@@ -372,6 +372,9 @@ ${entry}` : entry;
   if (!product) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><p className="text-white/30">Product not found</p></div>;
 
   const orders = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
+  const productStatus = product.status || "progression";
+  const isKilled = productStatus === "killed";
+  const isHold = productStatus === "hold";
 
   const currentDevStage = stageInfo(product.current_stage || "concept");
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
