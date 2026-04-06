@@ -215,7 +215,7 @@ export async function POST(req: NextRequest) {
     // Get factory details
     const { data: factories } = await supabaseAdmin
       .from("factory_catalog")
-      .select("id, name, email")
+      .select("id, name, email, contact_name")
       .in("id", factory_ids);
 
     // Create sample request per factory
@@ -294,7 +294,7 @@ ${noteEntry}` : noteEntry;
               <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
                 <h2 style="font-size:18px;font-weight:700;margin-bottom:8px">Sample Request</h2>
                 <p style="color:#666;font-size:14px;margin-bottom:16px">
-                  Hi ${factory.contact_name || factory.name},
+                  Hi ${(factory as any).contact_name || factory.name},
                 </p>
                 <p style="color:#666;font-size:14px;margin-bottom:16px">
                   We have submitted a sample request for <strong>${productName}</strong>${productData?.sku ? ` (${productData.sku})` : ""}. Please log into your Jimmy portal to view the full product details and update the sample status as you progress.
