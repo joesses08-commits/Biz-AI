@@ -465,7 +465,7 @@ export default function PLMPage() {
               {rfqJobId && (
                 <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
                   <Check size={14} className="text-emerald-400" />
-                  <p className="text-xs text-emerald-300">RFQ job created! <button onClick={() => { setShowRfqModal(false); router.push(`/workflows/factory-quote`); }} className="underline ml-1">Open in Workflows →</button></p>
+                  <p className="text-xs text-emerald-300">RFQ job created! <button onClick={() => { setShowRfqModal(false); router.push(`/workflows`); }} className="underline ml-1">Open in Workflows →</button></p>
                 </div>
               )}
 
