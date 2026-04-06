@@ -179,53 +179,86 @@ export default function PortalProductPage() {
         </div>
 
         {/* Sample Section */}
-        {sampleRequests.length > 0 && (
-          <div className="border border-amber-500/20 rounded-2xl overflow-hidden bg-amber-500/[0.02]">
-            <div className="px-6 py-4 border-b border-amber-500/10">
-              <p className="text-sm font-semibold text-amber-300">Sample Requested</p>
-              <p className="text-xs text-white/30 mt-0.5">Update the sample stage as you work through it</p>
-            </div>
-            {sampleRequests.map((sr: any) => {
-              const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
-              const isRevision = sr.status === "revision";
-              return (
-                <div key={sr.id} className="px-6 py-4 space-y-3">
-                  {isRevision && (
-                    <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5">
-                      <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs font-semibold text-amber-300">Revision Requested</p>
-                        {sr.notes && <p className="text-[11px] text-amber-300/60 mt-0.5">{sr.notes}</p>}
-                      </div>
-                    </div>
-                  )}
-                  <div className="space-y-1.5">
-                    {SAMPLE_STAGES.map((stage, stageIdx) => {
-                      const isPast = stageIdx < currentIdx;
-                      const isCurrent = stage.key === sr.current_stage;
-                      return (
-                        <button key={stage.key} onClick={() => !isPast && updateSampleStage(stage.key, sr.id)}
-                          disabled={updatingSample || isPast}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${isCurrent ? "border-amber-500/30 bg-amber-500/10" : isPast ? "border-white/[0.04] opacity-40 cursor-default" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isPast ? "#10b981" : stage.color }} />
-                          <span style={{ color: isCurrent ? "#fbbf24" : isPast ? "#10b981" : "rgba(255,255,255,0.5)" }}>{stage.label}</span>
-                          {isCurrent && <span className="ml-auto text-[10px] text-amber-400/60">Current</span>}
-                          {isPast && <Check size={10} className="text-emerald-400 ml-auto" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Add a note (optional)</p>
-                    <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
-                      placeholder="e.g. Sample dispatched via DHL, tracking #1234"
-                      rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
-                  </div>
+        {sampleRequests.length > 0 && sampleRequests.map((sr: any) => {
+          const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
+          const prev = currentIdx > 0 ? SAMPLE_STAGES[currentIdx - 1] : null;
+          const next = currentIdx < SAMPLE_STAGES.length - 1 ? SAMPLE_STAGES[currentIdx + 1] : null;
+          const current = SAMPLE_STAGES[currentIdx] || SAMPLE_STAGES[0];
+          const isRevision = sr.status === "revision";
+          return (
+            <div key={sr.id} className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
+              <div className="px-5 py-4 border-b border-white/[0.05]">
+                <p className="text-sm font-semibold text-white">Sample Request</p>
+                <p className="text-xs text-white/30 mt-0.5">Update the status as you progress</p>
+              </div>
+
+              {isRevision && (
+                <div className="px-5 py-3 border-b border-amber-500/10 bg-amber-500/[0.05] flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                  <p className="text-xs text-amber-300 font-medium">Revision Requested{sr.notes ? ` — ${sr.notes}` : ""}</p>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              )}
+
+              {/* Progress bar */}
+              <div className="px-5 pt-4">
+                <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                  <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / SAMPLE_STAGES.length) * 100}%`, background: current.color }} />
+                </div>
+              </div>
+
+              {/* Nav arrows */}
+              <div className="flex items-center justify-between gap-4 px-5 py-4">
+                <button onClick={() => prev && updateSampleStage(prev.key, sr.id)} disabled={!prev || updatingSample}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
+                  ← {prev ? prev.label : "Start"}
+                </button>
+                <div className="text-center">
+                  <div className="flex items-center gap-2 justify-center">
+                    <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
+                    <span className="text-sm font-semibold text-white">{current.label}</span>
+                  </div>
+                  <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {SAMPLE_STAGES.length}</p>
+                </div>
+                <button onClick={() => next && updateSampleStage(next.key, sr.id)} disabled={!next || updatingSample}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
+                  style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
+                  {next ? next.label : "Complete"} →
+                </button>
+              </div>
+
+              {/* Note input */}
+              <div className="px-5 pb-4 space-y-2">
+                <p className="text-[10px] text-white/25 uppercase tracking-widest">Add a note (optional)</p>
+                <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
+                  placeholder="e.g. Sample dispatched via DHL, tracking #1234"
+                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+              </div>
+
+              {/* Stage timeline */}
+              <div className="border-t border-white/[0.05] px-5 py-4">
+                <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">All Stages</p>
+                <div className="space-y-1">
+                  {SAMPLE_STAGES.map((stage, i) => {
+                    const isPast = i < currentIdx;
+                    const isCurrent = i === currentIdx;
+                    return (
+                      <div key={stage.key} className="flex items-center gap-2.5 py-1">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border"
+                          style={{ background: isPast ? "#10b98120" : isCurrent ? `${stage.color}20` : "transparent", borderColor: isPast ? "#10b98140" : isCurrent ? `${stage.color}40` : "rgba(255,255,255,0.06)" }}>
+                          {isPast ? <Check size={9} className="text-emerald-400" /> : isCurrent ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage.color }} /> : null}
+                        </div>
+                        <span className="text-xs" style={{ color: isPast ? "#10b981" : isCurrent ? stage.color : "rgba(255,255,255,0.2)" }}>
+                          {stage.label}
+                        </span>
+                        {isCurrent && <span className="text-[10px] text-white/20 ml-auto">Current</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })}
 
         {/* Production Orders Section */}
         {orders.length > 0 && (
