@@ -822,7 +822,7 @@ ${entry}` : entry;
                     <p className="text-sm font-semibold text-white">Samples</p>
                     <p className="text-xs text-white/30 mt-0.5">Track sample progress per factory</p>
                   </div>
-                  {showRequestButton && !isKilled && !isHold && (
+                  {showRequestButton && !isKilled && !isHold && !sampleRequests.some((sr: any) => sr.status === "approved") && (
                     <button onClick={() => setShowSampleModal(true)}
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
                       <Plus size={11} />Request Samples

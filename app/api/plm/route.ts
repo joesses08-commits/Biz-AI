@@ -233,9 +233,9 @@ export async function POST(req: NextRequest) {
       const hasApproved = (existingAny || []).some((r: any) => r.status === "approved");
       const hasActive = (existingAny || []).some((r: any) => r.status === "requested");
 
-      if (hasApproved) {
+      if (hasApproved && !force) {
         skippedFactories.push(factory.name);
-        continue; // Sample already approved — never allow new request
+        continue; // Sample already approved — block unless force (additional sample)
       }
 
       if (hasActive && !force) {
@@ -256,12 +256,26 @@ export async function POST(req: NextRequest) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
-        await supabaseAdmin.from("plm_sample_stages").insert({
-          product_id, factory_id: factory.id, user_id: user.id,
-          stage: "sample_production",
-          notes: note || "Additional sample requested",
-          updated_by: user.email, updated_by_role: "admin",
-        });
+        // Get the newly created request ID
+        const { data: newReq } = await supabaseAdmin
+          .from("plm_sample_requests")
+          .select("id")
+          .eq("product_id", product_id)
+          .eq("factory_id", factory.id)
+          .eq("status", "requested")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (newReq) {
+          await supabaseAdmin.from("plm_sample_stages").insert({
+            sample_request_id: newReq.id,
+            product_id, factory_id: factory.id, user_id: user.id,
+            stage: "sample_production",
+            notes: note || "Additional sample requested",
+            updated_by: user.email, updated_by_role: "admin",
+          });
+        }
         continue;
       }
 
