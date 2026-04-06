@@ -983,26 +983,7 @@ export default function FactoryQuotePage() {
 
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
 
-  const handleApprove = async (id: string) => {
-    setApproving(id);
-    await fetch("/api/workflows", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "approve", actionId: id }) });
-    setApproving(null); load();
-  };
 
-  const handleReject = async (id: string) => {
-    await fetch("/api/workflows", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "reject", actionId: id }) });
-    load();
-  };
-
-  const handleToggle = async (workflowType: string, enabled: boolean) => {
-    await fetch("/api/workflows", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "toggle", workflowType, enabled }) });
-    load();
-  };
-
-  const handleSaveSettings = async (workflowType: string, settings: Record<string, string>) => {
-    await fetch("/api/workflows", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "save_settings", workflowType, settings }) });
-    load();
-  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
