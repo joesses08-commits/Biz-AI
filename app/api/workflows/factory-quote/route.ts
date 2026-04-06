@@ -663,20 +663,26 @@ Return ONLY raw JSON, no markdown:
       }).eq("id", job_id);
 
       // Update PLM products to quotes_received
-      const buildJob = await supabaseAdmin.from("factory_quote_jobs").select("order_details").eq("id", job_id).single();
+      const buildJob = await supabaseAdmin.from("factory_quote_jobs").select("order_details, factory_quotes(factory_name)").eq("id", job_id).single();
       const buildOrderDetails = buildJob.data?.order_details as any;
       const buildPlmIds = buildOrderDetails?.plm_product_ids || [];
+      const quotingFactories = (buildJob.data?.factory_quotes || []).map((q: any) => q.factory_name).join(", ");
       if (buildPlmIds.length > 0) {
         for (const productId of buildPlmIds) {
+          const { data: existingProduct } = await supabaseAdmin.from("plm_products").select("notes").eq("id", productId).single();
+          const noteEntry = `Quotes Received: Comparison sheet built with quotes from ${quotingFactories || "factories"}`;
+          const updatedNotes = existingProduct?.notes ? `${existingProduct.notes}
+${noteEntry}` : noteEntry;
           await supabaseAdmin.from("plm_products").update({
             current_stage: "quotes_received",
+            notes: updatedNotes,
             updated_at: new Date().toISOString(),
           }).eq("id", productId);
           await supabaseAdmin.from("plm_stages").insert({
             product_id: productId,
             user_id: user.id,
             stage: "quotes_received",
-            notes: "Comparison sheet built — quotes received from all factories",
+            notes: `Comparison sheet built with quotes from ${quotingFactories || "factories"}`,
             updated_by: user.email || "jimmy",
             updated_by_role: "admin",
           });
