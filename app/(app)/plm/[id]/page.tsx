@@ -196,10 +196,11 @@ ${entry}` : entry;
   };
 
   const [sampleProviderModal, setSampleProviderModal] = useState<{factory_ids: string[], note: string} | null>(null);
-  const [showUnkillModal, setShowUnkillModal] = useState(false);
-  const [unkillPin, setUnkillPin] = useState("");
-  const [unkillPinError, setUnkillPinError] = useState("");
-  const [unkilling, setUnkilling] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<"progression"|"hold"|"killed"|null>(null);
+  const [statusPin, setStatusPin] = useState("");
+  const [statusPinError, setStatusPinError] = useState("");
+  const [settingStatus, setSettingStatus] = useState(false);
 
   const requestSamples = async (provider?: string) => {
     if (!sampleFactoryIds.length) return;
@@ -234,6 +235,28 @@ ${entry}` : entry;
     const data = await res.json();
     setUpdatingSampleStage(null);
     if (data.error === "pin_required") return false;
+    load();
+    return true;
+  };
+
+  const setProductStatus = async (status: string, pin: string) => {
+    setSettingStatus(true);
+    setStatusPinError("");
+    const res = await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "set_product_status", product_id: id, status, pin }),
+    });
+    const data = await res.json();
+    setSettingStatus(false);
+    if (data.error === "pin_required") {
+      setStatusPinError("Incorrect PIN. Try again.");
+      return false;
+    }
+    setShowStatusModal(false);
+    setPendingStatus(null);
+    setStatusPin("");
+    setStatusPinError("");
     load();
     return true;
   };
@@ -462,75 +485,35 @@ ${entry}` : entry;
         </div>
       )}
 
-      {/* Killed Banner */}
-      {product.killed && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-40 p-4">
-          <div className="bg-[#111] border border-red-500/30 rounded-2xl w-full max-w-sm p-6 space-y-4 text-center">
-            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
-              <X size={20} className="text-red-400" />
-            </div>
+      {/* Status Change PIN Modal */}
+      {showStatusModal && pendingStatus && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div>
-              <p className="text-sm font-semibold text-red-400">Product Killed</p>
-              <p className="text-xs text-white/30 mt-1">This product has been killed. Admin PIN required to revive it.</p>
+              <p className="text-sm font-semibold text-white">Confirm Status Change</p>
+              <p className="text-xs text-white/40 mt-1">
+                Switch to{" "}
+                <span className={`font-semibold ${pendingStatus === "killed" ? "text-red-400" : pendingStatus === "hold" ? "text-amber-400" : "text-emerald-400"}`}>
+                  {pendingStatus === "killed" ? "Killed" : pendingStatus === "hold" ? "Hold" : "Progression"}
+                </span>
+                {" "}— enter Admin PIN to confirm
+              </p>
+              {pendingStatus === "killed" && <p className="text-[11px] text-red-400/60 mt-1.5">Product will be read-only. Can be revived with PIN.</p>}
+              {pendingStatus === "hold" && <p className="text-[11px] text-amber-400/60 mt-1.5">Product info editable but no progression allowed.</p>}
             </div>
-            {!showUnkillModal ? (
-              <button onClick={() => setShowUnkillModal(true)}
-                className="w-full py-2.5 rounded-xl border border-white/10 text-white/40 text-xs hover:text-white/60 transition">
-                Revive Product
+            <input type="password" value={statusPin} onChange={e => setStatusPin(e.target.value)}
+              placeholder="Enter PIN" autoFocus
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
+              onKeyDown={e => e.key === "Enter" && setProductStatus(pendingStatus, statusPin)} />
+            {statusPinError && <p className="text-xs text-red-400">{statusPinError}</p>}
+            <div className="flex gap-2">
+              <button onClick={() => setProductStatus(pendingStatus, statusPin)} disabled={!statusPin || settingStatus}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {settingStatus ? "Confirming..." : "Confirm"}
               </button>
-            ) : (
-              <div className="space-y-2 text-left">
-                <input type="password" value={unkillPin} onChange={e => setUnkillPin(e.target.value)}
-                  placeholder="Enter Admin PIN" autoFocus
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
-                  onKeyDown={async e => {
-                    if (e.key === "Enter") {
-                      setUnkilling(true);
-                      setUnkillPinError("");
-                      const res = await fetch("/api/plm", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "unkill_product", product_id: id, pin: unkillPin }),
-                      });
-                      const data = await res.json();
-                      setUnkilling(false);
-                      if (data.error === "pin_required") {
-                        setUnkillPinError("Incorrect PIN.");
-                      } else {
-                        setShowUnkillModal(false);
-                        setUnkillPin("");
-                        load();
-                      }
-                    }
-                  }} />
-                {unkillPinError && <p className="text-xs text-red-400">{unkillPinError}</p>}
-                <div className="flex gap-2">
-                  <button onClick={async () => {
-                    setUnkilling(true);
-                    setUnkillPinError("");
-                    const res = await fetch("/api/plm", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "unkill_product", product_id: id, pin: unkillPin }),
-                    });
-                    const data = await res.json();
-                    setUnkilling(false);
-                    if (data.error === "pin_required") {
-                      setUnkillPinError("Incorrect PIN.");
-                    } else {
-                      setShowUnkillModal(false);
-                      setUnkillPin("");
-                      load();
-                    }
-                  }} disabled={!unkillPin || unkilling}
-                    className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                    {unkilling ? "Reviving..." : "Confirm Revive"}
-                  </button>
-                  <button onClick={() => { setShowUnkillModal(false); setUnkillPin(""); setUnkillPinError(""); }}
-                    className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-                </div>
-              </div>
-            )}
+              <button onClick={() => { setShowStatusModal(false); setPendingStatus(null); setStatusPin(""); setStatusPinError(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
           </div>
         </div>
       )}
@@ -580,12 +563,32 @@ ${entry}` : entry;
           </button>
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-3 mb-1">
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h1 className="text-2xl font-bold">{product.name}</h1>
                 {product.sku && <span className="text-xs text-white/30 font-mono bg-white/[0.04] px-2 py-0.5 rounded-lg">{product.sku}</span>}
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color, border: `1px solid ${currentDevStage.color}30` }}>
                   {currentDevStage.label}
                 </span>
+                {/* Product Status Dropdown */}
+                <div className="relative group">
+                  <button className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition ${
+                    isKilled ? "bg-red-500/15 border-red-500/30 text-red-400" :
+                    isHold ? "bg-amber-500/15 border-amber-500/30 text-amber-400" :
+                    "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                  }`}>
+                    {isKilled ? "● Killed" : isHold ? "⏸ Hold" : "▶ Progression"}
+                    <ChevronRight size={10} className="rotate-90" />
+                  </button>
+                  <div className="absolute top-full left-0 mt-1 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition z-20 min-w-[160px]">
+                    {(["progression","hold","killed"] as const).map(s => (
+                      <button key={s} onClick={() => { setPendingStatus(s); setShowStatusModal(true); }}
+                        disabled={productStatus === s}
+                        className={`w-full text-left px-3 py-2.5 text-xs transition ${productStatus === s ? "text-white/20 cursor-default bg-white/[0.02]" : "text-white/60 hover:bg-white/[0.05] hover:text-white"}`}>
+                        {s === "killed" ? "● Kill Product" : s === "hold" ? "⏸ Put on Hold" : "▶ Set to Progression"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-3 text-xs text-white/30">
                 {product.plm_collections && <span className="flex items-center gap-1"><Layers size={10} />{product.plm_collections.name}</span>}
@@ -625,7 +628,7 @@ ${entry}` : entry;
                       <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / DEV_STAGES.length) * 100}%`, background: current.color }} />
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <button onClick={() => prev && updateDevStage(prev.key)} disabled={!prev || updatingDevStage}
+                      <button onClick={() => prev && updateDevStage(prev.key)} disabled={!prev || updatingDevStage || isKilled || isHold}
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
                         ← {prev ? prev.label : "Start"}
                       </button>
@@ -636,7 +639,7 @@ ${entry}` : entry;
                         </div>
                         <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {DEV_STAGES.length}</p>
                       </div>
-                      <button onClick={() => next && setPendingDevStage(next.key)} disabled={!next || updatingDevStage}
+                      <button onClick={() => next && setPendingDevStage(next.key)} disabled={!next || updatingDevStage || isKilled || isHold}
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
                         style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
                         {next ? next.label : "Complete"} →
@@ -708,7 +711,7 @@ ${entry}` : entry;
                     <p className="text-sm font-semibold text-white">Samples</p>
                     <p className="text-xs text-white/30 mt-0.5">Track sample progress per factory</p>
                   </div>
-                  {showRequestButton && (
+                  {showRequestButton && !isKilled && !isHold && (
                     <button onClick={() => setShowSampleModal(true)}
                       className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
                       <Plus size={11} />Request Samples

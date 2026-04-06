@@ -507,19 +507,28 @@ ${noteEntry}` : noteEntry;
     return NextResponse.json({ sample_requests: data || [] });
   }
 
-  if (action === "unkill_product") {
-    const { product_id, pin } = body;
+  if (action === "set_product_status") {
+    const { product_id, status, pin } = body;
     if (pin !== process.env.ADMIN_MILESTONE_PIN) {
       return NextResponse.json({ error: "pin_required" }, { status: 403 });
     }
+    if (!["progression", "hold", "killed"].includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
     await supabaseAdmin.from("plm_products").update({
-      killed: false,
+      status,
+      killed: status === "killed",
       updated_at: new Date().toISOString(),
     }).eq("id", product_id).eq("user_id", user.id);
+    const noteMap: Record<string, string> = {
+      progression: "Product set to Progression — moving forward",
+      hold: "Product placed on Hold — paused but not cancelled",
+      killed: "Product Killed — no longer moving forward",
+    };
     await supabaseAdmin.from("plm_stages").insert({
       product_id, user_id: user.id,
-      stage: "unkilled",
-      notes: "Product revived by admin",
+      stage: `status_${status}`,
+      notes: noteMap[status],
       updated_by: user.email, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });
