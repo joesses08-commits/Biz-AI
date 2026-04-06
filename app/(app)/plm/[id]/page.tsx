@@ -388,13 +388,47 @@ ${entry}` : entry;
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
   const lc = "text-[10px] text-white/30 uppercase tracking-widest mb-1 block";
 
-  // Build full history from plm_stages + all order stages
+  // Build full history from all sources
   const productHistory = [
     ...(product.plm_stages || []),
     ...(product.plm_batches || []).flatMap((b: any) =>
-      (b.plm_batch_stages || []).map((s: any) => ({ ...s, _order_num: b.batch_number }))
+      (b.plm_batch_stages || []).map((s: any) => ({ ...s, _order_num: b.batch_number, _type: "order" }))
     ),
+    ...(product.plm_sample_requests || []).flatMap((sr: any) => {
+      const factory = sr.factory_catalog;
+      return (sr.plm_sample_stages || []).map((s: any) => ({
+        ...s,
+        _factory_name: factory?.name,
+        _type: "sample",
+        stage: s.stage,
+      }));
+    }),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const HISTORY_LABELS: Record<string, { label: string; color: string }> = {
+    concept: { label: "Concept", color: "#6b7280" },
+    ready_for_quote: { label: "Ready for Quote", color: "#ec4899" },
+    artwork_sent: { label: "Artwork Sent", color: "#8b5cf6" },
+    quotes_received: { label: "Quotes Received", color: "#3b82f6" },
+    samples_requested: { label: "Samples Requested", color: "#f59e0b" },
+    sample_approved: { label: "Sample Approved", color: "#10b981" },
+    status_progression: { label: "▶ Set to Progression", color: "#10b981" },
+    status_hold: { label: "⏸ Put on Hold", color: "#f59e0b" },
+    status_killed: { label: "● Killed", color: "#ef4444" },
+    unkilled: { label: "● Revived", color: "#10b981" },
+    sample_production: { label: "Sample Production", color: "#f59e0b" },
+    sample_complete: { label: "Sample Complete", color: "#10b981" },
+    sample_shipped: { label: "Sample Shipped", color: "#3b82f6" },
+    sample_arrived: { label: "Sample Arrived", color: "#8b5cf6" },
+    revision_requested: { label: "Revision Requested", color: "#f59e0b" },
+    killed: { label: "Killed", color: "#ef4444" },
+    po_issued: { label: "PO Issued", color: "#f59e0b" },
+    production_started: { label: "Production Started", color: "#f59e0b" },
+    production_complete: { label: "Production Complete", color: "#10b981" },
+    qc_inspection: { label: "QC Inspection", color: "#f59e0b" },
+    ready_to_ship: { label: "Ready to Ship", color: "#3b82f6" },
+    shipped: { label: "Shipped", color: "#10b981" },
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -1264,19 +1298,30 @@ ${entry}` : entry;
             ) : (
               <div className="space-y-3">
                 {productHistory.map((h: any, i: number) => {
-                  const s = stageInfo(h.stage);
+                  const info = HISTORY_LABELS[h.stage] || stageInfo(h.stage);
+                  const isSample = h._type === "sample";
+                  const isOrder = h._type === "order";
+                  const isStatus = h.stage?.startsWith("status_") || h.stage === "unkilled";
                   return (
                     <div key={h.id || i} className="flex items-start gap-3">
-                      <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: s.color }} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs text-white/60 font-medium">{s.label}</span>
-                          {h._order_num && <span className="text-[10px] text-white/25">Order #{h._order_num}</span>}
-                          {h.updated_by && <span className="text-[10px] text-white/20">{h.updated_by}</span>}
-                        </div>
-                        {h.notes && <p className="text-[11px] text-white/35 mt-0.5">{h.notes}</p>}
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <div className="w-2 h-2 rounded-full mt-1" style={{ background: info.color }} />
+                        {i < productHistory.length - 1 && <div className="w-px flex-1 bg-white/[0.06] mt-1 min-h-[12px]" />}
                       </div>
-                      <span className="text-[10px] text-white/20 flex-shrink-0">{new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                      <div className="flex-1 min-w-0 pb-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-semibold" style={{ color: info.color }}>{info.label}</span>
+                          {h._factory_name && <span className="text-[10px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">{h._factory_name}</span>}
+                          {h._order_num && <span className="text-[10px] text-white/25">Order #{h._order_num}</span>}
+                          {isSample && !h._factory_name && <span className="text-[10px] text-white/20">Sample</span>}
+                        </div>
+                        {h.notes && h.notes !== "Sample requested" && h.notes !== "Revision round started" && (
+                          <p className="text-[11px] text-white/35 mt-0.5">{h.notes}</p>
+                        )}
+                        <p className="text-[10px] text-white/20 mt-0.5">
+                          {h.updated_by_role === "factory" ? "Factory" : h.updated_by_role === "designer" ? "Designer" : "Admin"} · {new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </p>
+                      </div>
                     </div>
                   );
                 })}
