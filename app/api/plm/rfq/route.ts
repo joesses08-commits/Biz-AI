@@ -140,13 +140,9 @@ export async function POST(req: NextRequest) {
       job_name: jobName,
       status: "waiting",
       factories: [],
-      duty_rate: 0,
-      tariff_rate: 0,
-      freight_per_unit: 0,
+      order_details: `RFQ for ${products.length} products`,
       product_file_base64: base64,
       product_file_name: `RFQ_${Date.now()}.xlsx`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     })
     .select()
     .single();
