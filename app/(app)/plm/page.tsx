@@ -955,7 +955,8 @@ export default function PLMPage() {
                 <button onClick={() => {
                   const approved = products.filter(p => p.current_stage === "sample_approved").map(p => p.id);
                   setPOSelectedProducts(approved);
-                  setPOForm({ po_number: `PO-${Date.now().toString().slice(-6)}`, payment_terms: "30% deposit, 70% before shipment", delivery_terms: "FOB Factory", ship_date: "", destination: "", notes: "" });
+                  setPOLineItems({});
+                  setPOForm({ po_number: `PO-${Date.now().toString().slice(-6)}`, payment_terms: "30% deposit, 70% before shipment", delivery_terms: "FOB Factory", ship_date: "", destination: "", notes: "", company_name: "", company_address: "", contact_name: "" });
                   setShowPOModal(true);
                 }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-400 transition">
                   <FileText size={11} />Generate PO
