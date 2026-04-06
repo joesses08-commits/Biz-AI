@@ -45,65 +45,220 @@ const lc = "text-[10px] text-white/30 mb-1.5 block uppercase tracking-widest";
 function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [success, setSuccess] = useState("");
+  const [activeTab, setActiveTab] = useState<"samples"|"orders">("samples");
 
   useEffect(() => { loadProducts(); }, []);
 
+  const token = () => localStorage.getItem("portal_token") || "";
+
   const loadProducts = async () => {
-    const token = localStorage.getItem("portal_token");
-    const res = await fetch("/api/portal/products", { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch("/api/portal/products", { headers: { Authorization: `Bearer ${token()}` } });
     if (res.status === 401) { router.push("/portal"); return; }
     const data = await res.json();
     setProducts(data.products || []);
     setLoading(false);
   };
 
-
-
   const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
+
+  const sampleProducts = products.filter(p => p._has_sample);
+  const orderProducts = products.filter(p => p._has_production);
+
+  const SAMPLE_STAGE_LABELS: Record<string,string> = {
+    sample_production: "Sample Production",
+    sample_complete: "Sample Complete",
+    sample_shipped: "Sample Shipped",
+    sample_arrived: "Sample Arrived",
+    killed: "Killed",
+  };
+  const SAMPLE_STAGE_COLORS: Record<string,string> = {
+    sample_production: "#f59e0b",
+    sample_complete: "#f59e0b",
+    sample_shipped: "#3b82f6",
+    sample_arrived: "#10b981",
+    killed: "#ef4444",
+  };
+
+  const PROD_STAGE_LABELS: Record<string,string> = {
+    po_issued: "PO Issued",
+    production_started: "Production Started",
+    production_complete: "Production Complete",
+    qc_inspection: "QC Inspection",
+    ready_to_ship: "Ready to Ship",
+    shipped: "Shipped",
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
-
+      {/* Header */}
       <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-            <Factory size={13} className="text-white/60" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+            <Factory size={15} className="text-white/60" />
           </div>
           <div>
             <p className="text-sm font-semibold">Factory Portal</p>
-            {portalUser && <p className="text-[10px] text-white/30">{portalUser.name || portalUser.email}</p>}
+            <p className="text-[10px] text-white/30">{portalUser?.name || portalUser?.email}</p>
           </div>
         </div>
-        <button onClick={logout} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition"><LogOut size={12} />Sign out</button>
+        <button onClick={logout} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition">
+          <LogOut size={12} />Sign out
+        </button>
       </div>
-      <div className="max-w-2xl mx-auto px-6 py-8">
-        {success && <div className="mb-4 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-emerald-400 text-xs"><Check size={12} />{success}</div>}
-        <h2 className="text-lg font-bold mb-1">Your Products</h2>
-        <p className="text-xs text-white/30 mb-6">Update production status for your assigned products</p>
-        {loading ? <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
-          : products.length === 0 ? <div className="text-center py-20"><Package size={32} className="text-white/10 mx-auto mb-3" /><p className="text-white/30 text-sm">No products assigned yet</p></div>
-          : <div className="space-y-3">{products.map(product => {
-              const stage = STAGES.find(s => s.key === product.current_stage);
+
+      {/* Tabs */}
+      <div className="border-b border-white/[0.06] px-6">
+        <div className="flex gap-0 max-w-2xl mx-auto">
+          {[["samples","Samples", sampleProducts.length],["orders","Bulk Orders", orderProducts.length]].map(([key, label, count]) => (
+            <button key={key} onClick={() => setActiveTab(key as any)}
+              className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${activeTab === key ? "border-white text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>
+              {label}
+              {(count as number) > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === key ? "bg-white/10 text-white/60" : "bg-white/[0.04] text-white/20"}`}>{count}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-6 py-6">
+        {loading ? (
+          <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
+        ) : activeTab === "samples" ? (
+          <div className="space-y-4">
+            {sampleProducts.length === 0 ? (
+              <div className="text-center py-20">
+                <Package size={28} className="text-white/10 mx-auto mb-3" />
+                <p className="text-white/30 text-sm">No sample requests yet</p>
+                <p className="text-white/15 text-xs mt-1">Sample requests will appear here</p>
+              </div>
+            ) : sampleProducts.map(product => {
+              const sr = product._sample_request;
+              if (!sr) return null;
+              const stageColor = SAMPLE_STAGE_COLORS[sr.current_stage] || "#6b7280";
+              const stageLabel = SAMPLE_STAGE_LABELS[sr.current_stage] || sr.current_stage;
+              const isRevision = sr.status === "revision";
+              const isKilledSr = sr.status === "killed";
               return (
-                <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] flex items-center gap-4">
-                  {product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
-                    : <div className="w-12 h-12 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0"><Package size={16} className="text-white/20" /></div>}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-semibold">{product.name}</p>
-                      {product.sku && <span className="text-[10px] font-mono text-white/30">{product.sku}</span>}
+                <div key={product.id} className={`border rounded-2xl overflow-hidden ${isKilledSr ? "border-red-500/20 opacity-60" : isRevision ? "border-amber-500/20" : "border-white/[0.07]"} bg-white/[0.01]`}>
+                  {/* Product header */}
+                  <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
+                    {product.images?.[0] ? (
+                      <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                        <Package size={16} className="text-white/20" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <p className="text-sm font-semibold">{product.name}</p>
+                        {product.sku && <span className="text-[10px] font-mono text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">{product.sku}</span>}
+                      </div>
+                      {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage?.color }} />
-                      <span className="text-[11px]" style={{ color: stage?.color }}>{stage?.label}</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>
+                        {stageLabel}
+                      </span>
                     </div>
-                    {product.plm_collections && <p className="text-[10px] text-white/20 mt-0.5">{product.plm_collections.name}</p>}
                   </div>
-                  <button onClick={() => router.push(`/portal/product?id=${product.id}`)} className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/80 border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-lg transition flex-shrink-0">View →</button>
+
+                  {/* Revision banner */}
+                  {isRevision && (
+                    <div className="px-4 py-2.5 bg-amber-500/[0.06] border-b border-amber-500/10 flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                      <p className="text-xs text-amber-300 font-medium">Revision Requested</p>
+                      {sr.notes && <p className="text-[11px] text-amber-300/50 ml-1">— {sr.notes}</p>}
+                    </div>
+                  )}
+
+                  {/* Sample stages */}
+                  {!isKilledSr && (
+                    <div className="p-4 space-y-2">
+                      <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Sample Progress</p>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {["sample_production","sample_complete","sample_shipped"].map((stageKey, i) => {
+                          const stagesOrder = ["sample_production","sample_complete","sample_shipped"];
+                          const currentIdx = stagesOrder.indexOf(sr.current_stage);
+                          const thisIdx = stagesOrder.indexOf(stageKey);
+                          const isPast = thisIdx < currentIdx;
+                          const isCurrent = stageKey === sr.current_stage;
+                          return (
+                            <div key={stageKey} className="flex items-center gap-1">
+                              <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition ${
+                                isCurrent ? "border-amber-500/30 bg-amber-500/10 text-amber-300" :
+                                isPast ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400" :
+                                "border-white/[0.05] text-white/20"
+                              }`}>
+                                {isPast && <Check size={9} className="text-emerald-400" />}
+                                {SAMPLE_STAGE_LABELS[stageKey]}
+                              </div>
+                              {i < 2 && <span className="text-white/15 text-[10px]">→</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
+                        className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
+                        Update Sample Status →
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
-            })}</div>}
+            })}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {orderProducts.length === 0 ? (
+              <div className="text-center py-20">
+                <Package size={28} className="text-white/10 mx-auto mb-3" />
+                <p className="text-white/30 text-sm">No bulk orders yet</p>
+                <p className="text-white/15 text-xs mt-1">Production orders will appear here</p>
+              </div>
+            ) : orderProducts.map(product => {
+              const batches = product.plm_batches || [];
+              return (
+                <div key={product.id} className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
+                  <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
+                    {product.images?.[0] ? (
+                      <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                        <Package size={16} className="text-white/20" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold">{product.name}</p>
+                      {product.sku && <span className="text-[10px] font-mono text-white/25">{product.sku}</span>}
+                      <p className="text-[10px] text-white/25 mt-0.5">{batches.length} order{batches.length !== 1 ? "s" : ""}</p>
+                    </div>
+                    <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
+                      className="text-xs text-white/40 hover:text-white border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-xl transition flex-shrink-0">
+                      View →
+                    </button>
+                  </div>
+                  <div className="divide-y divide-white/[0.04]">
+                    {batches.map((batch: any) => {
+                      const stageLabel = PROD_STAGE_LABELS[batch.current_stage] || batch.current_stage;
+                      const stageColor = batch.current_stage === "shipped" ? "#10b981" : batch.current_stage === "production_complete" ? "#10b981" : "#f59e0b";
+                      return (
+                        <div key={batch.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs text-white/60 font-medium">Order #{batch.batch_number}</p>
+                            {batch.order_quantity && <p className="text-[11px] text-white/30">{batch.order_quantity} units</p>}
+                          </div>
+                          <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>
+                            {stageLabel}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
