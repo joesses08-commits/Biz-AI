@@ -186,108 +186,165 @@ export default function PortalProductPage() {
           )}
         </div>
 
-        {/* Sample Section */}
-        {sampleRequests.length > 0 && sampleRequests.map((sr: any) => {
-          const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
-          const prev = currentIdx > 0 ? SAMPLE_STAGES[currentIdx - 1] : null;
-          const next = currentIdx < SAMPLE_STAGES.length - 1 ? SAMPLE_STAGES[currentIdx + 1] : null;
-          const current = SAMPLE_STAGES[currentIdx] || SAMPLE_STAGES[0];
-          const isRevision = sr.status === "revision";
+        {/* Sample Section — grouped by round, same as admin */}
+        {sampleRequests.length > 0 && (() => {
+          const STAGE_KEYS = ["sample_production","sample_complete","sample_shipped","sample_arrived"];
+          const STAGE_LABELS: Record<string,string> = { sample_production:"Production", sample_complete:"Complete", sample_shipped:"Shipped", sample_arrived:"Arrived" };
+          const STAGE_COLORS: Record<string,string> = { sample_production:"#f59e0b", sample_complete:"#10b981", sample_shipped:"#3b82f6", sample_arrived:"#8b5cf6" };
+
+          // Sort rounds oldest first
+          const sortedRounds = [...sampleRequests].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+          const activeRound = sortedRounds.find((r: any) => r.status === "requested");
+
           return (
-            <div key={sr.id} className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
+            <div className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
               <div className="px-5 py-4 border-b border-white/[0.05]">
-                <p className="text-sm font-semibold text-white">Sample Request</p>
-                <p className="text-xs text-white/30 mt-0.5">Update the status as you progress</p>
+                <p className="text-sm font-semibold text-white">Sample Requests</p>
+                <p className="text-xs text-white/30 mt-0.5">{sortedRounds.length} round{sortedRounds.length > 1 ? "s" : ""}</p>
               </div>
 
-              {isRevision && (
-                <div className="px-5 py-3 border-b border-amber-500/10 bg-amber-500/[0.05] flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                  <p className="text-xs text-amber-300 font-medium">Revision Requested{sr.notes ? ` — ${sr.notes}` : ""}</p>
-                </div>
-              )}
+              <div className="px-5 py-4 space-y-3">
+                {sortedRounds.map((sr: any, roundIdx: number) => {
+                  const isActive = sr.status === "requested";
+                  const isKilled = sr.status === "killed";
+                  const isApproved = sr.status === "approved";
+                  const isRevision = sr.status === "revision";
+                  const roundLabel = roundIdx === 0 ? "Round 1" : sr.label === "additional" ? `Additional Sample ${roundIdx}` : `Round ${roundIdx + 1} — Revision`;
+                  const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                  const completedStageKeys = stages.map((s: any) => s.stage).filter((k: string) => STAGE_KEYS.includes(k));
+                  const lastCompletedIdx = Math.max(...completedStageKeys.map((k: string) => STAGE_KEYS.indexOf(k)), -1);
+                  const revisionNoteText = stages.find((s: any) => s.stage === "revision_requested")?.notes;
 
-              {/* Progress bar */}
-              <div className="px-5 pt-4">
-                <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
-                  <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / SAMPLE_STAGES.length) * 100}%`, background: current.color }} />
-                </div>
-              </div>
+                  // For active round: arrow nav
+                  const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
+                  const prev = currentIdx > 0 ? SAMPLE_STAGES[currentIdx - 1] : null;
+                  const next = currentIdx < SAMPLE_STAGES.length - 1 ? SAMPLE_STAGES[currentIdx + 1] : null;
+                  const current = SAMPLE_STAGES[currentIdx] || SAMPLE_STAGES[0];
 
-              {/* Nav arrows */}
-              <div className="flex items-center justify-between gap-4 px-5 py-4">
-                <button onClick={() => prev && setPendingSampleStage({ stage: prev.key, srId: sr.id })} disabled={!prev || updatingSample}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
-                  ← {prev ? prev.label : "Start"}
-                </button>
-                <div className="text-center">
-                  <div className="flex items-center gap-2 justify-center">
-                    <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
-                    <span className="text-sm font-semibold text-white">{current.label}</span>
-                  </div>
-                  <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {SAMPLE_STAGES.length}</p>
-                </div>
-                <button onClick={() => next && setPendingSampleStage({ stage: next.key, srId: sr.id })} disabled={!next || updatingSample}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
-                  style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
-                  {next ? next.label : "Complete"} →
-                </button>
-              </div>
-
-              {/* Pending stage confirm with note */}
-              {pendingSampleStage && pendingSampleStage.srId === sr.id && (
-                <div className="mx-5 mb-4 border border-white/10 rounded-xl p-4 space-y-3 bg-white/[0.02]">
-                  <p className="text-xs text-white/60 font-medium">
-                    Moving to: <span className="text-white">{SAMPLE_STAGES.find(s => s.key === pendingSampleStage.stage)?.label}</span>
-                  </p>
-                  <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
-                    placeholder="Add a note (optional) — e.g. dispatched via DHL, tracking #1234"
-                    rows={2} autoFocus
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
-                  <div className="flex gap-2">
-                    <button onClick={async () => {
-                      setUpdatingSample(true);
-                      await updateSampleStage(pendingSampleStage.stage, pendingSampleStage.srId);
-                      setPendingSampleStage(null);
-                      setSampleNote("");
-                      setUpdatingSample(false);
-                    }} disabled={updatingSample}
-                      className="flex-1 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
-                      {updatingSample ? "Saving..." : "Confirm"}
-                    </button>
-                    <button onClick={() => { setPendingSampleStage(null); setSampleNote(""); }}
-                      className="px-4 rounded-xl border border-white/[0.08] text-white/30 text-xs">Cancel</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Stage timeline */}
-              <div className="border-t border-white/[0.05] px-5 py-4">
-                <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">All Stages</p>
-                <div className="space-y-1">
-                  {SAMPLE_STAGES.map((stage, i) => {
-                    const isPast = i < currentIdx;
-                    const isCurrent = i === currentIdx;
-                    return (
-                      <div key={stage.key} className="flex items-center gap-2.5 py-1">
-                        <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border"
-                          style={{ background: isPast ? "#10b98120" : isCurrent ? `${stage.color}20` : "transparent", borderColor: isPast ? "#10b98140" : isCurrent ? `${stage.color}40` : "rgba(255,255,255,0.06)" }}>
-                          {isPast ? <Check size={9} className="text-emerald-400" /> : isCurrent ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage.color }} /> : null}
-                        </div>
-                        <span className="text-xs" style={{ color: isPast ? "#10b981" : isCurrent ? stage.color : "rgba(255,255,255,0.2)" }}>
-                          {stage.label}
-                        </span>
-                        {isCurrent && <span className="text-[10px] text-white/20 ml-auto">Current</span>}
+                  return (
+                    <div key={sr.id} className={`border rounded-2xl overflow-hidden ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-white/[0.08] bg-white/[0.01]"}`}>
+                      <div className="px-4 py-2.5 border-b border-white/[0.05] flex items-center justify-between">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                        {isApproved && <span className="text-[10px] text-emerald-400">✓ Approved</span>}
+                        {isKilled && <span className="text-[10px] text-red-400">Ended</span>}
+                        {isRevision && <span className="text-[10px] text-amber-400">Revision Requested</span>}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      <div className="px-4 py-3 space-y-3">
+                        {/* Horizontal stage pills + result */}
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {STAGE_KEYS.map((key, i) => {
+                            const idx = STAGE_KEYS.indexOf(key);
+                            const isCompleted = idx <= lastCompletedIdx;
+                            const isCurrent = isActive && idx === lastCompletedIdx;
+                            const color = STAGE_COLORS[key];
+                            return (
+                              <div key={key} className="flex items-center gap-1">
+                                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${
+                                  isCompleted && !isCurrent ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
+                                  isCurrent ? "border-amber-500/30 bg-amber-500/10 text-amber-300" :
+                                  "border-white/[0.05] text-white/15"
+                                }`}>
+                                  {isCompleted && !isCurrent && <Check size={8} />}
+                                  {isCurrent && <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: color }} />}
+                                  {STAGE_LABELS[key]}
+                                </div>
+                                {i < STAGE_KEYS.length - 1 && <span className="text-white/10 text-[10px]">→</span>}
+                              </div>
+                            );
+                          })}
+                          {/* Result pill */}
+                          {(isApproved || isRevision || isKilled) && <span className="text-white/10 text-[10px]">→</span>}
+                          {isApproved && <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"><Check size={8} />Approved</span>}
+                          {isRevision && <span className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">↩ Revision{revisionNoteText ? `: ${revisionNoteText}` : ""}</span>}
+                          {isKilled && (() => {
+                            const isLastRound = roundIdx === sortedRounds.length - 1;
+                            const killedNote = stages.find((s: any) => s.stage === "killed")?.notes || "";
+                            return isLastRound
+                              ? <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400"><X size={8} />{killedNote || "Killed"}</span>
+                              : <span className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">↩ Revision Requested</span>;
+                          })()}
+                        </div>
+
+                        {/* Arrow nav for active round only */}
+                        {isActive && (
+                          <div className="border-t border-white/[0.05] pt-3 space-y-3">
+                            {/* Progress bar */}
+                            <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                              <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / SAMPLE_STAGES.length) * 100}%`, background: current.color }} />
+                            </div>
+                            {/* Arrows */}
+                            <div className="flex items-center justify-between gap-4">
+                              <button onClick={() => prev && setPendingSampleStage({ stage: prev.key, srId: sr.id })} disabled={!prev || updatingSample}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
+                                ← {prev ? prev.label : "Start"}
+                              </button>
+                              <div className="text-center">
+                                <div className="flex items-center gap-2 justify-center">
+                                  <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
+                                  <span className="text-sm font-semibold text-white">{current.label}</span>
+                                </div>
+                                <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {SAMPLE_STAGES.length}</p>
+                              </div>
+                              <button onClick={() => next && setPendingSampleStage({ stage: next.key, srId: sr.id })} disabled={!next || updatingSample}
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
+                                style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
+                                {next ? next.label : "Complete"} →
+                              </button>
+                            </div>
+                            {/* All stages */}
+                            <div className="space-y-1">
+                              {SAMPLE_STAGES.map((stage, i) => {
+                                const isPast = i < currentIdx;
+                                const isCur = i === currentIdx;
+                                return (
+                                  <div key={stage.key} className="flex items-center gap-2.5 py-0.5">
+                                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border"
+                                      style={{ background: isPast ? "#10b98120" : isCur ? `${stage.color}20` : "transparent", borderColor: isPast ? "#10b98140" : isCur ? `${stage.color}40` : "rgba(255,255,255,0.06)" }}>
+                                      {isPast ? <Check size={9} className="text-emerald-400" /> : isCur ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage.color }} /> : null}
+                                    </div>
+                                    <span className="text-xs" style={{ color: isPast ? "#10b981" : isCur ? stage.color : "rgba(255,255,255,0.2)" }}>{stage.label}</span>
+                                    {isCur && <span className="text-[10px] text-white/20 ml-auto">Current</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {/* Confirm pending */}
+                            {pendingSampleStage && pendingSampleStage.srId === sr.id && (
+                              <div className="border border-white/10 rounded-xl p-4 space-y-3 bg-white/[0.02]">
+                                <p className="text-xs text-white/60 font-medium">Moving to: <span className="text-white">{SAMPLE_STAGES.find(s => s.key === pendingSampleStage.stage)?.label}</span></p>
+                                <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
+                                  placeholder="Add a note (optional)"
+                                  rows={2} autoFocus
+                                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                                <div className="flex gap-2">
+                                  <button onClick={async () => {
+                                    setUpdatingSample(true);
+                                    await updateSampleStage(pendingSampleStage.stage, pendingSampleStage.srId);
+                                    setPendingSampleStage(null);
+                                    setSampleNote("");
+                                    setUpdatingSample(false);
+                                  }} disabled={updatingSample}
+                                    className="flex-1 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
+                                    {updatingSample ? "Saving..." : "Confirm"}
+                                  </button>
+                                  <button onClick={() => { setPendingSampleStage(null); setSampleNote(""); }}
+                                    className="px-4 rounded-xl border border-white/[0.08] text-white/30 text-xs">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
-        })}
+        })()}
 
-        {/* Production Orders Section */}
+                {/* Production Orders Section */}
         {orders.length > 0 && (
           <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
             <div className="px-6 py-4 border-b border-white/[0.04]">
