@@ -81,6 +81,13 @@ export default function PLMPage() {
   const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
   const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"", role:"factory" });
 
+  // Bulk sample request
+  const [showSampleRequestModal, setShowSampleRequestModal] = useState(false);
+  const [bulkSampleSelections, setBulkSampleSelections] = useState<Record<string, string[]>>({});
+  const [bulkSampleNote, setBulkSampleNote] = useState("");
+  const [submittingBulkSample, setSubmittingBulkSample] = useState(false);
+  const [bulkSampleProductIds, setBulkSampleProductIds] = useState<string[]>([]);
+
   // RFQ from PLM
   const [showRfqModal, setShowRfqModal] = useState(false);
   const [rfqSelectedProducts, setRfqSelectedProducts] = useState<string[]>([]);
@@ -513,6 +520,96 @@ export default function PLMPage() {
           </div>
         )}
 
+        {/* Bulk Sample Request Modal */}
+        {showSampleRequestModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Request Samples</p>
+                  <p className="text-xs text-white/30 mt-0.5">Select products and pick which factories to request from</p>
+                </div>
+                <button onClick={() => setShowSampleRequestModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              </div>
+
+              {/* Product list with factory picker per product */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {products.filter(p => ["quotes_received","samples_requested","artwork_sent","ready_for_quote"].includes(p.current_stage || "") || (p.plm_batches?.length === 0)).map((p: any) => {
+                  const isSelected = bulkSampleProductIds.includes(p.id);
+                  const selectedFactories = bulkSampleSelections[p.id] || [];
+                  return (
+                    <div key={p.id} className={`border rounded-xl p-3 space-y-2 transition ${isSelected ? "border-amber-500/30 bg-amber-500/[0.03]" : "border-white/[0.06]"}`}>
+                      <label className="flex items-center gap-2.5 cursor-pointer">
+                        <input type="checkbox" checked={isSelected}
+                          onChange={e => setBulkSampleProductIds(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                          className="rounded" />
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {p.images?.[0] && <img src={p.images[0]} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />}
+                          <span className="text-xs text-white/70 font-medium truncate">{p.name}</span>
+                          {p.sku && <span className="text-[10px] text-white/30 font-mono flex-shrink-0">{p.sku}</span>}
+                        </div>
+                      </label>
+                      {isSelected && (
+                        <div className="pl-6 space-y-1">
+                          <p className="text-[10px] text-white/30 uppercase tracking-widest">Request from:</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {factories.map((f: any) => (
+                              <button key={f.id} onClick={() => setBulkSampleSelections(prev => ({
+                                ...prev,
+                                [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter(id => id !== f.id) : [...selectedFactories, f.id]
+                              }))}
+                                className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/30 hover:text-white/60"}`}>
+                                {f.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Note to factories (optional)</p>
+                <textarea value={bulkSampleNote} onChange={e => setBulkSampleNote(e.target.value)}
+                  placeholder="e.g. Priority samples needed by May 1st"
+                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={async () => {
+                  const toRequest = bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0);
+                  if (!toRequest.length) return;
+                  setSubmittingBulkSample(true);
+                  for (const productId of toRequest) {
+                    await fetch("/api/plm", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        action: "create_sample_requests",
+                        product_id: productId,
+                        factory_ids: bulkSampleSelections[productId],
+                        note: bulkSampleNote,
+                      }),
+                    });
+                  }
+                  setSubmittingBulkSample(false);
+                  setShowSampleRequestModal(false);
+                  setBulkSampleSelections({});
+                  setBulkSampleNote("");
+                  load();
+                }} disabled={submittingBulkSample || bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0).length === 0}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 transition disabled:opacity-40">
+                  {submittingBulkSample ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                  Request Samples for {bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0).length} Products
+                </button>
+                <button onClick={() => setShowSampleRequestModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* New Collection Modal */}
         {showNewCollection && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -670,6 +767,14 @@ export default function PLMPage() {
                   setShowRfqModal(true);
                 }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
                   <FileSpreadsheet size={11} />RFQ
+                </button>
+                <button onClick={() => {
+                  const quoteReceived = products.filter(p => p.current_stage === "quotes_received" || p.current_stage === "samples_requested").map(p => p.id);
+                  setBulkSampleProductIds(quoteReceived);
+                  setBulkSampleSelections({});
+                  setShowSampleRequestModal(true);
+                }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
+                  <Plus size={11} />Request Samples
                 </button>
               </div>
             </div>

@@ -112,6 +112,8 @@ export default function ProductPage() {
   const [requestingSamples, setRequestingSamples] = useState(false);
   const [sampleSuccess, setSampleSuccess] = useState("");
   const [updatingSampleStage, setUpdatingSampleStage] = useState<string | null>(null);
+  const [revisionNote, setRevisionNote] = useState<Record<string, string>>({});
+  const [showRevisionInput, setShowRevisionInput] = useState<string | null>(null);
 
   // Order factory edit
   const [editingOrderFactory, setEditingOrderFactory] = useState<string | null>(null);
@@ -600,22 +602,62 @@ ${entry}` : entry;
                                 })}
                               </div>
 
+                              {/* Mark arrived button — show when factory has shipped */}
+                              {sr.current_stage === "sample_shipped" && (
+                                <div className="flex gap-2">
+                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_arrived", "Sample marked as arrived by admin")}
+                                    disabled={updatingSampleStage === sr.id}
+                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-40">
+                                    {updatingSampleStage === sr.id ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                                    Mark Sample Arrived
+                                  </button>
+                                </div>
+                              )}
+
                               {/* Outcome buttons — show when sample arrived */}
                               {sr.current_stage === "sample_arrived" && (
-                                <div className="flex gap-2 flex-wrap">
-                                  <p className="text-[10px] text-white/30 w-full uppercase tracking-widest">Sample Review</p>
-                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_arrived", "Sample approved", "approved")}
-                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
-                                    <Check size={11} />Approve
-                                  </button>
-                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_production", "", "revision")}
-                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
-                                    Request Revision
-                                  </button>
-                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, sr.current_stage, "Sample killed", "killed")}
-                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
-                                    <X size={11} />Kill
-                                  </button>
+                                <div className="space-y-2">
+                                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Sample Review</p>
+                                  <div className="flex gap-2 flex-wrap">
+                                    <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_arrived", "Sample approved — moving to production", "approved")}
+                                      disabled={updatingSampleStage === sr.id}
+                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40">
+                                      <Check size={11} />Approve
+                                    </button>
+                                    <button onClick={() => setShowRevisionInput(showRevisionInput === sr.id ? null : sr.id)}
+                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
+                                      Request Revision
+                                    </button>
+                                    <button onClick={() => updateSampleStage(sr.id, sr.factory_id, sr.current_stage, "Sample killed for this factory", "killed")}
+                                      disabled={updatingSampleStage === sr.id}
+                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition disabled:opacity-40">
+                                      <X size={11} />Kill this Factory
+                                    </button>
+                                    <button onClick={() => {
+                                      if (confirm("Kill this product entirely? All factory samples will be closed.")) {
+                                        updateSampleStage(sr.id, sr.factory_id, sr.current_stage, "Product killed", "killed");
+                                      }
+                                    }}
+                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-900/20 border border-red-900/30 text-red-600 hover:bg-red-900/30 transition">
+                                      <X size={11} />Kill Product
+                                    </button>
+                                  </div>
+                                  {showRevisionInput === sr.id && (
+                                    <div className="space-y-1.5">
+                                      <textarea value={revisionNote[sr.id] || ""} onChange={e => setRevisionNote(prev => ({ ...prev, [sr.id]: e.target.value }))}
+                                        placeholder="Describe the revision needed (e.g. too blue, reduce handle size)..."
+                                        rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+                                      <button onClick={() => {
+                                        updateSampleStage(sr.id, sr.factory_id, "sample_production", revisionNote[sr.id] || "Revision requested", "revision");
+                                        setShowRevisionInput(null);
+                                        setRevisionNote(prev => ({ ...prev, [sr.id]: "" }));
+                                      }} disabled={updatingSampleStage === sr.id}
+                                        className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition disabled:opacity-40">
+                                        {updatingSampleStage === sr.id ? <Loader2 size={11} className="animate-spin" /> : null}
+                                        Send Revision Request
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </>
@@ -851,7 +893,8 @@ ${entry}` : entry;
               </select>
             </div>
             <InlineField label="Reference / Dropbox Link" value={product.reference_url || ""} onSave={v => saveField("reference_url", v)} />
-            <InlineField label="Notes" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline />
+            <InlineField label="Admin Notes (private)" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline />
+            <InlineField label="Factory Notes (visible to factory)" value={product.factory_notes || ""} onSave={v => saveField("factory_notes", v)} multiline />
           </div>
 
           {/* ── IMAGES ── */}

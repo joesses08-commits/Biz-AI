@@ -244,7 +244,9 @@ export async function POST(req: NextRequest) {
 
     // Update product stage + notes
     const factoryNames = (factories || []).map((f: any) => f.name).join(", ");
-    const noteEntry = `Samples Requested: requested from ${factoryNames}`;
+    const noteEntry = note
+      ? `Samples Requested: requested from ${factoryNames} — ${note}`
+      : `Samples Requested: requested from ${factoryNames}`;
     const { data: product } = await supabaseAdmin.from("plm_products").select("notes").eq("id", product_id).single();
     const updatedNotes = product?.notes ? `${product.notes}
 ${noteEntry}` : noteEntry;
@@ -261,6 +263,51 @@ ${noteEntry}` : noteEntry;
       notes: `Sample requested from ${factoryNames}`,
       updated_by: user.email, updated_by_role: "admin",
     });
+
+    // Get user profile for sign-off name
+    const { data: userProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+    const senderName = userProfile?.full_name || "The Team";
+
+    // Get product name
+    const { data: productData } = await supabaseAdmin
+      .from("plm_products")
+      .select("name, sku")
+      .eq("id", product_id)
+      .single();
+    const productName = productData?.name || "product";
+
+    // Email each factory
+    for (const factory of (factories || [])) {
+      if (factory.email) {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+          body: JSON.stringify({
+            from: "Jimmy AI <onboarding@resend.dev>",
+            to: factory.email,
+            subject: `Sample Request — ${productName}`,
+            html: `
+              <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
+                <h2 style="font-size:18px;font-weight:700;margin-bottom:8px">Sample Request</h2>
+                <p style="color:#666;font-size:14px;margin-bottom:16px">
+                  Hi ${factory.contact_name || factory.name},
+                </p>
+                <p style="color:#666;font-size:14px;margin-bottom:16px">
+                  We have submitted a sample request for <strong>${productName}</strong>${productData?.sku ? ` (${productData.sku})` : ""}. Please log into your Jimmy portal to view the full product details and update the sample status as you progress.
+                </p>
+                ${note ? `<p style="color:#666;font-size:14px;margin-bottom:16px"><strong>Note:</strong> ${note}</p>` : ""}
+                <a href="https://portal.myjimmy.ai" style="display:inline-block;margin-top:12px;padding:10px 20px;background:#000;color:#fff;border-radius:8px;text-decoration:none;font-size:13px">View in Portal</a>
+                <p style="color:#999;font-size:12px;margin-top:24px">Best regards,<br>${senderName}</p>
+              </div>
+            `,
+          }),
+        }).catch(() => {});
+      }
+    }
 
     return NextResponse.json({ success: true, factories });
   }

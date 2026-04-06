@@ -167,10 +167,10 @@ export default function PortalProductPage() {
               <p className="text-sm text-white/60 whitespace-pre-wrap">{product.specs}</p>
             </div>
           )}
-          {product.notes && (
+          {product.factory_notes && (
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Notes from Admin</p>
-              <p className="text-sm text-white/60">{product.notes}</p>
+              <p className="text-sm text-white/60">{product.factory_notes}</p>
             </div>
           )}
         </div>
