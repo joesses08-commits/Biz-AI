@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET(req: NextRequest) {
   const cookieStore = await cookies();
@@ -16,7 +17,6 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type");
   const limit = parseInt(searchParams.get("limit") || "20");
 
-  const { createClient } = await import("@supabase/supabase-js");
   const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
   let query = admin.from("company_events").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(limit);
