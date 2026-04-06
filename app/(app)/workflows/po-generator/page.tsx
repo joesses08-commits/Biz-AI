@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileText, Loader2, X, ArrowLeft, Check,
-  Package, Clock
+  Package, Clock, Eye
 } from "lucide-react";
 
 export default function POGeneratorPage() {
@@ -40,9 +40,10 @@ export default function POGeneratorPage() {
 
   async function load() {
     setLoading(true);
-    const [plmRes, historyRes] = await Promise.all([
+    const [plmRes, historyRes, profileRes] = await Promise.all([
       fetch("/api/plm"),
       fetch("/api/plm/po-history"),
+      fetch("/api/profile"),
     ]);
     const plmData = await plmRes.json();
     setProducts(plmData.products || []);
@@ -50,6 +51,16 @@ export default function POGeneratorPage() {
     if (historyRes.ok) {
       const historyData = await historyRes.json();
       setHistory(historyData.history || []);
+    }
+    if (profileRes.ok) {
+      const profileData = await profileRes.json();
+      const p = profileData.profile || {};
+      setPOForm(f => ({
+        ...f,
+        company_name: p.company_name || f.company_name,
+        contact_name: p.full_name || f.contact_name,
+        company_address: p.address || f.company_address,
+      }));
     }
     setLoading(false);
   }
@@ -107,6 +118,12 @@ export default function POGeneratorPage() {
     });
     setSendingEmail(false);
     setEmailModal(null);
+  }
+
+  function openPO(html: string) {
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
   }
 
   const totalValue = poSelectedProducts.reduce((sum, pid) => {
@@ -342,7 +359,8 @@ export default function POGeneratorPage() {
                     const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
                     const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
                     return (
-                      <div key={event.id} className="bg-[#111] border border-white/[0.06] rounded-xl px-5 py-4 flex items-center justify-between hover:border-white/10 transition">
+                      <div key={event.id} onClick={() => event.html_content && openPO(event.html_content)}
+                        className={`bg-[#111] border border-white/[0.06] rounded-xl px-5 py-4 flex items-center justify-between hover:border-white/10 transition ${event.html_content ? "cursor-pointer" : ""}`}>
                         <div className="flex items-center gap-4">
                           <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
                             <FileText size={13} className="text-blue-400" />
@@ -359,8 +377,15 @@ export default function POGeneratorPage() {
                         </div>
                         <div className="flex items-center gap-4">
                           {total > 0 && <p className="text-sm font-semibold text-white/60">${total.toFixed(2)}</p>}
-                          <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full">
-                            <Check size={10} /> Generated
+                          <div className="flex items-center gap-3">
+                            {event.html_content && (
+                              <div className="flex items-center gap-1 text-[11px] text-white/30 hover:text-white/60 transition">
+                                <Eye size={11} /> View
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full">
+                              <Check size={10} /> Generated
+                            </div>
                           </div>
                         </div>
                       </div>

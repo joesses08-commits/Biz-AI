@@ -344,6 +344,7 @@ ${buyerContact || buyerCompany}`;
     ship_date: ship_date || null,
     destination: destination || null,
     notes: notes || null,
+    html_content: html,
     created_at: new Date().toISOString(),
   });
 

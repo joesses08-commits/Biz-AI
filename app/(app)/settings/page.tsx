@@ -45,6 +45,8 @@ export default function SettingsPage() {
   const [company, setCompany] = useState({
     industry: "",
     full_name: "",
+    company_name: "",
+    address: "",
     website: "",
     currency: "USD",
     fiscal_year_start: "January",
@@ -76,6 +78,8 @@ export default function SettingsPage() {
         setCompany({
           industry: settings.industry || "",
           full_name: profileData?.full_name || "",
+          company_name: data?.company_name || "",
+          address: settings.address || "",
           website: settings.website || "",
           currency: settings.currency || "USD",
           fiscal_year_start: settings.fiscal_year_start || "January",
@@ -98,8 +102,9 @@ export default function SettingsPage() {
   const saveCompany = async () => {
     if (!userId) return;
     setSaving(true);
-    const { full_name, ...companyWithoutName } = company as any;
-    await supabase.from("company_settings").upsert({ user_id: userId, ...companyWithoutName }, { onConflict: "user_id" });
+    const { full_name, company_name, ...companyRest } = company as any;
+    await supabase.from("company_settings").upsert({ user_id: userId, ...companyRest }, { onConflict: "user_id" });
+    if (company_name) await supabase.from("company_profiles").update({ company_name }).eq("user_id", userId);
     if (full_name) await supabase.from("profiles").update({ full_name }).eq("id", userId);
     setSaving(false);
     setSaved(true);
@@ -216,6 +221,16 @@ export default function SettingsPage() {
               <input value={company.full_name} onChange={e => setCompany({...company, full_name: e.target.value})}
                 placeholder="Joey Esses" className={inputClass} />
               <p className="text-[10px] text-white/20 mt-1">Used to sign emails sent from Jimmy on your behalf</p>
+            </div>
+            <div>
+              <label className={labelClass}>Company Name</label>
+              <input value={company.company_name} onChange={e => setCompany({...company, company_name: e.target.value})}
+                placeholder="Acme Wholesale Co." className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Company Address</label>
+              <input value={company.address} onChange={e => setCompany({...company, address: e.target.value})}
+                placeholder="123 Main St, Brooklyn NY 11201" className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Industry</label>
