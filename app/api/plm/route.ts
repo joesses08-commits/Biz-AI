@@ -256,6 +256,8 @@ export async function POST(req: NextRequest) {
         .select("id")
         .eq("product_id", product_id)
         .eq("factory_id", factory.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
       await supabaseAdmin.from("plm_sample_stages").insert({
@@ -308,31 +310,92 @@ ${noteEntry}` : noteEntry;
       .single();
     const productName = productData?.name || "product";
 
-    // Email each factory
-    for (const factory of (factories || [])) {
-      if (factory.email) {
-        await fetch("https://api.resend.com/emails", {
+    // Check which email providers are connected
+    const { data: gmailConn } = await supabaseAdmin
+      .from("gmail_connections")
+      .select("access_token, refresh_token, token_expiry")
+      .eq("user_id", user.id)
+      .single();
+
+    const { data: msConn } = await supabaseAdmin
+      .from("microsoft_connections")
+      .select("access_token, refresh_token, expires_at")
+      .eq("user_id", user.id)
+      .single();
+
+    const bothConnected = !!gmailConn && !!msConn;
+
+    // If both connected, return provider_choice so frontend can ask
+    const { provider } = body;
+    if (bothConnected && !provider) {
+      return NextResponse.json({ 
+        success: false, 
+        needs_provider: true,
+        factories: factories?.map((f: any) => f.name),
+      });
+    }
+
+    const useGmail = gmailConn && (!msConn || provider === "gmail");
+
+    const buildEmailBody = (contactName: string) =>
+      `Hi ${contactName},
+
+We have submitted a sample request for ${productName}${productData?.sku ? ` (${productData.sku})` : ""}. Please log into the portal to view the full product details and update the sample status as you progress.${note ? `
+
+Note: ${note}` : ""}
+
+Portal: https://portal.myjimmy.ai
+
+Best regards,
+${senderName}`;
+
+    if (useGmail) {
+      let accessToken = gmailConn.access_token;
+      if (new Date(gmailConn.token_expiry) < new Date()) {
+        const r = await fetch("https://oauth2.googleapis.com/token", {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-          body: JSON.stringify({
-            from: "Jimmy AI <onboarding@resend.dev>",
-            to: factory.email,
-            subject: `Sample Request — ${productName}`,
-            html: `
-              <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
-                <h2 style="font-size:18px;font-weight:700;margin-bottom:8px">Sample Request</h2>
-                <p style="color:#666;font-size:14px;margin-bottom:16px">
-                  Hi ${(factory as any).contact_name || factory.name},
-                </p>
-                <p style="color:#666;font-size:14px;margin-bottom:16px">
-                  We have submitted a sample request for <strong>${productName}</strong>${productData?.sku ? ` (${productData.sku})` : ""}. Please log into your Jimmy portal to view the full product details and update the sample status as you progress.
-                </p>
-                ${note ? `<p style="color:#666;font-size:14px;margin-bottom:16px"><strong>Note:</strong> ${note}</p>` : ""}
-                <a href="https://portal.myjimmy.ai" style="display:inline-block;margin-top:12px;padding:10px 20px;background:#000;color:#fff;border-radius:8px;text-decoration:none;font-size:13px">View in Portal</a>
-                <p style="color:#999;font-size:12px;margin-top:24px">Best regards,<br>${senderName}</p>
-              </div>
-            `,
-          }),
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ refresh_token: gmailConn.refresh_token, client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, grant_type: "refresh_token" }),
+        });
+        const rd = await r.json();
+        if (rd.access_token) {
+          accessToken = rd.access_token;
+          await supabaseAdmin.from("gmail_connections").update({ access_token: rd.access_token, token_expiry: new Date(Date.now() + rd.expires_in * 1000).toISOString() }).eq("user_id", user.id);
+        }
+      }
+      for (const factory of (factories || [])) {
+        if (!factory.email) continue;
+        const contactName = (factory as any).contact_name || factory.name;
+        const mime = [`MIME-Version: 1.0`, `To: ${factory.email}`, `Subject: Sample Request — ${productName}`, `Content-Type: text/plain; charset=utf-8`, ``, buildEmailBody(contactName)].join("
+");
+        const encoded = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ raw: encoded }),
+        }).catch(() => {});
+      }
+    } else if (msConn) {
+      let accessToken = msConn.access_token;
+      if (new Date(msConn.expires_at) < new Date()) {
+        const r = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ refresh_token: msConn.refresh_token, client_id: process.env.MICROSOFT_CLIENT_ID!, client_secret: process.env.MICROSOFT_CLIENT_SECRET!, grant_type: "refresh_token", scope: "https://graph.microsoft.com/.default offline_access" }),
+        });
+        const rd = await r.json();
+        if (rd.access_token) {
+          accessToken = rd.access_token;
+          await supabaseAdmin.from("microsoft_connections").update({ access_token: rd.access_token, expires_at: new Date(Date.now() + rd.expires_in * 1000).toISOString() }).eq("user_id", user.id);
+        }
+      }
+      for (const factory of (factories || [])) {
+        if (!factory.email) continue;
+        const contactName = (factory as any).contact_name || factory.name;
+        await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ message: { subject: `Sample Request — ${productName}`, body: { contentType: "Text", content: buildEmailBody(contactName) }, toRecipients: [{ emailAddress: { address: factory.email } }] } }),
         }).catch(() => {});
       }
     }

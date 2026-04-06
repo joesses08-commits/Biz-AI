@@ -195,16 +195,23 @@ ${entry}` : entry;
     load();
   };
 
-  const requestSamples = async () => {
+  const [sampleProviderModal, setSampleProviderModal] = useState<{factory_ids: string[], note: string} | null>(null);
+
+  const requestSamples = async (provider?: string) => {
     if (!sampleFactoryIds.length) return;
     setRequestingSamples(true);
     const res = await fetch("/api/plm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: sampleFactoryIds, note: sampleNote }),
+      body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: sampleFactoryIds, note: sampleNote, provider }),
     });
     const data = await res.json();
     setRequestingSamples(false);
+    if (data.needs_provider) {
+      setSampleProviderModal({ factory_ids: sampleFactoryIds, note: sampleNote });
+      setShowSampleModal(false);
+      return;
+    }
     setShowSampleModal(false);
     setSampleFactoryIds([]);
     setSampleNote("");
@@ -394,6 +401,27 @@ ${entry}` : entry;
               </button>
               <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sample Email Provider Modal */}
+      {sampleProviderModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Send via which email?</p>
+            <p className="text-xs text-white/40">Both Gmail and Outlook are connected. Choose which to send from.</p>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setSampleProviderModal(null);
+                await requestSamples("gmail");
+              }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Gmail</button>
+              <button onClick={async () => {
+                setSampleProviderModal(null);
+                await requestSamples("outlook");
+              }} className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-semibold">Outlook</button>
+            </div>
+            <button onClick={() => setSampleProviderModal(null)} className="w-full text-center text-xs text-white/20 hover:text-white/40">Cancel</button>
           </div>
         </div>
       )}

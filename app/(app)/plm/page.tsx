@@ -591,6 +591,7 @@ export default function PLMPage() {
                         product_id: productId,
                         factory_ids: bulkSampleSelections[productId],
                         note: bulkSampleNote,
+                        provider: "gmail",
                       }),
                     });
                   }
