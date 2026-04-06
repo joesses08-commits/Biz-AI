@@ -375,8 +375,9 @@ ${noteEntry}` : noteEntry;
 
     const useGmail = gmailConn && (!msConn || provider === "gmail");
 
-    // Don't send email for additional/force requests
-    if (force) {
+    // Don't send email if no new requests were created or if force
+    const actuallyCreated = (factories || []).filter((f: any) => !skippedFactories.includes(f.name));
+    if (force || actuallyCreated.length === 0) {
       return NextResponse.json({ success: true, factories, skipped: skippedFactories });
     }
 
