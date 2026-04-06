@@ -112,6 +112,9 @@ export default function ProductPage() {
   const [requestingSamples, setRequestingSamples] = useState(false);
   const [sampleSuccess, setSampleSuccess] = useState("");
   const [updatingSampleStage, setUpdatingSampleStage] = useState<string | null>(null);
+  const [additionalSampleModal, setAdditionalSampleModal] = useState<{factoryId: string, factoryName: string} | null>(null);
+  const [additionalSampleQty, setAdditionalSampleQty] = useState("1");
+  const [deletingRound, setDeletingRound] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState<Record<string, string>>({});
   const [showRevisionInput, setShowRevisionInput] = useState<string | null>(null);
   const [sampleOutcomePending, setSampleOutcomePending] = useState<{id: string, factoryId: string, stage: string, notes: string, outcome: string} | null>(null);
@@ -435,6 +438,47 @@ ${entry}` : entry;
                 Request from {sampleFactoryIds.length} {sampleFactoryIds.length === 1 ? "Factory" : "Factories"}
               </button>
               <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Additional Sample Modal */}
+      {additionalSampleModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Request Additional Sample</p>
+            <p className="text-xs text-white/40">From <span className="text-white/70">{additionalSampleModal.factoryName}</span></p>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">How many samples?</p>
+              <input type="number" min="1" max="20" value={additionalSampleQty}
+                onChange={e => setAdditionalSampleQty(e.target.value)}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setRequestingSamples(true);
+                await fetch("/api/plm", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "create_sample_requests",
+                    product_id: id,
+                    factory_ids: [additionalSampleModal.factoryId],
+                    note: `Additional sample request — ${additionalSampleQty} unit(s)`,
+                    force: true,
+                    label: "additional",
+                  }),
+                });
+                setRequestingSamples(false);
+                setAdditionalSampleModal(null);
+                load();
+              }} disabled={requestingSamples}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 transition disabled:opacity-40">
+                {requestingSamples ? "Requesting..." : `Request ${additionalSampleQty} Sample(s)`}
+              </button>
+              <button onClick={() => setAdditionalSampleModal(null)}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -781,17 +825,20 @@ ${entry}` : entry;
                                 {anyApproved && (
                                 <div className="flex items-center gap-2">
                                   <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">✓ Approved</span>
-                                  <button onClick={async () => {
-                                    setRequestingSamples(true);
-                                    await fetch("/api/plm", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: [factoryId], note: "Follow-up sample request", force: true }),
-                                    });
-                                    setRequestingSamples(false);
-                                    load();
+                                  <button onClick={() => {
+                                    // Check if latest round is at least shipped
+                                    const latestActive = sortedRounds.filter((r: any) => r.status === "requested");
+                                    const lastRound = sortedRounds[sortedRounds.length - 1];
+                                    const shippedStages = ["sample_shipped","sample_arrived","sample_approved"];
+                                    if (latestActive.length > 0 && !shippedStages.includes(lastRound?.current_stage)) {
+                                      setSampleSuccess("Previous sample must be shipped before requesting another");
+                                      setTimeout(() => setSampleSuccess(""), 4000);
+                                      return;
+                                    }
+                                    setAdditionalSampleModal({ factoryId, factoryName: factory?.name });
+                                    setAdditionalSampleQty("1");
                                   }} className="text-[10px] text-white/30 hover:text-white/60 underline transition">
-                                    Request Another
+                                    + Request Another
                                   </button>
                                 </div>
                               )}
@@ -820,8 +867,21 @@ ${entry}` : entry;
 
                                 return (
                                   <div key={sr.id} className={`border rounded-2xl p-4 space-y-3 ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-white/[0.08] bg-white/[0.01]"}`}>
-                                    {/* Round label */}
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                                    {/* Round label + delete */}
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                                      <button onClick={async () => {
+                                        if (!confirm("Delete this round?")) return;
+                                        setDeletingRound(sr.id);
+                                        await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ action: "delete_sample_request", sample_request_id: sr.id }) });
+                                        setDeletingRound(null);
+                                        load();
+                                      }} disabled={deletingRound === sr.id}
+                                        className="text-white/15 hover:text-red-400 transition p-1">
+                                        <Trash2 size={10} />
+                                      </button>
+                                    </div>
 
                                     {/* Horizontal stage pills + result inline */}
                                     <div className="flex items-center gap-1 flex-wrap">

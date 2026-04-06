@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "create_sample_requests") {
-    const { product_id, factory_ids, note, force } = body;
+    const { product_id, factory_ids, note, force, label } = body;
     if (!product_id || !factory_ids?.length) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     // Get factory details
@@ -261,6 +261,7 @@ export async function POST(req: NextRequest) {
           status: "requested",
           current_stage: "sample_production",
           notes: note || "",
+          label: label || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -416,6 +417,13 @@ ${senderName}`;
     }
 
     return NextResponse.json({ success: true, factories, skipped: skippedFactories });
+  }
+
+  if (action === "delete_sample_request") {
+    const { sample_request_id } = body;
+    await supabaseAdmin.from("plm_sample_stages").delete().eq("sample_request_id", sample_request_id);
+    await supabaseAdmin.from("plm_sample_requests").delete().eq("id", sample_request_id).eq("user_id", user.id);
+    return NextResponse.json({ success: true });
   }
 
   if (action === "update_sample_stage") {
