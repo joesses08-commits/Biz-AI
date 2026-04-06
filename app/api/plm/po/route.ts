@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { google } from "googleapis";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,13 +24,80 @@ export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { product_ids, line_items, factory_per_product, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name } = await req.json();
+  const body = await req.json();
+  const { action } = body;
+
+  // ── SEND EMAIL ──
+  if (action === "send_email") {
+    const { factory, subject, body: emailBody, html, po_number, provider } = body;
+
+    const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token,refresh_token").eq("user_id", user.id).single();
+    const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token").eq("user_id", user.id).single();
+
+    const useGmail = provider === "gmail" || (!provider && gmailConn);
+    const useOutlook = provider === "outlook" || (!provider && !gmailConn && msConn);
+
+    if (useGmail && gmailConn) {
+      const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET);
+      auth.setCredentials({ access_token: gmailConn.access_token, refresh_token: gmailConn.refresh_token });
+      const gmail = google.gmail({ version: "v1", auth });
+
+      // Encode HTML as base64 attachment
+      const htmlB64 = Buffer.from(html).toString("base64url");
+      const boundary = "----=_boundary_" + Date.now();
+      const rawEmail = [
+        `To: ${factory?.email}`,
+        `Subject: ${subject}`,
+        "MIME-Version: 1.0",
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        "",
+        `--${boundary}`,
+        "Content-Type: text/plain; charset=utf-8",
+        "",
+        emailBody,
+        "",
+        `--${boundary}`,
+        `Content-Type: text/html; name="${po_number}.html"`,
+        "Content-Transfer-Encoding: base64",
+        `Content-Disposition: attachment; filename="${po_number}.html"`,
+        "",
+        htmlB64,
+        `--${boundary}--`,
+      ].join("\r\n");
+
+      const encoded = Buffer.from(rawEmail).toString("base64url");
+      await gmail.users.messages.send({ userId: "me", requestBody: { raw: encoded } });
+    } else if (useOutlook && msConn) {
+      await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${msConn.access_token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: {
+            subject,
+            body: { contentType: "Text", content: emailBody },
+            toRecipients: [{ emailAddress: { address: factory?.email } }],
+            attachments: [{
+              "@odata.type": "#microsoft.graph.fileAttachment",
+              name: `${po_number}.html`,
+              contentBytes: Buffer.from(html).toString("base64"),
+              contentType: "text/html",
+            }],
+          },
+        }),
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
+  // ── GENERATE PO ──
+  const { product_ids, line_items, factory_per_product, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name } = body;
 
   if (!product_ids?.length) return NextResponse.json({ error: "No products" }, { status: 400 });
 
   const { data: products } = await supabaseAdmin
     .from("plm_products")
-    .select("*, plm_collections(name), plm_sample_requests(status, factory_catalog(name, email, contact_name))")
+    .select("*, plm_collections(name), plm_sample_requests(status, factory_catalog(id, name, email, contact_name))")
     .in("id", product_ids)
     .eq("user_id", user.id);
 
@@ -41,6 +109,10 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user.id)
     .single();
 
+  const { data: allFactories } = await supabaseAdmin.from("factory_catalog").select("*").eq("user_id", user.id);
+  const factoryMap: Record<string, any> = {};
+  (allFactories || []).forEach((f: any) => { factoryMap[f.id] = f; });
+
   const buyerCompany = company_name || profile?.company_name || "Your Company";
   const buyerContact = contact_name || profile?.full_name || "";
   const buyerAddress = company_address || "";
@@ -48,11 +120,7 @@ export async function POST(req: NextRequest) {
   const shipDateStr = ship_date ? new Date(ship_date + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "TBD";
   const poNum = po_number || "PO-" + Date.now().toString().slice(-6);
 
-  // Get factory — use factory_per_product override, fall back to approved sample factory
-  const { data: allFactories } = await supabaseAdmin.from("factory_catalog").select("*").eq("user_id", user.id);
-  const factoryMap: Record<string, any> = {};
-  (allFactories || []).forEach((f: any) => { factoryMap[f.id] = f; });
-
+  // Get factory
   let factory: any = null;
   for (const p of products) {
     const overrideId = factory_per_product?.[p.id];
@@ -64,6 +132,7 @@ export async function POST(req: NextRequest) {
   // Build product rows
   let productRows = "";
   let totalValue = 0;
+  const lineItemsSummary: string[] = [];
 
   for (const p of products) {
     const line = line_items?.[p.id] || {};
@@ -71,6 +140,7 @@ export async function POST(req: NextRequest) {
     const unitPrice = parseFloat(line.unit_price) || 0;
     const total = qty && unitPrice ? qty * unitPrice : 0;
     if (total) totalValue += total;
+    if (qty) lineItemsSummary.push(`${p.name} x${qty}`);
 
     productRows += `
       <tr>
@@ -81,6 +151,71 @@ export async function POST(req: NextRequest) {
         <td style="text-align:right;font-weight:600">${total ? "$" + total.toFixed(2) : "TBD"}</td>
       </tr>`;
   }
+
+  // Create batches for each product
+  for (const p of products) {
+    const overrideId = factory_per_product?.[p.id];
+    const factoryId = overrideId || (p.plm_sample_requests || []).find((r: any) => r.status === "approved")?.factory_catalog?.id;
+    const line = line_items?.[p.id] || {};
+    const qty = parseFloat(line.qty) || null;
+    const unitPrice = parseFloat(line.unit_price) || null;
+
+    const { data: existing } = await supabaseAdmin.from("plm_batches").select("batch_number").eq("product_id", p.id).order("batch_number", { ascending: false }).limit(1);
+    const nextBatch = (existing?.[0]?.batch_number || 0) + 1;
+
+    const { data: batch } = await supabaseAdmin.from("plm_batches").insert({
+      product_id: p.id,
+      user_id: user.id,
+      batch_number: nextBatch,
+      factory_id: factoryId || null,
+      current_stage: "po_issued",
+      linked_po_number: poNum,
+      order_quantity: qty,
+      target_elc: unitPrice,
+      target_sell_price: null,
+      batch_notes: notes || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).select().single();
+
+    if (batch) {
+      await supabaseAdmin.from("plm_batch_stages").insert({
+        batch_id: batch.id,
+        product_id: p.id,
+        user_id: user.id,
+        stage: "po_issued",
+        notes: `PO ${poNum} issued`,
+        updated_by: user.email,
+        updated_by_role: "admin",
+        created_at: new Date().toISOString(),
+      });
+    }
+  }
+
+  // Build email body
+  const email_body = `Dear ${factory?.contact_name || factory?.name || "Team"},
+
+Please find attached Purchase Order ${poNum} for the following items:
+
+${lineItemsSummary.map(s => `• ${s}`).join("\n")}
+
+${totalValue > 0 ? `Total Order Value: $${totalValue.toFixed(2)}` : ""}
+
+Payment Terms: ${payment_terms || "TBD"}
+Delivery Terms: ${delivery_terms || "FOB Factory"}
+Requested Ship Date: ${shipDateStr}
+${destination ? `Ship To: ${destination}` : ""}
+${notes ? `\nNotes: ${notes}` : ""}
+
+Please review and confirm receipt of this PO. Sign and return a copy to acknowledge acceptance.
+
+Best regards,
+${buyerContact || buyerCompany}`;
+
+  // Check email providers
+  const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("id").eq("user_id", user.id).single();
+  const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("id").eq("user_id", user.id).single();
+  const both_connected = !!gmailConn && !!msConn;
 
   const html = `<!DOCTYPE html>
 <html>
@@ -134,7 +269,6 @@ export async function POST(req: NextRequest) {
       <div class="po-date">${dateStr}</div>
     </div>
   </div>
-
   <div class="parties">
     <div class="party">
       <h3>Bill From / Buyer</h3>
@@ -149,16 +283,13 @@ export async function POST(req: NextRequest) {
       ${factory?.email ? `<p>${factory.email}</p>` : ""}
     </div>
   </div>
-
   <div class="terms">
     <div class="term"><label>PO Number</label><span>${poNum}</span></div>
     <div class="term"><label>Payment Terms</label><span>${payment_terms || "TBD"}</span></div>
     <div class="term"><label>Delivery Terms</label><span>${delivery_terms || "FOB Factory"}</span></div>
     <div class="term"><label>Requested Ship Date</label><span>${shipDateStr}</span></div>
   </div>
-
   ${destination ? `<div style="margin-bottom:20px;padding:12px 16px;background:#f5f5f5;border-radius:6px"><label style="font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#888;display:block;margin-bottom:4px">Ship To / Destination</label><span style="font-weight:600">${destination}</span></div>` : ""}
-
   <table>
     <thead>
       <tr>
@@ -177,43 +308,29 @@ export async function POST(req: NextRequest) {
       </tr>
     </tbody>
   </table>
-
   ${notes ? `<div class="notes"><label>Notes & Special Instructions</label><p style="font-size:12px">${notes}</p></div>` : ""}
-
   <div class="signatures">
     <div>
-      <div class="sig-block">
-        <div class="sig-name">${buyerContact || buyerCompany}</div>
-        <div class="sig-label">Authorized Signature — Buyer</div>
-      </div>
+      <div class="sig-block"><div class="sig-name">${buyerContact || buyerCompany}</div><div class="sig-label">Authorized Signature — Buyer</div></div>
       <div class="sig-date">Date: ___________________________</div>
     </div>
     <div>
-      <div class="sig-block">
-        <div class="sig-name">${factory?.name || "Factory"}</div>
-        <div class="sig-label">Authorized Signature — Factory</div>
-      </div>
+      <div class="sig-block"><div class="sig-name">${factory?.name || "Factory"}</div><div class="sig-label">Authorized Signature — Factory</div></div>
       <div class="sig-date">Date: ___________________________</div>
     </div>
   </div>
-
-  <div class="footer-note">
-    This Purchase Order is a binding agreement between ${buyerCompany} and ${factory?.name || "the factory"} upon factory acknowledgment and signature. 
-    Please sign and return a copy to confirm acceptance of this order. All terms are subject to the conditions stated herein.
-  </div>
+  <div class="footer-note">This Purchase Order is a binding agreement between ${buyerCompany} and ${factory?.name || "the factory"} upon factory acknowledgment and signature. Please sign and return a copy to confirm acceptance.</div>
 </body>
 </html>`;
 
   await supabaseAdmin.from("company_events").insert({
-    user_id: user.id,
-    source: "PLM",
-    event_type: "po_generated",
+    user_id: user.id, source: "PLM", event_type: "po_generated",
     title: `PO ${poNum} generated for ${products.length} products`,
-    summary: `Purchase order ${poNum} generated. Total: ${totalValue > 0 ? "$" + totalValue.toFixed(2) : "TBD"}`,
+    summary: `Purchase order ${poNum} issued. Total: ${totalValue > 0 ? "$" + totalValue.toFixed(2) : "TBD"}`,
     importance: "high",
     raw_data: { po_number: poNum, product_ids, payment_terms, delivery_terms, ship_date, destination, total: totalValue },
     created_at: new Date().toISOString(),
   });
 
-  return NextResponse.json({ success: true, html, po_number: poNum });
+  return NextResponse.json({ success: true, html, po_number: poNum, factory, email_body, both_connected });
 }

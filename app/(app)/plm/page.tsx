@@ -92,6 +92,9 @@ export default function PLMPage() {
     company_name: "", company_address: "", contact_name: "", notes: ""
   });
   const [generatingPO, setGeneratingPO] = useState(false);
+  const [poEmailModal, setPOEmailModal] = useState<{factory: any, po_number: string, html: string, subject: string, body: string} | null>(null);
+  const [sendingPOEmail, setSendingPOEmail] = useState(false);
+  const [poBothConnected, setPOBothConnected] = useState(false);
 
   // Bulk sample request
   const [showSampleRequestModal, setShowSampleRequestModal] = useState(false);
@@ -412,6 +415,67 @@ export default function PLMPage() {
           </div>
         )}
 
+        {/* PO Email Modal */}
+        {poEmailModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Send PO to Factory</p>
+                  <p className="text-xs text-white/30 mt-0.5">To: {poEmailModal.factory?.email || "factory"}</p>
+                </div>
+                <button onClick={() => setPOEmailModal(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              </div>
+              <div>
+                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Subject</label>
+                <input value={poEmailModal.subject} onChange={e => setPOEmailModal({...poEmailModal, subject: e.target.value})}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Message</label>
+                <textarea value={poEmailModal.body} onChange={e => setPOEmailModal({...poEmailModal, body: e.target.value})}
+                  rows={8} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none resize-none" />
+              </div>
+              <p className="text-[10px] text-white/25">📎 Purchase Order {poEmailModal.po_number}.pdf will be attached</p>
+              <div className="flex gap-2">
+                {poBothConnected ? (
+                  <>
+                    <button onClick={async () => {
+                      setSendingPOEmail(true);
+                      await fetch("/api/plm/po", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "send_email", factory: poEmailModal.factory, subject: poEmailModal.subject, body: poEmailModal.body, html: poEmailModal.html, po_number: poEmailModal.po_number, provider: "gmail" }) });
+                      setSendingPOEmail(false);
+                      setPOEmailModal(null);
+                    }} disabled={sendingPOEmail} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
+                      {sendingPOEmail ? "Sending..." : "Send via Gmail"}
+                    </button>
+                    <button onClick={async () => {
+                      setSendingPOEmail(true);
+                      await fetch("/api/plm/po", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "send_email", factory: poEmailModal.factory, subject: poEmailModal.subject, body: poEmailModal.body, html: poEmailModal.html, po_number: poEmailModal.po_number, provider: "outlook" }) });
+                      setSendingPOEmail(false);
+                      setPOEmailModal(null);
+                    }} disabled={sendingPOEmail} className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-semibold hover:bg-white/5 transition disabled:opacity-40">
+                      Send via Outlook
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={async () => {
+                    setSendingPOEmail(true);
+                    await fetch("/api/plm/po", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "send_email", factory: poEmailModal.factory, subject: poEmailModal.subject, body: poEmailModal.body, html: poEmailModal.html, po_number: poEmailModal.po_number }) });
+                    setSendingPOEmail(false);
+                    setPOEmailModal(null);
+                  }} disabled={sendingPOEmail} className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-xs font-semibold hover:bg-blue-400 transition disabled:opacity-40">
+                    {sendingPOEmail ? "Sending..." : "Send PO to Factory"}
+                  </button>
+                )}
+                <button onClick={() => setPOEmailModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Skip</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* PO Generator Modal */}
         {showPOModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -569,11 +633,21 @@ export default function PLMPage() {
                   const data = await res.json();
                   setGeneratingPO(false);
                   if (data.html) {
+                    // Open PO in new tab for printing
                     const blob = new Blob([data.html], { type: "text/html" });
                     const url = URL.createObjectURL(blob);
-                    const win = window.open(url, "_blank");
-                    setTimeout(() => { if (win) win.print(); }, 800);
+                    window.open(url, "_blank");
                     setShowPOModal(false);
+                    // Show email draft modal
+                    setPOBothConnected(data.both_connected || false);
+                    setPOEmailModal({
+                      factory: data.factory,
+                      po_number: data.po_number,
+                      html: data.html,
+                      subject: `Purchase Order ${data.po_number} — ${poForm.company_name || "Order"}`,
+                      body: data.email_body || "",
+                    });
+                    load();
                   }
                 }} disabled={generatingPO || poSelectedProducts.length === 0}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500 text-white text-xs font-semibold hover:bg-blue-400 transition disabled:opacity-40">
