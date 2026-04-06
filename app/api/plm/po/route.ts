@@ -36,29 +36,31 @@ export async function POST(req: NextRequest) {
     const useOutlook = provider === "outlook" || (!provider && !gmailConn && msConn);
 
     if (useGmail && gmailConn) {
-      const htmlB64 = Buffer.from(html).toString("base64url");
-      const boundary = "----=_boundary_" + Date.now();
-      const rawEmail = [
+      const htmlB64 = Buffer.from(html).toString("base64");
+      const boundary = "----=_Part_" + Date.now();
+      const rawLines = [
         `To: ${factory?.email}`,
-        `Subject: ${subject}`,
+        `Subject: =?utf-8?Q?${subject.replace(/ /g, "_")}?=`,
         "MIME-Version: 1.0",
         `Content-Type: multipart/mixed; boundary="${boundary}"`,
         "",
         `--${boundary}`,
-        "Content-Type: text/plain; charset=utf-8",
+        "Content-Type: text/plain; charset=UTF-8",
+        "Content-Transfer-Encoding: quoted-printable",
         "",
         emailBody,
         "",
         `--${boundary}`,
-        `Content-Type: text/html; name="${po_number}.html"`,
+        `Content-Type: text/html; charset=UTF-8; name="${po_number}.html"`,
         "Content-Transfer-Encoding: base64",
         `Content-Disposition: attachment; filename="${po_number}.html"`,
         "",
-        htmlB64,
+        ...htmlB64.match(/.{1,76}/g)!,
+        "",
         `--${boundary}--`,
-      ].join("\r\n");
+      ];
 
-      const encoded = Buffer.from(rawEmail).toString("base64url");
+      const encoded = Buffer.from(rawLines.join("\r\n")).toString("base64url");
       await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/send`, {
         method: "POST",
         headers: { Authorization: `Bearer ${gmailConn.access_token}`, "Content-Type": "application/json" },

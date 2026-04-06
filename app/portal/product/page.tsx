@@ -320,33 +320,69 @@ export default function PortalProductPage() {
                       </div>
                     )}
 
-                    {/* Production stage buttons */}
-                    <div className="space-y-1.5">
-                      {PRODUCTION_STAGES.map(s => {
-                        const currentIdx = PRODUCTION_STAGES.findIndex(ps => ps.key === order.current_stage);
-                        const sIdx = PRODUCTION_STAGES.findIndex(ps => ps.key === s.key);
-                        const isPast = sIdx < currentIdx;
-                        const isCurrent = s.key === order.current_stage;
-                        return (
-                          <button key={s.key} onClick={() => !isPast && updateOrderStage(order.id, s.key)}
-                            disabled={updatingOrder === order.id || isPast}
-                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${isCurrent ? "border-white/20 bg-white/[0.06]" : isPast ? "border-white/[0.04] opacity-40 cursor-default" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
-                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isPast ? "#10b981" : s.color }} />
-                            <span className="text-white/70">{s.label}</span>
-                            {isCurrent && <span className="ml-auto text-[10px] text-white/30">Current</span>}
-                            {isPast && <Check size={10} className="text-emerald-400 ml-auto" />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {/* Production stage arrow nav */}
+                    {(() => {
+                      const currentIdx = PRODUCTION_STAGES.findIndex(ps => ps.key === order.current_stage);
+                      const current = PRODUCTION_STAGES[currentIdx] || PRODUCTION_STAGES[0];
+                      const prev = currentIdx > 0 ? PRODUCTION_STAGES[currentIdx - 1] : null;
+                      const next = currentIdx < PRODUCTION_STAGES.length - 1 ? PRODUCTION_STAGES[currentIdx + 1] : null;
+                      return (
+                        <div className="space-y-3">
+                          {/* Progress bar */}
+                          <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                            <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / PRODUCTION_STAGES.length) * 100}%`, background: current.color }} />
+                          </div>
 
-                    {/* Note for this order */}
-                    <div>
-                      <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Add a note (optional)</p>
-                      <textarea value={orderNotes[order.id] || ""} onChange={e => setOrderNotes(prev => ({ ...prev, [order.id]: e.target.value }))}
-                        placeholder="e.g. Production delayed by 3 days, back on track"
-                        rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
-                    </div>
+                          {/* Arrow nav */}
+                          <div className="flex items-center justify-between gap-4">
+                            <button onClick={() => prev && updateOrderStage(order.id, prev.key)} disabled={!prev || updatingOrder === order.id}
+                              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
+                              ← {prev ? prev.label : "Start"}
+                            </button>
+                            <div className="text-center">
+                              <div className="flex items-center gap-2 justify-center">
+                                <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
+                                <span className="text-sm font-semibold text-white">{current.label}</span>
+                              </div>
+                              <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {PRODUCTION_STAGES.length}</p>
+                            </div>
+                            <button onClick={() => next && updateOrderStage(order.id, next.key)} disabled={!next || updatingOrder === order.id}
+                              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
+                              style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
+                              {next ? next.label : "Complete"} →
+                            </button>
+                          </div>
+
+                          {/* All stages timeline */}
+                          <div className="border-t border-white/[0.05] pt-3">
+                            <div className="space-y-1">
+                              {PRODUCTION_STAGES.map((stage, i) => {
+                                const isPast = i < currentIdx;
+                                const isCurrent = i === currentIdx;
+                                return (
+                                  <div key={stage.key} className="flex items-center gap-2.5 py-0.5">
+                                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 border"
+                                      style={{ background: isPast ? "#10b98120" : isCurrent ? `${stage.color}20` : "transparent", borderColor: isPast ? "#10b98140" : isCurrent ? `${stage.color}40` : "rgba(255,255,255,0.06)" }}>
+                                      {isPast ? <Check size={9} className="text-emerald-400" /> : isCurrent ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage.color }} /> : null}
+                                    </div>
+                                    <span className="text-xs" style={{ color: isPast ? "#10b981" : isCurrent ? stage.color : "rgba(255,255,255,0.2)" }}>{stage.label}</span>
+                                    {isCurrent && <span className="text-[10px] text-white/20 ml-auto">Current</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Note input */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-white/25 uppercase tracking-widest">Note for this stage (optional)</p>
+                            <textarea value={orderNotes[order.id] || ""} onChange={e => setOrderNotes(prev => ({ ...prev, [order.id]: e.target.value }))}
+                              placeholder="e.g. Production delayed by 3 days, back on track"
+                              rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {updatingOrder === order.id && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
                   </div>
