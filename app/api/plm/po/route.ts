@@ -39,27 +39,14 @@ export async function POST(req: NextRequest) {
     const useOutlook = provider === "outlook" || (!provider && !gmailConn && msConn);
 
     if (useGmail && gmailConn) {
-      const boundary = "----=_Part_" + Date.now();
       const rawLines = [
         `To: ${factory?.email}`,
         `Subject: =?utf-8?Q?${subject.replace(/ /g, "_")}?=`,
         "MIME-Version: 1.0",
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        "",
-        `--${boundary}`,
         "Content-Type: text/plain; charset=UTF-8",
         "Content-Transfer-Encoding: quoted-printable",
         "",
         emailBody,
-        "",
-        `--${boundary}`,
-        `Content-Type: ${attachmentType}; name="${po_number}.${attachmentExt}"`,
-        "Content-Transfer-Encoding: base64",
-        `Content-Disposition: attachment; filename="${po_number}.${attachmentExt}"`,
-        "",
-        ...attachmentData.match(/.{1,76}/g)!,
-        "",
-        `--${boundary}--`,
       ];
 
       const encoded = Buffer.from(rawLines.join("\r\n")).toString("base64url");
@@ -77,12 +64,6 @@ export async function POST(req: NextRequest) {
             subject,
             body: { contentType: "Text", content: emailBody },
             toRecipients: [{ emailAddress: { address: factory?.email } }],
-            attachments: [{
-              "@odata.type": "#microsoft.graph.fileAttachment",
-              name: `${po_number}.${attachmentExt}`,
-              contentBytes: attachmentData,
-              contentType: attachmentType,
-            }],
           },
         }),
       });

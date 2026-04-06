@@ -32,7 +32,7 @@ export default function POGeneratorPage() {
   });
   const [generatingPO, setGeneratingPO] = useState(false);
   const [emailModal, setEmailModal] = useState<{
-    factory: any; po_number: string; html: string; pdfBase64?: string; subject: string; body: string;
+    factory: any; po_number: string; html: string; pdfUrl?: string; subject: string; body: string;
   } | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [bothConnected, setBothConnected] = useState(false);
@@ -129,18 +129,36 @@ export default function POGeneratorPage() {
     const data = await res.json();
     setGeneratingPO(false);
     if (data.html) {
+      // Generate PDF
       const pdfBase64 = await htmlToPdfBase64(data.html);
-      const pdfBlob = new Blob([Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0))], { type: "application/pdf" });
+      const pdfBytes = Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0));
+      const pdfBlob = new Blob([pdfBytes], { type: "application/pdf" });
+
+      // Preview in new tab
       const pdfUrl = URL.createObjectURL(pdfBlob);
       window.open(pdfUrl, "_blank");
+
+      // Upload to Supabase storage
+      const { createBrowserClient } = await import("@supabase/ssr");
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const fileName = `${data.po_number}-${Date.now()}.pdf`;
+      await supabase.storage.from("po-files").upload(fileName, pdfBlob, { contentType: "application/pdf" });
+      const { data: urlData } = supabase.storage.from("po-files").getPublicUrl(fileName);
+      const publicUrl = urlData?.publicUrl || "";
+
       setBothConnected(data.both_connected || false);
       setEmailModal({
         factory: data.factory,
         po_number: data.po_number,
         html: data.html,
-        pdfBase64,
+        pdfUrl: publicUrl,
         subject: `Purchase Order ${data.po_number} — ${poForm.company_name || "Order"}`,
-        body: data.email_body || "",
+        body: (data.email_body || "") + (publicUrl ? `
+
+Download PO: ${publicUrl}` : ""),
       });
       setPOSelectedProducts([]);
       setPOLineItems({});
@@ -161,9 +179,8 @@ export default function POGeneratorPage() {
         factory: emailModal.factory,
         subject: emailModal.subject,
         body: emailModal.body,
-        html: emailModal.html,
-        pdf_base64: emailModal.pdfBase64 || null,
         po_number: emailModal.po_number,
+        pdf_url: emailModal.pdfUrl || null,
         ...(provider ? { provider } : {}),
       }),
     });
@@ -471,7 +488,7 @@ export default function POGeneratorPage() {
               <textarea value={emailModal.body} onChange={e => setEmailModal({ ...emailModal, body: e.target.value })}
                 rows={8} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none resize-none" />
             </div>
-            <p className="text-[10px] text-white/25">📎 Purchase Order {emailModal.po_number}.pdf will be attached</p>
+            <p className="text-[10px] text-white/25">📎 A PDF download link will be included in the email</p>
             <div className="flex gap-2">
               {bothConnected ? (
                 <>
