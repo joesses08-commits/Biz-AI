@@ -220,16 +220,29 @@ export async function POST(req: NextRequest) {
 
     // Create sample request per factory — skip if already exists and not killed
     for (const factory of (factories || [])) {
-      const { data: existing } = await supabaseAdmin
+      // Check if any active request exists for this factory/product
+      const { data: activeRequests } = await supabaseAdmin
         .from("plm_sample_requests")
         .select("id, status")
         .eq("product_id", product_id)
         .eq("factory_id", factory.id)
-        .single();
+        .eq("status", "requested");
 
-      if (existing && existing.status !== "killed") continue; // Skip duplicates
+      if (activeRequests && activeRequests.length > 0) continue; // Skip — already has active request
 
-      // If previously killed, reset it
+      // Check for killed request to reset
+      const { data: killedRequest } = await supabaseAdmin
+        .from("plm_sample_requests")
+        .select("id, status")
+        .eq("product_id", product_id)
+        .eq("factory_id", factory.id)
+        .eq("status", "killed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single().catch(() => ({ data: null }));
+
+      const existing = killedRequest;
+
       if (existing && existing.status === "killed") {
         await supabaseAdmin.from("plm_sample_requests").update({
           status: "requested",
