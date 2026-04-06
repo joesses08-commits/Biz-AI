@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
             const ext = imageUrl.split(".").pop()?.toLowerCase() || "jpeg";
             const mimeMap: any = { jpg: "jpeg", jpeg: "jpeg", png: "png", gif: "gif" };
             const imgType = mimeMap[ext] || "jpeg";
-            const imageId = workbook.addImage({ buffer: Buffer.from(new Uint8Array(imgBuffer)), extension: imgType as any });
+            const imageId = workbook.addImage({ buffer: Buffer.from(new Uint8Array(imgBuffer)) as any, extension: imgType as any });
             sheet.addImage(imageId, {
               tl: { col: 0, row: rowNum - 1 },
               ext: { width: 80, height: 80 },
