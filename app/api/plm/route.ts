@@ -348,6 +348,12 @@ ${noteEntry}` : noteEntry;
       .single();
     const productName = productData?.name || "product";
 
+    // Don't send email if no new requests were created or if force
+    const actuallyCreated = (factories || []).filter((f: any) => !skippedFactories.includes(f.name));
+    if (force || actuallyCreated.length === 0) {
+      return NextResponse.json({ success: true, factories, skipped: skippedFactories });
+    }
+
     // Check which email providers are connected
     const { data: gmailConn } = await supabaseAdmin
       .from("gmail_connections")
@@ -374,12 +380,6 @@ ${noteEntry}` : noteEntry;
     }
 
     const useGmail = gmailConn && (!msConn || provider === "gmail");
-
-    // Don't send email if no new requests were created or if force
-    const actuallyCreated = (factories || []).filter((f: any) => !skippedFactories.includes(f.name));
-    if (force || actuallyCreated.length === 0) {
-      return NextResponse.json({ success: true, factories, skipped: skippedFactories });
-    }
 
     const buildEmailBody = (contactName: string) =>
       `Hi ${contactName},
