@@ -47,8 +47,7 @@ export async function GET(req: NextRequest) {
     .select("*, plm_sample_stages(*)")
     .eq("product_id", productId)
     .eq("factory_id", portalUser.factory_id)
-    .neq("status", "killed")
-    .neq("status", "approved");
+    .order("created_at", { ascending: true });
 
   return NextResponse.json({ 
     product: { 

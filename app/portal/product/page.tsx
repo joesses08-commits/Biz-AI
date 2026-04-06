@@ -258,11 +258,12 @@ export default function PortalProductPage() {
                           {isApproved && <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"><Check size={8} />Approved</span>}
                           {isRevision && <span className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">↩ Revision{revisionNoteText ? `: ${revisionNoteText}` : ""}</span>}
                           {isKilled && (() => {
-                            const isLastRound = roundIdx === sortedRounds.length - 1;
+                            // Check if there's a newer round after this one for the same product
+                            const hasNewerRound = sortedRounds.slice(roundIdx + 1).some((r: any) => r.status !== "killed");
                             const killedNote = stages.find((s: any) => s.stage === "killed")?.notes || "";
-                            return isLastRound
-                              ? <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400"><X size={8} />{killedNote || "Killed"}</span>
-                              : <span className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">↩ Revision Requested</span>;
+                            return hasNewerRound
+                              ? <span className="px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">↩ Revision Requested</span>
+                              : <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400"><X size={8} />{killedNote || "Killed"}</span>;
                           })()}
                         </div>
 
