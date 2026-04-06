@@ -346,14 +346,19 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
   const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Payment terms"];
 
   const buildDraftBody = (jobName: string, fields: string[]) => {
-    const fieldList = fields.join(", ");
+    const fieldList = fields.map(f => `• ${f}`).join("\n");
     return `Hi [contact name],
 
-Hope you're doing well! Please find attached our product list for the ${jobName}.
+Please find attached our product list for the ${jobName}. We would appreciate it if you could review the attached file and provide us with your pricing and details.
 
-Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for ${fieldList} — but just fill in whatever applies.
+Please fill in the following for each item:
+${fieldList}
 
-Thanks so much,
+Kindly reply to this email with the completed sheet at your earliest convenience. If you have any questions regarding the specifications, please don't hesitate to reach out.
+
+We look forward to hearing from you.
+
+Best regards,
 [your name]`;
   };
 
@@ -445,11 +450,16 @@ Thanks so much,
       const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Payment terms"];
       const emailBody = `Hi [contact name],
 
-Hope you're doing well! Please find attached our product list for the ${jobName}.
+Please find attached our product list for the ${jobName}. We would appreciate it if you could review the attached file and provide us with your pricing and details.
 
-Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for ${DEFAULT_FIELDS.join(", ")} — but just fill in whatever applies.
+Please fill in the following for each item:
+${DEFAULT_FIELDS.map((f: string) => `• ${f}`).join("\n")}
 
-Thanks so much,
+Kindly reply to this email with the completed sheet at your earliest convenience. If you have any questions regarding the specifications, please don't hesitate to reach out.
+
+We look forward to hearing from you.
+
+Best regards,
 [your name]`;
 
       // Check if both providers connected first
