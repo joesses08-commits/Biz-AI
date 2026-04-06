@@ -859,7 +859,7 @@ ${entry}` : entry;
                                 const isKilled = sr.status === "killed";
                                 const isApproved = sr.status === "approved";
                                 const isRevision = sr.status === "revision";
-                                const roundLabel = roundIdx === 0 ? "Round 1" : `Round ${roundIdx + 1} — Revision`;
+                                const roundLabel = roundIdx === 0 ? "Round 1" : sr.label === "additional" ? `Additional Sample ${roundIdx}` : `Round ${roundIdx + 1} — Revision`;
                                 const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                                 const completedStageKeys = stages.map((s: any) => s.stage).filter((k: string) => STAGE_KEYS.includes(k));
                                 const lastCompletedIdx = Math.max(...completedStageKeys.map((k: string) => STAGE_KEYS.indexOf(k)));

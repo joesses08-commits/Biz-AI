@@ -375,6 +375,11 @@ ${noteEntry}` : noteEntry;
 
     const useGmail = gmailConn && (!msConn || provider === "gmail");
 
+    // Don't send email for additional/force requests
+    if (force) {
+      return NextResponse.json({ success: true, factories, skipped: skippedFactories });
+    }
+
     const buildEmailBody = (contactName: string) =>
       `Hi ${contactName},
 
