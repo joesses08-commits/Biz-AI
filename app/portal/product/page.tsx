@@ -284,7 +284,7 @@ export default function PortalProductPage() {
         )}
 
         {/* Nothing to update */}
-        {!currentSampleStage && orders.length === 0 && (
+        {sampleRequests.length === 0 && orders.length === 0 && (
           <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
             <Package size={28} className="text-white/10 mx-auto mb-3" />
             <p className="text-white/30 text-sm">No active sample or orders for this product</p>
