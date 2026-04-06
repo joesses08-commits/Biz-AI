@@ -206,13 +206,13 @@ ${entry}` : entry;
   const [statusPinError, setStatusPinError] = useState("");
   const [settingStatus, setSettingStatus] = useState(false);
 
-  const requestSamples = async (provider?: string) => {
+  const requestSamples = async (provider?: string, forceFlag?: boolean) => {
     if (!sampleFactoryIds.length) return;
     setRequestingSamples(true);
     const res = await fetch("/api/plm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: sampleFactoryIds, note: sampleNote, provider }),
+      body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: sampleFactoryIds, note: sampleNote, provider, force: forceFlag || false }),
     });
     const data = await res.json();
     setRequestingSamples(false);
@@ -493,12 +493,14 @@ ${entry}` : entry;
             <p className="text-xs text-white/40">Both Gmail and Outlook are connected. Choose which to send from.</p>
             <div className="flex gap-2">
               <button onClick={async () => {
+                const isForce = sampleProviderModal?.note?.includes("Additional") || false;
                 setSampleProviderModal(null);
-                await requestSamples("gmail");
+                await requestSamples("gmail", isForce);
               }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Gmail</button>
               <button onClick={async () => {
+                const isForce = sampleProviderModal?.note?.includes("Additional") || false;
                 setSampleProviderModal(null);
-                await requestSamples("outlook");
+                await requestSamples("outlook", isForce);
               }} className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-semibold">Outlook</button>
             </div>
             <button onClick={() => setSampleProviderModal(null)} className="w-full text-center text-xs text-white/20 hover:text-white/40">Cancel</button>
