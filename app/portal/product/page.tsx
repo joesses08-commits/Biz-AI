@@ -99,7 +99,10 @@ export default function PortalProductPage() {
     </div>
   );
 
-  const sampleRequests = product.plm_sample_requests || [];
+  // Only show the latest active sample request for updating
+  const allSampleRequests = (product.plm_sample_requests || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  const activeSampleRequest = allSampleRequests.find((sr: any) => sr.status === "requested");
+  const sampleRequests = activeSampleRequest ? [activeSampleRequest] : [];
   const orders = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
 
   return (
