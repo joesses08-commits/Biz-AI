@@ -553,7 +553,7 @@ ${senderName}`;
 ${revNote}` : revNote;
       await supabaseAdmin.from("plm_products").update({ notes: revNotes, updated_at: new Date().toISOString() }).eq("id", product_id);
       await supabaseAdmin.from("plm_stages").insert({
-        product_id, user_id: user.id, stage: "samples_requested",
+        product_id, user_id: user.id, stage: "revision_requested",
         notes: revNote, updated_by: user.email, updated_by_role: "admin",
       });
 
