@@ -14,10 +14,6 @@ const DEV_STAGES = [
   { key: "artwork_sent", label: "Artwork Sent", color: "#8b5cf6" },
   { key: "quotes_received", label: "Quotes Received", color: "#3b82f6" },
   { key: "samples_requested", label: "Samples Requested", color: "#f59e0b" },
-  { key: "sample_production", label: "Sample Production", color: "#f59e0b" },
-  { key: "sample_complete", label: "Sample Complete", color: "#f59e0b" },
-  { key: "sample_shipped", label: "Sample Shipped", color: "#3b82f6" },
-  { key: "sample_arrived", label: "Sample Arrived", color: "#10b981" },
   { key: "sample_approved", label: "Sample Approved", color: "#10b981" },
 ];
 
