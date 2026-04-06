@@ -179,7 +179,10 @@ export default function POGeneratorPage() {
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-[10px] text-white/30 uppercase tracking-widest">Products & Line Items</p>
                   <button onClick={() => {
-                    const approved = products.filter(p => p.current_stage === "sample_approved").map(p => p.id);
+                    const approved = products.filter(p =>
+                      (p.plm_sample_requests || []).some((r: any) => r.status === "approved") &&
+                      (!p.plm_batches || p.plm_batches.length === 0)
+                    ).map(p => p.id);
                     setPOSelectedProducts(approved);
                     approved.forEach(id => {
                       const p = products.find((pr: any) => pr.id === id);
