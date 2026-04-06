@@ -366,8 +366,7 @@ ${senderName}`;
       for (const factory of (factories || [])) {
         if (!factory.email) continue;
         const contactName = (factory as any).contact_name || factory.name;
-        const mime = [`MIME-Version: 1.0`, `To: ${factory.email}`, `Subject: Sample Request — ${productName}`, `Content-Type: text/plain; charset=utf-8`, ``, buildEmailBody(contactName)].join("
-");
+        const mime = [`MIME-Version: 1.0`, `To: ${factory.email}`, `Subject: Sample Request — ${productName}`, `Content-Type: text/plain; charset=utf-8`, ``, buildEmailBody(contactName)].join("\r\n");
         const encoded = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
         await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
           method: "POST",
