@@ -84,9 +84,11 @@ export default function PLMPage() {
   // PO Generator
   const [showPOModal, setShowPOModal] = useState(false);
   const [poSelectedProducts, setPOSelectedProducts] = useState<string[]>([]);
+  const [poLineItems, setPOLineItems] = useState<Record<string, {qty: string, unit_price: string}>>({});
   const [poForm, setPOForm] = useState({
     po_number: "", payment_terms: "30% deposit, 70% before shipment",
-    delivery_terms: "FOB Factory", ship_date: "", destination: "", notes: ""
+    delivery_terms: "FOB Factory", ship_date: "", destination: "",
+    company_name: "", company_address: "", contact_name: "", notes: ""
   });
   const [generatingPO, setGeneratingPO] = useState(false);
 
@@ -412,41 +414,90 @@ export default function PLMPage() {
         {/* PO Generator Modal */}
         {showPOModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-3xl p-6 space-y-5 my-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-white">Generate Purchase Order</p>
-                  <p className="text-xs text-white/30 mt-0.5">Select products, fill in details, and send the PO to the factory</p>
+                  <p className="text-xs text-white/30 mt-0.5">Fill in all details — opens as a print-ready PO</p>
                 </div>
                 <button onClick={() => setShowPOModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
 
-              {/* Product selection */}
+              {/* Buyer Info */}
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Your Company (Buyer)</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] text-white/25 mb-1 block">Company Name</label>
+                    <input value={poForm.company_name} onChange={e => setPOForm({...poForm, company_name: e.target.value})}
+                      placeholder="Your company name"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/25 mb-1 block">Contact Name</label>
+                    <input value={poForm.contact_name} onChange={e => setPOForm({...poForm, contact_name: e.target.value})}
+                      placeholder="Your name"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/25 mb-1 block">Company Address</label>
+                    <input value={poForm.company_address} onChange={e => setPOForm({...poForm, company_address: e.target.value})}
+                      placeholder="123 Main St, New York NY"
+                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Products + Line Items */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[11px] text-white/30 uppercase tracking-widest">Products to Include</p>
-                  <button onClick={() => setPOSelectedProducts(products.filter(p => p.current_stage === "sample_approved").map(p => p.id))}
-                    className="text-[11px] text-blue-400 hover:text-blue-300">Select Sample Approved</button>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Products & Line Items</p>
+                  <button onClick={() => {
+                    const approved = products.filter(p => p.current_stage === "sample_approved").map(p => p.id);
+                    setPOSelectedProducts(approved);
+                  }} className="text-[11px] text-blue-400 hover:text-blue-300">Select Sample Approved</button>
                 </div>
-                <div className="max-h-40 overflow-y-auto space-y-1.5 border border-white/[0.06] rounded-xl p-3">
-                  {products.map(p => {
-                    const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
-                    const approvedFactory = approvedReq?.factory_catalog;
-                    return (
-                      <label key={p.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.02] px-2 py-1.5 rounded-lg">
-                        <input type="checkbox" checked={poSelectedProducts.includes(p.id)}
-                          onChange={e => setPOSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
-                          className="rounded" />
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
-                          <span className="text-xs text-white/70 truncate">{p.name}</span>
-                          {p.sku && <span className="text-[10px] text-white/30 font-mono">{p.sku}</span>}
-                          {approvedFactory && <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">✓ {approvedFactory.name}</span>}
-                          {p.current_stage === "sample_approved" && !approvedFactory && <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">Sample Approved</span>}
+                <div className="border border-white/[0.06] rounded-xl overflow-hidden">
+                  <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.06]">
+                    <div className="col-span-1"></div>
+                    <div className="col-span-4 text-[10px] text-white/30 uppercase tracking-widest">Product</div>
+                    <div className="col-span-2 text-[10px] text-white/30 uppercase tracking-widest">SKU</div>
+                    <div className="col-span-2 text-[10px] text-white/30 uppercase tracking-widest">Qty</div>
+                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Unit Price ($)</div>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto divide-y divide-white/[0.04]">
+                    {products.map(p => {
+                      const isSelected = poSelectedProducts.includes(p.id);
+                      const line = poLineItems[p.id] || { qty: "", unit_price: "" };
+                      const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
+                      const approvedFactory = approvedReq?.factory_catalog;
+                      return (
+                        <div key={p.id} className={`grid grid-cols-12 gap-2 px-3 py-2 items-center ${isSelected ? "bg-blue-500/[0.04]" : ""}`}>
+                          <div className="col-span-1">
+                            <input type="checkbox" checked={isSelected}
+                              onChange={e => setPOSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                              className="rounded" />
+                          </div>
+                          <div className="col-span-4 flex items-center gap-2 min-w-0">
+                            {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                            <div className="min-w-0">
+                              <p className="text-xs text-white/70 truncate">{p.name}</p>
+                              {approvedFactory && <p className="text-[10px] text-emerald-400">✓ {approvedFactory.name}</p>}
+                            </div>
+                          </div>
+                          <div className="col-span-2 text-[10px] text-white/30 font-mono">{p.sku || "—"}</div>
+                          <div className="col-span-2">
+                            {isSelected && <input type="number" value={line.qty} onChange={e => setPOLineItems(prev => ({...prev, [p.id]: {...(prev[p.id]||{qty:"",unit_price:""}), qty: e.target.value}}))}
+                              placeholder="0" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />}
+                          </div>
+                          <div className="col-span-3">
+                            {isSelected && <input type="number" value={line.unit_price} onChange={e => setPOLineItems(prev => ({...prev, [p.id]: {...(prev[p.id]||{qty:"",unit_price:""}), unit_price: e.target.value}}))}
+                              placeholder="0.00" step="0.01" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />}
+                          </div>
                         </div>
-                      </label>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
                 <p className="text-[11px] text-white/25 mt-1.5">{poSelectedProducts.length} products selected</p>
               </div>
@@ -474,15 +525,15 @@ export default function PLMPage() {
                     className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
                 </div>
                 <div className="col-span-2">
-                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Ship To / Destination</label>
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Destination / Ship To Address</label>
                   <input value={poForm.destination} onChange={e => setPOForm({...poForm, destination: e.target.value})}
                     placeholder="e.g. 123 Warehouse St, Brooklyn NY 11201"
                     className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
                 </div>
                 <div className="col-span-2">
-                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Notes</label>
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Notes / Special Instructions</label>
                   <textarea value={poForm.notes} onChange={e => setPOForm({...poForm, notes: e.target.value})}
-                    placeholder="Any special instructions..."
+                    placeholder="e.g. Please package individually, mark cartons with PO number..."
                     rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none resize-none" />
                 </div>
               </div>
@@ -491,11 +542,10 @@ export default function PLMPage() {
                 <button onClick={async () => {
                   if (poSelectedProducts.length === 0) return;
                   setGeneratingPO(true);
-                  const selectedProds = products.filter(p => poSelectedProducts.includes(p.id));
                   const res = await fetch("/api/plm/po", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ product_ids: poSelectedProducts, ...poForm }),
+                    body: JSON.stringify({ product_ids: poSelectedProducts, line_items: poLineItems, ...poForm }),
                   });
                   const data = await res.json();
                   setGeneratingPO(false);
@@ -505,12 +555,11 @@ export default function PLMPage() {
                     const win = window.open(url, "_blank");
                     setTimeout(() => { if (win) win.print(); }, 800);
                     setShowPOModal(false);
-                    load();
                   }
                 }} disabled={generatingPO || poSelectedProducts.length === 0}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500 text-white text-xs font-semibold hover:bg-blue-400 transition disabled:opacity-40">
                   {generatingPO ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />}
-                  {generatingPO ? "Generating PO..." : `Generate PO for ${poSelectedProducts.length} Products`}
+                  {generatingPO ? "Generating..." : `Generate PO for ${poSelectedProducts.length} Products`}
                 </button>
                 <button onClick={() => setShowPOModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
               </div>
