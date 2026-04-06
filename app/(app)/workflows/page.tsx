@@ -1,9 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Factory, TrendingDown, CreditCard, Calendar, FileText, ChevronRight, Zap } from "lucide-react";
+import { Factory, TrendingDown, CreditCard, Calendar, FileText, ChevronRight, Zap, ShoppingCart } from "lucide-react";
 
 const WORKFLOWS = [
+  {
+    icon: ShoppingCart,
+    name: "PO Generator",
+    tagline: "Select products → fill in details → generate & send purchase orders to factories",
+    color: "#3b82f6",
+    href: "/workflows/po-generator",
+    live: true,
+  },
   {
     icon: Factory,
     name: "Factory Quote Request",
