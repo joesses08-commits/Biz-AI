@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet, Send } from "lucide-react";
+import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet, Send, FileText } from "lucide-react";
 
 const BATCH_STAGE_ORDER = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
 const BATCH_STAGE_LABELS: Record<string,string> = { po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", ready_to_ship:"Ready to Ship", shipped:"Shipped" };
@@ -80,6 +80,15 @@ export default function PLMPage() {
   const [newCollection, setNewCollection] = useState({ name:"", season:"", year: new Date().getFullYear().toString(), notes:"" });
   const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
   const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"", role:"factory" });
+
+  // PO Generator
+  const [showPOModal, setShowPOModal] = useState(false);
+  const [poSelectedProducts, setPOSelectedProducts] = useState<string[]>([]);
+  const [poForm, setPOForm] = useState({
+    po_number: "", payment_terms: "30% deposit, 70% before shipment",
+    delivery_terms: "FOB Factory", ship_date: "", destination: "", notes: ""
+  });
+  const [generatingPO, setGeneratingPO] = useState(false);
 
   // Bulk sample request
   const [showSampleRequestModal, setShowSampleRequestModal] = useState(false);
@@ -395,6 +404,115 @@ export default function PLMPage() {
                   {exporting ? "Exporting..." : "Export Excel"}
                 </button>
                 <button onClick={() => setShowExportModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* PO Generator Modal */}
+        {showPOModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Generate Purchase Order</p>
+                  <p className="text-xs text-white/30 mt-0.5">Select products, fill in details, and send the PO to the factory</p>
+                </div>
+                <button onClick={() => setShowPOModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              </div>
+
+              {/* Product selection */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] text-white/30 uppercase tracking-widest">Products to Include</p>
+                  <button onClick={() => setPOSelectedProducts(products.filter(p => p.current_stage === "sample_approved").map(p => p.id))}
+                    className="text-[11px] text-blue-400 hover:text-blue-300">Select Sample Approved</button>
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-1.5 border border-white/[0.06] rounded-xl p-3">
+                  {products.map(p => {
+                    const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
+                    const approvedFactory = approvedReq?.factory_catalog;
+                    return (
+                      <label key={p.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.02] px-2 py-1.5 rounded-lg">
+                        <input type="checkbox" checked={poSelectedProducts.includes(p.id)}
+                          onChange={e => setPOSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                          className="rounded" />
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                          <span className="text-xs text-white/70 truncate">{p.name}</span>
+                          {p.sku && <span className="text-[10px] text-white/30 font-mono">{p.sku}</span>}
+                          {approvedFactory && <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">✓ {approvedFactory.name}</span>}
+                          {p.current_stage === "sample_approved" && !approvedFactory && <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">Sample Approved</span>}
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-white/25 mt-1.5">{poSelectedProducts.length} products selected</p>
+              </div>
+
+              {/* PO Details */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">PO Number</label>
+                  <input value={poForm.po_number} onChange={e => setPOForm({...poForm, po_number: e.target.value})}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Requested Ship Date</label>
+                  <input type="date" value={poForm.ship_date} onChange={e => setPOForm({...poForm, ship_date: e.target.value})}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Payment Terms</label>
+                  <input value={poForm.payment_terms} onChange={e => setPOForm({...poForm, payment_terms: e.target.value})}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Delivery Terms</label>
+                  <input value={poForm.delivery_terms} onChange={e => setPOForm({...poForm, delivery_terms: e.target.value})}
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Ship To / Destination</label>
+                  <input value={poForm.destination} onChange={e => setPOForm({...poForm, destination: e.target.value})}
+                    placeholder="e.g. 123 Warehouse St, Brooklyn NY 11201"
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Notes</label>
+                  <textarea value={poForm.notes} onChange={e => setPOForm({...poForm, notes: e.target.value})}
+                    placeholder="Any special instructions..."
+                    rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none resize-none" />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={async () => {
+                  if (poSelectedProducts.length === 0) return;
+                  setGeneratingPO(true);
+                  const selectedProds = products.filter(p => poSelectedProducts.includes(p.id));
+                  const res = await fetch("/api/plm/po", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ product_ids: poSelectedProducts, ...poForm }),
+                  });
+                  const data = await res.json();
+                  setGeneratingPO(false);
+                  if (data.html) {
+                    const blob = new Blob([data.html], { type: "text/html" });
+                    const url = URL.createObjectURL(blob);
+                    const win = window.open(url, "_blank");
+                    setTimeout(() => { if (win) win.print(); }, 800);
+                    setShowPOModal(false);
+                    load();
+                  }
+                }} disabled={generatingPO || poSelectedProducts.length === 0}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500 text-white text-xs font-semibold hover:bg-blue-400 transition disabled:opacity-40">
+                  {generatingPO ? <Loader2 size={11} className="animate-spin" /> : <FileText size={11} />}
+                  {generatingPO ? "Generating PO..." : `Generate PO for ${poSelectedProducts.length} Products`}
+                </button>
+                <button onClick={() => setShowPOModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
               </div>
             </div>
           </div>
@@ -784,6 +902,14 @@ export default function PLMPage() {
                   setShowSampleRequestModal(true);
                 }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
                   <Plus size={11} />Request Samples
+                </button>
+                <button onClick={() => {
+                  const approved = products.filter(p => p.current_stage === "sample_approved").map(p => p.id);
+                  setPOSelectedProducts(approved);
+                  setPOForm({ po_number: `PO-${Date.now().toString().slice(-6)}`, payment_terms: "30% deposit, 70% before shipment", delivery_terms: "FOB Factory", ship_date: "", destination: "", notes: "" });
+                  setShowPOModal(true);
+                }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-400 transition">
+                  <FileText size={11} />Generate PO
                 </button>
               </div>
             </div>
