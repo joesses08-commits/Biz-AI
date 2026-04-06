@@ -221,17 +221,25 @@ export async function POST(req: NextRequest) {
     // Create sample request per factory — skip if already exists and not killed
     const skippedFactories: string[] = [];
     for (const factory of (factories || [])) {
-      // Check if any active request exists for this factory/product
-      const { data: activeRequests } = await supabaseAdmin
+      // Check if approved or active request exists
+      const { data: existingAny } = await supabaseAdmin
         .from("plm_sample_requests")
         .select("id, status")
         .eq("product_id", product_id)
         .eq("factory_id", factory.id)
-        .eq("status", "requested");
+        .in("status", ["requested", "approved"]);
 
-      if (activeRequests && activeRequests.length > 0 && !force) {
+      const hasApproved = (existingAny || []).some((r: any) => r.status === "approved");
+      const hasActive = (existingAny || []).some((r: any) => r.status === "requested");
+
+      if (hasApproved) {
         skippedFactories.push(factory.name);
-        continue; // Skip — already has active request
+        continue; // Sample already approved — never allow new request
+      }
+
+      if (hasActive && !force) {
+        skippedFactories.push(factory.name);
+        continue; // Already has active request
       }
       // Force always creates a new row — skip the killed check
       if (force) {
