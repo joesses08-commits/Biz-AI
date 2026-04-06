@@ -492,8 +492,8 @@ Return ONLY raw JSON, no markdown:
       const aiRes = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 600,
-        system: `You are a procurement advisor for a wholesale business. Analyze factory quotes and give a direct recommendation. Consider ALL factors: price/ELC, MOQ (lower is better for testing), production lead time (shorter is better), and sample lead time (critical — a factory with 2-day sample lead time beats one with 30 days at the same price). Call out any major lead time differences explicitly. Be direct and actionable. 4-6 sentences max.`,
-        messages: [{ role: "user", content: `Quote comparison for "${job.job_name}":\n${productSummary}\n\nWhich factory should we go with and why? Highlight any important lead time or MOQ differences.` }],
+        system: `You are a neutral procurement analyst for a wholesale business. Present the tradeoffs between factories clearly without picking a definitive winner. Structure your response as: (1) who wins on price/ELC, (2) who wins on lead time and MOQ, (3) what it depends on, (4) one negotiation suggestion. Be concise, balanced, and practical. 4-6 sentences max. Never say "I recommend" — say "X factory wins on price" or "it depends on".`,
+        messages: [{ role: "user", content: `Quote comparison for "${job.job_name}":\n${productSummary}\n\nPresent the tradeoffs and suggest a negotiation angle.` }],
       });
       trackUsage(user.id, "factory-quote-recommendation", "claude-haiku-4-5-20251001", aiRes.usage.input_tokens, aiRes.usage.output_tokens).catch(() => {});
       const aiRecommendation = aiRes.content[0].type === "text" ? aiRes.content[0].text : "";
@@ -697,9 +697,10 @@ Return ONLY raw JSON, no markdown:
             if (match) {
               const price = match.first_cost ? `$${match.first_cost}` : match.unit_cost ? `$${match.unit_cost}` : "N/A";
               const moq = match.moq ? `MOQ ${match.moq}` : null;
-              const lead = match.lead_time_days ? `${match.lead_time_days}d lead` : null;
+              const lead = match.lead_time_days ? `${match.lead_time_days}d production` : null;
+              const sample = match.sample_lead_time ? `${match.sample_lead_time}d sample` : null;
               const elc = match.elc ? `ELC $${match.elc}` : null;
-              const parts = [price, moq, lead, elc].filter(Boolean).join(", ");
+              const parts = [price, moq, lead, sample, elc].filter(Boolean).join(", ");
               factoryLines.push(`${fq.factory_name}: ${parts}`);
             }
           }
