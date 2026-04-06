@@ -331,5 +331,21 @@ ${buyerContact || buyerCompany}`;
     created_at: new Date().toISOString(),
   });
 
+  await supabaseAdmin.from("po_history").insert({
+    user_id: user.id,
+    po_number: poNum,
+    product_ids: product_ids,
+    product_count: products.length,
+    total_value: totalValue > 0 ? totalValue : null,
+    factory_name: factory?.name || null,
+    factory_email: factory?.email || null,
+    payment_terms: payment_terms || null,
+    delivery_terms: delivery_terms || null,
+    ship_date: ship_date || null,
+    destination: destination || null,
+    notes: notes || null,
+    created_at: new Date().toISOString(),
+  });
+
   return NextResponse.json({ success: true, html, po_number: poNum, factory, email_body, both_connected });
 }

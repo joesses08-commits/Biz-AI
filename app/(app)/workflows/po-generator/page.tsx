@@ -40,16 +40,16 @@ export default function POGeneratorPage() {
 
   async function load() {
     setLoading(true);
-    const [plmRes, eventsRes] = await Promise.all([
+    const [plmRes, historyRes] = await Promise.all([
       fetch("/api/plm"),
-      fetch("/api/events/list?type=po_generated&limit=20"),
+      fetch("/api/plm/po-history"),
     ]);
     const plmData = await plmRes.json();
     setProducts(plmData.products || []);
     setFactories(plmData.factories || []);
-    if (eventsRes.ok) {
-      const eventsData = await eventsRes.json();
-      setHistory(eventsData.events || []);
+    if (historyRes.ok) {
+      const historyData = await historyRes.json();
+      setHistory(historyData.history || []);
     }
     setLoading(false);
   }
@@ -335,10 +335,9 @@ export default function POGeneratorPage() {
               ) : (
                 <div className="space-y-2">
                   {history.map((event: any) => {
-                    const raw = event.raw_data || {};
-                    const poNum = raw.po_number;
-                    const productCount = raw.product_ids?.length || 0;
-                    const total = raw.total;
+                    const poNum = event.po_number;
+                    const productCount = event.product_count || 0;
+                    const total = event.total_value;
                     const date = new Date(event.created_at);
                     const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
                     const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
