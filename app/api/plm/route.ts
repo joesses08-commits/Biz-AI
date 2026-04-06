@@ -176,9 +176,10 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from("plm_stages").insert({
         product_id: id, user_id: user.id,
         stage: updates.current_stage,
-        notes: "Development stage updated",
+        notes: updates._stage_note || "",
         updated_by: user.email, updated_by_role: "admin",
       });
+      delete updates._stage_note;
     }
     return NextResponse.json({ success: true, product: data });
   }

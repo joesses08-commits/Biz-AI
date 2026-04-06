@@ -191,7 +191,7 @@ export default function ProductPage() {
 ${entry}` : entry;
     }
     await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_product", id: product.id, current_stage: stage, ...(noteText ? { notes: updatedNotes } : {}) }) });
+      body: JSON.stringify({ action: "update_product", id: product.id, current_stage: stage, ...(noteText ? { notes: updatedNotes, _stage_note: noteText } : {}) }) });
     setUpdatingDevStage(false);
     setPendingDevStage(null);
     setDevStageNote("");
@@ -1315,7 +1315,7 @@ ${entry}` : entry;
                           {h._order_num && <span className="text-[10px] text-white/25">Order #{h._order_num}</span>}
                           {isSample && !h._factory_name && <span className="text-[10px] text-white/20">Sample</span>}
                         </div>
-                        {h.notes && h.notes !== "Sample requested" && h.notes !== "Revision round started" && (
+                        {h.notes && !["Sample requested", "Revision round started", "Sample requested"].includes(h.notes) && (
                           <p className="text-[11px] text-white/35 mt-0.5">{h.notes}</p>
                         )}
                         <p className="text-[10px] text-white/20 mt-0.5">
