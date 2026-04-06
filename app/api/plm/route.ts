@@ -219,6 +219,7 @@ export async function POST(req: NextRequest) {
       .in("id", factory_ids);
 
     // Create sample request per factory — skip if already exists and not killed
+    const skippedFactories: string[] = [];
     for (const factory of (factories || [])) {
       // Check if any active request exists for this factory/product
       const { data: activeRequests } = await supabaseAdmin
@@ -228,22 +229,24 @@ export async function POST(req: NextRequest) {
         .eq("factory_id", factory.id)
         .eq("status", "requested");
 
-      if (activeRequests && activeRequests.length > 0) continue; // Skip — already has active request
+      if (activeRequests && activeRequests.length > 0) {
+        skippedFactories.push(factory.name);
+        continue; // Skip — already has active request
+      }
 
       // Check for killed request to reset
-      const { data: killedRequest } = await supabaseAdmin
+      const { data: killedRequests } = await supabaseAdmin
         .from("plm_sample_requests")
         .select("id, status")
         .eq("product_id", product_id)
         .eq("factory_id", factory.id)
         .eq("status", "killed")
         .order("created_at", { ascending: false })
-        .limit(1)
-        .single().catch(() => ({ data: null }));
+        .limit(1);
 
-      const existing = killedRequest;
+      const existing = killedRequests?.[0] || null;
 
-      if (existing && existing.status === "killed") {
+      if (existing) {
         await supabaseAdmin.from("plm_sample_requests").update({
           status: "requested",
           current_stage: "sample_production",
@@ -412,7 +415,7 @@ ${senderName}`;
       }
     }
 
-    return NextResponse.json({ success: true, factories });
+    return NextResponse.json({ success: true, factories, skipped: skippedFactories });
   }
 
   if (action === "update_sample_stage") {
