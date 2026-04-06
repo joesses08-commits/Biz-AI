@@ -209,7 +209,9 @@ export default function PortalProductPage() {
                   const isKilled = sr.status === "killed";
                   const isApproved = sr.status === "approved";
                   const isRevision = sr.status === "revision";
-                  const roundLabel = roundIdx === 0 ? "Round 1" : sr.label === "additional" ? `Additional Sample ${roundIdx}` : `Round ${roundIdx + 1} — Revision`;
+                  const isAdditional = sr.label === "additional";
+                  const roundLabel = roundIdx === 0 ? "Round 1" : isAdditional ? `Additional Sample ${roundIdx}` : `Round ${roundIdx + 1} — Revision`;
+                  const roundSubtitle = isAdditional && (sr.qty || sr.notes) ? `${sr.qty ? sr.qty + " units requested" : ""}${sr.qty && sr.notes ? " · " : ""}${sr.notes || ""}` : null;
                   const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                   const completedStageKeys = stages.map((s: any) => s.stage).filter((k: string) => STAGE_KEYS.includes(k));
                   const lastCompletedIdx = Math.max(...completedStageKeys.map((k: string) => STAGE_KEYS.indexOf(k)), -1);
@@ -224,7 +226,10 @@ export default function PortalProductPage() {
                   return (
                     <div key={sr.id} className={`border rounded-2xl overflow-hidden ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-white/[0.08] bg-white/[0.01]"}`}>
                       <div className="px-4 py-2.5 border-b border-white/[0.05] flex items-center justify-between">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                          {roundSubtitle && <p className="text-[10px] text-amber-300/60 mt-0.5">{roundSubtitle}</p>}
+                        </div>
                         {isApproved && <span className="text-[10px] text-emerald-400">✓ Approved</span>}
                         {isKilled && <span className="text-[10px] text-red-400">Ended</span>}
                         {isRevision && <span className="text-[10px] text-amber-400">Revision Requested</span>}

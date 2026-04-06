@@ -114,6 +114,7 @@ export default function ProductPage() {
   const [updatingSampleStage, setUpdatingSampleStage] = useState<string | null>(null);
   const [additionalSampleModal, setAdditionalSampleModal] = useState<{factoryId: string, factoryName: string} | null>(null);
   const [additionalSampleQty, setAdditionalSampleQty] = useState("1");
+  const [additionalSampleNote, setAdditionalSampleNote] = useState("");
   const [deletingRound, setDeletingRound] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState<Record<string, string>>({});
   const [showRevisionInput, setShowRevisionInput] = useState<string | null>(null);
@@ -481,13 +482,22 @@ ${entry}` : entry;
       {additionalSampleModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <p className="text-sm font-semibold">Request Additional Sample</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Request Additional Sample</p>
+              <button onClick={() => setAdditionalSampleModal(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
             <p className="text-xs text-white/40">From <span className="text-white/70">{additionalSampleModal.factoryName}</span></p>
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">How many samples?</p>
-              <input type="number" min="1" max="20" value={additionalSampleQty}
+              <input type="number" min="1" max="9999" value={additionalSampleQty}
                 onChange={e => setAdditionalSampleQty(e.target.value)}
                 className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Reason / Note</p>
+              <textarea value={additionalSampleNote} onChange={e => setAdditionalSampleNote(e.target.value)}
+                placeholder="e.g. Need samples for Target meeting on May 1st"
+                rows={3} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
             </div>
             <div className="flex gap-2">
               <button onClick={async () => {
@@ -499,7 +509,8 @@ ${entry}` : entry;
                     action: "create_sample_requests",
                     product_id: id,
                     factory_ids: [additionalSampleModal.factoryId],
-                    note: `Additional sample request — ${additionalSampleQty} unit(s)`,
+                    note: additionalSampleNote || `Additional sample request`,
+                    qty: parseInt(additionalSampleQty),
                     force: true,
                     label: "additional",
                     provider: "gmail",
@@ -507,6 +518,7 @@ ${entry}` : entry;
                 });
                 setRequestingSamples(false);
                 setAdditionalSampleModal(null);
+                setAdditionalSampleNote("");
                 load();
               }} disabled={requestingSamples}
                 className="flex-1 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 transition disabled:opacity-40">
@@ -874,6 +886,7 @@ ${entry}` : entry;
                                     }
                                     setAdditionalSampleModal({ factoryId, factoryName: factory?.name });
                                     setAdditionalSampleQty("1");
+                                    setAdditionalSampleNote("");
                                   }} className="text-[10px] text-white/30 hover:text-white/60 underline transition">
                                     + Request Another
                                   </button>
@@ -896,7 +909,9 @@ ${entry}` : entry;
                                 const isKilled = sr.status === "killed";
                                 const isApproved = sr.status === "approved";
                                 const isRevision = sr.status === "revision";
-                                const roundLabel = roundIdx === 0 ? "Round 1" : sr.label === "additional" ? `Additional Sample ${roundIdx}` : `Round ${roundIdx + 1} — Revision`;
+                                const isAdditional = sr.label === "additional";
+                                const roundLabel = roundIdx === 0 ? "Round 1" : isAdditional ? `Additional Sample ${roundIdx}` : `Round ${roundIdx + 1} — Revision`;
+                                const roundSubtitle = isAdditional && (sr.qty || sr.notes) ? `${sr.qty ? sr.qty + " units" : ""}${sr.qty && sr.notes ? " · " : ""}${sr.notes || ""}` : null;
                                 const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
                                 const completedStageKeys = stages.map((s: any) => s.stage).filter((k: string) => STAGE_KEYS.includes(k));
                                 const lastCompletedIdx = Math.max(...completedStageKeys.map((k: string) => STAGE_KEYS.indexOf(k)));
@@ -906,7 +921,10 @@ ${entry}` : entry;
                                   <div key={sr.id} className={`border rounded-2xl p-4 space-y-3 ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-white/[0.08] bg-white/[0.01]"}`}>
                                     {/* Round label + delete */}
                                     <div className="flex items-center justify-between">
-                                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                                      <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                                        {roundSubtitle && <p className="text-[10px] text-amber-300/60 mt-0.5">{roundSubtitle}</p>}
+                                      </div>
                                       <button onClick={async () => {
                                         if (!confirm("Delete this round?")) return;
                                         setDeletingRound(sr.id);

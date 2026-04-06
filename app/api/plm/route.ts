@@ -210,7 +210,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "create_sample_requests") {
-    const { product_id, factory_ids, note, force, label } = body;
+    const { product_id, factory_ids, note, force, label, qty } = body;
     if (!product_id || !factory_ids?.length) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     // Get factory details
@@ -252,6 +252,7 @@ export async function POST(req: NextRequest) {
           current_stage: "sample_production",
           notes: note || "",
           label: label || null,
+          qty: qty || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
