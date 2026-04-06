@@ -985,7 +985,7 @@ export default function PLMPage() {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === "designer_access" ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
@@ -1039,7 +1039,7 @@ export default function PLMPage() {
               </div>
             )}
           </div>
-        )} 
+        ) : null} 
 
         {activeTab === "prioritization" && (
           <div className="space-y-6">
