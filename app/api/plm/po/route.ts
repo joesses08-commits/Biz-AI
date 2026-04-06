@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   // ── SEND EMAIL ──
   if (action === "send_email") {
-    const { factory, subject, body: emailBody, html, pdf_base64, po_number, provider } = body;
+    const { factory, subject, body: emailBody, po_number, provider } = body;
     const attachmentData = pdf_base64 || Buffer.from(html).toString("base64");
     const attachmentType = pdf_base64 ? "application/pdf" : "text/html";
     const attachmentExt = pdf_base64 ? "pdf" : "html";
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     if (useGmail && gmailConn) {
       const rawLines = [
         `To: ${factory?.email}`,
-        `Subject: =?utf-8?Q?${subject.replace(/ /g, "_")}?=`,
+        `Subject: ${subject}`,
         "MIME-Version: 1.0",
         "Content-Type: text/plain; charset=UTF-8",
         "Content-Transfer-Encoding: quoted-printable",
