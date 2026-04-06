@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
   // Build email body
   const email_body = `Dear ${factory?.contact_name || factory?.name || "Team"},
 
-Please find attached Purchase Order ${poNum} for the following items:
+Please find below a link to Purchase Order ${poNum} for the following items:
 
 ${lineItemsSummary.map(s => `• ${s}`).join("\n")}
 
