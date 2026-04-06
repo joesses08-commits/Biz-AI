@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet } from "lucide-react";
+import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet, Send } from "lucide-react";
 
 const BATCH_STAGE_ORDER = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
 const BATCH_STAGE_LABELS: Record<string,string> = { po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", ready_to_ship:"Ready to Ship", shipped:"Shipped" };
 const BATCH_STAGE_COLORS: Record<string,string> = { po_issued:"#f59e0b", production_started:"#f59e0b", production_complete:"#10b981", qc_inspection:"#f59e0b", ready_to_ship:"#3b82f6", shipped:"#10b981" };
-const DEV_STAGE_LABELS: Record<string,string> = { concept:"Concept", artwork_sent:"Artwork Sent", quotes_received:"Quotes Received", samples_requested:"Samples Requested", sample_production:"Sample Production", sample_complete:"Sample Complete", sample_shipped:"Sample Shipped", sample_arrived:"Sample Arrived", sample_approved:"Sample Approved" };
-const DEV_STAGE_COLORS: Record<string,string> = { concept:"#6b7280", artwork_sent:"#8b5cf6", quotes_received:"#3b82f6", samples_requested:"#f59e0b", sample_production:"#f59e0b", sample_complete:"#f59e0b", sample_shipped:"#3b82f6", sample_arrived:"#10b981", sample_approved:"#10b981" };
+const DEV_STAGE_LABELS: Record<string,string> = { concept:"Concept", ready_for_quote:"Ready for Quote", artwork_sent:"Artwork Sent", quotes_received:"Quotes Received", samples_requested:"Samples Requested", sample_production:"Sample Production", sample_complete:"Sample Complete", sample_shipped:"Sample Shipped", sample_arrived:"Sample Arrived", sample_approved:"Sample Approved" };
+const DEV_STAGE_COLORS: Record<string,string> = { concept:"#6b7280", ready_for_quote:"#ec4899", artwork_sent:"#8b5cf6", quotes_received:"#3b82f6", samples_requested:"#f59e0b", sample_production:"#f59e0b", sample_complete:"#f59e0b", sample_shipped:"#3b82f6", sample_arrived:"#10b981", sample_approved:"#10b981" };
 const SEASONS = ["Spring", "Summer", "Fall", "Winter", "Holiday", "Resort", "Pre-Fall"];
 const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
 const COLUMN_LABELS: Record<string,string> = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };
@@ -80,6 +80,14 @@ export default function PLMPage() {
   const [newCollection, setNewCollection] = useState({ name:"", season:"", year: new Date().getFullYear().toString(), notes:"" });
   const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
   const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"", role:"factory" });
+
+  // RFQ from PLM
+  const [showRfqModal, setShowRfqModal] = useState(false);
+  const [rfqSelectedProducts, setRfqSelectedProducts] = useState<string[]>([]);
+  const [rfqInclude, setRfqInclude] = useState<string[]>(["name","sku","description","specs","images"]);
+  const [rfqAskFor, setRfqAskFor] = useState<string[]>(["price","sample_lead_time","moq","lead_time"]);
+  const [creatingRfq, setCreatingRfq] = useState(false);
+  const [rfqJobId, setRfqJobId] = useState<string|null>(null);
 
   const load = async () => {
     const [plmRes, catRes, portalRes] = await Promise.all([
@@ -381,6 +389,119 @@ export default function PLMPage() {
           </div>
         )}
 
+        {/* RFQ Modal */}
+        {showRfqModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Create RFQ</p>
+                  <p className="text-xs text-white/30 mt-0.5">Select products, choose what to include and ask for, then export to Workflows</p>
+                </div>
+                <button onClick={() => setShowRfqModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              </div>
+
+              {/* Product selection */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[11px] text-white/30 uppercase tracking-widest">Products to Include</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setRfqSelectedProducts(products.filter(p => p.current_stage === "ready_for_quote").map(p => p.id))}
+                      className="text-[11px] text-pink-400 hover:text-pink-300 transition">Select RFQ Ready</button>
+                    <button onClick={() => setRfqSelectedProducts(products.map(p => p.id))}
+                      className="text-[11px] text-white/30 hover:text-white/60 transition">Select All</button>
+                    <button onClick={() => setRfqSelectedProducts([])}
+                      className="text-[11px] text-white/30 hover:text-white/60 transition">Clear</button>
+                  </div>
+                </div>
+                <div className="max-h-48 overflow-y-auto space-y-1.5 border border-white/[0.06] rounded-xl p-3">
+                  {products.map(p => (
+                    <label key={p.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.02] px-2 py-1.5 rounded-lg transition">
+                      <input type="checkbox" checked={rfqSelectedProducts.includes(p.id)}
+                        onChange={e => setRfqSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                        className="rounded" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                        <span className="text-xs text-white/70 truncate">{p.name}</span>
+                        {p.sku && <span className="text-[10px] text-white/30 font-mono flex-shrink-0">{p.sku}</span>}
+                        {p.current_stage === "ready_for_quote" && <span className="text-[10px] text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">RFQ Ready</span>}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-[11px] text-white/25 mt-1.5">{rfqSelectedProducts.length} products selected</p>
+              </div>
+
+              {/* What to include */}
+              <div>
+                <p className="text-[11px] text-white/30 uppercase tracking-widest mb-2">Include in Sheet</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["images","Image URLs"],["category","Category"],["collection","Collection"],["notes","Notes"]].map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={rfqInclude.includes(key)}
+                        onChange={e => setRfqInclude(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}
+                        className="rounded" />
+                      <span className="text-xs text-white/60">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* What to ask factories */}
+              <div>
+                <p className="text-[11px] text-white/30 uppercase tracking-widest mb-2">Ask Factories to Fill In</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[["price","Unit Price"],["sample_lead_time","Sample Lead Time"],["moq","MOQ"],["lead_time","Production Lead Time"],["sample_price","Sample Price"],["payment_terms","Payment Terms"],["packaging","Packaging Details"],["notes","Notes/Comments"]].map(([key, label]) => (
+                    <label key={key} className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={rfqAskFor.includes(key)}
+                        onChange={e => setRfqAskFor(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}
+                        className="rounded" />
+                      <span className="text-xs text-white/60">{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {rfqJobId && (
+                <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+                  <Check size={14} className="text-emerald-400" />
+                  <p className="text-xs text-emerald-300">RFQ job created! <button onClick={() => { setShowRfqModal(false); router.push(`/workflows/factory-quote?job=${rfqJobId}`); }} className="underline ml-1">Open in Workflows →</button></p>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button onClick={async () => {
+                  if (rfqSelectedProducts.length === 0) return;
+                  setCreatingRfq(true);
+                  try {
+                    const res = await fetch("/api/plm/rfq", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        product_ids: rfqSelectedProducts,
+                        include: rfqInclude,
+                        ask_for: rfqAskFor,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.job_id) {
+                      setRfqJobId(data.job_id);
+                      load();
+                    }
+                  } finally {
+                    setCreatingRfq(false);
+                  }
+                }} disabled={creatingRfq || rfqSelectedProducts.length === 0}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-pink-500 text-white text-xs font-semibold hover:bg-pink-400 transition disabled:opacity-40">
+                  {creatingRfq ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                  {creatingRfq ? "Creating RFQ..." : `Create RFQ for ${rfqSelectedProducts.length} Products`}
+                </button>
+                <button onClick={() => { setShowRfqModal(false); setRfqJobId(null); }} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* New Collection Modal */}
         {showNewCollection && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -526,11 +647,20 @@ export default function PLMPage() {
                   </button>
                 )}
               </div>
-              {selectedProducts.length > 0 && (
-                <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
-                  <Download size={11} />Export {selectedProducts.length} Selected
+              <div className="flex items-center gap-2">
+                {selectedProducts.length > 0 && (
+                  <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/60 font-semibold hover:bg-white/5 transition">
+                    <Download size={11} />Export {selectedProducts.length}
+                  </button>
+                )}
+                <button onClick={() => {
+                  const rfqReady = products.filter(p => p.current_stage === "ready_for_quote").map(p => p.id);
+                  setRfqSelectedProducts(rfqReady);
+                  setShowRfqModal(true);
+                }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
+                  <FileSpreadsheet size={11} />RFQ
                 </button>
-              )}
+              </div>
             </div>
             {filteredProducts.length === 0 ? (
               <div className="text-center py-20"><Package size={32} className="text-white/10 mx-auto mb-3" /><p className="text-white/30 text-sm">No products yet</p></div>

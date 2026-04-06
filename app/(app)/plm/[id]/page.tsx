@@ -10,6 +10,7 @@ import {
 // ── DEVELOPMENT STAGES (product level) ───────────────────────
 const DEV_STAGES = [
   { key: "concept", label: "Concept", color: "#6b7280" },
+  { key: "ready_for_quote", label: "Ready for Quote", color: "#ec4899" },
   { key: "artwork_sent", label: "Artwork Sent", color: "#8b5cf6" },
   { key: "quotes_received", label: "Quotes Received", color: "#3b82f6" },
   { key: "samples_requested", label: "Samples Requested", color: "#f59e0b" },
