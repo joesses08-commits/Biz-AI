@@ -1165,16 +1165,22 @@ export default function PLMPage() {
                                 {/* Status */}
                                 <div className="flex items-center gap-2">
                                   {/* Type badge */}
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                    sample.label === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
-                                    sample.label === "additional" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
-                                    "bg-white/[0.04] border-white/[0.06] text-white/30"
+                                  <span className={`text-xs px-3 py-1 rounded-full border font-semibold ${
+                                    sample.label === "revision" ? "bg-amber-500/20 border-amber-500/40 text-amber-300" :
+                                    sample.label === "additional" ? "bg-purple-500/20 border-purple-500/40 text-purple-300" :
+                                    "bg-blue-500/20 border-blue-500/40 text-blue-300"
                                   }`}>
-                                    {sample.label === "revision" ? "Revision" : sample.label === "additional" ? "Additional" : "Initial"}
+                                    {sample.label === "revision" ? "Revision" : sample.label === "additional" ? "Additional" : "First Sample"}
                                   </span>
+                                  {/* Stage badge */}
+                                  {sample.current_stage && (
+                                    <span className="text-xs px-3 py-1 rounded-full border bg-white/[0.05] border-white/[0.12] text-white/50 font-medium">
+                                      {sample.current_stage.replace(/_/g, " ").replace(/\w/g, (c: string) => c.toUpperCase())}
+                                    </span>
+                                  )}
                                   {/* Pending/Upcoming badge */}
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
-                                    isPrioritized ? "bg-white/[0.04] border-white/[0.06] text-white/30" : "bg-amber-500/5 border-amber-500/10 text-amber-400/50"
+                                  <span className={`text-xs px-3 py-1 rounded-full border font-medium ${
+                                    isPrioritized ? "bg-white/[0.04] border-white/[0.08] text-white/40" : "bg-amber-500/10 border-amber-500/20 text-amber-400"
                                   }`}>
                                     {isPrioritized ? "Pending" : "Upcoming"}
                                   </span>
