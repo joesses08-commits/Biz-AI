@@ -114,6 +114,10 @@ export default function ProductPage() {
   const [updatingSampleStage, setUpdatingSampleStage] = useState<string | null>(null);
   const [revisionNote, setRevisionNote] = useState<Record<string, string>>({});
   const [showRevisionInput, setShowRevisionInput] = useState<string | null>(null);
+  const [sampleOutcomePending, setSampleOutcomePending] = useState<{id: string, factoryId: string, stage: string, notes: string, outcome: string} | null>(null);
+  const [samplePin, setSamplePin] = useState("");
+  const [samplePinError, setSamplePinError] = useState("");
+  const [submittingSamplePin, setSubmittingSamplePin] = useState(false);
 
   // Order factory edit
   const [editingOrderFactory, setEditingOrderFactory] = useState<string | null>(null);
@@ -209,15 +213,42 @@ ${entry}` : entry;
     load();
   };
 
-  const updateSampleStage = async (sampleRequestId: string, factoryId: string, stage: string, notes?: string, outcome?: string) => {
+  const updateSampleStage = async (sampleRequestId: string, factoryId: string, stage: string, notes?: string, outcome?: string, pin?: string) => {
     setUpdatingSampleStage(sampleRequestId);
-    await fetch("/api/plm", {
+    const res = await fetch("/api/plm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_sample_stage", sample_request_id: sampleRequestId, product_id: id, factory_id: factoryId, stage, notes: notes || "", outcome }),
+      body: JSON.stringify({ action: "update_sample_stage", sample_request_id: sampleRequestId, product_id: id, factory_id: factoryId, stage, notes: notes || "", outcome, pin: pin || "" }),
     });
+    const data = await res.json();
     setUpdatingSampleStage(null);
+    if (data.error === "pin_required") return false;
     load();
+    return true;
+  };
+
+  const triggerSampleOutcome = (id: string, factoryId: string, stage: string, notes: string, outcome: string) => {
+    setSampleOutcomePending({ id, factoryId, stage, notes, outcome });
+    setSamplePin("");
+    setSamplePinError("");
+  };
+
+  const confirmSampleOutcome = async () => {
+    if (!sampleOutcomePending) return;
+    setSubmittingSamplePin(true);
+    setSamplePinError("");
+    const success = await updateSampleStage(
+      sampleOutcomePending.id, sampleOutcomePending.factoryId,
+      sampleOutcomePending.stage, sampleOutcomePending.notes,
+      sampleOutcomePending.outcome, samplePin
+    );
+    setSubmittingSamplePin(false);
+    if (success === false) {
+      setSamplePinError("Incorrect PIN. Try again.");
+    } else {
+      setSampleOutcomePending(null);
+      setSamplePin("");
+    }
   };
 
   const saveOrderFactory = async (orderId: string) => {
@@ -362,6 +393,38 @@ ${entry}` : entry;
                 Request from {sampleFactoryIds.length} {sampleFactoryIds.length === 1 ? "Factory" : "Factories"}
               </button>
               <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sample Outcome PIN Modal */}
+      {sampleOutcomePending && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Admin PIN Required</p>
+            <p className="text-xs text-white/40">
+              Enter your PIN to confirm: <strong className="text-white/60">
+                {sampleOutcomePending.outcome === "approved" ? "Approve Sample" :
+                 sampleOutcomePending.outcome === "revision" ? "Request Revision" :
+                 sampleOutcomePending.notes?.includes("Product killed") ? "Kill Product" : "Kill Factory"}
+              </strong>
+            </p>
+            {sampleOutcomePending.outcome === "revision" && sampleOutcomePending.notes && (
+              <p className="text-xs text-amber-400/70 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">Note: {sampleOutcomePending.notes}</p>
+            )}
+            <input type="password" value={samplePin} onChange={e => setSamplePin(e.target.value)}
+              placeholder="Enter PIN" autoFocus
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
+              onKeyDown={e => e.key === "Enter" && confirmSampleOutcome()} />
+            {samplePinError && <p className="text-xs text-red-400">{samplePinError}</p>}
+            <div className="flex gap-2">
+              <button onClick={confirmSampleOutcome} disabled={!samplePin || submittingSamplePin}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {submittingSamplePin ? "Confirming..." : "Confirm"}
+              </button>
+              <button onClick={() => { setSampleOutcomePending(null); setSamplePin(""); setSamplePinError(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -619,25 +682,19 @@ ${entry}` : entry;
                                 <div className="space-y-2">
                                   <p className="text-[10px] text-white/30 uppercase tracking-widest">Sample Review</p>
                                   <div className="flex gap-2 flex-wrap">
-                                    <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_arrived", "Sample approved — moving to production", "approved")}
-                                      disabled={updatingSampleStage === sr.id}
-                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition disabled:opacity-40">
+                                    <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, "sample_arrived", "Sample approved — moving to production", "approved")}
+                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
                                       <Check size={11} />Approve
                                     </button>
                                     <button onClick={() => setShowRevisionInput(showRevisionInput === sr.id ? null : sr.id)}
                                       className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
                                       Request Revision
                                     </button>
-                                    <button onClick={() => updateSampleStage(sr.id, sr.factory_id, sr.current_stage, "Sample killed for this factory", "killed")}
-                                      disabled={updatingSampleStage === sr.id}
-                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition disabled:opacity-40">
+                                    <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, sr.current_stage, "Sample killed for this factory", "killed")}
+                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
                                       <X size={11} />Kill this Factory
                                     </button>
-                                    <button onClick={() => {
-                                      if (confirm("Kill this product entirely? All factory samples will be closed.")) {
-                                        updateSampleStage(sr.id, sr.factory_id, sr.current_stage, "Product killed", "killed");
-                                      }
-                                    }}
+                                    <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, sr.current_stage, "Product killed", "killed")}
                                       className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-900/20 border border-red-900/30 text-red-600 hover:bg-red-900/30 transition">
                                       <X size={11} />Kill Product
                                     </button>
@@ -648,12 +705,11 @@ ${entry}` : entry;
                                         placeholder="Describe the revision needed (e.g. too blue, reduce handle size)..."
                                         rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
                                       <button onClick={() => {
-                                        updateSampleStage(sr.id, sr.factory_id, "sample_production", revisionNote[sr.id] || "Revision requested", "revision");
+                                        triggerSampleOutcome(sr.id, sr.factory_id, "sample_production", revisionNote[sr.id] || "Revision requested", "revision");
                                         setShowRevisionInput(null);
                                         setRevisionNote(prev => ({ ...prev, [sr.id]: "" }));
-                                      }} disabled={updatingSampleStage === sr.id}
-                                        className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition disabled:opacity-40">
-                                        {updatingSampleStage === sr.id ? <Loader2 size={11} className="animate-spin" /> : null}
+                                      }}
+                                        className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
                                         Send Revision Request
                                       </button>
                                     </div>

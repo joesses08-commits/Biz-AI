@@ -218,20 +218,48 @@ export async function POST(req: NextRequest) {
       .select("id, name, email, contact_name")
       .in("id", factory_ids);
 
-    // Create sample request per factory
+    // Create sample request per factory — skip if already exists and not killed
     for (const factory of (factories || [])) {
-      await supabaseAdmin.from("plm_sample_requests").insert({
-        product_id,
-        factory_id: factory.id,
-        user_id: user.id,
-        status: "requested",
-        current_stage: "sample_production",
-        notes: note || "",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+      const { data: existing } = await supabaseAdmin
+        .from("plm_sample_requests")
+        .select("id, status")
+        .eq("product_id", product_id)
+        .eq("factory_id", factory.id)
+        .single();
+
+      if (existing && existing.status !== "killed") continue; // Skip duplicates
+
+      // If previously killed, reset it
+      if (existing && existing.status === "killed") {
+        await supabaseAdmin.from("plm_sample_requests").update({
+          status: "requested",
+          current_stage: "sample_production",
+          notes: note || "",
+          updated_at: new Date().toISOString(),
+        }).eq("id", existing.id);
+      } else {
+        await supabaseAdmin.from("plm_sample_requests").insert({
+          product_id,
+          factory_id: factory.id,
+          user_id: user.id,
+          status: "requested",
+          current_stage: "sample_production",
+          notes: note || "",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+
       // Log to sample stages
+      const { data: newReq } = await supabaseAdmin
+        .from("plm_sample_requests")
+        .select("id")
+        .eq("product_id", product_id)
+        .eq("factory_id", factory.id)
+        .single();
+
       await supabaseAdmin.from("plm_sample_stages").insert({
+        sample_request_id: newReq?.id,
         product_id,
         factory_id: factory.id,
         user_id: user.id,
@@ -313,19 +341,91 @@ ${noteEntry}` : noteEntry;
   }
 
   if (action === "update_sample_stage") {
-    const { sample_request_id, product_id, factory_id, stage, notes, outcome } = body;
+    const { sample_request_id, product_id, factory_id, stage, notes, outcome, pin } = body;
+
+    // PIN required for outcome decisions
+    if (outcome && pin !== process.env.ADMIN_MILESTONE_PIN) {
+      return NextResponse.json({ error: "pin_required" }, { status: 403 });
+    }
 
     const updates: any = { current_stage: stage, updated_at: new Date().toISOString() };
-    if (outcome) updates.status = outcome; // "approved", "revision", "killed"
+    if (outcome) updates.status = outcome;
     if (notes) updates.notes = notes;
+
+    // Handle revision — reset stage to sample_production
+    if (outcome === "revision") {
+      updates.current_stage = "sample_production";
+      updates.status = "revision";
+    }
 
     await supabaseAdmin.from("plm_sample_requests").update(updates).eq("id", sample_request_id);
 
     await supabaseAdmin.from("plm_sample_stages").insert({
       sample_request_id, product_id, factory_id, user_id: user.id,
-      stage, notes: notes || "",
+      stage: outcome === "revision" ? "sample_production" : stage,
+      notes: notes || "",
       updated_by: user.email, updated_by_role: "admin",
     });
+
+    // Log to product notes
+    const { data: factoryData } = await supabaseAdmin.from("factory_catalog").select("name").eq("id", factory_id).single();
+    const factoryName = factoryData?.name || "factory";
+    const { data: productData } = await supabaseAdmin.from("plm_products").select("notes, plm_sample_requests(id, factory_id, status)").eq("id", product_id).single();
+
+    let noteEntry = "";
+    if (outcome === "approved") {
+      noteEntry = `Sample Approved: ${factoryName} selected for production`;
+      // Auto-kill all other factories
+      const otherRequests = (productData?.plm_sample_requests || []).filter((r: any) => r.id !== sample_request_id && r.status !== "killed");
+      for (const other of otherRequests) {
+        const { data: otherFactory } = await supabaseAdmin.from("factory_catalog").select("name").eq("id", other.factory_id).single();
+        await supabaseAdmin.from("plm_sample_requests").update({
+          status: "killed",
+          notes: `Auto-killed — production started with ${factoryName}`,
+          updated_at: new Date().toISOString(),
+        }).eq("id", other.id);
+        await supabaseAdmin.from("plm_sample_stages").insert({
+          sample_request_id: other.id, product_id, factory_id: other.factory_id, user_id: user.id,
+          stage: "killed",
+          notes: `Disregard sample — production started with ${factoryName}`,
+          updated_by: user.email, updated_by_role: "admin",
+        });
+      }
+      // Update product to sample_approved
+      await supabaseAdmin.from("plm_products").update({
+        current_stage: "sample_approved",
+        updated_at: new Date().toISOString(),
+      }).eq("id", product_id);
+      await supabaseAdmin.from("plm_stages").insert({
+        product_id, user_id: user.id,
+        stage: "sample_approved",
+        notes: `Sample approved — ${factoryName} selected`,
+        updated_by: user.email, updated_by_role: "admin",
+      });
+    } else if (outcome === "revision") {
+      noteEntry = `Revision Requested to ${factoryName}: ${notes || ""}`;
+    } else if (outcome === "killed") {
+      noteEntry = notes?.includes("entirely") || notes?.includes("Product killed")
+        ? `Product Killed: ${notes}`
+        : `Sample Killed for ${factoryName}: ${notes || ""}`;
+      // If killing product, kill all factories
+      if (notes?.includes("Product killed")) {
+        const allRequests = (productData?.plm_sample_requests || []).filter((r: any) => r.id !== sample_request_id && r.status !== "killed");
+        for (const other of allRequests) {
+          await supabaseAdmin.from("plm_sample_requests").update({
+            status: "killed",
+            notes: "Product killed",
+            updated_at: new Date().toISOString(),
+          }).eq("id", other.id);
+        }
+      }
+    }
+
+    if (noteEntry) {
+      const updatedNotes = productData?.notes ? `${productData.notes}
+${noteEntry}` : noteEntry;
+      await supabaseAdmin.from("plm_products").update({ notes: updatedNotes, updated_at: new Date().toISOString() }).eq("id", product_id);
+    }
 
     return NextResponse.json({ success: true });
   }

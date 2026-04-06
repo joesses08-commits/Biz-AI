@@ -184,8 +184,18 @@ export default function PortalProductPage() {
             </div>
             {sampleRequests.map((sr: any) => {
               const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
+              const isRevision = sr.status === "revision";
               return (
                 <div key={sr.id} className="px-6 py-4 space-y-3">
+                  {isRevision && (
+                    <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5">
+                      <div className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-amber-300">Revision Requested</p>
+                        {sr.notes && <p className="text-[11px] text-amber-300/60 mt-0.5">{sr.notes}</p>}
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     {SAMPLE_STAGES.map((stage, stageIdx) => {
                       const isPast = stageIdx < currentIdx;
