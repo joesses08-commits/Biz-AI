@@ -318,9 +318,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Update product stage + notes (only if not a force/additional request)
-    const factoryNames = (factories || []).map((f: any) => f.name).join(", ");
-    if (!force) {
+    // Update product stage + notes (only if not force AND at least one new request was created)
+    const newlyCreated = (factories || []).filter((f: any) => !skippedFactories.includes(f.name));
+    const factoryNames = newlyCreated.map((f: any) => f.name).join(", ");
+    if (!force && newlyCreated.length > 0) {
       const noteEntry = note
         ? `Samples Requested: requested from ${factoryNames} — ${note}`
         : `Samples Requested: requested from ${factoryNames}`;
