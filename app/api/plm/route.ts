@@ -410,6 +410,22 @@ ${senderName}`;
       return NextResponse.json({ error: "pin_required" }, { status: 403 });
     }
 
+    // Handle unkill factory
+    if (outcome === "unkill") {
+      await supabaseAdmin.from("plm_sample_requests").update({
+        status: "requested",
+        current_stage: "sample_production",
+        updated_at: new Date().toISOString(),
+      }).eq("id", sample_request_id);
+      await supabaseAdmin.from("plm_sample_stages").insert({
+        sample_request_id, product_id, factory_id, user_id: user.id,
+        stage: "sample_production",
+        notes: "Factory revived by admin",
+        updated_by: user.email, updated_by_role: "admin",
+      });
+      return NextResponse.json({ success: true });
+    }
+
     const updates: any = { current_stage: stage, updated_at: new Date().toISOString() };
     if (outcome) updates.status = outcome;
     if (notes) updates.notes = notes;

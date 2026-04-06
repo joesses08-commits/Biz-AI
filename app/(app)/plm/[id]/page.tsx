@@ -37,8 +37,8 @@ function stageInfo(key: string) {
   return ALL_STAGES.find(s => s.key === key) || { key, label: key, color: "#6b7280" };
 }
 
-function InlineField({ label, value, onSave, multiline = false, type = "text" }: {
-  label: string; value: string; onSave: (v: string) => Promise<void>; multiline?: boolean; type?: string;
+function InlineField({ label, value, onSave, multiline = false, type = "text", disabled = false }: {
+  label: string; value: string; onSave: (v: string) => Promise<void>; multiline?: boolean; type?: string; disabled?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(value || "");
@@ -55,7 +55,7 @@ function InlineField({ label, value, onSave, multiline = false, type = "text" }:
     <div className="group">
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] text-white/30 uppercase tracking-widest">{label}</p>
-        {!editing && (
+        {!editing && !disabled && (
           <button onClick={() => { setVal(value || ""); setEditing(true); }}
             className="opacity-0 group-hover:opacity-100 transition p-1 rounded text-white/30 hover:text-white/60">
             <Pencil size={10} />
@@ -197,6 +197,7 @@ ${entry}` : entry;
 
   const [sampleProviderModal, setSampleProviderModal] = useState<{factory_ids: string[], note: string} | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"progression"|"hold"|"killed"|null>(null);
   const [statusPin, setStatusPin] = useState("");
   const [statusPinError, setStatusPinError] = useState("");
@@ -465,6 +466,7 @@ ${entry}` : entry;
               Enter your PIN to confirm: <strong className="text-white/60">
                 {sampleOutcomePending.outcome === "approved" ? "Approve Sample" :
                  sampleOutcomePending.outcome === "revision" ? "Request Revision" :
+                 sampleOutcomePending.outcome === "unkill" ? "Revive Factory" :
                  sampleOutcomePending.notes?.includes("Product killed") ? "Kill Product" : "Kill Factory"}
               </strong>
             </p>
@@ -573,8 +575,9 @@ ${entry}` : entry;
                   {currentDevStage.label}
                 </span>
                 {/* Product Status Dropdown */}
-                <div className="relative group">
-                  <button className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition ${
+                <div className="relative">
+                  <button onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border transition ${
                     isKilled ? "bg-red-500/15 border-red-500/30 text-red-400" :
                     isHold ? "bg-amber-500/15 border-amber-500/30 text-amber-400" :
                     "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
@@ -582,15 +585,23 @@ ${entry}` : entry;
                     {isKilled ? "● Killed" : isHold ? "⏸ Hold" : "▶ Progression"}
                     ▾
                   </button>
-                  <div className="absolute top-full left-0 mt-1 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition z-20 min-w-[160px]">
-                    {(["progression","hold","killed"] as const).map(s => (
-                      <button key={s} onClick={() => { setPendingStatus(s); setShowStatusModal(true); }}
-                        disabled={productStatus === s}
-                        className={`w-full text-left px-3 py-2.5 text-xs transition ${productStatus === s ? "text-white/20 cursor-default bg-white/[0.02]" : "text-white/60 hover:bg-white/[0.05] hover:text-white"}`}>
-                        {s === "killed" ? "● Kill Product" : s === "hold" ? "⏸ Put on Hold" : "▶ Set to Progression"}
-                      </button>
-                    ))}
-                  </div>
+                  {showStatusDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
+                      <div className="absolute top-full left-0 mt-2 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 min-w-[180px]">
+                        <p className="text-[10px] text-white/25 uppercase tracking-widest px-3 pt-3 pb-1">Product Status</p>
+                        {(["progression","hold","killed"] as const).map(s => (
+                          <button key={s} onClick={() => { setShowStatusDropdown(false); setPendingStatus(s); setShowStatusModal(true); }}
+                            disabled={productStatus === s}
+                            className={`w-full text-left px-3 py-2.5 text-xs transition flex items-center gap-2 ${productStatus === s ? "text-white/20 cursor-default bg-white/[0.03]" : "text-white/60 hover:bg-white/[0.05] hover:text-white"}`}>
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s === "killed" ? "bg-red-400" : s === "hold" ? "bg-amber-400" : "bg-emerald-400"}`} />
+                            {s === "killed" ? "Kill Product" : s === "hold" ? "Put on Hold" : "Set to Progression"}
+                            {productStatus === s && <span className="ml-auto text-[10px] text-white/20">Current</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3 text-xs text-white/30">
@@ -747,11 +758,17 @@ ${entry}` : entry;
                         <div key={sr.id} className={`px-6 py-4 space-y-3 ${isKilled ? "opacity-50" : ""}`}>
                           {/* Factory header */}
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Factory size={12} className="text-white/30" />
                               <span className="text-sm font-semibold text-white">{factory?.name}</span>
                               {isApproved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
-                              {isKilled && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>}
+                              {isKilled && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>
+                                  <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, sr.current_stage, "", "unkill")}
+                                    className="text-[10px] text-white/30 hover:text-white/60 underline transition">Revive</button>
+                                </div>
+                              )}
                               {sr.status === "revision" && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
                             </div>
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${currentStageInfo.color}20`, color: currentStageInfo.color }}>
@@ -1044,11 +1061,11 @@ ${entry}` : entry;
           {/* ── PRODUCT DETAILS — INLINE EDITING ── */}
           <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01] space-y-5">
             <p className="text-[10px] text-white/25 uppercase tracking-widest">Product Details</p>
-            <InlineField label="Product Name" value={product.name || ""} onSave={v => saveField("name", v)} />
-            <InlineField label="SKU" value={product.sku || ""} onSave={v => saveField("sku", v)} />
-            <InlineField label="Description" value={product.description || ""} onSave={v => saveField("description", v)} multiline />
-            <InlineField label="Specs" value={product.specs || ""} onSave={v => saveField("specs", v)} multiline />
-            <InlineField label="Category" value={product.category || ""} onSave={v => saveField("category", v)} />
+            <InlineField label="Product Name" value={product.name || ""} onSave={v => saveField("name", v)} disabled={isKilled} />
+            <InlineField label="SKU" value={product.sku || ""} onSave={v => saveField("sku", v)} disabled={isKilled} />
+            <InlineField label="Description" value={product.description || ""} onSave={v => saveField("description", v)} multiline disabled={isKilled} />
+            <InlineField label="Specs" value={product.specs || ""} onSave={v => saveField("specs", v)} multiline disabled={isKilled} />
+            <InlineField label="Category" value={product.category || ""} onSave={v => saveField("category", v)} disabled={isKilled} />
             <div className="group">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[10px] text-white/30 uppercase tracking-widest">Collection</p>
@@ -1059,9 +1076,9 @@ ${entry}` : entry;
                 {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <InlineField label="Reference / Dropbox Link" value={product.reference_url || ""} onSave={v => saveField("reference_url", v)} />
-            <InlineField label="Admin Notes (private)" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline />
-            <InlineField label="Factory Notes (visible to factory)" value={product.factory_notes || ""} onSave={v => saveField("factory_notes", v)} multiline />
+            <InlineField label="Reference / Dropbox Link" value={product.reference_url || ""} onSave={v => saveField("reference_url", v)} disabled={isKilled} />
+            <InlineField label="Admin Notes (private)" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline disabled={isKilled} />
+            <InlineField label="Factory Notes (visible to factory)" value={product.factory_notes || ""} onSave={v => saveField("factory_notes", v)} multiline disabled={isKilled} />
           </div>
 
           {/* ── IMAGES ── */}
