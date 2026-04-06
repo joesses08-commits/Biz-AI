@@ -28,9 +28,6 @@ export async function POST(req: NextRequest) {
   // ── SEND EMAIL ──
   if (action === "send_email") {
     const { factory, subject, body: emailBody, po_number, provider } = body;
-    const attachmentData = pdf_base64 || Buffer.from(html).toString("base64");
-    const attachmentType = pdf_base64 ? "application/pdf" : "text/html";
-    const attachmentExt = pdf_base64 ? "pdf" : "html";
 
     const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token,refresh_token").eq("user_id", user.id).single();
     const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token").eq("user_id", user.id).single();
