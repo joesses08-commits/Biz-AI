@@ -698,11 +698,8 @@ Return ONLY raw JSON, no markdown:
             }
           }
 
-          const noteEntry = `Quotes Received:
-${factoryLines.join("
-")}`;
-          const updatedNotes = plmProduct.notes ? `${plmProduct.notes}
-${noteEntry}` : noteEntry;
+          const noteEntry = "Quotes Received:\n" + factoryLines.join("\n");
+          const updatedNotes = plmProduct.notes ? plmProduct.notes + "\n" + noteEntry : noteEntry;
 
           await supabaseAdmin.from("plm_products").update({
             current_stage: "quotes_received",
