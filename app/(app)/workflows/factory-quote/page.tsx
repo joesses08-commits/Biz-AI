@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   Zap, AlertCircle, Check, X, ChevronRight, ChevronDown,
   Settings, Eye, Factory, CreditCard, Calendar, FileText,
@@ -300,6 +301,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const [providerModal, setProviderModal] = useState<{ jobId: string; gmailEmail: string; outlookEmail: string } | null>(null);
   const [draftModal, setDraftModal] = useState<{ jobId: string; emailBody: string; fields: string[] } | null>(null);
+  const [activeDraftJob, setActiveDraftJob] = useState<any>(null);
   const [pendingProvider, setPendingProvider] = useState<string | undefined>(undefined);
   const [newJob, setNewJob] = useState({
     job_name: "",
@@ -383,17 +385,34 @@ Thanks so much,
   };
 
   const createJob = async () => {
-    if (!newJob.job_name || newJob.factory_ids.length === 0 || !productFile) return;
+    if (!newJob.job_name || newJob.factory_ids.length === 0 || (!productFile && !activeDraftJob)) return;
     setCreating(true);
 
     const selectedFactories = factories.filter(f => newJob.factory_ids.includes(f.id));
 
-    // Read file as base64
-    const fileBase64 = await new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = e => resolve((e.target?.result as string).split(",")[1]);
-      reader.readAsDataURL(productFile);
-    });
+    let fileBase64 = "";
+    let fileName = "";
+
+    if (productFile) {
+      fileBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve((e.target?.result as string).split(",")[1]);
+        reader.readAsDataURL(productFile);
+      });
+      fileName = productFile.name;
+    } else if (activeDraftJob) {
+      fileBase64 = activeDraftJob.product_file_base64 || "";
+      fileName = activeDraftJob.product_file_name || "RFQ.xlsx";
+    }
+
+    // If using draft job, delete it first then create proper job
+    if (activeDraftJob) {
+      await fetch("/api/workflows/factory-quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_jobs", job_ids: [activeDraftJob.id] }),
+      });
+    }
 
     const res = await fetch("/api/workflows/factory-quote", {
       method: "POST",
@@ -404,7 +423,7 @@ Thanks so much,
         factories: selectedFactories.map(f => ({ name: f.name, email: f.email, contact_name: f.contact_name })),
         order_details: { duty_pct: newJob.duty_pct, tariff_pct: newJob.tariff_pct, freight: newJob.freight },
         product_file_base64: fileBase64,
-        product_file_name: productFile.name,
+        product_file_name: fileName,
       }),
     });
     const data = await res.json();
@@ -638,7 +657,10 @@ Thanks so much,
 
           {showNew && (
             <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-4">
-              <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
+                {activeDraftJob && <span className="text-[10px] text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">From PLM</span>}
+              </div>
 
               <div>
                 <label className="text-[11px] text-white/30 mb-1 block">Job Name</label>
@@ -653,7 +675,7 @@ Thanks so much,
                 <label className="cursor-pointer block">
                   <input type="file" accept=".xlsx,.xls" className="hidden"
                     onChange={e => setProductFile(e.target.files?.[0] || null)} />
-                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition ${productFile ? "border-emerald-500/30 bg-emerald-500/5" : "border-dashed border-white/[0.08] hover:border-white/20 bg-white/[0.02]"}`}>
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition ${productFile ? "border-emerald-500/30 bg-emerald-500/5" : activeDraftJob ? "border-pink-500/30 bg-pink-500/5" : "border-dashed border-white/[0.08] hover:border-white/20 bg-white/[0.02]"}`}>
                     {productFile ? (
                       <>
                         <FileSpreadsheet size={14} className="text-emerald-400 flex-shrink-0" />
@@ -662,6 +684,17 @@ Thanks so much,
                           <p className="text-[10px] text-white/30">This exact file will be emailed to each factory</p>
                         </div>
                         <button onClick={e => { e.preventDefault(); setProductFile(null); }} className="text-white/20 hover:text-red-400 transition">
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : activeDraftJob ? (
+                      <>
+                        <FileSpreadsheet size={14} className="text-pink-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-pink-300 font-medium truncate">{activeDraftJob.product_file_name}</p>
+                          <p className="text-[10px] text-white/30">RFQ sheet from PLM — will be sent to factories</p>
+                        </div>
+                        <button onClick={e => { e.preventDefault(); setActiveDraftJob(null); }} className="text-white/20 hover:text-red-400 transition">
                           <X size={12} />
                         </button>
                       </>
@@ -721,7 +754,7 @@ Thanks so much,
 
               <div className="flex gap-2 items-center">
                 <button onClick={createJob}
-                  disabled={creating || !newJob.job_name || newJob.factory_ids.length === 0 || !productFile}
+                  disabled={creating || !newJob.job_name || newJob.factory_ids.length === 0 || (!productFile && !activeDraftJob)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
                   {creating ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                   Draft RFQs
@@ -735,14 +768,37 @@ Thanks so much,
             </div>
           )}
 
+          {/* Draft banner — jobs from PLM */}
+          {!loading && jobs.filter(j => j.status === "draft").map(job => (
+            <div key={job.id} className="border border-pink-500/30 bg-pink-500/[0.04] rounded-xl p-4 flex items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center flex-shrink-0">
+                  <FileSpreadsheet size={14} className="text-pink-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">{job.job_name}</p>
+                  <p className="text-xs text-white/30">Draft from PLM — add factories, set costs, then Draft RFQs</p>
+                </div>
+              </div>
+              <button onClick={() => {
+                setActiveDraftJob(job);
+                setNewJob(prev => ({ ...prev, job_name: job.job_name }));
+                setShowNew(true);
+              }}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition flex-shrink-0">
+                Open Draft →
+              </button>
+            </div>
+          ))}
+
           {/* Job list */}
           {loading ? (
             <div className="flex items-center gap-2 text-white/20 text-xs py-2"><Loader2 size={11} className="animate-spin" />Loading jobs...</div>
-          ) : jobs.length === 0 ? (
+          ) : jobs.filter(j => j.status !== "draft").length === 0 && jobs.filter(j => j.status === "draft").length === 0 ? (
             <p className="text-white/15 text-xs py-2">No quote jobs yet — create one above.</p>
           ) : (
             <div className="space-y-4">
-              {jobs.map(job => {
+              {jobs.filter(j => j.status !== "draft").map(job => {
                 const quotesReceived = job.factory_quotes?.length || 0;
                 const totalFactories = job.factories?.length || 0;
                 const pct = totalFactories > 0 ? Math.round((quotesReceived / totalFactories) * 100) : 0;
@@ -971,6 +1027,7 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, 
 }
 
 export default function FactoryQuotePage() {
+  const router = useRouter();
   const [factories, setFactories] = useState<Factory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -989,6 +1046,9 @@ export default function FactoryQuotePage() {
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-4xl mx-auto">
+          <button onClick={() => router.push("/workflows")} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition mb-3">
+            ← Back to Workflows
+          </button>
           <div className="flex items-center gap-2.5 mb-1">
             <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
               <Factory size={14} className="text-blue-400" />

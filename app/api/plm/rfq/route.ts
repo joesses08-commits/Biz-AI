@@ -138,9 +138,9 @@ export async function POST(req: NextRequest) {
     .insert({
       user_id: user.id,
       job_name: jobName,
-      status: "waiting",
+      status: "draft",
       factories: [],
-      order_details: `RFQ for ${products.length} products`,
+      order_details: { plm_product_ids: product_ids, include, ask_for },
       product_file_base64: base64,
       product_file_name: `RFQ_${Date.now()}.xlsx`,
     })
