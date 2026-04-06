@@ -145,9 +145,11 @@ export default function POGeneratorPage() {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       );
       const fileName = `${data.po_number}-${Date.now()}.pdf`;
-      await supabase.storage.from("po-files").upload(fileName, pdfBlob, { contentType: "application/pdf" });
+      const { error: uploadError } = await supabase.storage.from("po-files").upload(fileName, pdfBlob, { contentType: "application/pdf" });
+      if (uploadError) console.error("Upload error:", uploadError);
       const { data: urlData } = supabase.storage.from("po-files").getPublicUrl(fileName);
       const publicUrl = urlData?.publicUrl || "";
+      console.log("Public URL:", publicUrl);
 
       setBothConnected(data.both_connected || false);
       setEmailModal({
