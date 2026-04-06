@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
 
   // ── SEND EMAIL ──
   if (action === "send_email") {
-    const { factory, subject, body: emailBody, html, po_number, provider } = body;
+    const { factory, subject, body: emailBody, html, pdf_base64, po_number, provider } = body;
+    const attachmentData = pdf_base64 || Buffer.from(html).toString("base64");
+    const attachmentType = pdf_base64 ? "application/pdf" : "text/html";
+    const attachmentExt = pdf_base64 ? "pdf" : "html";
 
     const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token,refresh_token").eq("user_id", user.id).single();
     const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token").eq("user_id", user.id).single();
@@ -36,7 +39,6 @@ export async function POST(req: NextRequest) {
     const useOutlook = provider === "outlook" || (!provider && !gmailConn && msConn);
 
     if (useGmail && gmailConn) {
-      const htmlB64 = Buffer.from(html).toString("base64");
       const boundary = "----=_Part_" + Date.now();
       const rawLines = [
         `To: ${factory?.email}`,
@@ -51,11 +53,11 @@ export async function POST(req: NextRequest) {
         emailBody,
         "",
         `--${boundary}`,
-        `Content-Type: text/html; charset=UTF-8; name="${po_number}.html"`,
+        `Content-Type: ${attachmentType}; name="${po_number}.${attachmentExt}"`,
         "Content-Transfer-Encoding: base64",
-        `Content-Disposition: attachment; filename="${po_number}.html"`,
+        `Content-Disposition: attachment; filename="${po_number}.${attachmentExt}"`,
         "",
-        ...htmlB64.match(/.{1,76}/g)!,
+        ...attachmentData.match(/.{1,76}/g)!,
         "",
         `--${boundary}--`,
       ];
@@ -77,9 +79,9 @@ export async function POST(req: NextRequest) {
             toRecipients: [{ emailAddress: { address: factory?.email } }],
             attachments: [{
               "@odata.type": "#microsoft.graph.fileAttachment",
-              name: `${po_number}.html`,
-              contentBytes: Buffer.from(html).toString("base64"),
-              contentType: "text/html",
+              name: `${po_number}.${attachmentExt}`,
+              contentBytes: attachmentData,
+              contentType: attachmentType,
             }],
           },
         }),

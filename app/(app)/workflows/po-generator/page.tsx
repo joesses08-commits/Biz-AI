@@ -6,6 +6,7 @@ import {
   FileText, Loader2, X, ArrowLeft, Check,
   Package, Clock, Eye
 } from "lucide-react";
+import { useRef } from "react";
 
 export default function POGeneratorPage() {
   const router = useRouter();
@@ -31,12 +32,59 @@ export default function POGeneratorPage() {
   });
   const [generatingPO, setGeneratingPO] = useState(false);
   const [emailModal, setEmailModal] = useState<{
-    factory: any; po_number: string; html: string; subject: string; body: string;
+    factory: any; po_number: string; html: string; pdfBase64?: string; subject: string; body: string;
   } | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [bothConnected, setBothConnected] = useState(false);
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
   useEffect(() => { load(); }, []);
+
+  async function htmlToPdfBase64(html: string): Promise<string> {
+    const { default: jsPDF } = await import("jspdf");
+    const { default: html2canvas } = await import("html2canvas");
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.left = "-9999px";
+    iframe.style.top = "0";
+    iframe.style.width = "1000px";
+    iframe.style.height = "1400px";
+    iframe.style.border = "none";
+    document.body.appendChild(iframe);
+
+    await new Promise<void>(resolve => {
+      iframe.onload = () => resolve();
+      iframe.srcdoc = html;
+    });
+
+    await new Promise(r => setTimeout(r, 500));
+
+    const canvas = await html2canvas(iframe.contentDocument!.body, {
+      scale: 2,
+      useCORS: true,
+      width: 1000,
+      windowWidth: 1000,
+    });
+
+    document.body.removeChild(iframe);
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: "a4" });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    let y = 0;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    while (y < pdfHeight) {
+      if (y > 0) pdf.addPage();
+      pdf.addImage(imgData, "JPEG", 0, -y, pdfWidth, pdfHeight);
+      y += pageHeight;
+    }
+
+    return pdf.output("datauristring").split(",")[1];
+  }
 
   async function load() {
     setLoading(true);
@@ -81,14 +129,16 @@ export default function POGeneratorPage() {
     const data = await res.json();
     setGeneratingPO(false);
     if (data.html) {
-      const blob = new Blob([data.html], { type: "text/html" });
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
+      const pdfBase64 = await htmlToPdfBase64(data.html);
+      const pdfBlob = new Blob([Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0))], { type: "application/pdf" });
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      window.open(pdfUrl, "_blank");
       setBothConnected(data.both_connected || false);
       setEmailModal({
         factory: data.factory,
         po_number: data.po_number,
         html: data.html,
+        pdfBase64,
         subject: `Purchase Order ${data.po_number} — ${poForm.company_name || "Order"}`,
         body: data.email_body || "",
       });
@@ -112,6 +162,7 @@ export default function POGeneratorPage() {
         subject: emailModal.subject,
         body: emailModal.body,
         html: emailModal.html,
+        pdf_base64: emailModal.pdfBase64 || null,
         po_number: emailModal.po_number,
         ...(provider ? { provider } : {}),
       }),
@@ -120,10 +171,11 @@ export default function POGeneratorPage() {
     setEmailModal(null);
   }
 
-  function openPO(html: string) {
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+  async function openPO(html: string) {
+    const pdfBase64 = await htmlToPdfBase64(html);
+    const pdfBlob = new Blob([Uint8Array.from(atob(pdfBase64), c => c.charCodeAt(0))], { type: "application/pdf" });
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl, "_blank");
   }
 
   const totalValue = poSelectedProducts.reduce((sum, pid) => {
@@ -419,7 +471,7 @@ export default function POGeneratorPage() {
               <textarea value={emailModal.body} onChange={e => setEmailModal({ ...emailModal, body: e.target.value })}
                 rows={8} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none resize-none" />
             </div>
-            <p className="text-[10px] text-white/25">📎 Purchase Order {emailModal.po_number}.html will be attached</p>
+            <p className="text-[10px] text-white/25">📎 Purchase Order {emailModal.po_number}.pdf will be attached</p>
             <div className="flex gap-2">
               {bothConnected ? (
                 <>
