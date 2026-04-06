@@ -128,17 +128,17 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <div className="text-center py-20">
                 <Package size={28} className="text-white/10 mx-auto mb-3" />
                 <p className="text-white/30 text-sm">No sample requests yet</p>
-                <p className="text-white/15 text-xs mt-1">Sample requests will appear here</p>
+                <p className="text-white/15 text-xs mt-1">Sample requests will appear here when admin sends them</p>
               </div>
             ) : sampleProducts.map(product => {
-              const sr = product._sample_request;
-              if (!sr) return null;
-              const stageColor = SAMPLE_STAGE_COLORS[sr.current_stage] || "#6b7280";
-              const stageLabel = SAMPLE_STAGE_LABELS[sr.current_stage] || sr.current_stage;
-              const isRevision = sr.status === "revision";
-              const isKilledSr = sr.status === "killed";
+              const allSampleRequests = (product._all_sample_requests || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+              const activeSr = product._sample_request;
+              const isProductKilled = product.status === "killed";
+              const allKilled = allSampleRequests.every((s: any) => s.status === "killed");
+              const anyApproved = allSampleRequests.some((s: any) => s.status === "approved");
+
               return (
-                <div key={product.id} className={`border rounded-2xl overflow-hidden ${isKilledSr ? "border-red-500/20 opacity-60" : isRevision ? "border-amber-500/20" : "border-white/[0.07]"} bg-white/[0.01]`}>
+                <div key={product.id} className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
                   {/* Product header */}
                   <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
                     {product.images?.[0] ? (
@@ -155,101 +155,88 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                       </div>
                       {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>
-                        {stageLabel}
-                      </span>
-                    </div>
+                    {anyApproved && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 flex-shrink-0">Approved ✓</span>}
                   </div>
 
-                  {/* Revision banner */}
-                  {isRevision && (
-                    <div className="px-4 py-2.5 bg-amber-500/[0.06] border-b border-amber-500/10 flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                      <p className="text-xs text-amber-300 font-medium">Revision Requested</p>
-                      {sr.notes && <p className="text-[11px] text-amber-300/50 ml-1">— {sr.notes}</p>}
+                  {/* Kill notifications */}
+                  {isProductKilled && (
+                    <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                      <p className="text-xs text-red-300">We have decided not to move forward with this product. No further action needed.</p>
+                    </div>
+                  )}
+                  {!isProductKilled && allKilled && !anyApproved && (
+                    <div className="px-4 py-3 bg-red-500/[0.06] border-b border-red-500/10 flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-red-400 flex-shrink-0" />
+                      <p className="text-xs text-red-300">We have moved forward with another factory for this product. Please disregard any pending samples.</p>
                     </div>
                   )}
 
-                  {/* Sample stages */}
-                  {!isKilledSr && (
-                    <div className="p-4 space-y-2">
-                      <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Sample Progress</p>
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {["sample_production","sample_complete","sample_shipped"].map((stageKey, i) => {
-                          const stagesOrder = ["sample_production","sample_complete","sample_shipped"];
-                          const currentIdx = stagesOrder.indexOf(sr.current_stage);
-                          const thisIdx = stagesOrder.indexOf(stageKey);
-                          const isPast = thisIdx < currentIdx;
-                          const isCurrent = stageKey === sr.current_stage;
-                          return (
-                            <div key={stageKey} className="flex items-center gap-1">
-                              <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition ${
-                                isCurrent ? "border-amber-500/30 bg-amber-500/10 text-amber-300" :
-                                isPast ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400" :
-                                "border-white/[0.05] text-white/20"
-                              }`}>
-                                {isPast && <Check size={9} className="text-emerald-400" />}
-                                {SAMPLE_STAGE_LABELS[stageKey]}
-                              </div>
-                              {i < 2 && <span className="text-white/15 text-[10px]">→</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
-                        className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
-                        Update Sample Status →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {orderProducts.length === 0 ? (
-              <div className="text-center py-20">
-                <Package size={28} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No bulk orders yet</p>
-                <p className="text-white/15 text-xs mt-1">Production orders will appear here</p>
-              </div>
-            ) : orderProducts.map(product => {
-              const batches = product.plm_batches || [];
-              return (
-                <div key={product.id} className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
-                  <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
-                    {product.images?.[0] ? (
-                      <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                        <Package size={16} className="text-white/20" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold">{product.name}</p>
-                      {product.sku && <span className="text-[10px] font-mono text-white/25">{product.sku}</span>}
-                      <p className="text-[10px] text-white/25 mt-0.5">{batches.length} order{batches.length !== 1 ? "s" : ""}</p>
-                    </div>
-                    <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
-                      className="text-xs text-white/40 hover:text-white border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-xl transition flex-shrink-0">
-                      View →
-                    </button>
-                  </div>
+                  {/* Round history */}
                   <div className="divide-y divide-white/[0.04]">
-                    {batches.map((batch: any) => {
-                      const stageLabel = PROD_STAGE_LABELS[batch.current_stage] || batch.current_stage;
-                      const stageColor = batch.current_stage === "shipped" ? "#10b981" : batch.current_stage === "production_complete" ? "#10b981" : "#f59e0b";
+                    {allSampleRequests.map((sr: any, roundIdx: number) => {
+                      const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                      const isKilledRound = sr.status === "killed";
+                      const isApprovedRound = sr.status === "approved";
+                      const isRevisionRound = sr.status === "revision";
+                      const isActive = !isKilledRound && !isApprovedRound;
+                      const roundLabel = roundIdx === 0 ? "Round 1" : `Round ${roundIdx + 1} — Revision`;
+
                       return (
-                        <div key={batch.id} className="px-4 py-3 flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-xs text-white/60 font-medium">Order #{batch.batch_number}</p>
-                            {batch.order_quantity && <p className="text-[11px] text-white/30">{batch.order_quantity} units</p>}
+                        <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
+                          {/* Round header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
+                              {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
+                              {isKilledRound && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Ended</span>}
+                              {isRevisionRound && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
+                            </div>
+                            <span className="text-[10px] text-white/20">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                           </div>
-                          <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>
-                            {stageLabel}
-                          </span>
+
+                          {/* Revision note */}
+                          {isRevisionRound && sr.notes && (
+                            <div className="flex items-start gap-2 bg-amber-500/[0.06] border border-amber-500/15 rounded-xl px-3 py-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1" />
+                              <p className="text-[11px] text-amber-300/70">{sr.notes}</p>
+                            </div>
+                          )}
+
+                          {/* Stage timeline */}
+                          <div className="space-y-1.5">
+                            {stages.map((stage: any, si: number) => {
+                              const stageColor = SAMPLE_STAGE_COLORS[stage.stage] || "#6b7280";
+                              const stageLabel = SAMPLE_STAGE_LABELS[stage.stage] || stage.stage;
+                              const isLast = si === stages.length - 1 && isActive;
+                              return (
+                                <div key={stage.id} className="flex items-start gap-2.5">
+                                  <div className="flex flex-col items-center flex-shrink-0 mt-1">
+                                    <div className="w-2 h-2 rounded-full" style={{ background: isLast ? stageColor : "#10b981" }} />
+                                    {si < stages.length - 1 && <div className="w-px h-4 bg-white/10 mt-1" />}
+                                  </div>
+                                  <div className="flex-1 min-w-0 pb-1">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-xs font-medium" style={{ color: isLast ? stageColor : "rgba(255,255,255,0.5)" }}>{stageLabel}</span>
+                                      <span className="text-[10px] text-white/20 flex-shrink-0">{new Date(stage.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                    </div>
+                                    {stage.notes && stage.notes !== "Sample requested" && (
+                                      <p className="text-[11px] text-white/30 mt-0.5">{stage.notes}</p>
+                                    )}
+                                    <span className="text-[10px] text-white/20">{stage.updated_by_role === "factory" ? "You" : "Admin"}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Update button for active round */}
+                          {isActive && (
+                            <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
+                              Update Sample Status →
+                            </button>
+                          )}
                         </div>
                       );
                     })}
@@ -257,6 +244,88 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                 </div>
               );
             })}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {orderProducts.length === 0 ? (
+              <div className="text-center py-20">
+                <Package size={28} className="text-white/10 mx-auto mb-3" />
+                <p className="text-white/30 text-sm">No bulk orders yet</p>
+                <p className="text-white/15 text-xs mt-1">Production orders will appear here</p>
+              </div>
+            ) : (() => {
+              const activeOrders = orderProducts.filter(p => {
+                const batches = p.plm_batches || [];
+                return batches.some((b: any) => b.current_stage !== "shipped" && b.current_stage !== "delivered");
+              });
+              const pastOrders = orderProducts.filter(p => {
+                const batches = p.plm_batches || [];
+                return batches.length > 0 && batches.every((b: any) => b.current_stage === "shipped" || b.current_stage === "delivered");
+              });
+
+              const renderOrderProduct = (product: any, isPast: boolean) => {
+                const batches = product.plm_batches || [];
+                return (
+                  <div key={product.id} className={`border rounded-2xl overflow-hidden bg-white/[0.01] ${isPast ? "border-white/[0.04] opacity-70" : "border-white/[0.07]"}`}>
+                    <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
+                      {product.images?.[0] ? (
+                        <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                          <Package size={16} className="text-white/20" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold">{product.name}</p>
+                        {product.sku && <p className="text-[10px] font-mono text-white/25">{product.sku}</p>}
+                        <p className="text-[10px] text-white/25 mt-0.5">{batches.length} order{batches.length !== 1 ? "s" : ""}</p>
+                      </div>
+                      {!isPast && (
+                        <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
+                          className="text-xs text-white/40 hover:text-white border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-xl transition flex-shrink-0">
+                          Update →
+                        </button>
+                      )}
+                    </div>
+                    <div className="divide-y divide-white/[0.04]">
+                      {batches.map((batch: any) => {
+                        const isComplete = batch.current_stage === "shipped" || batch.current_stage === "delivered";
+                        const stageLabel = PROD_STAGE_LABELS[batch.current_stage] || batch.current_stage;
+                        const stageColor = isComplete ? "#10b981" : "#f59e0b";
+                        return (
+                          <div key={batch.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-xs text-white/60 font-medium">Order #{batch.batch_number}</p>
+                              {batch.order_quantity && <p className="text-[11px] text-white/30">{batch.order_quantity} units</p>}
+                            </div>
+                            <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>
+                              {isComplete ? "Completed" : stageLabel}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <>
+                  {activeOrders.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] text-white/25 uppercase tracking-widest">Active Orders</p>
+                      {activeOrders.map(p => renderOrderProduct(p, false))}
+                    </div>
+                  )}
+                  {pastOrders.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] text-white/25 uppercase tracking-widest">Past Orders</p>
+                      {pastOrders.map(p => renderOrderProduct(p, true))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
       </div>

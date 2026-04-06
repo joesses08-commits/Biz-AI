@@ -22,18 +22,16 @@ export async function GET(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Products with sample requests for this factory
+  // ALL sample requests for this factory (including killed/approved for history)
   const { data: sampleRequests } = await supabaseAdmin
     .from("plm_sample_requests")
     .select("product_id, current_stage, status, id")
-    .eq("factory_id", portalUser.factory_id)
-    .neq("status", "killed")
-    .neq("status", "approved");
+    .eq("factory_id", portalUser.factory_id);
 
-  // Products with production orders for this factory
+  // Products with production orders for this factory (all statuses for history)
   const { data: batches } = await supabaseAdmin
     .from("plm_batches")
-    .select("product_id, current_stage")
+    .select("product_id, current_stage, batch_number, order_quantity, updated_at")
     .eq("factory_id", portalUser.factory_id);
 
   const sampleProductIds = Array.from(new Set((sampleRequests || []).map((s: any) => s.product_id)));
@@ -44,19 +42,27 @@ export async function GET(req: NextRequest) {
 
   const { data: products } = await supabaseAdmin
     .from("plm_products")
-    .select("*, plm_collections(name, season, year), plm_batches(current_stage, factory_id), plm_sample_requests(id, current_stage, status, factory_id)")
+    .select("*, plm_collections(name, season, year), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, plm_sample_stages(*))")
     .in("id", allProductIds)
     .order("created_at", { ascending: false });
 
   // Tag each product with which sections are relevant for this factory
-  const tagged = (products || []).map((p: any) => ({
-    ...p,
-    _has_sample: sampleProductIds.includes(p.id),
-    _has_production: batchProductIds.includes(p.id),
-    _sample_request: (sampleRequests || []).find((s: any) => s.product_id === p.id),
-    plm_batches: (p.plm_batches || []).filter((b: any) => b.factory_id === portalUser.factory_id),
-    plm_sample_requests: (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser.factory_id),
-  }));
+  const tagged = (products || []).map((p: any) => {
+    const factorySampleRequests = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser.factory_id);
+    const factoryBatches = (p.plm_batches || []).filter((b: any) => b.factory_id === portalUser.factory_id);
+    const activeSample = factorySampleRequests.find((s: any) => s.status !== "killed" && s.status !== "approved");
+    const hasAnySample = factorySampleRequests.length > 0;
+    const hasAnyBatch = factoryBatches.length > 0;
+    return {
+      ...p,
+      _has_sample: hasAnySample,
+      _has_production: hasAnyBatch,
+      _sample_request: activeSample || factorySampleRequests[factorySampleRequests.length - 1],
+      _all_sample_requests: factorySampleRequests,
+      plm_batches: factoryBatches,
+      plm_sample_requests: factorySampleRequests,
+    };
+  });
 
   return NextResponse.json({ products: tagged });
 }
