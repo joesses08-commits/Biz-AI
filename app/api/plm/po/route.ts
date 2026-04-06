@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { product_ids, line_items, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name } = await req.json();
+  const { product_ids, line_items, factory_per_product, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name } = await req.json();
 
   if (!product_ids?.length) return NextResponse.json({ error: "No products" }, { status: 400 });
 
@@ -48,9 +48,15 @@ export async function POST(req: NextRequest) {
   const shipDateStr = ship_date ? new Date(ship_date + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "TBD";
   const poNum = po_number || "PO-" + Date.now().toString().slice(-6);
 
-  // Get factory from first approved product
+  // Get factory — use factory_per_product override, fall back to approved sample factory
+  const { data: allFactories } = await supabaseAdmin.from("factory_catalog").select("*").eq("user_id", user.id);
+  const factoryMap: Record<string, any> = {};
+  (allFactories || []).forEach((f: any) => { factoryMap[f.id] = f; });
+
   let factory: any = null;
   for (const p of products) {
+    const overrideId = factory_per_product?.[p.id];
+    if (overrideId && factoryMap[overrideId]) { factory = factoryMap[overrideId]; break; }
     const req = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
     if (req?.factory_catalog) { factory = req.factory_catalog; break; }
   }

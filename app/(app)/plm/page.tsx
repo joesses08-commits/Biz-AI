@@ -85,6 +85,7 @@ export default function PLMPage() {
   const [showPOModal, setShowPOModal] = useState(false);
   const [poSelectedProducts, setPOSelectedProducts] = useState<string[]>([]);
   const [poLineItems, setPOLineItems] = useState<Record<string, {qty: string, unit_price: string}>>({});
+  const [poFactoryPerProduct, setPOFactoryPerProduct] = useState<Record<string, string>>({});
   const [poForm, setPOForm] = useState({
     po_number: "", payment_terms: "30% deposit, 70% before shipment",
     delivery_terms: "FOB Factory", ship_date: "", destination: "",
@@ -460,8 +461,8 @@ export default function PLMPage() {
                 <div className="border border-white/[0.06] rounded-xl overflow-hidden">
                   <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-white/[0.03] border-b border-white/[0.06]">
                     <div className="col-span-1"></div>
-                    <div className="col-span-4 text-[10px] text-white/30 uppercase tracking-widest">Product</div>
-                    <div className="col-span-2 text-[10px] text-white/30 uppercase tracking-widest">SKU</div>
+                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Product</div>
+                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Factory</div>
                     <div className="col-span-2 text-[10px] text-white/30 uppercase tracking-widest">Qty</div>
                     <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Unit Price ($)</div>
                   </div>
@@ -471,21 +472,39 @@ export default function PLMPage() {
                       const line = poLineItems[p.id] || { qty: "", unit_price: "" };
                       const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
                       const approvedFactory = approvedReq?.factory_catalog;
+                      const selectedFactoryId = poFactoryPerProduct[p.id] || approvedFactory?.id || "";
                       return (
                         <div key={p.id} className={`grid grid-cols-12 gap-2 px-3 py-2 items-center ${isSelected ? "bg-blue-500/[0.04]" : ""}`}>
                           <div className="col-span-1">
                             <input type="checkbox" checked={isSelected}
-                              onChange={e => setPOSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
-                              className="rounded" />
+                              onChange={e => {
+                                setPOSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id));
+                                if (e.target.checked && approvedFactory?.id) {
+                                  setPOFactoryPerProduct(prev => ({...prev, [p.id]: approvedFactory.id}));
+                                }
+                              }} className="rounded" />
                           </div>
-                          <div className="col-span-4 flex items-center gap-2 min-w-0">
+                          <div className="col-span-3 flex items-center gap-2 min-w-0">
                             {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                             <div className="min-w-0">
                               <p className="text-xs text-white/70 truncate">{p.name}</p>
-                              {approvedFactory && <p className="text-[10px] text-emerald-400">✓ {approvedFactory.name}</p>}
+                              {p.sku && <p className="text-[10px] text-white/25 font-mono">{p.sku}</p>}
                             </div>
                           </div>
-                          <div className="col-span-2 text-[10px] text-white/30 font-mono">{p.sku || "—"}</div>
+                          <div className="col-span-3">
+                            {isSelected ? (
+                              <select value={selectedFactoryId}
+                                onChange={e => setPOFactoryPerProduct(prev => ({...prev, [p.id]: e.target.value}))}
+                                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none">
+                                <option value="">Select factory</option>
+                                {factories.map((f: any) => (
+                                  <option key={f.id} value={f.id}>{f.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-[10px] text-white/20">{approvedFactory?.name || "—"}</span>
+                            )}
+                          </div>
                           <div className="col-span-2">
                             {isSelected && <input type="number" value={line.qty} onChange={e => setPOLineItems(prev => ({...prev, [p.id]: {...(prev[p.id]||{qty:"",unit_price:""}), qty: e.target.value}}))}
                               placeholder="0" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />}
@@ -1011,6 +1030,10 @@ export default function PLMPage() {
                           ) : product.current_stage && DEV_STAGE_LABELS[product.current_stage] ? (
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${DEV_STAGE_COLORS[product.current_stage]}20`, color: DEV_STAGE_COLORS[product.current_stage], border: `1px solid ${DEV_STAGE_COLORS[product.current_stage]}30` }}>
                               {DEV_STAGE_LABELS[product.current_stage]}
+                              {product.current_stage === "sample_approved" && (() => {
+                                const approvedReq = (product.plm_sample_requests || []).find((r: any) => r.status === "approved");
+                                return approvedReq?.factory_catalog?.name ? ` · ${approvedReq.factory_catalog.name}` : "";
+                              })()}
                             </span>
                           ) : (
                             <span className="text-[10px] text-white/20">Concept</span>
