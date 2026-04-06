@@ -61,7 +61,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
 
   const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
 
-  const sampleProducts = products.filter(p => p._has_sample);
+  const sampleProducts = products.filter(p => p._has_sample).sort((a: any, b: any) => { const pa = a._sample_priority ?? 99999; const pb = b._sample_priority ?? 99999; return pa - pb; });
   const orderProducts = products.filter(p => p._has_production);
 
   const SAMPLE_STAGE_LABELS: Record<string,string> = {
@@ -158,6 +158,11 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                       {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
                     </div>
                     {anyApproved && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 flex-shrink-0">Approved ✓</span>}
+                    {!anyApproved && product._sample_priority != null && (
+                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20 flex-shrink-0">
+                        Priority #{product._sample_priority}
+                      </span>
+                    )}
                   </div>
 
                   {/* Kill notifications */}

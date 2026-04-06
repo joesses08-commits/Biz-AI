@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
   // ALL sample requests for this factory (all statuses for full history)
   const { data: sampleRequests } = await supabaseAdmin
     .from("plm_sample_requests")
-    .select("product_id, current_stage, status, id, created_at")
+    .select("product_id, current_stage, status, id, created_at, priority_order")
     .eq("factory_id", portalUser.factory_id)
-    .order("created_at", { ascending: true });
+    .order("priority_order", { ascending: true, nullsFirst: false });
 
   // Products with production orders for this factory (all statuses for history)
   const { data: batches } = await supabaseAdmin
@@ -54,10 +54,13 @@ export async function GET(req: NextRequest) {
     const activeSample = factorySampleRequests.find((s: any) => s.status !== "killed" && s.status !== "approved");
     const hasAnySample = factorySampleRequests.length > 0;
     const hasAnyBatch = factoryBatches.length > 0;
+    const activeSampleReq = factorySampleRequests.find((s: any) => s.status !== "killed" && s.status !== "approved");
+    const samplePriority = activeSampleReq ? (sampleRequests || []).find((sr: any) => sr.id === activeSampleReq.id)?.priority_order : null;
     return {
       ...p,
       _has_sample: hasAnySample,
       _has_production: hasAnyBatch,
+      _sample_priority: samplePriority,
       _sample_request: activeSample || factorySampleRequests[factorySampleRequests.length - 1],
       _all_sample_requests: factorySampleRequests,
       plm_batches: factoryBatches,
