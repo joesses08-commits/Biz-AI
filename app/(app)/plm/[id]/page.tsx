@@ -778,7 +778,23 @@ ${entry}` : entry;
                               <div className="flex items-center gap-2">
                                 <Factory size={12} className="text-white/30" />
                                 <span className="text-sm font-semibold text-white">{factory?.name}</span>
-                                {anyApproved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">✓ Approved</span>}
+                                {anyApproved && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">✓ Approved</span>
+                                  <button onClick={async () => {
+                                    setRequestingSamples(true);
+                                    await fetch("/api/plm", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: [factoryId], note: "Follow-up sample request", force: true }),
+                                    });
+                                    setRequestingSamples(false);
+                                    load();
+                                  }} className="text-[10px] text-white/30 hover:text-white/60 underline transition">
+                                    Request Another
+                                  </button>
+                                </div>
+                              )}
                                 {allKilled && !anyApproved && (
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>

@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "create_sample_requests") {
-    const { product_id, factory_ids, note } = body;
+    const { product_id, factory_ids, note, force } = body;
     if (!product_id || !factory_ids?.length) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     // Get factory details
@@ -229,7 +229,7 @@ export async function POST(req: NextRequest) {
         .eq("factory_id", factory.id)
         .eq("status", "requested");
 
-      if (activeRequests && activeRequests.length > 0) {
+      if (activeRequests && activeRequests.length > 0 && !force) {
         skippedFactories.push(factory.name);
         continue; // Skip — already has active request
       }
