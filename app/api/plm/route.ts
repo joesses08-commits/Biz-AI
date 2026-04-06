@@ -543,6 +543,7 @@ ${revNote}` : revNote;
         }
         await supabaseAdmin.from("plm_products").update({
           killed: true,
+          status: "killed",
           updated_at: new Date().toISOString(),
         }).eq("id", product_id);
       }

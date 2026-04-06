@@ -790,7 +790,8 @@ export default function PLMPage() {
                 {filteredProducts.map(product => {
                   const statusKey = getProductStatus(product);
                   const milestones = product.milestones || {};
-                  if (product.killed) return (
+                  const productStatusMode = product.status || "progression";
+                  if (product.killed || productStatusMode === "killed") return (
                     <div key={product.id} onClick={() => router.push(`/plm/${product.id}`)} className="flex items-center gap-3 p-4 border border-red-500/20 rounded-2xl bg-red-500/[0.02] opacity-60 cursor-pointer hover:opacity-80 transition">
                       {product.images?.[0] && <img src={product.images[0]} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />}
                       <div className="flex-1 min-w-0">
@@ -816,6 +817,9 @@ export default function PLMPage() {
                           {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
                         </div>
                         <div className="flex items-center gap-3">
+                          {productStatusMode === "hold" && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">⏸ Hold</span>
+                          )}
                           {statusKey ? (
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${BATCH_STAGE_COLORS[statusKey]}20`, color: BATCH_STAGE_COLORS[statusKey], border: `1px solid ${BATCH_STAGE_COLORS[statusKey]}30` }}>
                               {BATCH_STAGE_LABELS[statusKey]}
