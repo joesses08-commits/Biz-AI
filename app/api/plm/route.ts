@@ -233,6 +233,27 @@ export async function POST(req: NextRequest) {
         skippedFactories.push(factory.name);
         continue; // Skip — already has active request
       }
+      // Force always creates a new row — skip the killed check
+      if (force) {
+        await supabaseAdmin.from("plm_sample_requests").insert({
+          product_id,
+          factory_id: factory.id,
+          user_id: user.id,
+          status: "requested",
+          current_stage: "sample_production",
+          notes: note || "",
+          label: label || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+        await supabaseAdmin.from("plm_sample_stages").insert({
+          product_id, factory_id: factory.id, user_id: user.id,
+          stage: "sample_production",
+          notes: note || "Additional sample requested",
+          updated_by: user.email, updated_by_role: "admin",
+        });
+        continue;
+      }
 
       // Check for killed request to reset
       const { data: killedRequests } = await supabaseAdmin
