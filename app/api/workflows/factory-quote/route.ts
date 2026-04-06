@@ -477,17 +477,23 @@ Return ONLY raw JSON, no markdown:
       }
 
       // Run AI recommendation
-      const productSummary = Object.entries(productGroups).map(([name, factories]) => {
-        const best = factories[0];
-        const second = factories[1];
-        return `${name}: Best=${best.factory_name} ELC=$${best.elc}${second ? ` | 2nd=${second.factory_name} ELC=$${second.elc} (save $${Math.round((second.elc - best.elc) * 100) / 100})` : ""}`;
+      const productSummary = Object.entries(productGroups).map(([name, factories]: [string, any[]]) => {
+        const lines = factories.map((f: any) => {
+          const parts = [`${f.factory_name}: ELC $${f.elc}`];
+          if (f.moq) parts.push(`MOQ ${f.moq}`);
+          if (f.lead_time_days) parts.push(`${f.lead_time_days}d production`);
+          if (f.sample_lead_time) parts.push(`${f.sample_lead_time}d sample`);
+          if (f.first_cost) parts.push(`first cost $${f.first_cost}`);
+          return parts.join(", ");
+        }).join(" | ");
+        return `${name}: ${lines}`;
       }).join("\n");
 
       const aiRes = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 600,
-        system: "You are a procurement advisor. Give a concise recommendation based on factory quote comparison data. Be direct and actionable. 3-5 sentences max.",
-        messages: [{ role: "user", content: `Quote comparison for "${job.job_name}":\n${productSummary}\n\nGive your recommendation.` }],
+        system: `You are a procurement advisor for a wholesale business. Analyze factory quotes and give a direct recommendation. Consider ALL factors: price/ELC, MOQ (lower is better for testing), production lead time (shorter is better), and sample lead time (critical — a factory with 2-day sample lead time beats one with 30 days at the same price). Call out any major lead time differences explicitly. Be direct and actionable. 4-6 sentences max.`,
+        messages: [{ role: "user", content: `Quote comparison for "${job.job_name}":\n${productSummary}\n\nWhich factory should we go with and why? Highlight any important lead time or MOQ differences.` }],
       });
       trackUsage(user.id, "factory-quote-recommendation", "claude-haiku-4-5-20251001", aiRes.usage.input_tokens, aiRes.usage.output_tokens).catch(() => {});
       const aiRecommendation = aiRes.content[0].type === "text" ? aiRes.content[0].text : "";
