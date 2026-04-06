@@ -468,6 +468,7 @@ ${entry}` : entry;
                     note: `Additional sample request — ${additionalSampleQty} unit(s)`,
                     force: true,
                     label: "additional",
+                    provider: "gmail",
                   }),
                 });
                 setRequestingSamples(false);

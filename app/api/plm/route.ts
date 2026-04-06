@@ -365,7 +365,7 @@ ${noteEntry}` : noteEntry;
 
     // If both connected, return provider_choice so frontend can ask
     const { provider } = body;
-    if (bothConnected && !provider) {
+    if (bothConnected && !provider && !force) {
       return NextResponse.json({ 
         success: false, 
         needs_provider: true,
