@@ -745,129 +745,158 @@ ${entry}` : entry;
                     {showRequestButton && <p className="text-[11px] text-white/15 mt-1">Click "Request Samples" to start</p>}
                     {!showRequestButton && <p className="text-[11px] text-white/15 mt-1">Available after quotes are received</p>}
                   </div>
-                ) : (
-                  <div className="divide-y divide-white/[0.04]">
-                    {sampleRequests.map((sr: any) => {
-                      const factory = sr.factory_catalog;
-                      const currentStageInfo = SAMPLE_STAGES.find(s => s.key === sr.current_stage) || SAMPLE_STAGES[0];
-                      const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
-                      const history = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-                      const isKilled = sr.status === "killed";
-                      const isApproved = sr.status === "approved";
-                      return (
-                        <div key={sr.id} className={`px-6 py-4 space-y-3 ${isKilled ? "opacity-50" : ""}`}>
-                          {/* Factory header */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Factory size={12} className="text-white/30" />
-                              <span className="text-sm font-semibold text-white">{factory?.name}</span>
-                              {isApproved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
-                              {isKilled && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>
-                                  <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, sr.current_stage, "", "unkill")}
-                                    className="text-[10px] text-white/30 hover:text-white/60 underline transition">Revive</button>
-                                </div>
-                              )}
-                              {sr.status === "revision" && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
-                            </div>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${currentStageInfo.color}20`, color: currentStageInfo.color }}>
-                              {currentStageInfo.label}
-                            </span>
-                          </div>
+                ) : (() => {
+                  // Group sample requests by factory
+                  const byFactory: Record<string, any[]> = {};
+                  sampleRequests.forEach((sr: any) => {
+                    const fid = sr.factory_id;
+                    if (!byFactory[fid]) byFactory[fid] = [];
+                    byFactory[fid].push(sr);
+                  });
+                  return (
+                    <div className="divide-y divide-white/[0.04]">
+                      {Object.entries(byFactory).map(([factoryId, rounds]) => {
+                        const sortedRounds = [...rounds].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                        const factory = sortedRounds[0]?.factory_catalog;
+                        const activeRound = sortedRounds.find((r: any) => r.status === "requested") || sortedRounds[sortedRounds.length - 1];
+                        const allKilled = sortedRounds.every((r: any) => r.status === "killed");
+                        const anyApproved = sortedRounds.some((r: any) => r.status === "approved");
+                        const latestRound = sortedRounds[sortedRounds.length - 1];
 
-                          {!isKilled && !isApproved && (
-                            <>
-                              {/* Stage progress */}
-                              <div className="flex gap-1.5 flex-wrap">
-                                {SAMPLE_STAGES.map((s, i) => {
-                                  const isPast = i < currentIdx;
-                                  const isCurrent = i === currentIdx;
-                                  return (
-                                    <div key={s.key} className="flex items-center gap-1">
-                                      <div className="w-2 h-2 rounded-full" style={{ background: isPast || isCurrent ? s.color : "rgba(255,255,255,0.1)" }} />
-                                      <span className="text-[10px]" style={{ color: isCurrent ? s.color : isPast ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.15)" }}>{s.label}</span>
-                                      {i < SAMPLE_STAGES.length - 1 && <span className="text-white/10 text-[10px]">→</span>}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-
-                              {/* Mark arrived button — show when factory has shipped */}
-                              {sr.current_stage === "sample_shipped" && (
-                                <div className="flex gap-2">
-                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_arrived", "Sample marked as arrived by admin")}
-                                    disabled={updatingSampleStage === sr.id}
-                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-40">
-                                    {updatingSampleStage === sr.id ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-                                    Mark Sample Arrived
-                                  </button>
-                                </div>
-                              )}
-
-                              {/* Outcome buttons — show when sample arrived */}
-                              {sr.current_stage === "sample_arrived" && (
-                                <div className="space-y-2">
-                                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Sample Review</p>
-                                  <div className="flex gap-2 flex-wrap">
-                                    <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, "sample_arrived", "Sample approved — moving to production", "approved")}
-                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
-                                      <Check size={11} />Approve
-                                    </button>
-                                    <button onClick={() => setShowRevisionInput(showRevisionInput === sr.id ? null : sr.id)}
-                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
-                                      Request Revision
-                                    </button>
-                                    <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, sr.current_stage, "Sample killed for this factory", "killed")}
-                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
-                                      <X size={11} />Kill this Factory
-                                    </button>
-                                    <button onClick={() => triggerSampleOutcome(sr.id, sr.factory_id, sr.current_stage, "Product killed", "killed")}
-                                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-900/20 border border-red-900/30 text-red-600 hover:bg-red-900/30 transition">
-                                      <X size={11} />Kill Product
-                                    </button>
+                        return (
+                          <div key={factoryId} className="px-6 py-4 space-y-3">
+                            {/* Factory header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Factory size={12} className="text-white/30" />
+                                <span className="text-sm font-semibold text-white">{factory?.name}</span>
+                                {anyApproved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved ✓</span>}
+                                {allKilled && !anyApproved && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>
+                                    <button onClick={() => triggerSampleOutcome(latestRound.id, factoryId, latestRound.current_stage, "", "unkill")}
+                                      className="text-[10px] text-white/30 hover:text-white/60 underline transition">Revive</button>
                                   </div>
-                                  {showRevisionInput === sr.id && (
-                                    <div className="space-y-1.5">
-                                      <textarea value={revisionNote[sr.id] || ""} onChange={e => setRevisionNote(prev => ({ ...prev, [sr.id]: e.target.value }))}
-                                        placeholder="Describe the revision needed (e.g. too blue, reduce handle size)..."
-                                        rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
-                                      <button onClick={() => {
-                                        triggerSampleOutcome(sr.id, sr.factory_id, "sample_production", revisionNote[sr.id] || "Revision requested", "revision");
-                                        setShowRevisionInput(null);
-                                        setRevisionNote(prev => ({ ...prev, [sr.id]: "" }));
-                                      }}
-                                        className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
-                                        Send Revision Request
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
+                                )}
+                                {!allKilled && !anyApproved && latestRound?.status === "revision" && (
+                                  <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Round {sortedRounds.length}</span>
+                                )}
+                              </div>
+                              {activeRound && !allKilled && !anyApproved && (
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${SAMPLE_STAGES.find(s => s.key === activeRound.current_stage)?.color || "#6b7280"}20`, color: SAMPLE_STAGES.find(s => s.key === activeRound.current_stage)?.color || "#6b7280" }}>
+                                  {SAMPLE_STAGES.find(s => s.key === activeRound.current_stage)?.label || activeRound.current_stage}
+                                </span>
                               )}
-                            </>
-                          )}
+                            </div>
 
-                          {/* Stage history */}
-                          {history.length > 0 && (
-                            <div className="space-y-1 border-t border-white/[0.04] pt-2">
-                              {history.slice(0, 3).map((h: any) => {
-                                const s = SAMPLE_STAGES.find(st => st.key === h.stage);
+                            {/* Rounds */}
+                            <div className="space-y-2">
+                              {sortedRounds.map((sr: any, roundIdx: number) => {
+                                const isActive = sr.status === "requested";
+                                const isKilledRound = sr.status === "killed";
+                                const isApprovedRound = sr.status === "approved";
+                                const isRevisionRound = sr.status === "revision";
+                                const roundLabel = roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
+                                const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                                const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
+
                                 return (
-                                  <div key={h.id} className="flex items-center gap-2">
-                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s?.color || "#6b7280" }} />
-                                    <span className="text-[11px] text-white/40">{s?.label || h.stage}</span>
-                                    {h.notes && <span className="text-[11px] text-white/25">· {h.notes}</span>}
-                                    <span className="text-[10px] text-white/20 ml-auto">{new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                  <div key={sr.id} className={`border rounded-xl overflow-hidden ${isKilledRound ? "border-red-500/10 opacity-50" : isApprovedRound ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isActive ? "border-white/[0.08] bg-white/[0.01]" : "border-amber-500/15 bg-amber-500/[0.02]"}`}>
+                                    {/* Round header */}
+                                    <div className="px-3 py-2 border-b border-white/[0.05] flex items-center justify-between">
+                                      <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
+                                      <div className="flex items-center gap-1.5">
+                                        {isApprovedRound && <span className="text-[10px] text-emerald-400">✓ Approved</span>}
+                                        {isKilledRound && <span className="text-[10px] text-red-400">Ended</span>}
+                                        {isRevisionRound && <span className="text-[10px] text-amber-400">Revision Requested</span>}
+                                      </div>
+                                    </div>
+
+                                    {/* Stage history */}
+                                    <div className="px-3 py-2 space-y-1.5">
+                                      {stages.map((h: any, hi: number) => {
+                                        const s = [...SAMPLE_STAGES, {key:"revision_requested",label:"Revision Requested",color:"#f59e0b"}, {key:"killed",label:"Ended",color:"#ef4444"}].find(st => st.key === h.stage);
+                                        const isLast = hi === stages.length - 1;
+                                        return (
+                                          <div key={h.id} className="flex items-start gap-2">
+                                            <div className="flex flex-col items-center flex-shrink-0 mt-0.5">
+                                              <div className="w-1.5 h-1.5 rounded-full" style={{ background: isLast && isActive ? s?.color || "#6b7280" : "#10b981" }} />
+                                              {hi < stages.length - 1 && <div className="w-px h-3 bg-white/10 mt-0.5" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex items-center justify-between gap-2">
+                                                <span className="text-[11px]" style={{ color: isLast && isActive ? s?.color || "#6b7280" : "rgba(255,255,255,0.4)" }}>{s?.label || h.stage}</span>
+                                                <span className="text-[10px] text-white/15 flex-shrink-0">{new Date(h.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"})}</span>
+                                              </div>
+                                              {h.notes && h.notes !== "Sample requested" && h.notes !== "Revision round started" && (
+                                                <p className="text-[10px] text-white/25 mt-0.5">{h.notes}</p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {/* Active round actions */}
+                                    {isActive && (
+                                      <div className="px-3 pb-3 space-y-2 border-t border-white/[0.05] pt-2">
+                                        {sr.current_stage === "sample_shipped" && (
+                                          <button onClick={() => updateSampleStage(sr.id, factoryId, "sample_arrived", "Sample marked as arrived by admin")}
+                                            disabled={updatingSampleStage === sr.id}
+                                            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-40">
+                                            {updatingSampleStage === sr.id ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                                            Mark Sample Arrived
+                                          </button>
+                                        )}
+                                        {sr.current_stage === "sample_arrived" && (
+                                          <div className="space-y-2">
+                                            <p className="text-[10px] text-white/25 uppercase tracking-widest">Review</p>
+                                            <div className="flex gap-1.5 flex-wrap">
+                                              <button onClick={() => triggerSampleOutcome(sr.id, factoryId, "sample_arrived", "Sample approved — moving to production", "approved")}
+                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
+                                                <Check size={11} />Approve
+                                              </button>
+                                              <button onClick={() => setShowRevisionInput(showRevisionInput === sr.id ? null : sr.id)}
+                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
+                                                Request Revision
+                                              </button>
+                                              <button onClick={() => triggerSampleOutcome(sr.id, factoryId, sr.current_stage, "Sample killed for this factory", "killed")}
+                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
+                                                <X size={11} />Kill Factory
+                                              </button>
+                                              <button onClick={() => triggerSampleOutcome(sr.id, factoryId, sr.current_stage, "Product killed", "killed")}
+                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-red-900/20 border border-red-900/30 text-red-600 hover:bg-red-900/30 transition">
+                                                <X size={11} />Kill Product
+                                              </button>
+                                            </div>
+                                            {showRevisionInput === sr.id && (
+                                              <div className="space-y-1.5">
+                                                <textarea value={revisionNote[sr.id] || ""} onChange={e => setRevisionNote(prev => ({ ...prev, [sr.id]: e.target.value }))}
+                                                  placeholder="Describe the revision needed..."
+                                                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+                                                <button onClick={() => {
+                                                  triggerSampleOutcome(sr.id, factoryId, "sample_production", revisionNote[sr.id] || "Revision requested", "revision");
+                                                  setShowRevisionInput(null);
+                                                  setRevisionNote(prev => ({ ...prev, [sr.id]: "" }));
+                                                }} className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
+                                                  Send Revision Request
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             );
           })()}
