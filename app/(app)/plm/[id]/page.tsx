@@ -803,7 +803,7 @@ ${entry}` : entry;
                                     {/* Round label */}
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
 
-                                    {/* Horizontal stage pills */}
+                                    {/* Horizontal stage pills + result inline */}
                                     <div className="flex items-center gap-1 flex-wrap">
                                       {STAGE_KEYS.map((key, i) => {
                                         const idx = STAGE_KEYS.indexOf(key);
@@ -814,7 +814,7 @@ ${entry}` : entry;
                                           <div key={key} className="flex items-center gap-1">
                                             <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${
                                               isCompleted && !isCurrent ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
-                                              isCurrent ? `border-amber-500/30 bg-amber-500/10 text-amber-300` :
+                                              isCurrent ? "border-amber-500/30 bg-amber-500/10 text-amber-300" :
                                               "border-white/[0.05] text-white/15"
                                             }`}>
                                               {isCompleted && !isCurrent && <Check size={8} />}
@@ -825,25 +825,24 @@ ${entry}` : entry;
                                           </div>
                                         );
                                       })}
+                                      {/* Result inline at end */}
+                                      {(isApproved || isRevision || isKilled) && <span className="text-white/10 text-[10px]">→</span>}
+                                      {isApproved && (
+                                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+                                          <Check size={8} />Approved
+                                        </span>
+                                      )}
+                                      {isRevision && (
+                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                                          ↩ Revision{revisionNote_text ? `: ${revisionNote_text}` : ""}
+                                        </span>
+                                      )}
+                                      {isKilled && (
+                                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400">
+                                          <X size={8} />{stages.find((s: any) => s.stage === "killed")?.notes || "Ended"}
+                                        </span>
+                                      )}
                                     </div>
-
-                                    {/* Result */}
-                                    {isApproved && (
-                                      <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold">
-                                        <Check size={12} /> Approved — {factory?.name} selected for production
-                                      </div>
-                                    )}
-                                    {isRevision && (
-                                      <div className="flex items-start gap-2 text-amber-400 text-xs">
-                                        <span className="font-semibold flex-shrink-0">↩ Revision:</span>
-                                        <span className="text-amber-300/70">{revisionNote_text || "Revision requested"}</span>
-                                      </div>
-                                    )}
-                                    {isKilled && (
-                                      <div className="flex items-center gap-2 text-red-400 text-xs">
-                                        <X size={12} /> {stages.find((s: any) => s.stage === "killed")?.notes || "Ended"}
-                                      </div>
-                                    )}
 
                                     {/* Active round actions */}
                                     {isActive && (
