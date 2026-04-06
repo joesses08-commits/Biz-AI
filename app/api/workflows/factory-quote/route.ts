@@ -277,6 +277,39 @@ ${senderName}`,
         updated_at: new Date().toISOString(),
       }).eq("id", job_id);
 
+      // Update PLM products to artwork_sent if this job came from PLM
+      const orderDetails = job.order_details as any;
+      const plmProductIds = orderDetails?.plm_product_ids || [];
+      if (plmProductIds.length > 0) {
+        const factoryNames = (job.factories || []).map((f: any) => f.name).join(", ");
+        const noteEntry = `Artwork Sent: RFQ sent to ${factoryNames}`;
+        for (const productId of plmProductIds) {
+          const { data: product } = await supabaseAdmin
+            .from("plm_products")
+            .select("notes, current_stage")
+            .eq("id", productId)
+            .single();
+          if (product) {
+            const updatedNotes = product.notes ? `${product.notes}
+${noteEntry}` : noteEntry;
+            await supabaseAdmin.from("plm_products").update({
+              current_stage: "artwork_sent",
+              notes: updatedNotes,
+              updated_at: new Date().toISOString(),
+            }).eq("id", productId);
+            // Log to history
+            await supabaseAdmin.from("plm_stages").insert({
+              product_id: productId,
+              user_id: user.id,
+              stage: "artwork_sent",
+              notes: `RFQ sent to ${factoryNames}`,
+              updated_by: user.email || "jimmy",
+              updated_by_role: "admin",
+            });
+          }
+        }
+      }
+
       return NextResponse.json({ success: true, results, provider: useGmail ? "gmail" : "outlook" });
     }
 
