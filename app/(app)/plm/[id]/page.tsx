@@ -837,11 +837,22 @@ ${entry}` : entry;
                                           ↩ Revision{revisionNote_text ? `: ${revisionNote_text}` : ""}
                                         </span>
                                       )}
-                                      {isKilled && (
-                                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400">
-                                          <X size={8} />{stages.find((s: any) => s.stage === "killed")?.notes || "Ended"}
-                                        </span>
-                                      )}
+                                      {isKilled && (() => {
+                                        const isLastRound = roundIdx === sortedRounds.length - 1;
+                                        const killedNote = stages.find((s: any) => s.stage === "killed")?.notes || "";
+                                        if (!isLastRound) {
+                                          return (
+                                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                                              ↩ Revision Requested
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400">
+                                            <X size={8} />{killedNote || "Killed"}
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
 
                                     {/* Active round actions */}
