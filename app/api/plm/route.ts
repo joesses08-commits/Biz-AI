@@ -470,7 +470,7 @@ ${senderName}`;
       noteEntry = notes?.includes("entirely") || notes?.includes("Product killed")
         ? `Product Killed: ${notes}`
         : `Sample Killed for ${factoryName}: ${notes || ""}`;
-      // If killing product, kill all factories
+      // If killing product, kill all factories and mark product as killed
       if (notes?.includes("Product killed")) {
         const allRequests = (productData?.plm_sample_requests || []).filter((r: any) => r.id !== sample_request_id && r.status !== "killed");
         for (const other of allRequests) {
@@ -480,6 +480,10 @@ ${senderName}`;
             updated_at: new Date().toISOString(),
           }).eq("id", other.id);
         }
+        await supabaseAdmin.from("plm_products").update({
+          killed: true,
+          updated_at: new Date().toISOString(),
+        }).eq("id", product_id);
       }
     }
 
@@ -501,6 +505,24 @@ ${noteEntry}` : noteEntry;
       .eq("user_id", user.id)
       .order("created_at", { ascending: true });
     return NextResponse.json({ sample_requests: data || [] });
+  }
+
+  if (action === "unkill_product") {
+    const { product_id, pin } = body;
+    if (pin !== process.env.ADMIN_MILESTONE_PIN) {
+      return NextResponse.json({ error: "pin_required" }, { status: 403 });
+    }
+    await supabaseAdmin.from("plm_products").update({
+      killed: false,
+      updated_at: new Date().toISOString(),
+    }).eq("id", product_id).eq("user_id", user.id);
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id, user_id: user.id,
+      stage: "unkilled",
+      notes: "Product revived by admin",
+      updated_by: user.email, updated_by_role: "admin",
+    });
+    return NextResponse.json({ success: true });
   }
 
   if (action === "delete_collection") {

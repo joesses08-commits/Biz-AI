@@ -196,6 +196,10 @@ ${entry}` : entry;
   };
 
   const [sampleProviderModal, setSampleProviderModal] = useState<{factory_ids: string[], note: string} | null>(null);
+  const [showUnkillModal, setShowUnkillModal] = useState(false);
+  const [unkillPin, setUnkillPin] = useState("");
+  const [unkillPinError, setUnkillPinError] = useState("");
+  const [unkilling, setUnkilling] = useState(false);
 
   const requestSamples = async (provider?: string) => {
     if (!sampleFactoryIds.length) return;
@@ -454,6 +458,79 @@ ${entry}` : entry;
               <button onClick={() => { setSampleOutcomePending(null); setSamplePin(""); setSamplePinError(""); }}
                 className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Killed Banner */}
+      {product.killed && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-40 p-4">
+          <div className="bg-[#111] border border-red-500/30 rounded-2xl w-full max-w-sm p-6 space-y-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+              <X size={20} className="text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-red-400">Product Killed</p>
+              <p className="text-xs text-white/30 mt-1">This product has been killed. Admin PIN required to revive it.</p>
+            </div>
+            {!showUnkillModal ? (
+              <button onClick={() => setShowUnkillModal(true)}
+                className="w-full py-2.5 rounded-xl border border-white/10 text-white/40 text-xs hover:text-white/60 transition">
+                Revive Product
+              </button>
+            ) : (
+              <div className="space-y-2 text-left">
+                <input type="password" value={unkillPin} onChange={e => setUnkillPin(e.target.value)}
+                  placeholder="Enter Admin PIN" autoFocus
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
+                  onKeyDown={async e => {
+                    if (e.key === "Enter") {
+                      setUnkilling(true);
+                      setUnkillPinError("");
+                      const res = await fetch("/api/plm", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "unkill_product", product_id: id, pin: unkillPin }),
+                      });
+                      const data = await res.json();
+                      setUnkilling(false);
+                      if (data.error === "pin_required") {
+                        setUnkillPinError("Incorrect PIN.");
+                      } else {
+                        setShowUnkillModal(false);
+                        setUnkillPin("");
+                        load();
+                      }
+                    }
+                  }} />
+                {unkillPinError && <p className="text-xs text-red-400">{unkillPinError}</p>}
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    setUnkilling(true);
+                    setUnkillPinError("");
+                    const res = await fetch("/api/plm", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "unkill_product", product_id: id, pin: unkillPin }),
+                    });
+                    const data = await res.json();
+                    setUnkilling(false);
+                    if (data.error === "pin_required") {
+                      setUnkillPinError("Incorrect PIN.");
+                    } else {
+                      setShowUnkillModal(false);
+                      setUnkillPin("");
+                      load();
+                    }
+                  }} disabled={!unkillPin || unkilling}
+                    className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                    {unkilling ? "Reviving..." : "Confirm Revive"}
+                  </button>
+                  <button onClick={() => { setShowUnkillModal(false); setUnkillPin(""); setUnkillPinError(""); }}
+                    className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

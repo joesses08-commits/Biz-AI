@@ -790,6 +790,16 @@ export default function PLMPage() {
                 {filteredProducts.map(product => {
                   const statusKey = getProductStatus(product);
                   const milestones = product.milestones || {};
+                  if (product.killed) return (
+                    <div key={product.id} className="flex items-center gap-3 p-4 border border-red-500/20 rounded-2xl bg-red-500/[0.02] opacity-60">
+                      {product.images?.[0] && <img src={product.images[0]} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white/50 truncate line-through">{product.name}</p>
+                        {product.sku && <p className="text-[11px] text-white/20 font-mono">{product.sku}</p>}
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20 flex-shrink-0">Killed</span>
+                    </div>
+                  );
                   const lastMilestone = milestones.sample_approved ? "Sample Approved" : milestones.sampling ? "Sampling" : milestones.design_brief ? "Design Brief" : null;
                   return (
                     <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
