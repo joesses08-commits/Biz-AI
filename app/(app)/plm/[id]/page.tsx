@@ -580,7 +580,7 @@ ${entry}` : entry;
                     "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
                   }`}>
                     {isKilled ? "● Killed" : isHold ? "⏸ Hold" : "▶ Progression"}
-                    <ChevronRight size={10} className="rotate-90" />
+                    ▾
                   </button>
                   <div className="absolute top-full left-0 mt-1 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition z-20 min-w-[160px]">
                     {(["progression","hold","killed"] as const).map(s => (
