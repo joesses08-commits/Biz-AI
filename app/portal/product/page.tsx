@@ -59,12 +59,12 @@ export default function PortalProductPage() {
     setLoading(false);
   };
 
-  const updateSampleStage = async (stage: string) => {
+  const updateSampleStage = async (stage: string, sampleRequestId?: string) => {
     setUpdatingSample(true);
     await fetch("/api/portal/update", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-      body: JSON.stringify({ product_id: productId, stage, notes: sampleNote }),
+      body: JSON.stringify({ product_id: productId, sample_request_id: sampleRequestId, stage, notes: sampleNote }),
     });
     setUpdatingSample(false);
     setSampleNote("");
@@ -99,7 +99,7 @@ export default function PortalProductPage() {
     </div>
   );
 
-  const currentSampleStage = SAMPLE_STAGES.find(s => s.key === product.current_stage);
+  const sampleRequests = product.plm_sample_requests || [];
   const orders = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
 
   return (
@@ -176,38 +176,41 @@ export default function PortalProductPage() {
         </div>
 
         {/* Sample Section */}
-        {currentSampleStage && (
+        {sampleRequests.length > 0 && (
           <div className="border border-amber-500/20 rounded-2xl overflow-hidden bg-amber-500/[0.02]">
             <div className="px-6 py-4 border-b border-amber-500/10">
-              <p className="text-sm font-semibold text-amber-300">Sample in Progress</p>
+              <p className="text-sm font-semibold text-amber-300">Sample Requested</p>
               <p className="text-xs text-white/30 mt-0.5">Update the sample stage as you work through it</p>
             </div>
-            <div className="px-6 py-4 space-y-3">
-              <div className="space-y-1.5">
-                {SAMPLE_STAGES.map(stage => {
-                  const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === product.current_stage);
-                  const stageIdx = SAMPLE_STAGES.findIndex(s => s.key === stage.key);
-                  const isPast = stageIdx < currentIdx;
-                  const isCurrent = stage.key === product.current_stage;
-                  return (
-                    <button key={stage.key} onClick={() => !isPast && updateSampleStage(stage.key)}
-                      disabled={updatingSample || isPast}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${isCurrent ? "border-amber-500/30 bg-amber-500/10" : isPast ? "border-white/[0.04] opacity-40 cursor-default" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
-                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isPast ? "#10b981" : stage.color }} />
-                      <span style={{ color: isCurrent ? "#fbbf24" : isPast ? "#10b981" : "rgba(255,255,255,0.5)" }}>{stage.label}</span>
-                      {isCurrent && <span className="ml-auto text-[10px] text-amber-400/60">Current</span>}
-                      {isPast && <Check size={10} className="text-emerald-400 ml-auto" />}
-                    </button>
-                  );
-                })}
-              </div>
-              <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Add a note (optional)</p>
-                <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
-                  placeholder="e.g. Sample dispatched via DHL, tracking #1234"
-                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
-              </div>
-            </div>
+            {sampleRequests.map((sr: any) => {
+              const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
+              return (
+                <div key={sr.id} className="px-6 py-4 space-y-3">
+                  <div className="space-y-1.5">
+                    {SAMPLE_STAGES.map((stage, stageIdx) => {
+                      const isPast = stageIdx < currentIdx;
+                      const isCurrent = stage.key === sr.current_stage;
+                      return (
+                        <button key={stage.key} onClick={() => !isPast && updateSampleStage(stage.key, sr.id)}
+                          disabled={updatingSample || isPast}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${isCurrent ? "border-amber-500/30 bg-amber-500/10" : isPast ? "border-white/[0.04] opacity-40 cursor-default" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: isPast ? "#10b981" : stage.color }} />
+                          <span style={{ color: isCurrent ? "#fbbf24" : isPast ? "#10b981" : "rgba(255,255,255,0.5)" }}>{stage.label}</span>
+                          {isCurrent && <span className="ml-auto text-[10px] text-amber-400/60">Current</span>}
+                          {isPast && <Check size={10} className="text-emerald-400 ml-auto" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Add a note (optional)</p>
+                    <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
+                      placeholder="e.g. Sample dispatched via DHL, tracking #1234"
+                      rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 

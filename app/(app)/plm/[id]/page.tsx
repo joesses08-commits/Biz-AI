@@ -105,6 +105,14 @@ export default function ProductPage() {
   const [devStageNote, setDevStageNote] = useState("");
   const [pendingDevStage, setPendingDevStage] = useState<string | null>(null);
 
+  // Sample requests
+  const [showSampleModal, setShowSampleModal] = useState(false);
+  const [sampleFactoryIds, setSampleFactoryIds] = useState<string[]>([]);
+  const [sampleNote, setSampleNote] = useState("");
+  const [requestingSamples, setRequestingSamples] = useState(false);
+  const [sampleSuccess, setSampleSuccess] = useState("");
+  const [updatingSampleStage, setUpdatingSampleStage] = useState<string | null>(null);
+
   // Order factory edit
   const [editingOrderFactory, setEditingOrderFactory] = useState<string | null>(null);
   const [orderFactoryVal, setOrderFactoryVal] = useState("");
@@ -178,6 +186,35 @@ ${entry}` : entry;
     setUpdatingDevStage(false);
     setPendingDevStage(null);
     setDevStageNote("");
+    load();
+  };
+
+  const requestSamples = async () => {
+    if (!sampleFactoryIds.length) return;
+    setRequestingSamples(true);
+    const res = await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: sampleFactoryIds, note: sampleNote }),
+    });
+    const data = await res.json();
+    setRequestingSamples(false);
+    setShowSampleModal(false);
+    setSampleFactoryIds([]);
+    setSampleNote("");
+    setSampleSuccess(`Sample requested from ${(data.factories || []).map((f: any) => f.name).join(", ")}`);
+    setTimeout(() => setSampleSuccess(""), 4000);
+    load();
+  };
+
+  const updateSampleStage = async (sampleRequestId: string, factoryId: string, stage: string, notes?: string, outcome?: string) => {
+    setUpdatingSampleStage(sampleRequestId);
+    await fetch("/api/plm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "update_sample_stage", sample_request_id: sampleRequestId, product_id: id, factory_id: factoryId, stage, notes: notes || "", outcome }),
+    });
+    setUpdatingSampleStage(null);
     load();
   };
 
@@ -284,6 +321,49 @@ ${entry}` : entry;
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
+
+      {/* Sample Request Modal */}
+      {showSampleModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Request Samples</p>
+              <button onClick={() => setShowSampleModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Select Factories</p>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {factories.map((f: any) => (
+                  <button key={f.id} onClick={() => setSampleFactoryIds(prev => prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id])}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${sampleFactoryIds.includes(f.id) ? "border-amber-500/30 bg-amber-500/10" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
+                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${sampleFactoryIds.includes(f.id) ? "border-amber-400 bg-amber-500" : "border-white/20"}`}>
+                      {sampleFactoryIds.includes(f.id) && <Check size={9} className="text-black" />}
+                    </div>
+                    <div>
+                      <p className="text-white/70 font-medium">{f.name}</p>
+                      {f.email && <p className="text-white/25 text-[10px]">{f.email}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Note (optional)</p>
+              <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
+                placeholder="e.g. Priority samples needed by May 1st"
+                rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={requestSamples} disabled={requestingSamples || sampleFactoryIds.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 transition disabled:opacity-40">
+                {requestingSamples ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                Request from {sampleFactoryIds.length} {sampleFactoryIds.length === 1 ? "Factory" : "Factories"}
+              </button>
+              <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Approve banner */}
       {showApproveBanner && product?.approval_status === "pending_review" && !approveSuccess && (
@@ -438,6 +518,133 @@ ${entry}` : entry;
               })()}
             </div>
           </div>
+
+          {/* ── SAMPLE REQUESTS SECTION ── */}
+          {(() => {
+            const sampleRequests = product.plm_sample_requests || [];
+            const devIdx = DEV_STAGES.findIndex(s => s.key === (product.current_stage || "concept"));
+            const quotesReceivedIdx = DEV_STAGES.findIndex(s => s.key === "quotes_received");
+            const showRequestButton = devIdx >= quotesReceivedIdx;
+            const SAMPLE_STAGES = [
+              { key: "sample_production", label: "Sample Production", color: "#f59e0b" },
+              { key: "sample_complete", label: "Sample Complete", color: "#f59e0b" },
+              { key: "sample_shipped", label: "Sample Shipped", color: "#3b82f6" },
+              { key: "sample_arrived", label: "Sample Arrived", color: "#10b981" },
+            ];
+            return (
+              <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
+                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Samples</p>
+                    <p className="text-xs text-white/30 mt-0.5">Track sample progress per factory</p>
+                  </div>
+                  {showRequestButton && (
+                    <button onClick={() => setShowSampleModal(true)}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
+                      <Plus size={11} />Request Samples
+                    </button>
+                  )}
+                </div>
+
+                {sampleSuccess && (
+                  <div className="px-6 py-3 border-b border-white/[0.04] flex items-center gap-2 text-emerald-400 text-xs bg-emerald-500/5">
+                    <Check size={12} />{sampleSuccess}
+                  </div>
+                )}
+
+                {sampleRequests.length === 0 ? (
+                  <div className="px-6 py-8 text-center">
+                    <p className="text-xs text-white/20">No samples requested yet</p>
+                    {showRequestButton && <p className="text-[11px] text-white/15 mt-1">Click "Request Samples" to start</p>}
+                    {!showRequestButton && <p className="text-[11px] text-white/15 mt-1">Available after quotes are received</p>}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/[0.04]">
+                    {sampleRequests.map((sr: any) => {
+                      const factory = sr.factory_catalog;
+                      const currentStageInfo = SAMPLE_STAGES.find(s => s.key === sr.current_stage) || SAMPLE_STAGES[0];
+                      const currentIdx = SAMPLE_STAGES.findIndex(s => s.key === sr.current_stage);
+                      const history = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                      const isKilled = sr.status === "killed";
+                      const isApproved = sr.status === "approved";
+                      return (
+                        <div key={sr.id} className={`px-6 py-4 space-y-3 ${isKilled ? "opacity-50" : ""}`}>
+                          {/* Factory header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Factory size={12} className="text-white/30" />
+                              <span className="text-sm font-semibold text-white">{factory?.name}</span>
+                              {isApproved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
+                              {isKilled && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>}
+                              {sr.status === "revision" && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
+                            </div>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${currentStageInfo.color}20`, color: currentStageInfo.color }}>
+                              {currentStageInfo.label}
+                            </span>
+                          </div>
+
+                          {!isKilled && !isApproved && (
+                            <>
+                              {/* Stage progress */}
+                              <div className="flex gap-1.5 flex-wrap">
+                                {SAMPLE_STAGES.map((s, i) => {
+                                  const isPast = i < currentIdx;
+                                  const isCurrent = i === currentIdx;
+                                  return (
+                                    <div key={s.key} className="flex items-center gap-1">
+                                      <div className="w-2 h-2 rounded-full" style={{ background: isPast || isCurrent ? s.color : "rgba(255,255,255,0.1)" }} />
+                                      <span className="text-[10px]" style={{ color: isCurrent ? s.color : isPast ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.15)" }}>{s.label}</span>
+                                      {i < SAMPLE_STAGES.length - 1 && <span className="text-white/10 text-[10px]">→</span>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Outcome buttons — show when sample arrived */}
+                              {sr.current_stage === "sample_arrived" && (
+                                <div className="flex gap-2 flex-wrap">
+                                  <p className="text-[10px] text-white/30 w-full uppercase tracking-widest">Sample Review</p>
+                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_arrived", "Sample approved", "approved")}
+                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
+                                    <Check size={11} />Approve
+                                  </button>
+                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, "sample_production", "", "revision")}
+                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
+                                    Request Revision
+                                  </button>
+                                  <button onClick={() => updateSampleStage(sr.id, sr.factory_id, sr.current_stage, "Sample killed", "killed")}
+                                    className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
+                                    <X size={11} />Kill
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          {/* Stage history */}
+                          {history.length > 0 && (
+                            <div className="space-y-1 border-t border-white/[0.04] pt-2">
+                              {history.slice(0, 3).map((h: any) => {
+                                const s = SAMPLE_STAGES.find(st => st.key === h.stage);
+                                return (
+                                  <div key={h.id} className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s?.color || "#6b7280" }} />
+                                    <span className="text-[11px] text-white/40">{s?.label || h.stage}</span>
+                                    {h.notes && <span className="text-[11px] text-white/25">· {h.notes}</span>}
+                                    <span className="text-[10px] text-white/20 ml-auto">{new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── PRODUCTION ORDERS SECTION ── */}
           <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">

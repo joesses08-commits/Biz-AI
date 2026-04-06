@@ -26,31 +26,36 @@ export async function POST(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { product_id, batch_id, stage, notes } = await req.json();
+  const { product_id, batch_id, sample_request_id, stage, notes } = await req.json();
 
   if (!ALL_ALLOWED.includes(stage)) {
     return NextResponse.json({ error: "Stage not allowed" }, { status: 403 });
   }
 
   if (SAMPLE_STAGES.includes(stage)) {
-    // Sample stage — update product dev stage directly
-    const { data: product } = await supabaseAdmin
-      .from("plm_products")
-      .select("id, user_id")
-      .eq("id", product_id)
-      .eq("user_id", portalUser.user_id)
+    // Sample stage — update the plm_sample_requests row for this factory
+    const { data: sampleReq } = await supabaseAdmin
+      .from("plm_sample_requests")
+      .select("id")
+      .eq("id", sample_request_id || "")
+      .single() || await supabaseAdmin
+      .from("plm_sample_requests")
+      .select("id")
+      .eq("product_id", product_id)
+      .eq("factory_id", portalUser.factory_id)
       .single();
 
-    if (!product) return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    if (!sampleReq) return NextResponse.json({ error: "Sample request not found" }, { status: 404 });
 
-    await supabaseAdmin.from("plm_products").update({
+    await supabaseAdmin.from("plm_sample_requests").update({
       current_stage: stage,
-      stage_updated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq("id", product_id);
+    }).eq("id", sampleReq.id);
 
-    await supabaseAdmin.from("plm_stages").insert({
+    await supabaseAdmin.from("plm_sample_stages").insert({
+      sample_request_id: sampleReq.id,
       product_id,
+      factory_id: portalUser.factory_id,
       user_id: portalUser.user_id,
       stage,
       notes: notes || "",

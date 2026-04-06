@@ -36,10 +36,25 @@ export async function GET(req: NextRequest) {
 
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Filter batches to only this factory
+  // Filter batches and sample requests to only this factory
   const factoryBatches = (product.plm_batches || []).filter(
     (b: any) => b.factory_id === portalUser.factory_id
   );
 
-  return NextResponse.json({ product: { ...product, plm_batches: factoryBatches } });
+  // Get sample requests for this factory
+  const { data: sampleRequests } = await supabaseAdmin
+    .from("plm_sample_requests")
+    .select("*, plm_sample_stages(*)")
+    .eq("product_id", productId)
+    .eq("factory_id", portalUser.factory_id)
+    .neq("status", "killed")
+    .neq("status", "approved");
+
+  return NextResponse.json({ 
+    product: { 
+      ...product, 
+      plm_batches: factoryBatches,
+      plm_sample_requests: sampleRequests || [],
+    } 
+  });
 }

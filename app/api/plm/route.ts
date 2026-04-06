@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
     const { data } = await supabaseAdmin
       .from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*))")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*))")
       .eq("id", id)
       .single();
     return NextResponse.json({ product: data });
@@ -206,6 +206,92 @@ export async function POST(req: NextRequest) {
       updated_by: user.email, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });
+  }
+
+  if (action === "create_sample_requests") {
+    const { product_id, factory_ids, note } = body;
+    if (!product_id || !factory_ids?.length) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
+    // Get factory details
+    const { data: factories } = await supabaseAdmin
+      .from("factory_catalog")
+      .select("id, name, email")
+      .in("id", factory_ids);
+
+    // Create sample request per factory
+    for (const factory of (factories || [])) {
+      await supabaseAdmin.from("plm_sample_requests").insert({
+        product_id,
+        factory_id: factory.id,
+        user_id: user.id,
+        status: "requested",
+        current_stage: "sample_production",
+        notes: note || "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      // Log to sample stages
+      await supabaseAdmin.from("plm_sample_stages").insert({
+        product_id,
+        factory_id: factory.id,
+        user_id: user.id,
+        stage: "sample_production",
+        notes: "Sample requested",
+        updated_by: user.email,
+        updated_by_role: "admin",
+      });
+    }
+
+    // Update product stage + notes
+    const factoryNames = (factories || []).map((f: any) => f.name).join(", ");
+    const noteEntry = `Samples Requested: requested from ${factoryNames}`;
+    const { data: product } = await supabaseAdmin.from("plm_products").select("notes").eq("id", product_id).single();
+    const updatedNotes = product?.notes ? `${product.notes}
+${noteEntry}` : noteEntry;
+
+    await supabaseAdmin.from("plm_products").update({
+      current_stage: "samples_requested",
+      notes: updatedNotes,
+      updated_at: new Date().toISOString(),
+    }).eq("id", product_id).eq("user_id", user.id);
+
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id, user_id: user.id,
+      stage: "samples_requested",
+      notes: `Sample requested from ${factoryNames}`,
+      updated_by: user.email, updated_by_role: "admin",
+    });
+
+    return NextResponse.json({ success: true, factories });
+  }
+
+  if (action === "update_sample_stage") {
+    const { sample_request_id, product_id, factory_id, stage, notes, outcome } = body;
+
+    const updates: any = { current_stage: stage, updated_at: new Date().toISOString() };
+    if (outcome) updates.status = outcome; // "approved", "revision", "killed"
+    if (notes) updates.notes = notes;
+
+    await supabaseAdmin.from("plm_sample_requests").update(updates).eq("id", sample_request_id);
+
+    await supabaseAdmin.from("plm_sample_stages").insert({
+      sample_request_id, product_id, factory_id, user_id: user.id,
+      stage, notes: notes || "",
+      updated_by: user.email, updated_by_role: "admin",
+    });
+
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "get_sample_requests") {
+    const { product_id } = body;
+    const { data } = await supabaseAdmin
+      .from("plm_sample_requests")
+      .select("*, factory_catalog(name, email), plm_sample_stages(*)")
+      .eq("product_id", product_id)
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+    return NextResponse.json({ sample_requests: data || [] });
   }
 
   if (action === "delete_collection") {
