@@ -212,12 +212,14 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     // Log stage change to history
     if (updates.current_stage && updates.current_stage !== existing?.current_stage) {
-      await supabaseAdmin.from("plm_stages").insert({
+      const { error: stageErr } = await supabaseAdmin.from("plm_stages").insert({
         product_id: id, user_id: user.id,
         stage: updates.current_stage,
         notes: updates._stage_note || "",
         updated_by: user.email, updated_by_role: "admin",
+        created_at: new Date().toISOString(),
       });
+      if (stageErr) console.error("plm_stages insert error:", stageErr);
       delete updates._stage_note;
     }
     return NextResponse.json({ success: true, product: data });
