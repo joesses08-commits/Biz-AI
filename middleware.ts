@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const publicPaths = [
-    "/login", "/reset-password", "/auth", "/privacy", "/terms", "/portal", "/reset-pin",
+    "/", "/login", "/reset-password", "/auth", "/privacy", "/terms", "/portal", "/reset-pin",
     "/api/gmail/connect", "/api/gmail/callback", "/api/gmail/push", "/api/gmail/sync",
     "/api/microsoft/connect", "/api/microsoft/callback", "/api/microsoft/sync", "/api/microsoft/files", "/api/microsoft/push",
     "/api/quickbooks/connect", "/api/quickbooks/callback", "/api/quickbooks/sync",
@@ -16,6 +16,12 @@ export async function middleware(request: NextRequest) {
   const isPublic = publicPaths.some(path =>
     request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + "/") || request.nextUrl.pathname.startsWith(path)
   );
+  // Redirect portal subdomain root to /portal login
+  const host = request.headers.get("host") || "";
+  if (host.startsWith("portal.") && request.nextUrl.pathname === "/") {
+    return NextResponse.redirect(new URL("/portal", request.url));
+  }
+
   if (isPublic) return NextResponse.next();
 
   let response = NextResponse.next({ request: { headers: request.headers } });
