@@ -594,35 +594,72 @@ export default function PLMPage() {
 
               {/* Product list with factory picker per product */}
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {products.filter(p => ["quotes_received","samples_requested","artwork_sent","ready_for_quote"].includes(p.current_stage || "") || (p.plm_batches?.length === 0)).map((p: any) => {
+                {products.filter(p => ["quotes_received","samples_requested","artwork_sent","ready_for_quote"].includes(p.current_stage || "") || (p.plm_sample_requests || []).some((r: any) => r.status === "approved")).filter(p => !p.killed).map((p: any) => {
                   const isSelected = bulkSampleProductIds.includes(p.id);
                   const selectedFactories = bulkSampleSelections[p.id] || [];
+                  const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
+                  const isAdditional = !!approvedReq;
+                  const approvedFactory = isAdditional ? factories.find((f: any) => f.id === approvedReq.factory_id) : null;
                   return (
                     <div key={p.id} className={`border rounded-xl p-3 space-y-2 transition ${isSelected ? "border-amber-500/30 bg-amber-500/[0.03]" : "border-white/[0.06]"}`}>
                       <label className="flex items-center gap-2.5 cursor-pointer">
                         <input type="checkbox" checked={isSelected}
-                          onChange={e => setBulkSampleProductIds(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                          onChange={e => {
+                            setBulkSampleProductIds(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id));
+                            if (e.target.checked && isAdditional && approvedFactory) {
+                              setBulkSampleSelections(prev => ({ ...prev, [p.id]: [approvedFactory.id] }));
+                            }
+                          }}
                           className="rounded" />
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           {p.images?.[0] && <img src={p.images[0]} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />}
                           <span className="text-xs text-white/70 font-medium truncate">{p.name}</span>
                           {p.sku && <span className="text-[10px] text-white/30 font-mono flex-shrink-0">{p.sku}</span>}
+                          {isAdditional && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/20 flex-shrink-0">Additional</span>}
                         </div>
                       </label>
                       {isSelected && (
-                        <div className="pl-6 space-y-1">
-                          <p className="text-[10px] text-white/30 uppercase tracking-widest">Request from:</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {factories.map((f: any) => (
-                              <button key={f.id} onClick={() => setBulkSampleSelections(prev => ({
-                                ...prev,
-                                [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter(id => id !== f.id) : [...selectedFactories, f.id]
-                              }))}
-                                className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/30 hover:text-white/60"}`}>
-                                {f.name}
-                              </button>
-                            ))}
-                          </div>
+                        <div className="pl-6 space-y-2">
+                          {isAdditional ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-xs text-white/50">
+                                <span className="text-[10px] text-white/30 uppercase tracking-widest">Factory:</span>
+                                <span className="px-2 py-0.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300">{approvedFactory?.name || "Approved factory"}</span>
+                                <span className="text-[10px] text-white/20">(locked — approved factory only)</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Quantity *</p>
+                                  <input type="number" placeholder="e.g. 3"
+                                    value={bulkSampleSelections[`${p.id}_qty`] || ""}
+                                    onChange={e => setBulkSampleSelections(prev => ({ ...prev, [`${p.id}_qty`]: e.target.value }))}
+                                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Reason *</p>
+                                  <input type="text" placeholder="e.g. Color change"
+                                    value={bulkSampleSelections[`${p.id}_reason`] || ""}
+                                    onChange={e => setBulkSampleSelections(prev => ({ ...prev, [`${p.id}_reason`]: e.target.value }))}
+                                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Request from:</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {factories.map((f: any) => (
+                                  <button key={f.id} onClick={() => setBulkSampleSelections(prev => ({
+                                    ...prev,
+                                    [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter(id => id !== f.id) : [...selectedFactories, f.id]
+                                  }))}
+                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/30 hover:text-white/60"}`}>
+                                    {f.name}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -643,6 +680,11 @@ export default function PLMPage() {
                   if (!toRequest.length) return;
                   setSubmittingBulkSample(true);
                   for (const productId of toRequest) {
+                    const p = products.find((pr: any) => pr.id === productId);
+                    const approvedReq = (p?.plm_sample_requests || []).find((r: any) => r.status === "approved");
+                    const isAdditional = !!approvedReq;
+                    const qty = bulkSampleSelections[`${productId}_qty`];
+                    const reason = bulkSampleSelections[`${productId}_reason`];
                     await fetch("/api/plm", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -650,7 +692,10 @@ export default function PLMPage() {
                         action: "create_sample_requests",
                         product_id: productId,
                         factory_ids: bulkSampleSelections[productId],
-                        note: bulkSampleNote,
+                        note: isAdditional ? reason : bulkSampleNote,
+                        force: isAdditional,
+                        label: isAdditional ? "additional" : undefined,
+                        qty: isAdditional ? parseInt(qty) || undefined : undefined,
                         provider: "gmail",
                       }),
                     });
@@ -660,7 +705,12 @@ export default function PLMPage() {
                   setBulkSampleSelections({});
                   setBulkSampleNote("");
                   load();
-                }} disabled={submittingBulkSample || bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0).length === 0}
+                }} disabled={submittingBulkSample || bulkSampleProductIds.filter(id => {
+                  const p = products.find((pr: any) => pr.id === id);
+                  const isAdditional = (p?.plm_sample_requests || []).some((r: any) => r.status === "approved");
+                  if (isAdditional) return (bulkSampleSelections[id] || []).length > 0 && bulkSampleSelections[`${id}_qty`] && bulkSampleSelections[`${id}_reason`];
+                  return (bulkSampleSelections[id] || []).length > 0;
+                }).length === 0}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 transition disabled:opacity-40">
                   {submittingBulkSample ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                   Request Samples for {bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0).length} Products
@@ -835,7 +885,7 @@ export default function PLMPage() {
                   <FileSpreadsheet size={11} />RFQ
                 </button>
                 <button onClick={() => {
-                  const quoteReceived = products.filter(p => p.current_stage === "quotes_received" || p.current_stage === "samples_requested").map(p => p.id);
+                  const quoteReceived = products.filter(p => ["quotes_received","samples_requested","artwork_sent","ready_for_quote"].includes(p.current_stage || "") && !p.killed).map(p => p.id);
                   setBulkSampleProductIds(quoteReceived);
                   setBulkSampleSelections({});
                   setShowSampleRequestModal(true);
