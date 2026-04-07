@@ -162,7 +162,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [factories, setFactories] = useState<any[]>([]);
   const [samples, setSamples] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"products" | "samples" | "prioritization">("products");
+  const [activeTab, setActiveTab] = useState<"products" | "prioritization">("products");
   const [hasPinSet, setHasPinSet] = useState(false);
   const [showSetPin, setShowSetPin] = useState(false);
   const [pinPrompt, setPinPrompt] = useState<null | { resolve: (pin: string) => void }>(null);
@@ -318,7 +318,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       {/* Tabs */}
       <div className="border-b border-white/[0.06] px-6 sticky top-[57px] bg-[#0a0a0a] z-10">
         <div className="flex gap-0">
-          {([["products", "Products"], ["samples", "Samples"], ["prioritization", "Prioritization"]] as const).map(([key, label]) => (
+          {([["products", "Products"], ["prioritization", "Prioritization"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${activeTab === key ? "border-white text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>
               {label}
