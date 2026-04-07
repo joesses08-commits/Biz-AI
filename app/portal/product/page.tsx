@@ -45,7 +45,7 @@ export default function PortalProductPage() {
     const user = localStorage.getItem("portal_user");
     if (!token || !user) { router.push("/portal"); return; }
     const parsed = JSON.parse(user);
-    if (parsed.role !== "factory") { router.push("/portal/dashboard"); return; }
+    if (parsed.role !== "factory" && parsed.role !== "designer") { router.push("/portal/dashboard"); return; }
     setPortalUser(parsed);
     if (productId) load(token);
   }, [productId]);
