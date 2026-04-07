@@ -38,6 +38,7 @@ export default function PortalProductPage() {
   const [sampleNote, setSampleNote] = useState("");
   const [pendingSampleStage, setPendingSampleStage] = useState<{stage: string, srId: string} | null>(null);
   const [orderNotes, setOrderNotes] = useState<Record<string, string>>({});
+  const [orderPending, setOrderPending] = useState<{batchId: string; stage: string; label: string} | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("portal_token");
@@ -181,7 +182,7 @@ export default function PortalProductPage() {
           )}
           {product.factory_notes && (
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Notes from Admin</p>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Notes from Factory</p>
               <p className="text-sm text-white/60">{product.factory_notes}</p>
             </div>
           )}
@@ -410,7 +411,7 @@ export default function PortalProductPage() {
                               </div>
                               <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {PRODUCTION_STAGES.length}</p>
                             </div>
-                            <button onClick={() => next && updateOrderStage(order.id, next.key)} disabled={!next || updatingOrder === order.id}
+                            <button onClick={() => next && setOrderPending({ batchId: order.id, stage: next.key, label: next.label })} disabled={!next || updatingOrder === order.id}
                               className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
                               style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
                               {next ? next.label : "Complete"} →
