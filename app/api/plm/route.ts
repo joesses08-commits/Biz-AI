@@ -564,8 +564,7 @@ ${senderName}`;
           const rd = await r.json();
           if (rd.access_token) { accessToken = rd.access_token; await supabaseAdmin.from("gmail_connections").update({ access_token: rd.access_token, token_expiry: new Date(Date.now() + rd.expires_in * 1000).toISOString() }).eq("user_id", user.id); }
         }
-        const mime = [`MIME-Version: 1.0`, `To: ${factory.email}`, `Subject: ${subject}`, `Content-Type: text/plain; charset=utf-8`, ``, emailBody].join("
-");
+        const mime = ["MIME-Version: 1.0", "To: " + factory.email, "Subject: " + subject, "Content-Type: text/plain; charset=utf-8", "", emailBody].join("\r\n");
         const encoded = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
         await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw: encoded }) }).catch(() => {});
       } else if (msConn) {
