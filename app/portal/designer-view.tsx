@@ -451,9 +451,6 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
             )}
           </div>
 
-        ) : activeTab === "samples" ? (
-          <SamplesTab products={products} factories={factories} token={tok()} onRefresh={load} />
-
         ) : (
           /* Prioritization */
           <div className="space-y-4">
