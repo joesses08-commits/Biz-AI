@@ -448,7 +448,7 @@ export default function PortalProductPage() {
                                 placeholder="Add a note (optional)"
                                 rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
                               <div className="flex gap-2">
-                                <button onClick={async () => { await updateOrderStage(order.id, orderPending.stage); setOrderPending(null); }}
+                                <button onClick={async () => { if (orderPending) { await updateOrderStage(order.id, orderPending.stage); setOrderPending(null); } }}
                                   disabled={updatingOrder === order.id}
                                   className="flex-1 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                                   {updatingOrder === order.id ? "Saving..." : "Confirm"}
