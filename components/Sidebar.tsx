@@ -23,6 +23,7 @@ import { Package,
   HardDrive,
   BarChart3,
   Zap,
+  Sparkles,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
@@ -115,10 +116,9 @@ export default function Sidebar() {
         <NavItem href="/integrations" icon={Plug} label="Integrations" description="Connect your tools" />
         <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" description="Business metrics" />
         <NavItem href="/chat" icon={MessageSquare} label="AI Analyst" description="Ask questions" />
-        <NavItem href="/actions" icon={CheckSquare} label="Action Tracker" description="Tasks & deadlines" />
         <NavItem href="/plm" icon={Package} label="Product Lifecycle" description="SKUs & collections" dot={plmActionCount > 0 ? "red" : plmUpdateCount > 0 ? "yellow" : null} />
         <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
-        <NavItem href="/meetings" icon={Video} label="Meetings" description="Transcripts & actions" />
+        <NavItem href="/coming-soon" icon={Sparkles} label="Coming Soon" description="What's next" />
 
         <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mt-4 mb-2">Integrations</div>
 
