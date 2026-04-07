@@ -133,8 +133,10 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     const allKilled = allSampleRequests.every((s: any) => s.status === "killed");
     const anyApproved = allSampleRequests.some((s: any) => s.status === "approved");
     const currentStage = product._sample_request?.current_stage || allSampleRequests[allSampleRequests.length - 1]?.current_stage;
-    const stageColor = SAMPLE_STAGE_COLORS[currentStage] || "#6b7280";
-    const stageLabel = SAMPLE_STAGE_LABELS[currentStage] || (currentStage || "").replace(/_/g, " ");
+    const stageColorMap: Record<string,string> = { sample_production: "#f59e0b", sample_complete: "#10b981", sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", revision_requested: "#f59e0b", killed: "#ef4444" };
+    const stageLabelMap: Record<string,string> = { sample_production: "Sample Production", sample_complete: "Sample Complete", sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived", revision_requested: "Revision Requested", killed: "Ended" };
+    const stageColor = stageColorMap[currentStage] || "#6b7280";
+    const stageLabel = stageLabelMap[currentStage] || (currentStage || "").replace(/_/g, " ");
 
     return (
       <div key={product.id} className={`border rounded-2xl overflow-hidden ${isUpcoming ? "border-amber-500/10 bg-amber-500/[0.02]" : anyApproved ? "border-emerald-500/10 bg-emerald-500/[0.01]" : allKilled || isProductKilled ? "border-red-500/10 bg-red-500/[0.01]" : "border-white/[0.07] bg-white/[0.01]"}`}>
@@ -226,8 +228,10 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                 {!isCollapsed && (
                   <div className="space-y-1.5">
                     {stages.map((stage: any, si: number) => {
-                      const sc = SAMPLE_STAGE_COLORS[stage.stage] || "#6b7280";
-                      const sl = SAMPLE_STAGE_LABELS[stage.stage] || stage.stage;
+                      const scMap: Record<string,string> = { sample_production: "#f59e0b", sample_complete: "#10b981", sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", revision_requested: "#f59e0b", killed: "#ef4444" };
+                      const slMap: Record<string,string> = { sample_production: "Sample Production", sample_complete: "Sample Complete", sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived", revision_requested: "Revision Requested", killed: "Ended" };
+                      const sc = scMap[stage.stage] || "#6b7280";
+                      const sl = slMap[stage.stage] || stage.stage;
                       const isLast = si === stages.length - 1 && isActive;
                       return (
                         <div key={stage.id} className="flex items-start gap-2.5">
@@ -629,8 +633,10 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
     const allKilled = allSampleRequests.every((s: any) => s.status === "killed");
     const anyApproved = allSampleRequests.some((s: any) => s.status === "approved");
     const currentStage = product._sample_request?.current_stage || allSampleRequests[allSampleRequests.length - 1]?.current_stage;
-    const stageColor = SAMPLE_STAGE_COLORS[currentStage] || "#6b7280";
-    const stageLabel = SAMPLE_STAGE_LABELS[currentStage] || (currentStage || "").replace(/_/g, " ");
+    const stageColorMap: Record<string,string> = { sample_production: "#f59e0b", sample_complete: "#10b981", sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", revision_requested: "#f59e0b", killed: "#ef4444" };
+    const stageLabelMap: Record<string,string> = { sample_production: "Sample Production", sample_complete: "Sample Complete", sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived", revision_requested: "Revision Requested", killed: "Ended" };
+    const stageColor = stageColorMap[currentStage] || "#6b7280";
+    const stageLabel = stageLabelMap[currentStage] || (currentStage || "").replace(/_/g, " ");
 
     return (
       <div key={product.id} className={`border rounded-2xl overflow-hidden ${isUpcoming ? "border-amber-500/10 bg-amber-500/[0.02]" : anyApproved ? "border-emerald-500/10 bg-emerald-500/[0.01]" : allKilled || isProductKilled ? "border-red-500/10 bg-red-500/[0.01]" : "border-white/[0.07] bg-white/[0.01]"}`}>
@@ -722,8 +728,10 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
                 {!isCollapsed && (
                   <div className="space-y-1.5">
                     {stages.map((stage: any, si: number) => {
-                      const sc = SAMPLE_STAGE_COLORS[stage.stage] || "#6b7280";
-                      const sl = SAMPLE_STAGE_LABELS[stage.stage] || stage.stage;
+                      const scMap: Record<string,string> = { sample_production: "#f59e0b", sample_complete: "#10b981", sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", revision_requested: "#f59e0b", killed: "#ef4444" };
+                      const slMap: Record<string,string> = { sample_production: "Sample Production", sample_complete: "Sample Complete", sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived", revision_requested: "Revision Requested", killed: "Ended" };
+                      const sc = scMap[stage.stage] || "#6b7280";
+                      const sl = slMap[stage.stage] || stage.stage;
                       const isLast = si === stages.length - 1 && isActive;
                       return (
                         <div key={stage.id} className="flex items-start gap-2.5">
