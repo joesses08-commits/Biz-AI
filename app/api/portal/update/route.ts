@@ -76,11 +76,20 @@ export async function POST(req: NextRequest) {
 
     if (!batch) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
-    await supabaseAdmin.from("plm_batches").update({
+    const updateData: any = {
       current_stage: stage,
       stage_updated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq("id", batch_id);
+    };
+    await supabaseAdmin.from("plm_batches").update(updateData).eq("id", batch_id);
+
+    // Save note to product factory_notes if provided
+    if (notes) {
+      await supabaseAdmin.from("plm_products").update({
+        factory_notes: notes,
+        updated_at: new Date().toISOString(),
+      }).eq("id", batch.product_id).eq("user_id", batch.user_id);
+    }
 
     await supabaseAdmin.from("plm_batch_stages").insert({
       batch_id,
