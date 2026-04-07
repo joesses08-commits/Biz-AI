@@ -125,7 +125,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     shipped: "Shipped",
   };
 
-  const renderSampleProduct = (product: any, isUpcoming: boolean) => {
+  const renderSampleProduct = (product: any, isUpcoming: boolean, collapsed: Record<string,boolean>, setCollapsed: (fn: (prev: Record<string,boolean>) => Record<string,boolean>) => void) => {
     const allSampleRequests = (product.plm_sample_requests || [])
       .filter((s: any) => s.factory_id === portalUser?.factory_id)
       .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -203,11 +203,11 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
             const isActive = sr.status === "requested" && roundIdx === allSampleRequests.length - 1;
             const roundLabel = sr.label === "additional" ? `Additional Sample ${roundIdx + 1}` : roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
             const collapseKey = `${product.id}-${sr.id}`;
-            const isCollapsed = collapsedSamples[collapseKey] ?? !isActive;
+            const isCollapsed = collapsed[collapseKey] ?? !isActive;
 
             return (
               <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsedSamples(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsed(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
                     {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
@@ -346,7 +346,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                   <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Active Priority · {activeSamples.length}</p>
                 </div>
                 <div className="space-y-4">
-                {activeSamples.map(product => renderSampleProduct(product, false))}
+                {activeSamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
                 </div>
               </div>
             )}
@@ -359,7 +359,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                   <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Upcoming · {upcomingSamples.length}</p>
                 </div>
                 <div className="space-y-4">
-                {upcomingSamples.map(product => renderSampleProduct(product, true))}
+                {upcomingSamples.map(product => renderSampleProduct(product, true, collapsedSamples, setCollapsedSamples))}
                 </div>
               </div>
             )}
@@ -372,7 +372,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                   <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">History · {historySamples.length}</p>
                 </div>
                 <div className="space-y-4">
-                {historySamples.map(product => renderSampleProduct(product, false))}
+                {historySamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
                 </div>
               </div>
             )}
@@ -625,7 +625,7 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
     </div>
   );
 
-  const renderSampleProduct = (product: any, isUpcoming: boolean) => {
+  const renderSampleProduct = (product: any, isUpcoming: boolean, collapsed: Record<string,boolean>, setCollapsed: (fn: (prev: Record<string,boolean>) => Record<string,boolean>) => void) => {
     const allSampleRequests = (product.plm_sample_requests || [])
       .filter((s: any) => s.factory_id === portalUser?.factory_id)
       .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -703,11 +703,11 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
             const isActive = sr.status === "requested" && roundIdx === allSampleRequests.length - 1;
             const roundLabel = sr.label === "additional" ? `Additional Sample ${roundIdx + 1}` : roundIdx === 0 ? "Round 1" : `Revision Round ${roundIdx}`;
             const collapseKey = `${product.id}-${sr.id}`;
-            const isCollapsed = collapsedSamples[collapseKey] ?? !isActive;
+            const isCollapsed = collapsed[collapseKey] ?? !isActive;
 
             return (
               <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
-                <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsedSamples(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
+                <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsed(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
                     {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
