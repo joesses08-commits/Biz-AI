@@ -138,6 +138,8 @@ function ProductPageInner() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
+  const getToken = (): string => localStorage.getItem("portal_token") || "";
+
   const load = async () => {
     const tok = getToken();
     const h = { Authorization: `Bearer ${tok}` };
