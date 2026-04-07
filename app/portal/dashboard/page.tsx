@@ -96,7 +96,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     return active?.current_stage !== "sample_shipped";
   }).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
   // Active = first maxSamples items (by priority order), Upcoming = rest
-  const activeSamples = nonTransitPending.slice(0, maxSamples).filter(filterBySearch);
+  const activeSamples = nonTransitPending.filter((p: any) => p.status !== "hold").slice(0, maxSamples).filter(filterBySearch);
   const upcomingSamples = nonTransitPending.slice(maxSamples).filter(filterBySearch);
   const historySamples = allSampleProducts.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
