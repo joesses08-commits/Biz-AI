@@ -651,7 +651,7 @@ export default function PLMPage() {
                                 {factories.map((f: any) => (
                                   <button key={f.id} onClick={() => setBulkSampleSelections(prev => ({
                                     ...prev,
-                                    [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter(id => id !== f.id) : [...selectedFactories, f.id]
+                                    [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter((id: string) => id !== f.id) : [...selectedFactories, f.id]
                                   }))}
                                     className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/30 hover:text-white/60"}`}>
                                     {f.name}
