@@ -8,7 +8,7 @@ const SAMPLE_STAGES = [
   { key: "sample_production", label: "Sample Production", color: "#f59e0b" },
   { key: "sample_complete", label: "Sample Complete", color: "#10b981" },
   { key: "sample_shipped", label: "Sample Shipped", color: "#3b82f6" },
-  { key: "sample_arrived", label: "Sample Arrived", color: "#8b5cf6" },
+  // sample_arrived is admin-only
 ];
 
 const PRODUCTION_STAGES = [
