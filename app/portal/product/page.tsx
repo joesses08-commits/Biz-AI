@@ -443,7 +443,7 @@ export default function PortalProductPage() {
                           {/* Confirm pending */}
                           {orderPending?.batchId === order.id && (
                             <div className="border border-white/[0.08] rounded-xl p-3 space-y-2 bg-white/[0.02]">
-                              <p className="text-[10px] text-white/40">Moving to: <span className="text-white/70 font-semibold">{orderPending.label}</span></p>
+                              <p className="text-[10px] text-white/40">Moving to: <span className="text-white/70 font-semibold">{orderPending?.label}</span></p>
                               <textarea value={orderNotes[order.id] || ""} onChange={e => setOrderNotes(prev => ({ ...prev, [order.id]: e.target.value }))}
                                 placeholder="Add a note (optional)"
                                 rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
