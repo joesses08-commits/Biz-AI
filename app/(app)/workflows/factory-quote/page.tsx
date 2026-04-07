@@ -691,7 +691,7 @@ Best regards,
       {activeTab === "jobs" && (
         <>
           <div className="flex items-center gap-2">
-            <button onClick={() => { setShowNew(!showNew); if (!showNew) { setActiveDraftJob(null); setProductFile(null); } }}
+            <button onClick={() => { if (!showNew) { setActiveDraftJob(null); setProductFile(null); setNewJob({ job_name: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" }); } setShowNew(!showNew); }}
               className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
               <Plus size={11} />New Quote Job
             </button>
@@ -743,14 +743,14 @@ Best regards,
                           <X size={12} />
                         </button>
                       </>
-                    ) : activeDraftJob ? (
+                    ) : activeDraftJob && activeDraftJob.product_file_base64 ? (
                       <>
                         <FileSpreadsheet size={14} className="text-pink-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs text-pink-300 font-medium truncate">{activeDraftJob.product_file_name}</p>
-                          <p className="text-[10px] text-white/30">RFQ sheet from PLM — will be sent to factories</p>
+                          <p className="text-xs text-pink-300 font-medium truncate">{activeDraftJob.product_file_name || "RFQ sheet"}</p>
+                          <p className="text-[10px] text-white/30">Saved in draft — will be sent to factories</p>
                         </div>
-                        <button onClick={e => { e.preventDefault(); setActiveDraftJob(null); }} className="text-white/20 hover:text-red-400 transition">
+                        <button onClick={e => { e.preventDefault(); setActiveDraftJob(prev => ({...prev, product_file_base64: null, product_file_name: null})); }} className="text-white/20 hover:text-red-400 transition">
                           <X size={12} />
                         </button>
                       </>
