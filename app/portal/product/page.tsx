@@ -158,7 +158,7 @@ function ProductPageInner() {
 
   const approveProduct = async () => {
     setApprovingProduct(true);
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "approve_product", id }) });
     setApprovingProduct(false);
     setApproveSuccess(true);
@@ -166,13 +166,13 @@ function ProductPageInner() {
   };
 
   const saveField = async (field: string, value: string) => {
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_product", id: product.id, [field]: value || null }) });
     load();
   };
 
   const saveCollectionField = async (value: string) => {
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_product", id: product.id, collection_id: value || null }) });
     load();
   };
@@ -188,7 +188,7 @@ function ProductPageInner() {
       updatedNotes = updatedNotes ? `${updatedNotes}
 ${entry}` : entry;
     }
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_product", id: product.id, current_stage: stage, ...(noteText ? { notes: updatedNotes, _stage_note: noteText } : {}) }) });
     setUpdatingDevStage(false);
     setPendingDevStage(null);
@@ -209,7 +209,7 @@ ${entry}` : entry;
     setRequestingSamples(true);
     const res = await fetch("/api/portal/designer", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "create_sample_requests", product_id: id, factory_ids: sampleFactoryIds, note: sampleNote, provider, force: forceFlag || false }),
     });
     const data = await res.json();
@@ -235,7 +235,7 @@ ${entry}` : entry;
     setUpdatingSampleStage(sampleRequestId);
     const res = await fetch("/api/portal/designer", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_sample_stage", sample_request_id: sampleRequestId, product_id: id, factory_id: factoryId, stage, notes: notes || "", outcome, pin: pin || "" }),
     });
     const data = await res.json();
@@ -250,7 +250,7 @@ ${entry}` : entry;
     setStatusPinError("");
     const res = await fetch("/api/portal/designer", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "set_product_status", product_id: id, status, pin }),
     });
     const data = await res.json();
@@ -293,7 +293,7 @@ ${entry}` : entry;
 
   const saveOrderFactory = async (orderId: string) => {
     setSavingOrderFactory(true);
-    await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_batch", id: orderId, factory_id: orderFactoryVal || null }) });
     setSavingOrderFactory(false);
     setEditingOrderFactory(null);
@@ -304,7 +304,7 @@ ${entry}` : entry;
 
   const createOrder = async () => {
     setSavingOrder(true);
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({
         action: "create_batch", product_id: id, stage: "po_issued",
         factory_id: newOrder.factory_id || null,
@@ -325,7 +325,7 @@ ${entry}` : entry;
   const updateOrderStage = async (orderId: string, stage: string) => {
     setUpdatingOrderStage(orderId);
     const note = orderStageNote[orderId] || "";
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_batch_stage", batch_id: orderId, product_id: id, stage, notes: note }) });
     setUpdatingOrderStage(null);
     setOrderStageNote(prev => ({ ...prev, [orderId]: "" }));
@@ -333,14 +333,14 @@ ${entry}` : entry;
   };
 
   const saveOrderField = async (orderId: string, field: string, value: any) => {
-    await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_batch", id: orderId, [field]: value || null }) });
     load();
   };
 
   const deleteOrder = async (orderId: string) => {
     setDeletingOrder(orderId);
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "delete_batch", id: orderId }) });
     setDeletingOrder(null);
     load();
@@ -361,14 +361,14 @@ ${entry}` : entry;
   const setCoverImage = async (url: string) => {
     const images = product.images || [];
     const reordered = [url, ...images.filter((img: string) => img !== url)];
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ action: "update_product", id: product.id, images: reordered }) });
     load();
   };
 
   const handleImageDelete = async (url: string) => {
     setDeletingImage(url);
-    await fetch("/api/plm/upload", { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+    await fetch("/api/plm/upload", { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
       body: JSON.stringify({ product_id: id, url }) });
     setDeletingImage(null);
     load();
@@ -515,7 +515,7 @@ ${entry}` : entry;
                 setRequestingSamples(true);
                 await fetch("/api/portal/designer", {
                   method: "POST",
-                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
                   body: JSON.stringify({
                     action: "create_sample_requests",
                     product_id: id,
@@ -939,7 +939,7 @@ ${entry}` : entry;
                                       <button onClick={async () => {
                                         if (!confirm("Delete this round?")) return;
                                         setDeletingRound(sr.id);
-                                        await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+                                        await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : ""}` },
                                           body: JSON.stringify({ action: "delete_sample_request", sample_request_id: sr.id }) });
                                         setDeletingRound(null);
                                         load();
