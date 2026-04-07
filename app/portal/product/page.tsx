@@ -139,7 +139,7 @@ function ProductPageInner() {
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const load = async () => {
-    const tok_ = tok();
+    const tok_ = typeof window !== "undefined" ? localStorage.getItem("portal_token") || "" : "";
     const headers = { Authorization: `Bearer ${tok_}` };
     const [prodRes, mainRes] = await Promise.all([
       fetch(`/api/portal/designer?type=product&id=${id}`, { headers }),
