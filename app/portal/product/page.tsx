@@ -107,6 +107,7 @@ export default function PortalProductPage() {
   // Show all rounds — factory sees same history as admin
   const sampleRequests = allSampleRequests;
   const orders = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
+  const isOnHold = product?.status === "hold";
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -277,13 +278,14 @@ export default function PortalProductPage() {
                         {/* Arrow nav for active round only */}
                         {isActive && (
                           <div className="border-t border-white/[0.05] pt-3 space-y-3">
+                            {isOnHold && <p className="text-[10px] text-amber-400/60 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">Product is on hold — stage updates paused</p>}
                             {/* Progress bar */}
                             <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
                               <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / SAMPLE_STAGES.length) * 100}%`, background: current.color }} />
                             </div>
                             {/* Arrows */}
                             <div className="flex items-center justify-between gap-4">
-                              <button onClick={() => prev && setPendingSampleStage({ stage: prev.key, srId: sr.id })} disabled={!prev || updatingSample}
+                              <button onClick={() => prev && setPendingSampleStage({ stage: prev.key, srId: sr.id })} disabled={!prev || updatingSample || isOnHold}
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
                                 ← {prev ? prev.label : "Start"}
                               </button>
@@ -294,7 +296,7 @@ export default function PortalProductPage() {
                                 </div>
                                 <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {SAMPLE_STAGES.length}</p>
                               </div>
-                              <button onClick={() => next && setPendingSampleStage({ stage: next.key, srId: sr.id })} disabled={!next || updatingSample}
+                              <button onClick={() => next && setPendingSampleStage({ stage: next.key, srId: sr.id })} disabled={!next || updatingSample || isOnHold}
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
                                 style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
                                 {next ? next.label : "Complete"} →
@@ -438,13 +440,24 @@ export default function PortalProductPage() {
                             </div>
                           </div>
 
-                          {/* Note input */}
-                          <div className="space-y-2">
-                            <p className="text-[10px] text-white/25 uppercase tracking-widest">Note for this stage (optional)</p>
-                            <textarea value={orderNotes[order.id] || ""} onChange={e => setOrderNotes(prev => ({ ...prev, [order.id]: e.target.value }))}
-                              placeholder="e.g. Production delayed by 3 days, back on track"
-                              rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
-                          </div>
+                          {/* Confirm pending */}
+                          {orderPending?.batchId === order.id && (
+                            <div className="border border-white/[0.08] rounded-xl p-3 space-y-2 bg-white/[0.02]">
+                              <p className="text-[10px] text-white/40">Moving to: <span className="text-white/70 font-semibold">{orderPending.label}</span></p>
+                              <textarea value={orderNotes[order.id] || ""} onChange={e => setOrderNotes(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                placeholder="Add a note (optional)"
+                                rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                              <div className="flex gap-2">
+                                <button onClick={async () => { await updateOrderStage(order.id, orderPending.stage); setOrderPending(null); }}
+                                  disabled={updatingOrder === order.id}
+                                  className="flex-1 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                                  {updatingOrder === order.id ? "Saving..." : "Confirm"}
+                                </button>
+                                <button onClick={() => { setOrderPending(null); setOrderNotes(prev => ({ ...prev, [order.id]: "" })); }}
+                                  className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
