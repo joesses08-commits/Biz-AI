@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // ── CREATE JOB ──────────────────────────────────────────────────────
     if (action === "create_job") {
-      const { job_name, factories, order_details, product_file_base64, product_file_name } = body;
+      const { job_name, factories, order_details, product_file_base64, product_file_name, status: jobStatus } = body;
       const { data: job } = await supabaseAdmin
         .from("factory_quote_jobs")
         .insert({
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
           order_details,
           product_file_base64: product_file_base64 || null,
           product_file_name: product_file_name || null,
-          status: "waiting",
+          status: jobStatus || "waiting",
         })
         .select()
         .single();
