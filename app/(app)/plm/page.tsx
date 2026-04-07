@@ -85,7 +85,7 @@ export default function PLMPage() {
 
   // Bulk sample request
   const [showSampleRequestModal, setShowSampleRequestModal] = useState(false);
-  const [bulkSampleSelections, setBulkSampleSelections] = useState<Record<string, string[]>>({});
+  const [bulkSampleSelections, setBulkSampleSelections] = useState<Record<string, any>>({});
   const [bulkSampleNote, setBulkSampleNote] = useState("");
   const [submittingBulkSample, setSubmittingBulkSample] = useState(false);
   const [bulkSampleProductIds, setBulkSampleProductIds] = useState<string[]>([]);
