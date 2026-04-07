@@ -487,7 +487,7 @@ ${senderName}`;
     if (!items?.length) return NextResponse.json({ error: "No items" }, { status: 400 });
 
     // Get all unique factory IDs
-    const allFactoryIds = [...new Set(items.flatMap((i: any) => i.factory_ids || []))];
+    const allFactoryIds = Array.from(new Set(items.flatMap((i: any) => i.factory_ids || [])));
     const { data: allFactories } = await supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").in("id", allFactoryIds);
     const factoryMap: Record<string, any> = {};
     (allFactories || []).forEach((f: any) => { factoryMap[f.id] = f; });
