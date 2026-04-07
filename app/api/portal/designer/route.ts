@@ -63,6 +63,27 @@ export async function POST(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Handle multipart image upload
+  const contentType = req.headers.get("content-type") || "";
+  if (contentType.includes("multipart/form-data")) {
+    const formData = await req.formData();
+    const file = formData.get("file") as File;
+    const product_id = formData.get("product_id") as string;
+    if (!file || !product_id) return NextResponse.json({ error: "Missing file or product_id" }, { status: 400 });
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const ext = file.name.split(".").pop() || "jpg";
+    const filename = `${product_id}/${Date.now()}.${ext}`;
+    const { error } = await supabaseAdmin.storage.from("plm-images").upload(filename, buffer, { contentType: file.type, upsert: false });
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const { data: { publicUrl } } = supabaseAdmin.storage.from("plm-images").getPublicUrl(filename);
+    // Add to product images array
+    const { data: product } = await supabaseAdmin.from("plm_products").select("images").eq("id", product_id).single();
+    const images = [...(product?.images || []), publicUrl];
+    await supabaseAdmin.from("plm_products").update({ images, updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true, url: publicUrl });
+  }
+
   const body = await req.json();
   const { action } = body;
 
@@ -273,4 +294,19 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}
+
+export async function DELETE(req: NextRequest) {
+  const portalUser = await getPortalUser(req);
+  if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { product_id, url } = await req.json();
+  // Extract filename from URL
+  const parts = url.split("/plm-images/");
+  if (parts.length < 2) return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
+  const filename = parts[1];
+  await supabaseAdmin.storage.from("plm-images").remove([filename]);
+  const { data: product } = await supabaseAdmin.from("plm_products").select("images").eq("id", product_id).single();
+  const images = (product?.images || []).filter((img: string) => img !== url);
+  await supabaseAdmin.from("plm_products").update({ images, updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+  return NextResponse.json({ success: true });
 }

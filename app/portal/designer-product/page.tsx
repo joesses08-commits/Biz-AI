@@ -354,7 +354,7 @@ ${entry}` : entry;
     const formData = new FormData();
     formData.append("file", file);
     formData.append("product_id", id as string);
-    await fetch("/api/plm/upload", { method: "POST", body: formData });
+    await fetch("/api/portal/designer", { method: "POST", headers: { Authorization: `Bearer ${getToken()}` }, body: formData });
     setUploadingImage(false);
     load();
   };
@@ -369,7 +369,7 @@ ${entry}` : entry;
 
   const handleImageDelete = async (url: string) => {
     setDeletingImage(url);
-    await fetch("/api/plm/upload", { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+    await fetch("/api/portal/designer", { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ product_id: id, url }) });
     setDeletingImage(null);
     load();
