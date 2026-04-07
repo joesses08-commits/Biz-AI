@@ -418,7 +418,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
 
                   return (
                     <div key={product.id} className={`border rounded-2xl overflow-hidden transition ${isKilled ? "border-red-500/20 opacity-60" : isHold ? "border-amber-500/20" : "border-white/[0.07]"}`}>
-                      <div className="p-4 flex items-center gap-3 cursor-pointer" onClick={() => router.push(`/portal/product?id=${product.id}`)}>
+                      <div className="p-4 flex items-center gap-3 cursor-pointer" onClick={() => router.push(`/portal/designer-product?id=${product.id}`)}>
                         {product.images?.[0] ? (
                           <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
                         ) : (
