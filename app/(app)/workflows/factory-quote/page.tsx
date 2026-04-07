@@ -847,7 +847,11 @@ Best regards,
               <div className="flex items-center gap-2 flex-shrink-0">
                 <button onClick={() => {
                   setActiveDraftJob(job);
-                  setNewJob(prev => ({ ...prev, job_name: job.job_name, duty_pct: job.order_details?.duty_pct || "30", tariff_pct: job.order_details?.tariff_pct || "20", freight: job.order_details?.freight || "0.15", factory_ids: [] }));
+                  const draftFactoryIds = (job.factories || []).map((df: any) => {
+                    const match = factories.find((f: any) => f.name === df.name || f.email === df.email);
+                    return match?.id;
+                  }).filter(Boolean);
+                  setNewJob(prev => ({ ...prev, job_name: job.job_name, duty_pct: job.order_details?.duty_pct || "30", tariff_pct: job.order_details?.tariff_pct || "20", freight: job.order_details?.freight || "0.15", factory_ids: draftFactoryIds }));
                   setShowNew(true);
                 }}
                   className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
