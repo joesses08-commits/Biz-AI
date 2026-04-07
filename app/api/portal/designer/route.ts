@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createHash } from "crypto";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,35 +10,43 @@ const supabaseAdmin = createClient(
 async function getPortalUser(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return null;
-  const { data } = await supabaseAdmin
-    .from("factory_portal_users")
-    .select("*")
-    .eq("session_token", token)
-    .eq("role", "designer")
-    .single();
+  const { data } = await supabaseAdmin.from("factory_portal_users").select("*")
+    .eq("session_token", token).eq("role", "designer").single();
   if (!data) return null;
   if (new Date(data.session_expires_at) < new Date()) return null;
   return data;
+}
+
+function hashPin(pin: string) {
+  return createHash("sha256").update(pin).digest("hex");
+}
+
+async function checkPin(portalUser: any, pin: string): Promise<boolean> {
+  if (!portalUser.pin_hash) return false;
+  return portalUser.pin_hash === hashPin(pin);
 }
 
 export async function GET(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Get all products for this owner (Uncle David's account)
-  const { data: products } = await supabaseAdmin
-    .from("plm_products")
-    .select("*, plm_collections(name, season, year), plm_batches(current_stage)")
-    .eq("user_id", portalUser.user_id)
-    .order("created_at", { ascending: false });
+  const [productsRes, collectionsRes, factoriesRes, samplesRes] = await Promise.all([
+    supabaseAdmin.from("plm_products")
+      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*)")
+      .eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
+    supabaseAdmin.from("plm_collections").select("*").eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
+    supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").eq("user_id", portalUser.user_id).order("name"),
+    supabaseAdmin.from("plm_sample_requests").select("*, plm_products(id, name, sku, images), factory_catalog(id, name)")
+      .eq("user_id", portalUser.user_id).in("status", ["requested"]).order("priority_order", { ascending: true, nullsFirst: false }),
+  ]);
 
-  const { data: collections } = await supabaseAdmin
-    .from("plm_collections")
-    .select("id, name, season, year")
-    .eq("user_id", portalUser.user_id)
-    .order("created_at", { ascending: false });
-
-  return NextResponse.json({ products: products || [], collections: collections || [] });
+  return NextResponse.json({
+    products: productsRes.data || [],
+    collections: collectionsRes.data || [],
+    factories: factoriesRes.data || [],
+    samples: samplesRes.data || [],
+    has_pin: !!portalUser.pin_hash,
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -45,116 +54,142 @@ export async function POST(req: NextRequest) {
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
+  const { action } = body;
 
-  if (body.action === "create_product") {
-    const { name, sku, description, specs, category, collection_id, notes } = body;
-    const { data, error } = await supabaseAdmin.from("plm_products").insert({
-      user_id: portalUser.user_id,
-      name, sku, description, specs, category,
-      collection_id: collection_id || null,
-      notes: notes || null,
-      milestones: {},
-      current_stage: "design_brief",
-      stage_updated_at: new Date().toISOString(),
-      submitted_by_designer: true,
-      designer_name: portalUser.name || portalUser.email,
-      approval_status: "pending",
-    }).select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ success: true, product: data });
-  }
-
-  if (body.action === "update_product") {
-    const { id, name, sku, description, specs, category, collection_id, notes } = body;
-    const { data: existing } = await supabaseAdmin
-      .from("plm_products")
-      .select("user_id")
-      .eq("id", id)
-      .single();
-    if (!existing || existing.user_id !== portalUser.user_id) return NextResponse.json({ error: "Not found" }, { status: 404 });
-
-    await supabaseAdmin.from("plm_products").update({
-      name, sku, description, specs, category,
-      collection_id: collection_id || null,
-      notes: notes || null,
-      updated_at: new Date().toISOString(),
-    }).eq("id", id);
+  // PIN management
+  if (action === "set_pin") {
+    const { pin } = body;
+    await supabaseAdmin.from("factory_portal_users").update({ pin_hash: hashPin(pin) }).eq("id", portalUser.id);
     return NextResponse.json({ success: true });
   }
 
-  if (body.action === "create_collection") {
+  if (action === "verify_pin") {
+    const { pin } = body;
+    if (await checkPin(portalUser, pin)) return NextResponse.json({ success: true });
+    return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
+  }
+
+  // Product actions
+  if (action === "create_product") {
+    const { name, sku, description, specs, category, collection_id, notes } = body;
+    const { data, error } = await supabaseAdmin.from("plm_products").insert({
+      user_id: portalUser.user_id, name, sku, description, specs, category,
+      collection_id: collection_id || null, notes: notes || null,
+      milestones: {}, current_stage: "concept",
+      stage_updated_at: new Date().toISOString(),
+      submitted_by_designer: true, designer_name: portalUser.name || portalUser.email,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }).select().single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id: data.id, user_id: portalUser.user_id, stage: "concept",
+      notes: `Created by ${portalUser.name || portalUser.email}`,
+      updated_by: portalUser.email, updated_by_role: "designer",
+    });
+    return NextResponse.json({ success: true, product: data });
+  }
+
+  if (action === "create_collection") {
     const { name, season, year, notes } = body;
     const { data, error } = await supabaseAdmin.from("plm_collections").insert({
-      user_id: portalUser.user_id,
-      name, season, year: year ? parseInt(year) : null, notes,
-      status: "active",
+      user_id: portalUser.user_id, name, season, year: parseInt(year) || new Date().getFullYear(),
+      notes: notes || null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true, collection: data });
   }
 
-  if (body.action === "toggle_milestone") {
-    const { product_id, milestone, value } = body;
-    const { data: product } = await supabaseAdmin
-      .from("plm_products")
-      .select("milestones, user_id")
-      .eq("id", product_id)
-      .single();
-    if (!product || product.user_id !== portalUser.user_id) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    const milestones = { ...(product.milestones || {}), [milestone]: value };
-    await supabaseAdmin.from("plm_products").update({ milestones, updated_at: new Date().toISOString() }).eq("id", product_id);
+  if (action === "update_stage") {
+    const { product_id, stage, note } = body;
+    await supabaseAdmin.from("plm_products").update({ current_stage: stage, updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id, user_id: portalUser.user_id, stage, notes: note || "",
+      updated_by: portalUser.email, updated_by_role: "designer",
+    });
     return NextResponse.json({ success: true });
   }
 
-  if (body.action === "submit_for_approval") {
-    const { product_id } = body;
-    const { data: product } = await supabaseAdmin
-      .from("plm_products")
-      .select("name, sku, user_id")
-      .eq("id", product_id)
-      .single();
-    if (!product || product.user_id !== portalUser.user_id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (action === "update_product") {
+    const { product_id, ...updates } = body;
+    delete updates.action;
+    await supabaseAdmin.from("plm_products").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true });
+  }
 
-    await supabaseAdmin.from("plm_products").update({
-      approval_status: "pending_review",
-      updated_at: new Date().toISOString(),
-    }).eq("id", product_id);
+  // PIN-required actions
+  if (action === "set_status") {
+    const { product_id, status, pin } = body;
+    if (!(await checkPin(portalUser, pin))) return NextResponse.json({ error: "pin_required" }, { status: 403 });
+    const noteMap: Record<string, string> = {
+      progression: "Set to Progression", hold: "Put on Hold", killed: "Killed",
+    };
+    await supabaseAdmin.from("plm_products").update({ status, killed: status === "killed", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id, user_id: portalUser.user_id, stage: `status_${status}`,
+      notes: noteMap[status] || status, updated_by: portalUser.email, updated_by_role: "designer",
+    });
+    return NextResponse.json({ success: true });
+  }
 
-    // Get owner email from Supabase Auth
-    const { data: { user: ownerUser } } = await supabaseAdmin.auth.admin.getUserById(portalUser.user_id);
-    const ownerEmail = ownerUser?.email;
+  if (action === "update_sample_stage") {
+    const { sample_request_id, product_id, factory_id, stage, notes, outcome, pin } = body;
+    if (outcome && !(await checkPin(portalUser, pin))) return NextResponse.json({ error: "pin_required" }, { status: 403 });
 
-    if (ownerEmail) {
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: "Jimmy AI <onboarding@resend.dev>",
-          to: ownerEmail,
-          subject: `Designer submitted ${product.name} for approval`,
-          html: `
-            <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
-              <h2 style="font-size:18px;font-weight:700;margin-bottom:8px">Product Submitted for Approval</h2>
-              <p style="color:#666;font-size:14px;margin-bottom:16px">
-                <strong>${portalUser.name || portalUser.email}</strong> has submitted a product for your review.
-              </p>
-              <div style="background:#f9f9f9;border-radius:8px;padding:16px;margin-bottom:16px">
-                <p style="margin:0 0 4px;font-size:14px"><strong>${product.name}</strong></p>
-                ${product.sku ? `<p style="margin:0;font-size:12px;color:#888">SKU: ${product.sku}</p>` : ""}
-              </div>
-              <p style="font-size:13px;color:#666">Log into Jimmy AI to review and approve this product.</p>
-              <a href="https://myjimmy.ai/plm/${product_id}?approve=1" style="display:inline-block;margin-top:12px;padding:10px 20px;background:#000;color:#fff;border-radius:8px;text-decoration:none;font-size:13px">Approve Product</a>
-            </div>
-          `,
-        }),
+    const updates: any = { current_stage: stage, updated_at: new Date().toISOString() };
+    if (outcome) updates.status = outcome;
+    if (notes) updates.notes = notes;
+
+    await supabaseAdmin.from("plm_sample_requests").update(updates).eq("id", sample_request_id);
+    await supabaseAdmin.from("plm_sample_stages").insert({
+      sample_request_id, product_id, factory_id, user_id: portalUser.user_id,
+      stage, notes: notes || "", updated_by: portalUser.email, updated_by_role: "designer",
+    });
+
+    if (outcome === "approved") {
+      await supabaseAdmin.from("plm_products").update({ current_stage: "sample_approved", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+      await supabaseAdmin.from("plm_stages").insert({
+        product_id, user_id: portalUser.user_id, stage: "sample_approved",
+        notes: `Sample approved by ${portalUser.name || portalUser.email}`,
+        updated_by: portalUser.email, updated_by_role: "designer",
       });
     }
-
     return NextResponse.json({ success: true });
   }
 
-  return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  if (action === "create_sample_requests") {
+    const { product_id, factory_ids, note } = body;
+    for (const factoryId of factory_ids) {
+      const { data: existing } = await supabaseAdmin.from("plm_sample_requests")
+        .select("id, status").eq("product_id", product_id).eq("factory_id", factoryId).in("status", ["requested", "approved"]);
+      if (existing?.length) continue;
+      const { data: prios } = await supabaseAdmin.from("plm_sample_requests")
+        .select("priority_order").eq("factory_id", factoryId).eq("user_id", portalUser.user_id).eq("status", "requested").not("priority_order", "is", null);
+      const maxPrio = (prios || []).reduce((max: number, r: any) => Math.max(max, r.priority_order || 0), 0);
+      const { data: newReq } = await supabaseAdmin.from("plm_sample_requests").insert({
+        product_id, factory_id: factoryId, user_id: portalUser.user_id,
+        status: "requested", current_stage: "sample_production",
+        notes: note || "", priority_order: maxPrio + 1,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      }).select().single();
+      if (newReq) {
+        await supabaseAdmin.from("plm_sample_stages").insert({
+          sample_request_id: newReq.id, product_id, factory_id: factoryId, user_id: portalUser.user_id,
+          stage: "sample_production", notes: note || "Sample requested",
+          updated_by: portalUser.email, updated_by_role: "designer",
+        });
+      }
+    }
+    await supabaseAdmin.from("plm_products").update({ current_stage: "samples_requested", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "save_priorities") {
+    const { factory_id, ordered_ids } = body;
+    for (let i = 0; i < ordered_ids.length; i++) {
+      await supabaseAdmin.from("plm_sample_requests").update({ priority_order: i + 1 }).eq("id", ordered_ids[i]).eq("user_id", portalUser.user_id);
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }

@@ -7,6 +7,33 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+export async function PUT(req: NextRequest) {
+  // Verify or set portal user PIN
+  const body = await req.json();
+  const { action, token, pin } = body;
+  const crypto = await import("crypto");
+
+  if (action === "verify_pin") {
+    const { data: portalUser } = await supabaseAdmin.from("factory_portal_users")
+      .select("pin_hash").eq("session_token", token).single();
+    if (!portalUser) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    const hash = crypto.createHash("sha256").update(pin).digest("hex");
+    if (portalUser.pin_hash === hash) return NextResponse.json({ success: true });
+    return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
+  }
+
+  if (action === "set_pin") {
+    const { data: portalUser } = await supabaseAdmin.from("factory_portal_users")
+      .select("id").eq("session_token", token).single();
+    if (!portalUser) return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    const hash = crypto.createHash("sha256").update(pin).digest("hex");
+    await supabaseAdmin.from("factory_portal_users").update({ pin_hash: hash }).eq("id", portalUser.id);
+    return NextResponse.json({ success: true });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}
+
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
   if (!email || !password) return NextResponse.json({ error: "Missing credentials" }, { status: 400 });
