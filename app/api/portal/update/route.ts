@@ -70,6 +70,11 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }).eq("id", product_id).eq("user_id", portalUser.user_id);
 
+    // Clear priority_order when shipped — removes from active priority list
+    if (stage === "sample_shipped") {
+      await supabaseAdmin.from("plm_sample_requests").update({ priority_order: null }).eq("id", sampleReq.id);
+    }
+
   } else {
     // Production stage — update the specific order (batch)
     if (!batch_id) return NextResponse.json({ error: "batch_id required for production stages" }, { status: 400 });

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from("plm_sample_requests").update({ priority_order: i + 1 }).eq("id", ordered_ids[i]).eq("user_id", user.id);
     }
     // Clear priority for samples not in the list (unprioritized)
-    const { data: allForFactory } = await supabaseAdmin.from("plm_sample_requests").select("id").eq("factory_id", factory_id).eq("user_id", user.id).in("status", ["requested"]);
+    const { data: allForFactory } = await supabaseAdmin.from("plm_sample_requests").select("id").eq("factory_id", factory_id).eq("user_id", user.id).in("status", ["requested"]).neq("current_stage", "sample_shipped");
     const unprioritized = (allForFactory || []).filter((s: any) => !ordered_ids.includes(s.id));
     for (const s of unprioritized) {
       await supabaseAdmin.from("plm_sample_requests").update({ priority_order: null }).eq("id", s.id);
