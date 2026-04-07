@@ -83,7 +83,7 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
   );
 }
 
-export default function ProductPage() {
+function ProductPageOld() {
   const { id } = useParams();
   const router = useRouter();
   const [approvingProduct, setApprovingProduct] = useState(false);
