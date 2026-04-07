@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Package, ArrowLeft, Factory, Layers, Check, Loader2,
   X, Plus, ImagePlus, Trash2, Pencil
@@ -83,10 +83,9 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
   );
 }
 
-function ProductPageInner() {
+export default function ProductPage() {
   const { id } = useParams();
   const router = useRouter();
-  const showApproveBanner = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("approve") === "1";
   const [approvingProduct, setApprovingProduct] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
   const [product, setProduct] = useState<any>(null);
@@ -138,16 +137,12 @@ function ProductPageInner() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
-  const getToken = (): string => localStorage.getItem("portal_token") || "";
-
   const load = async () => {
-    const tok = getToken();
-    const h = { Authorization: `Bearer ${tok}` };
-    const [prodRes, mainRes] = await Promise.all([
-      fetch(`/api/portal/designer?type=product&id=${id}`, { headers: h }),
-      fetch("/api/portal/designer", { headers: h }),
+    const [prodRes, catRes, colRes] = await Promise.all([
+      fetch(`/api/portal/designer?type=product&id=${id}`, { headers: { Authorization: `Bearer ${getToken()}` } }),
+      fetch("/api/portal/designer", { headers: { Authorization: `Bearer ${getToken()}` } }),
+      fetch("/api/portal/designer", { headers: { Authorization: `Bearer ${getToken()}` } }),
     ]);
-    if (prodRes.status === 401) { router.push("/portal"); return; }
     const prodData = await prodRes.json();
     const mainData = await mainRes.json();
     setProduct(prodData.product);
@@ -295,7 +290,7 @@ ${entry}` : entry;
 
   const saveOrderFactory = async (orderId: string) => {
     setSavingOrderFactory(true);
-    await fetch("/api/portal/designer?_route=batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ action: "update_batch", id: orderId, factory_id: orderFactoryVal || null }) });
     setSavingOrderFactory(false);
     setEditingOrderFactory(null);
@@ -335,7 +330,7 @@ ${entry}` : entry;
   };
 
   const saveOrderField = async (orderId: string, field: string, value: any) => {
-    await fetch("/api/portal/designer?_route=batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ action: "update_batch", id: orderId, [field]: value || null }) });
     load();
   };
@@ -355,7 +350,7 @@ ${entry}` : entry;
     const formData = new FormData();
     formData.append("file", file);
     formData.append("product_id", id as string);
-    await fetch("/api/portal/designer?_route=upload", { method: "POST", body: formData });
+    await fetch("/api/plm/upload", { method: "POST", body: formData });
     setUploadingImage(false);
     load();
   };
@@ -370,7 +365,7 @@ ${entry}` : entry;
 
   const handleImageDelete = async (url: string) => {
     setDeletingImage(url);
-    await fetch("/api/portal/designer?_route=upload", { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+    await fetch("/api/plm/upload", { method: "DELETE", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ product_id: id, url }) });
     setDeletingImage(null);
     load();
@@ -1409,7 +1404,7 @@ ${entry}` : entry;
 import { Suspense } from "react";
 export default function ProductPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"/></div>}>
       <ProductPageInner />
     </Suspense>
   );
