@@ -63,6 +63,13 @@ export async function POST(req: NextRequest) {
       updated_by_role: "factory",
     });
 
+    // Set action_status based on stage
+    const actionStatus = stage === "sample_arrived" ? "action_required" : "updates_made";
+    await supabaseAdmin.from("plm_products").update({
+      action_status: actionStatus,
+      updated_at: new Date().toISOString(),
+    }).eq("id", product_id).eq("user_id", portalUser.user_id);
+
   } else {
     // Production stage — update the specific order (batch)
     if (!batch_id) return NextResponse.json({ error: "batch_id required for production stages" }, { status: 400 });
@@ -90,6 +97,12 @@ export async function POST(req: NextRequest) {
         updated_at: new Date().toISOString(),
       }).eq("id", batch.product_id).eq("user_id", batch.user_id);
     }
+
+    // Production update = updates_made (ball still in factory court)
+    await supabaseAdmin.from("plm_products").update({
+      action_status: "updates_made",
+      updated_at: new Date().toISOString(),
+    }).eq("id", batch.product_id).eq("user_id", batch.user_id);
 
     await supabaseAdmin.from("plm_batch_stages").insert({
       batch_id,

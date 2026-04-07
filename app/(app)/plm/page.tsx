@@ -293,6 +293,21 @@ export default function PLMPage() {
     return true;
   });
 
+  const ACTION_SORT: Record<string, number> = { action_required: 0, updates_made: 1, up_to_date: 2 };
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    // Killed/hold go to bottom
+    if (a.killed && !b.killed) return 1;
+    if (!a.killed && b.killed) return -1;
+    if (a.status === "hold" && b.status !== "hold") return 1;
+    if (a.status !== "hold" && b.status === "hold") return -1;
+    const aScore = ACTION_SORT[a.action_status || "up_to_date"] ?? 2;
+    const bScore = ACTION_SORT[b.action_status || "up_to_date"] ?? 2;
+    return aScore - bScore;
+  });
+
+  const hasActionRequired = filteredProducts.some(p => p.action_status === "action_required");
+  const hasUpdatesMade = filteredProducts.some(p => p.action_status === "updates_made");
+
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
   const lc = "text-[11px] text-white/30 mb-1 block";
 
@@ -920,7 +935,7 @@ export default function PLMPage() {
                   <input type="checkbox" checked={selectedProducts.length === filteredProducts.length && filteredProducts.length > 0} onChange={toggleAll} className="rounded" />
                   <span className="text-[11px] text-white/30">{selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select all"}</span>
                 </div>
-                {filteredProducts.map(product => {
+                {sortedProducts.map(product => {
                   const statusKey = getProductStatus(product);
                   const milestones = product.milestones || {};
                   const productStatusMode = product.status || "progression";
@@ -945,9 +960,15 @@ export default function PLMPage() {
                         <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />
                       )}
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="text-sm font-semibold text-white">{product.name}</p>
                           {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
+                          {product.action_status === "action_required" && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
+                          )}
+                          {product.action_status === "updates_made" && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 uppercase tracking-wide">● Updates Made</span>
+                          )}
                         </div>
                         <div className="flex items-center gap-3">
                           {productStatusMode === "hold" && (

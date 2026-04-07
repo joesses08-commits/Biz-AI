@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
     const collectionId = req.nextUrl.searchParams.get("collection_id");
     let query = supabaseAdmin
       .from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*)")
+      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*), plm_assignments(*, factory_portal_users(id, name, email))")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (collectionId) query = query.eq("collection_id", collectionId);
@@ -67,11 +67,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ products: data || [] });
   }
 
+  if (type === "designers") {
+    const { data } = await supabaseAdmin.from("factory_portal_users")
+      .select("id, name, email, role").eq("user_id", user.id).eq("role", "designer");
+    return NextResponse.json({ designers: data || [] });
+  }
+
+  if (type === "action_counts") {
+    const { data: products } = await supabaseAdmin.from("plm_products")
+      .select("action_status").eq("user_id", user.id).eq("killed", false);
+    const action_required = (products || []).filter((p: any) => p.action_status === "action_required").length;
+    const updates_made = (products || []).filter((p: any) => p.action_status === "updates_made").length;
+    return NextResponse.json({ action_required, updates_made });
+  }
+
   if (type === "product") {
     const id = req.nextUrl.searchParams.get("id");
     const { data } = await supabaseAdmin
       .from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*))")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_assignments(*, factory_portal_users(id, name, email, role))")
       .eq("id", id)
       .single();
     return NextResponse.json({ product: data });
@@ -692,7 +706,10 @@ ${revNote}` : revNote;
         product_id, user_id: user.id, stage: "revision_requested",
         notes: revNote, updated_by: user.email, updated_by_role: "admin",
       });
-
+      await supabaseAdmin.from("plm_products").update({
+        action_status: "updates_made",
+        updated_at: new Date().toISOString(),
+      }).eq("id", product_id);
       return NextResponse.json({ success: true });
     }
 
@@ -704,6 +721,10 @@ ${revNote}` : revNote;
       notes: notes || "",
       updated_by: user.email, updated_by_role: "admin",
     });
+    // Mark sample arrived = action required (needs approve/kill/revise)
+    if (stage === "sample_arrived") {
+      await supabaseAdmin.from("plm_products").update({ action_status: "action_required", updated_at: new Date().toISOString() }).eq("id", product_id);
+    }
 
     // Log to product notes
     const { data: factoryData } = await supabaseAdmin.from("factory_catalog").select("name").eq("id", factory_id).single();
@@ -732,6 +753,7 @@ ${revNote}` : revNote;
       // Update product to sample_approved
       await supabaseAdmin.from("plm_products").update({
         current_stage: "sample_approved",
+        action_status: "action_required",
         updated_at: new Date().toISOString(),
       }).eq("id", product_id);
       await supabaseAdmin.from("plm_stages").insert({
@@ -768,6 +790,11 @@ ${revNote}` : revNote;
       const updatedNotes = productData?.notes ? `${productData.notes}
 ${noteEntry}` : noteEntry;
       await supabaseAdmin.from("plm_products").update({ notes: updatedNotes, updated_at: new Date().toISOString() }).eq("id", product_id);
+    }
+
+    // Update action_status based on outcome
+    if (outcome === "killed" || outcome === "unkill") {
+      await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id);
     }
 
     return NextResponse.json({ success: true });
@@ -808,6 +835,8 @@ ${noteEntry}` : noteEntry;
       notes: noteMap[status],
       updated_by: user.email, updated_by_role: "admin",
     });
+    // Clear action status when product status changes
+    await supabaseAdmin.from("plm_products").update({ action_status: status === "killed" ? "up_to_date" : "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
     // Auto-kill all active sample requests when product is killed
     if (status === "killed") {
       const { data: activeSamples } = await supabaseAdmin.from("plm_sample_requests")
@@ -826,6 +855,25 @@ ${noteEntry}` : noteEntry;
 
   if (action === "delete_collection") {
     await supabaseAdmin.from("plm_collections").delete().eq("id", body.id).eq("user_id", user.id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "assign_product") {
+    const { product_id, designer_ids } = body;
+    // Remove existing assignments
+    await supabaseAdmin.from("plm_assignments").delete().eq("product_id", product_id);
+    // Add new assignments
+    if (designer_ids && designer_ids.length > 0) {
+      await supabaseAdmin.from("plm_assignments").insert(
+        designer_ids.map((did: string) => ({ product_id, designer_id: did, assigned_by: user.id }))
+      );
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "dismiss_action") {
+    const { product_id } = body;
+    await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
     return NextResponse.json({ success: true });
   }
 

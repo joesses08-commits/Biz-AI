@@ -32,12 +32,29 @@ export default function Sidebar() {
   const router = useRouter();
   const [googleOpen, setGoogleOpen] = useState(pathname.startsWith("/google") || pathname.startsWith("/gmail"));
   const [microsoftOpen, setMicrosoftOpen] = useState(pathname.startsWith("/microsoft"));
+  const [plmActionCount, setPlmActionCount] = useState(0);
+  const [plmUpdateCount, setPlmUpdateCount] = useState(0);
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
 
+
+  useEffect(() => {
+    const fetchActionCounts = async () => {
+      try {
+        const res = await fetch("/api/plm?type=action_counts");
+        if (!res.ok) return;
+        const data = await res.json();
+        setPlmActionCount(data.action_required || 0);
+        setPlmUpdateCount(data.updates_made || 0);
+      } catch {}
+    };
+    fetchActionCounts();
+    const interval = setInterval(fetchActionCounts, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -47,10 +64,14 @@ export default function Sidebar() {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
-  const NavItem = ({ href, icon: Icon, label, description }: { href: string; icon: any; label: string; description: string }) => (
+  const NavItem = ({ href, icon: Icon, label, description, dot }: { href: string; icon: any; label: string; description: string; dot?: "red" | "yellow" | null }) => (
     <Link href={href}>
       <div className={cn("nav-item group", isActive(href) && "active")}>
-        <Icon size={16} className={cn("flex-shrink-0 transition-colors", isActive(href) ? "text-accent" : "text-text-muted group-hover:text-text-secondary")} />
+        <div className="relative flex-shrink-0">
+          <Icon size={16} className={cn("transition-colors", isActive(href) ? "text-accent" : "text-text-muted group-hover:text-text-secondary")} />
+          {dot === "red" && <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-red-500" />}
+          {dot === "yellow" && <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400" />}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] font-medium leading-none">{label}</div>
           <div className="text-[10px] text-text-muted mt-0.5 leading-none truncate">{description}</div>
@@ -95,7 +116,7 @@ export default function Sidebar() {
         <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" description="Business metrics" />
         <NavItem href="/chat" icon={MessageSquare} label="AI Analyst" description="Ask questions" />
         <NavItem href="/actions" icon={CheckSquare} label="Action Tracker" description="Tasks & deadlines" />
-        <NavItem href="/plm" icon={Package} label="Product Lifecycle" description="SKUs & collections" />
+        <NavItem href="/plm" icon={Package} label="Product Lifecycle" description="SKUs & collections" dot={plmActionCount > 0 ? "red" : plmUpdateCount > 0 ? "yellow" : null} />
         <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
         <NavItem href="/meetings" icon={Video} label="Meetings" description="Transcripts & actions" />
 
