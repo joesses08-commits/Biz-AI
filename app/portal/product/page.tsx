@@ -84,8 +84,9 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
 }
 
 function ProductPageInner() {
-  const { id } = useParams();
+  const params = useParams();
   const router = useRouter();
+  const id = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") || "" : "";
   const showApproveBanner = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("approve") === "1";
   const [approvingProduct, setApprovingProduct] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
