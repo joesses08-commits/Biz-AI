@@ -731,7 +731,7 @@ Best regards,
                 <label className="cursor-pointer block">
                   <input type="file" accept=".xlsx,.xls" className="hidden"
                     onChange={e => setProductFile(e.target.files?.[0] || null)} />
-                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition ${productFile ? "border-emerald-500/30 bg-emerald-500/5" : activeDraftJob ? "border-pink-500/30 bg-pink-500/5" : "border-dashed border-white/[0.08] hover:border-white/20 bg-white/[0.02]"}`}>
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition ${productFile ? "border-emerald-500/30 bg-emerald-500/5" : (activeDraftJob && activeDraftJob.product_file_base64) ? "border-pink-500/30 bg-pink-500/5" : "border-dashed border-white/[0.08] hover:border-white/20 bg-white/[0.02]"}`}>
                     {productFile ? (
                       <>
                         <FileSpreadsheet size={14} className="text-emerald-400 flex-shrink-0" />
