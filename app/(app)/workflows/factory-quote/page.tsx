@@ -301,6 +301,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
   const [deleting, setDeleting] = useState(false);
   const [providerModal, setProviderModal] = useState<{ jobId: string; gmailEmail: string; outlookEmail: string } | null>(null);
   const [draftModal, setDraftModal] = useState<{ jobId: string; emailBody: string; fields: string[] } | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
   const [activeDraftJob, setActiveDraftJob] = useState<any>(null);
   const [pendingProvider, setPendingProvider] = useState<string | undefined>(undefined);
   const [newJob, setNewJob] = useState({
@@ -387,6 +388,46 @@ Best regards,
       return;
     }
     loadJobs();
+  };
+
+  const saveAsDraft = async () => {
+    if (!newJob.job_name) return;
+    setSavingDraft(true);
+    const selectedFactories = factories.filter(f => newJob.factory_ids.includes(f.id));
+    let fileBase64 = "";
+    let fileName = "";
+    if (productFile) {
+      fileBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve((e.target?.result as string).split(",")[1]);
+        reader.readAsDataURL(productFile);
+      });
+      fileName = productFile.name;
+    } else if (activeDraftJob) {
+      fileBase64 = activeDraftJob.product_file_base64 || "";
+      fileName = activeDraftJob.product_file_name || "RFQ.xlsx";
+    }
+    if (activeDraftJob) {
+      await fetch("/api/workflows/factory-quote", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_jobs", job_ids: [activeDraftJob.id] }) });
+    }
+    await fetch("/api/workflows/factory-quote", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "create_job",
+        job_name: newJob.job_name,
+        factories: selectedFactories.map(f => ({ name: f.name, email: f.email, contact_name: f.contact_name })),
+        order_details: { duty_pct: newJob.duty_pct, tariff_pct: newJob.tariff_pct, freight: newJob.freight, plm_product_ids: activeDraftJob?.order_details?.plm_product_ids || [] },
+        product_file_base64: fileBase64,
+        product_file_name: fileName,
+        status: "draft",
+      }),
+    });
+    setSavingDraft(false);
+    setShowNew(false);
+    setNewJob({ job_name: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" });
+    setProductFile(null);
+    setActiveDraftJob(null);
+    await loadJobs();
   };
 
   const createJob = async () => {
@@ -767,14 +808,20 @@ Best regards,
                 </div>
               </div>
 
-              <div className="flex gap-2 items-center">
+              <div className="flex gap-2 items-center flex-wrap">
                 <button onClick={createJob}
                   disabled={creating || !newJob.job_name || newJob.factory_ids.length === 0 || (!productFile && !activeDraftJob)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
                   {creating ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
                   Draft RFQs
                 </button>
-                <button onClick={() => { setShowNew(false); setProductFile(null); }}
+                <button onClick={saveAsDraft}
+                  disabled={savingDraft || !newJob.job_name}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.10] text-white/60 text-xs font-semibold hover:bg-white/5 transition disabled:opacity-40">
+                  {savingDraft ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                  Save as Draft
+                </button>
+                <button onClick={() => { setShowNew(false); setProductFile(null); setActiveDraftJob(null); }}
                   className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
                   Cancel
                 </button>
@@ -783,7 +830,7 @@ Best regards,
             </div>
           )}
 
-          {/* Draft banner — jobs from PLM */}
+          {/* Draft banner */}
           {!loading && jobs.filter(j => j.status === "draft").map(job => (
             <div key={job.id} className="border border-pink-500/30 bg-pink-500/[0.04] rounded-xl p-4 flex items-center justify-between gap-3 mb-2">
               <div className="flex items-center gap-3">
@@ -792,17 +839,29 @@ Best regards,
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">{job.job_name}</p>
-                  <p className="text-xs text-white/30">Draft from PLM — add factories, set costs, then Draft RFQs</p>
+                  <p className="text-xs text-white/30">
+                    {job.order_details?.plm_product_ids?.length ? "Draft from PLM" : "Saved draft"} — add factories, set costs, then Draft RFQs
+                  </p>
                 </div>
               </div>
-              <button onClick={() => {
-                setActiveDraftJob(job);
-                setNewJob(prev => ({ ...prev, job_name: job.job_name }));
-                setShowNew(true);
-              }}
-                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition flex-shrink-0">
-                Open Draft →
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => {
+                  setActiveDraftJob(job);
+                  setNewJob(prev => ({ ...prev, job_name: job.job_name, duty_pct: job.order_details?.duty_pct || "30", tariff_pct: job.order_details?.tariff_pct || "20", freight: job.order_details?.freight || "0.15", factory_ids: [] }));
+                  setShowNew(true);
+                }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
+                  Open Draft →
+                </button>
+                <button onClick={async () => {
+                  await fetch("/api/workflows/factory-quote", { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "delete_jobs", job_ids: [job.id] }) });
+                  loadJobs();
+                }}
+                  className="p-2 rounded-xl border border-white/[0.06] text-white/30 hover:text-red-400 hover:border-red-500/30 transition">
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </div>
           ))}
 
