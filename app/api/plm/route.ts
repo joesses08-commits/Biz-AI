@@ -808,6 +808,19 @@ ${noteEntry}` : noteEntry;
       notes: noteMap[status],
       updated_by: user.email, updated_by_role: "admin",
     });
+    // Auto-kill all active sample requests when product is killed
+    if (status === "killed") {
+      const { data: activeSamples } = await supabaseAdmin.from("plm_sample_requests")
+        .select("id").eq("product_id", product_id).eq("status", "requested");
+      for (const sr of (activeSamples || [])) {
+        await supabaseAdmin.from("plm_sample_requests").update({ status: "killed", updated_at: new Date().toISOString() }).eq("id", sr.id);
+        await supabaseAdmin.from("plm_sample_stages").insert({
+          sample_request_id: sr.id, product_id, user_id: user.id,
+          stage: "killed", notes: "Product killed — sample auto-cancelled",
+          updated_by: user.email, updated_by_role: "admin",
+        });
+      }
+    }
     return NextResponse.json({ success: true });
   }
 
