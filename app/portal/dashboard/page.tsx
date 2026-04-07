@@ -56,8 +56,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
 
   useEffect(() => { loadProducts(); }, []);
 
-  const getRole = () => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("role") || "factory" : "factory";
-  const token = () => localStorage.getItem(`portal_token_${getRole()}`) || "";
+  const token = () => localStorage.getItem("portal_token") || "";
 
   const loadProducts = async () => {
     const res = await fetch("/api/portal/products", { headers: { Authorization: `Bearer ${token()}` } });
@@ -68,12 +67,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     setLoading(false);
   };
 
-  const logout = () => {
-    const role = getRole();
-    localStorage.removeItem(`portal_token_${role}`);
-    localStorage.removeItem(`portal_user_${role}`);
-    router.push("/portal");
-  };
+  const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
 
   const saveMax = async () => {
     setSavingMax(true);
@@ -515,9 +509,8 @@ export default function PortalDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const role = new URLSearchParams(window.location.search).get("role") || "factory";
-    const token = localStorage.getItem(`portal_token_${role}`);
-    const user = localStorage.getItem(`portal_user_${role}`);
+    const token = localStorage.getItem("portal_token");
+    const user = localStorage.getItem("portal_user");
     if (!token || !user) { router.push("/portal"); return; }
     setPortalUser(JSON.parse(user));
     setLoading(false);
