@@ -75,8 +75,8 @@ export async function GET(req: NextRequest) {
 
   if (type === "action_counts") {
     const { data: products } = await supabaseAdmin.from("plm_products")
-      .select("action_status").eq("user_id", user.id).eq("killed", false);
-    const action_required = (products || []).filter((p: any) => p.action_status === "action_required").length;
+      .select("id, action_status, plm_batches(id)").eq("user_id", user.id).eq("killed", false);
+    const action_required = (products || []).filter((p: any) => p.action_status === "action_required" && !(p.plm_batches || []).length).length;
     const updates_made = (products || []).filter((p: any) => p.action_status === "updates_made").length;
     return NextResponse.json({ action_required, updates_made });
   }
