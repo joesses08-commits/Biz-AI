@@ -120,9 +120,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "update_product") {
-    const { product_id, ...updates } = body;
+    const { product_id, id: productIdAlt, ...updates } = body;
+    const pid = product_id || productIdAlt;
     delete updates.action;
-    await supabaseAdmin.from("plm_products").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    await supabaseAdmin.from("plm_products").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", pid).eq("user_id", portalUser.user_id);
     return NextResponse.json({ success: true });
   }
 
@@ -190,6 +191,76 @@ export async function POST(req: NextRequest) {
       }
     }
     await supabaseAdmin.from("plm_products").update({ current_stage: "samples_requested", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true });
+  }
+
+  // Alias for product page compatibility
+  if (action === "set_product_status") {
+    const { product_id, status, pin } = body;
+    if (!(await checkPin(portalUser, pin))) return NextResponse.json({ error: "pin_required" }, { status: 403 });
+    await supabaseAdmin.from("plm_products").update({ status, killed: status === "killed", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", portalUser.user_id);
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id, user_id: portalUser.user_id, stage: `status_${status}`,
+      notes: status, updated_by: portalUser.email, updated_by_role: "designer",
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "approve_product") {
+    const { id } = body;
+    const devStages = ["concept","ready_for_quote","artwork_sent","quotes_received","samples_requested","sample_approved"];
+    const milestones: Record<string,boolean> = {};
+    devStages.forEach(s => milestones[s] = true);
+    await supabaseAdmin.from("plm_products").update({ current_stage: "sample_approved", milestones, updated_at: new Date().toISOString() }).eq("id", id).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "delete_sample_request") {
+    const { sample_request_id } = body;
+    await supabaseAdmin.from("plm_sample_stages").delete().eq("sample_request_id", sample_request_id);
+    await supabaseAdmin.from("plm_sample_requests").delete().eq("id", sample_request_id).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "create_batch") {
+    const { product_id, stage, factory_id, linked_po_number, order_quantity, target_elc, target_sell_price, moq, batch_notes } = body;
+    const { data: batch } = await supabaseAdmin.from("plm_batches").insert({
+      product_id, user_id: portalUser.user_id, factory_id: factory_id || null,
+      current_stage: stage || "po_issued", linked_po_number: linked_po_number || null,
+      order_quantity: order_quantity || null, target_elc: target_elc || null,
+      target_sell_price: target_sell_price || null, moq: moq || null, batch_notes: batch_notes || null,
+      created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }).select().single();
+    if (batch) {
+      await supabaseAdmin.from("plm_batch_stages").insert({
+        batch_id: batch.id, product_id, user_id: portalUser.user_id,
+        stage: stage || "po_issued", updated_by: portalUser.email, updated_by_role: "designer",
+      });
+    }
+    return NextResponse.json({ success: true, batch });
+  }
+
+  if (action === "update_batch") {
+    const { id: batchId, ...updates } = body;
+    delete updates.action;
+    await supabaseAdmin.from("plm_batches").update({ ...updates, updated_at: new Date().toISOString() }).eq("id", batchId).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "update_batch_stage") {
+    const { batch_id, product_id, stage, notes } = body;
+    await supabaseAdmin.from("plm_batches").update({ current_stage: stage, updated_at: new Date().toISOString() }).eq("id", batch_id).eq("user_id", portalUser.user_id);
+    await supabaseAdmin.from("plm_batch_stages").insert({
+      batch_id, product_id, user_id: portalUser.user_id, stage, notes: notes || "",
+      updated_by: portalUser.email, updated_by_role: "designer",
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "delete_batch") {
+    const { id: batchId } = body;
+    await supabaseAdmin.from("plm_batch_stages").delete().eq("batch_id", batchId);
+    await supabaseAdmin.from("plm_batches").delete().eq("id", batchId).eq("user_id", portalUser.user_id);
     return NextResponse.json({ success: true });
   }
 
