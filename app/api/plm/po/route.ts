@@ -282,11 +282,11 @@ ${buyerContact || buyerCompany}`;
   ${notes ? `<div class="notes"><label>Notes & Special Instructions</label><p style="font-size:12px">${notes}</p></div>` : ""}
   <div class="signatures">
     <div>
-      <div class="sig-block"><div class="sig-name">${buyerContact || buyerCompany}</div><div class="sig-label">Authorized Signature — Buyer</div></div>
+      <div class="sig-block"><div class="sig-name">${buyerContact || buyerCompany}</div><div class="sig-label">Authorized Signature - Buyer</div></div>
       <div class="sig-date">Date: ___________________________</div>
     </div>
     <div>
-      <div class="sig-block"><div class="sig-name">${factory?.name || "Factory"}</div><div class="sig-label">Authorized Signature — Factory</div></div>
+      <div class="sig-block"><div class="sig-name">${factory?.name || "Factory"}</div><div class="sig-label">Authorized Signature - Factory</div></div>
       <div class="sig-date">Date: ___________________________</div>
     </div>
   </div>

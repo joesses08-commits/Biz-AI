@@ -157,7 +157,7 @@ export default function POGeneratorPage() {
         po_number: data.po_number,
         html: data.html,
         pdfUrl: publicUrl,
-        subject: `Purchase Order ${data.po_number} — ${poForm.company_name || "Order"}`,
+        subject: `Purchase Order ${data.po_number} - ${poForm.company_name || "Order"}`,
         body: (data.email_body || "") + (publicUrl ? `
 
 Download PO: ${publicUrl}` : ""),
