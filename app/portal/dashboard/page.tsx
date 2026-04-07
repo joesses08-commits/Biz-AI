@@ -169,7 +169,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
             {isUpcoming && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Upcoming</span>}
-            {!isUpcoming && !anyApproved && currentStage !== "sample_shipped" && product._sample_priority != null && (
+            {!isUpcoming && product._sample_priority != null && (
               <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">Priority #{product._sample_priority}</span>
             )}
             {anyApproved && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Approved ✓</span>}
