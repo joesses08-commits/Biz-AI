@@ -78,10 +78,13 @@ export default function PortalProductPage() {
 
   const updateOrderStage = async (batchId: string, stage: string) => {
     setUpdatingOrder(batchId);
+    const stageLabel = PRODUCTION_STAGES.find(s => s.key === stage)?.label || stage;
+    const rawNote = orderNotes[batchId] || "";
+    const formattedNote = rawNote ? `${stageLabel}: ${rawNote}` : stageLabel;
     await fetch("/api/portal/update", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-      body: JSON.stringify({ product_id: productId, batch_id: batchId, stage, notes: orderNotes[batchId] || "" }),
+      body: JSON.stringify({ product_id: productId, batch_id: batchId, stage, notes: formattedNote }),
     });
     setUpdatingOrder(null);
     setOrderNotes(prev => ({ ...prev, [batchId]: "" }));
