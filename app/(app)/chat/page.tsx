@@ -298,13 +298,21 @@ export default function ChatPage() {
             </div>
           ) : (
             conversations.map(conv => (
-              <button key={conv.id} onClick={() => setActiveId(conv.id)}
-                className={`w-full text-left px-4 py-3 hover:bg-white/[0.03] transition group ${activeId === conv.id ? "bg-white/[0.05]" : ""}`}>
-                <p className={`text-xs truncate mb-0.5 ${activeId === conv.id ? "text-white/80" : "text-white/50"}`}>
-                  {conv.title}
-                </p>
-                <p className="text-[10px] text-white/20">{formatDate(conv.createdAt)}</p>
-              </button>
+              <div key={conv.id} className={`group flex items-center hover:bg-white/[0.03] transition ${activeId === conv.id ? "bg-white/[0.05]" : ""}`}>
+                <button onClick={() => setActiveId(conv.id)} className="flex-1 text-left px-4 py-3">
+                  <p className={`text-xs truncate mb-0.5 ${activeId === conv.id ? "text-white/80" : "text-white/50"}`}>
+                    {conv.title}
+                  </p>
+                  <p className="text-[10px] text-white/20">{formatDate(conv.createdAt)}</p>
+                </button>
+                <button onClick={() => {
+                  const updated = conversations.filter(c => c.id !== conv.id);
+                  setConversations(updated);
+                  if (activeId === conv.id) setActiveId(updated[0]?.id || null);
+                }} className="opacity-0 group-hover:opacity-100 transition px-3 py-3 text-white/20 hover:text-red-400">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
             ))
           )}
         </div>
