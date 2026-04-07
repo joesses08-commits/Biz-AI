@@ -551,25 +551,11 @@ ${senderName}`;
       const factoryProducts = items.filter((i: any) => (i.factory_ids || []).includes(factoryId)).map((i: any) => productMap[i.product_id]).filter(Boolean);
       if (!factoryProducts.length) continue;
 
-      const productList = factoryProducts.map((p: any) => `• ${p.name}${p.sku ? ` (${p.sku})` : ""}`).join("
-");
+      const productList = factoryProducts.map((p: any) => "- " + p.name + (p.sku ? " (" + p.sku + ")" : "")).join("\n");
       const contactName = factory.contact_name || factory.name;
-      const emailBody = `Hi ${contactName},
+      const emailBody = "Hi " + contactName + ",\n\nWe have submitted sample requests for the following product" + (factoryProducts.length > 1 ? "s" : "") + ":\n\n" + productList + "\n\nPlease log into the factory portal to view full product details and update sample status as you progress." + (note ? "\n\nNote: " + note : "") + "\n\nPortal: https://portal.myjimmy.ai\n\nBest regards,\n" + senderName;
 
-We have submitted sample requests for the following product${factoryProducts.length > 1 ? "s" : ""}:
-
-${productList}
-
-Please log into the factory portal to view full product details and update sample status as you progress.${note ? `
-
-Note: ${note}` : ""}
-
-Portal: https://portal.myjimmy.ai
-
-Best regards,
-${senderName}`;
-
-      const subject = `Sample Request${factoryProducts.length > 1 ? `s (${factoryProducts.length} products)` : ` — ${factoryProducts[0]?.name}`}`;
+      const subject = "Sample Request" + (factoryProducts.length > 1 ? "s (" + factoryProducts.length + " products)" : " — " + (factoryProducts[0]?.name || ""));
 
       if (useGmail && gmailConn) {
         let accessToken = gmailConn.access_token;
