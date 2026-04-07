@@ -61,6 +61,10 @@ export default function PLMPage() {
   const [showNewPortalUser, setShowNewPortalUser] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assignDesigners, setAssignDesigners] = useState<any[]>([]);
+  const [selectedDesignerIds, setSelectedDesignerIds] = useState<string[]>([]);
+  const [assigning, setAssigning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingPortalUser, setSavingPortalUser] = useState(false);
   const [deletingPortalUser, setDeletingPortalUser] = useState<string|null>(null);
@@ -426,6 +430,49 @@ export default function PLMPage() {
                   <button onClick={() => setShowImportModal(false)} className="w-full py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Done</button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Assign Modal */}
+        {showAssignModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <h3 className="text-sm font-bold text-white">Assign {selectedProducts.length} Products</h3>
+              <p className="text-xs text-white/40">Select team members to assign these products to.</p>
+              <div className="space-y-2">
+                {assignDesigners.length === 0 && <p className="text-xs text-white/30">No designers found. Add designers in the Designer Access tab.</p>}
+                {assignDesigners.map((d: any) => (
+                  <button key={d.id} onClick={() => setSelectedDesignerIds(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${selectedDesignerIds.includes(d.id) ? "border-blue-500/40 bg-blue-500/10" : "border-white/[0.06] hover:border-white/15"}`}>
+                    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/50">
+                      {(d.name || d.email || "?")[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-xs font-semibold text-white/80">{d.name || d.email}</p>
+                      {d.name && <p className="text-[10px] text-white/30">{d.email}</p>}
+                    </div>
+                    {selectedDesignerIds.includes(d.id) && <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg></div>}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={async () => {
+                  setAssigning(true);
+                  for (const pid of selectedProducts) {
+                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "assign_product", product_id: pid, designer_ids: selectedDesignerIds }) });
+                  }
+                  setAssigning(false);
+                  setShowAssignModal(false);
+                  setSelectedProducts([]);
+                  load();
+                }} disabled={assigning || selectedDesignerIds.length === 0}
+                  className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                  {assigning ? "Assigning..." : `Assign to ${selectedDesignerIds.length} member${selectedDesignerIds.length !== 1 ? "s" : ""}`}
+                </button>
+                <button onClick={() => setShowAssignModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              </div>
             </div>
           </div>
         )}
@@ -909,6 +956,17 @@ export default function PLMPage() {
                 {selectedProducts.length > 0 && (
                   <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/60 font-semibold hover:bg-white/5 transition">
                     <Download size={11} />Export {selectedProducts.length}
+                  </button>
+                )}
+                {selectedProducts.length > 0 && (
+                  <button onClick={async () => {
+                    const res = await fetch("/api/plm?type=designers");
+                    const data = await res.json();
+                    setAssignDesigners(data.designers || []);
+                    setSelectedDesignerIds([]);
+                    setShowAssignModal(true);
+                  }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-blue-500/30 text-blue-400 bg-blue-500/10 font-semibold hover:bg-blue-500/20 transition">
+                    Assign {selectedProducts.length}
                   </button>
                 )}
                 <button onClick={() => {

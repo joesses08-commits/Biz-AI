@@ -90,6 +90,7 @@ function ProductPageInner() {
   const id = searchParams.get("id") || "";
   const getToken = (): string => localStorage.getItem("portal_token") || "";
   const showApproveBanner = false;
+  const portalUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("portal_user") || "{}") : {};
   const [approvingProduct, setApprovingProduct] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
   const [product, setProduct] = useState<any>(null);
@@ -627,6 +628,23 @@ ${entry}` : entry;
               </button>
               <button onClick={() => { setShowStatusModal(false); setPendingStatus(null); setStatusPin(""); setStatusPinError(""); }}
                 className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Required banner */}
+      {showActionBanner && (
+        <div className={`mx-6 mt-4 px-4 py-3 rounded-xl border flex items-center justify-between ${product.action_status === "action_required" ? "border-red-500/25 bg-red-500/[0.05]" : "border-blue-500/25 bg-blue-500/[0.05]"}`}>
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm">{product.action_status === "action_required" ? "⚡" : "●"}</span>
+            <div>
+              <p className={`text-xs font-semibold ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
+                {product.action_status === "action_required" ? "Action Required" : "Updates Made"}
+              </p>
+              <p className="text-[11px] text-white/40">
+                {product.action_status === "action_required" ? "This product needs your attention." : "Factory has made progress on this product."}
+              </p>
             </div>
           </div>
         </div>
