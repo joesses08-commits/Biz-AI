@@ -105,6 +105,73 @@ function PinPrompt({ onConfirm, onCancel }: { onConfirm: (pin: string) => void; 
   );
 }
 
+function EditableField({ label, value, onSave, multiline = false }: { label: string; value: string; onSave: (v: string) => Promise<void>; multiline?: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(value);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    await onSave(val);
+    setSaving(false);
+    setEditing(false);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[10px] text-white/30 uppercase tracking-widest">{label}</p>
+        {!editing && <button onClick={() => { setVal(value); setEditing(true); }} className="text-[10px] text-white/20 hover:text-white/50 transition">edit</button>}
+      </div>
+      {editing ? (
+        <div className="space-y-1.5">
+          {multiline ? (
+            <textarea value={val} onChange={e => setVal(e.target.value)} rows={3}
+              className="w-full bg-white/[0.03] border border-white/[0.15] rounded-xl px-3 py-2 text-white/80 text-xs focus:outline-none resize-none" />
+          ) : (
+            <input value={val} onChange={e => setVal(e.target.value)}
+              className="w-full bg-white/[0.03] border border-white/[0.15] rounded-xl px-3 py-2 text-white/80 text-xs focus:outline-none" />
+          )}
+          <div className="flex gap-1.5">
+            <button onClick={save} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
+              {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
+            </button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-white/60">{value || <span className="text-white/20 italic">Not set</span>}</p>
+      )}
+    </div>
+  );
+}
+
+function EditableProductFields({ product, token, onSave, collections }: { product: any; token: string; onSave: () => void; collections: any[] }) {
+  const saveField = async (field: string, value: string) => {
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: "update_product", product_id: product.id, [field]: value }) });
+    onSave();
+  };
+
+  return (
+    <div className="space-y-3">
+      <EditableField label="Product Name" value={product.name || ""} onSave={v => saveField("name", v)} />
+      <EditableField label="SKU" value={product.sku || ""} onSave={v => saveField("sku", v)} />
+      <EditableField label="Description" value={product.description || ""} onSave={v => saveField("description", v)} multiline />
+      <EditableField label="Specs" value={product.specs || ""} onSave={v => saveField("specs", v)} multiline />
+      <EditableField label="Category" value={product.category || ""} onSave={v => saveField("category", v)} />
+      <div>
+        <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Collection</p>
+        <select value={product.collection_id || ""} onChange={async e => { await saveField("collection_id", e.target.value); onSave(); }}
+          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none">
+          <option value="">No collection</option>
+          {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 // Samples tab — extracted as component to avoid hooks-in-map issue
 function SamplesTab({ products, factories, token, onRefresh }: { products: any[]; factories: any[]; token: string; onRefresh: () => void }) {
   const [selections, setSelections] = useState<Record<string, string[]>>({});
@@ -476,13 +543,8 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
 
                       {isExpanded && (
                         <div className="border-t border-white/[0.05] p-4 space-y-5">
-                          {/* Product details */}
-                          <div className="grid grid-cols-2 gap-4 text-xs">
-                            {product.description && <div><p className="text-white/30 mb-0.5">Description</p><p className="text-white/60">{product.description}</p></div>}
-                            {product.specs && <div><p className="text-white/30 mb-0.5">Specs</p><p className="text-white/60">{product.specs}</p></div>}
-                            {product.category && <div><p className="text-white/30 mb-0.5">Category</p><p className="text-white/60">{product.category}</p></div>}
-                            {product.notes && <div><p className="text-white/30 mb-0.5">Notes</p><p className="text-white/60">{product.notes}</p></div>}
-                          </div>
+                          {/* Editable product details */}
+                          <EditableProductFields product={product} token={tok()} onSave={load} collections={collections} />
 
                           {/* Dev stage selector */}
                           {!isKilled && (

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getEffectiveUser } from "@/lib/get-user";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -9,16 +10,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
+
 
 const ASK_FOR_LABELS: Record<string, string> = {
   price: "Unit Price",
@@ -43,7 +35,7 @@ const INCLUDE_LABELS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const user = await getUser();
+  const user = await getEffectiveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { product_ids, include, ask_for } = await req.json();

@@ -10,7 +10,13 @@ const supabaseAdmin = createClient(
 
 import { createHash } from "crypto";
 function hashPin(pin: string) { return createHash("sha256").update(pin + "jimmy-pin-salt").digest("hex"); }
-async function checkPin(userId: string, pin: string): Promise<boolean> {
+async function checkPin(userId: string, pin: string, designerId?: string): Promise<boolean> {
+  // If designer, check their portal PIN instead
+  if (designerId) {
+    const { data: pu } = await supabaseAdmin.from("factory_portal_users").select("pin_hash").eq("supabase_user_id", designerId).single();
+    if (pu?.pin_hash) return pu.pin_hash === createHash("sha256").update(pin).digest("hex");
+    return false;
+  }
   const { data } = await supabaseAdmin.from("profiles").select("admin_pin").eq("id", userId).single();
   if (data?.admin_pin) return data.admin_pin === hashPin(pin);
   return pin === process.env.ADMIN_MILESTONE_PIN;
@@ -24,6 +30,12 @@ async function getUser() {
     { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
   );
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  // If designer, use admin_user_id as effective user
+  const { data: profile } = await supabaseAdmin.from("profiles").select("is_designer, admin_user_id").eq("id", user.id).single();
+  if (profile?.is_designer && profile?.admin_user_id) {
+    return { ...user, id: profile.admin_user_id, _is_designer: true, _designer_id: user.id };
+  }
   return user;
 }
 
@@ -114,7 +126,7 @@ export async function POST(req: NextRequest) {
 
     // Prevent unchecking unless admin provides correct PIN
     if (!value && currentMilestones[milestone] === true) {
-      if (!force || !(await checkPin(user.id, pin))) {
+      if (!force || !(await checkPin(user.id, pin, (user as any)._designer_id))) {
         return NextResponse.json({ error: "pin_required" }, { status: 403 });
       }
     }
@@ -606,7 +618,7 @@ ${senderName}`;
     const { sample_request_id, product_id, factory_id, stage, notes, outcome, pin } = body;
 
     // PIN required for outcome decisions
-    if (outcome && !(await checkPin(user.id, pin))) {
+    if (outcome && !(await checkPin(user.id, pin, (user as any)._designer_id))) {
       return NextResponse.json({ error: "pin_required" }, { status: 403 });
     }
 
@@ -772,7 +784,7 @@ ${noteEntry}` : noteEntry;
 
   if (action === "set_product_status") {
     const { product_id, status, pin } = body;
-    if (!(await checkPin(user.id, pin))) {
+    if (!(await checkPin(user.id, pin, (user as any)._designer_id))) {
       return NextResponse.json({ error: "pin_required" }, { status: 403 });
     }
     if (!["progression", "hold", "killed"].includes(status)) {

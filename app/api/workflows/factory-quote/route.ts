@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getEffectiveUser } from "@/lib/get-user";
+import { getEffectiveUser } from "@/lib/get-user";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -24,14 +26,7 @@ async function getUser(req?: NextRequest) {
       return { id: userId } as any;
     }
   }
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  return getEffectiveUser();
 }
 
 async function refreshGmailToken(conn: any, userId: string) {
@@ -59,7 +54,7 @@ async function refreshGmailToken(conn: any, userId: string) {
 
 export async function GET() {
   try {
-    const user = await getUser();
+    const user = await getEffectiveUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { data: jobs } = await supabaseAdmin
       .from("factory_quote_jobs")

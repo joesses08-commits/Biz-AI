@@ -43,6 +43,34 @@ export async function POST(req: NextRequest) {
     const { name, email, password, factory_id, role } = body;
     const password_hash = crypto.createHash("sha256").update(password).digest("hex");
 
+    let supabase_user_id: string | null = null;
+
+    // For designers: create a real Supabase auth user so they can log into myjimmy.ai
+    if (role === "designer") {
+      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: email.toLowerCase(),
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: name,
+          is_designer: true,
+          admin_user_id: user.id,
+        },
+      });
+
+      if (authError) return NextResponse.json({ error: authError.message }, { status: 500 });
+      supabase_user_id = authUser.user.id;
+
+      // Create a profiles row for the designer pointing to admin's data
+      await supabaseAdmin.from("profiles").upsert({
+        id: supabase_user_id,
+        full_name: name,
+        onboarded: true,
+        is_designer: true,
+        admin_user_id: user.id,
+      });
+    }
+
     const { error } = await supabaseAdmin.from("factory_portal_users").insert({
       user_id: user.id,
       factory_id: factory_id || null,
@@ -50,6 +78,7 @@ export async function POST(req: NextRequest) {
       name,
       role: role || "factory",
       password_hash,
+      supabase_user_id,
     });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -57,10 +86,15 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.action === "delete") {
-    await supabaseAdmin.from("factory_portal_users")
-      .delete()
-      .eq("id", body.id)
-      .eq("user_id", user.id);
+    // If designer, also delete their Supabase auth user
+    const { data: portalUser } = await supabaseAdmin.from("factory_portal_users")
+      .select("supabase_user_id, role").eq("id", body.id).single();
+
+    if (portalUser?.role === "designer" && portalUser?.supabase_user_id) {
+      await supabaseAdmin.auth.admin.deleteUser(portalUser.supabase_user_id);
+    }
+
+    await supabaseAdmin.from("factory_portal_users").delete().eq("id", body.id).eq("user_id", user.id);
     return NextResponse.json({ success: true });
   }
 

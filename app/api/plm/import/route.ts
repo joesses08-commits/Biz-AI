@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getEffectiveUser } from "@/lib/get-user";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -10,16 +11,7 @@ const supabaseAdmin = createClient(
 );
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
+
 
 // Extract images from Excel zip, map to row numbers using drawing XML anchors
 async function extractImagesFromExcel(base64: string): Promise<Map<number, Buffer>> {
@@ -72,7 +64,7 @@ async function extractImagesFromExcel(base64: string): Promise<Map<number, Buffe
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUser();
+  const user = await getEffectiveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
