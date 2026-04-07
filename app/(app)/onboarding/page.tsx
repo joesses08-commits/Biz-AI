@@ -339,7 +339,7 @@ export default function OnboardingPage() {
                 {savingPin ? "Saving..." : "Set PIN & Continue →"}
               </button>
             </div>
-            <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(3)}>Skip for now</p>
+
           </div>
         )}
 
@@ -392,7 +392,7 @@ export default function OnboardingPage() {
               <p className="text-white/40 text-sm leading-relaxed">
                 {brainDone ? "Jimmy has read your full history and knows your business. You're ready." :
                  connectedIntegrations.length > 0 ? "Jimmy will read your full history — emails, files, invoices, payments — and build permanent intelligence about your business. One time only." :
-                 "No tools connected yet. You can build your brain later from Settings after connecting."}
+                 "No tools connected yet. Connect your tools first, then come back to build your brain."}
               </p>
             </div>
 
@@ -482,9 +482,7 @@ export default function OnboardingPage() {
               )}
             </div>
             {!buildingBrain && !brainDone && connectedIntegrations.length > 0 && (
-              <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(5)}>
-                Skip — build later from Settings
-              </p>
+
             )}
           </div>
         )}
