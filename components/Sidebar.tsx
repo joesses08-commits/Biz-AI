@@ -28,7 +28,7 @@ import { Package,
 import { createBrowserClient } from "@supabase/ssr";
 import { cn } from "@/lib/utils";
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const [googleOpen, setGoogleOpen] = useState(pathname.startsWith("/google") || pathname.startsWith("/gmail"));
@@ -66,7 +66,7 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   const NavItem = ({ href, icon: Icon, label, description, dot }: { href: string; icon: any; label: string; description: string; dot?: "red" | "yellow" | null }) => (
-    <Link href={href}>
+    <Link href={href} onClick={onNavigate}>
       <div className={cn("nav-item group", isActive(href) && "active")}>
         <div className="relative flex-shrink-0">
           <Icon size={16} className={cn("transition-colors", isActive(href) ? "text-accent" : "text-text-muted group-hover:text-text-secondary")} />
@@ -83,7 +83,7 @@ export default function Sidebar() {
   );
 
   const SubItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => (
-    <Link href={href}>
+    <Link href={href} onClick={onNavigate}>
       <div className={cn("flex items-center gap-2.5 px-3 py-1.5 rounded-lg cursor-pointer transition-colors ml-4", isActive(href) ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-secondary hover:bg-white/5")}>
         <Icon size={13} className="flex-shrink-0" />
         <span className="text-[12px] font-medium">{label}</span>
