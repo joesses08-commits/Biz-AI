@@ -33,11 +33,8 @@ export default function PortalLogin() {
 
     // Store portal session
     const role = data.user?.role || "factory";
-    const userRole = data.user?.role || "factory";
-    localStorage.setItem(`portal_token_${userRole}`, data.token);
-    localStorage.setItem(`portal_user_${userRole}`, JSON.stringify(data.user));
-    localStorage.setItem(`portal_token_${role}`, data.token);
-    localStorage.setItem(`portal_user_${role}`, JSON.stringify(data.user));
+    localStorage.setItem("portal_token", data.token);
+    localStorage.setItem("portal_user", JSON.stringify(data.user));
     router.push(`/portal/dashboard?role=${data.user?.role || "factory"}`);
   };
 
