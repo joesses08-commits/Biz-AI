@@ -323,7 +323,7 @@ export default function PLMPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="border-b border-white/[0.06] px-8 py-6">
-        <div className="max-w-7xl mx-auto flex items-start justify-between">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">

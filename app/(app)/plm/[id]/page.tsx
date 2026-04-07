@@ -720,7 +720,7 @@ ${entry}` : entry;
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-8 py-8 grid grid-cols-3 gap-8">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         <div className="col-span-2 space-y-6">
 
           {/* ── DEVELOPMENT SECTION ── */}
