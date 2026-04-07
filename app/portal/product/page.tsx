@@ -89,7 +89,7 @@ function ProductPageInner() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id") || "";
   const showApproveBanner = searchParams.get("approve") === "1";
-  const getToken = () => getToken();
+  const getToken = (): string => localStorage.getItem("portal_token") || "";
   const [approvingProduct, setApprovingProduct] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
   const [product, setProduct] = useState<any>(null);
