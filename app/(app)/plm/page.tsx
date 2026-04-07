@@ -72,6 +72,7 @@ export default function PLMPage() {
   const [filterCollection, setFilterCollection] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportColumns, setExportColumns] = useState(["name","sku","description","specs","category","collection","current_stage"]);
   const [exportPreset, setExportPreset] = useState("custom");
@@ -978,30 +979,20 @@ export default function PLMPage() {
             ) : (
               <div className="grid grid-cols-1 gap-3">
                 <div className="flex items-center gap-3 px-4 py-2">
-                  <button onClick={() => { if (selectedProducts.length > 0) { setSelectedProducts([]); } }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-white/20 text-white/70 bg-white/5 hover:bg-white/10" : "border-white/10 text-white/40 hover:bg-white/5"}`}>
-                    {selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select"}
+                  <button onClick={() => { setSelectMode(s => !s); setSelectedProducts([]); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectMode ? "border-white/20 text-white/70 bg-white/5 hover:bg-white/10" : "border-white/10 text-white/40 hover:bg-white/5"}`}>
+                    {selectMode && selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select"}
                   </button>
-                  {selectedProducts.length > 0 && (
+                  {selectMode && (
                     <button onClick={toggleAll} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/40 hover:bg-white/5 font-semibold transition">
                       {selectedProducts.length === filteredProducts.length ? "Deselect All" : "Select All"}
                     </button>
                   )}
-                  {selectedProducts.length > 0 && (
-                    <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/60 font-semibold hover:bg-white/5 transition">
-                      <Download size={11} />Export {selectedProducts.length}
-                    </button>
-                  )}
-                  {selectedProducts.length > 0 && (
-                    <button onClick={async () => {
-                      const res = await fetch("/api/plm?type=designers");
-                      const data = await res.json();
-                      setAssignDesigners(data.designers || []);
-                      setSelectedDesignerIds([]);
-                      setShowAssignModal(true);
-                    }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-blue-500/30 text-blue-400 bg-blue-500/10 font-semibold hover:bg-blue-500/20 transition">
-                      Assign {selectedProducts.length}
-                    </button>
-                  )}
+                  <button onClick={() => { if (selectedProducts.length > 0) setShowExportModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-white/10 text-white/60 hover:bg-white/5" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
+                    <Download size={11} />{selectedProducts.length > 0 ? `Export ${selectedProducts.length}` : "Export"}
+                  </button>
+                  <button onClick={async () => { if (selectedProducts.length === 0) return; const res = await fetch("/api/plm?type=designers"); const data = await res.json(); setAssignDesigners(data.designers || []); setSelectedDesignerIds([]); setShowAssignModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
+                    {selectedProducts.length > 0 ? `Assign ${selectedProducts.length}` : "Assign"}
+                  </button>
                 </div>
                 {sortedProducts.map(product => {
                   const statusKey = getProductStatus(product);
@@ -1021,7 +1012,7 @@ export default function PLMPage() {
                   return (
                     <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
                       style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
-                      <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />
+                      {selectMode && <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />}
                       {product.images?.[0] ? (
                         <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
                       ) : (
@@ -1031,7 +1022,7 @@ export default function PLMPage() {
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <p className="text-sm font-semibold text-white">{product.name}</p>
                           {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
-                          {product.action_status === "action_required" && (
+                          {product.action_status === "action_required" && !(product.plm_batches || []).length && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
                           )}
                           {product.action_status === "updates_made" && (
