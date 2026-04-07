@@ -16,10 +16,17 @@ export async function middleware(request: NextRequest) {
   const isPublic = publicPaths.some(path =>
     request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + "/") || request.nextUrl.pathname.startsWith(path)
   );
-  // Redirect portal subdomain root to /portal login
+  // Subdomain routing
   const host = request.headers.get("host") || "";
-  if (host.startsWith("portal.") && request.nextUrl.pathname === "/") {
-    return NextResponse.redirect(new URL("/portal", request.url));
+  if (host.startsWith("portal.") || host.startsWith("factory.")) {
+    if (request.nextUrl.pathname === "/") {
+      return NextResponse.redirect(new URL("/portal", request.url));
+    }
+  }
+  if (host.startsWith("team.")) {
+    if (request.nextUrl.pathname === "/") {
+      return NextResponse.redirect(new URL("/portal", request.url));
+    }
   }
 
   if (isPublic) return NextResponse.next();
