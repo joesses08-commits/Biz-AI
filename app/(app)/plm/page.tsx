@@ -600,7 +600,15 @@ export default function PLMPage() {
 
               {/* Product list with factory picker per product */}
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {products.filter(p => !p.killed && !(p.plm_sample_requests || []).some((r: any) => r.status === "requested")).map((p: any) => {
+                {products.filter(p => {
+                  if (p.killed) return false;
+                  // Hide if any sample request ever existed (requested, approved, revision, killed all count)
+                  if ((p.plm_sample_requests || []).length > 0) return false;
+                  // Hide if at samples_requested stage or later
+                  const laterStages = ["samples_requested","sample_production","sample_complete","sample_shipped","sample_arrived","sample_approved"];
+                  if (laterStages.includes(p.current_stage || "")) return false;
+                  return true;
+                }).map((p: any) => {
                   const isSelected = bulkSampleProductIds.includes(p.id);
                   const selectedFactories = bulkSampleSelections[p.id] || [];
                   const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
