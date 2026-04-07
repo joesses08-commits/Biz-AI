@@ -430,7 +430,9 @@ ${note}` : note)
 
     // Don't send email if no new requests were created or if force
     const actuallyCreated = (factories || []).filter((f: any) => !skippedFactories.includes(f.name));
-    if (force || actuallyCreated.length === 0) {
+    const { provider } = body;
+    // If provider is explicitly passed, always send email (user just picked from modal)
+    if (force || (actuallyCreated.length === 0 && !provider)) {
       return NextResponse.json({ success: true, factories, skipped: skippedFactories });
     }
 
@@ -450,7 +452,6 @@ ${note}` : note)
     const bothConnected = !!gmailConn && !!msConn;
 
     // If both connected, return provider_choice so frontend can ask
-    const { provider } = body;
     if (bothConnected && !provider && !force) {
       return NextResponse.json({ 
         success: false, 
