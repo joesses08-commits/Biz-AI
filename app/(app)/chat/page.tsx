@@ -48,6 +48,7 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -281,10 +282,11 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="flex h-[calc(100vh-48px)] md:h-screen bg-[#0a0a0a] text-white overflow-hidden relative">
 
       {/* Sidebar — chat history */}
-      <div className="w-60 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden">
+      {mobileSidebarOpen && <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setMobileSidebarOpen(false)} />}
+      <div className={`absolute md:relative z-30 md:z-auto h-full w-60 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden bg-[#0a0a0a] transition-transform duration-300 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
           <span className="text-xs font-semibold text-white/40 uppercase tracking-widest">Chats</span>
           <div className="flex items-center gap-1.5">
@@ -347,7 +349,13 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+        <div className="md:hidden px-4 py-3 border-b border-white/[0.06] flex items-center gap-3 flex-shrink-0">
+          <button onClick={() => setMobileSidebarOpen(true)} className="flex items-center gap-2 text-xs text-white/40 border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/5 transition">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/></svg>
+            Chats
+          </button>
+        </div>
+        <div className="px-6 py-4 border-b border-white/[0.06] hidden md:flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-sm font-semibold tracking-tight">AI Analyst</h1>
             <p className="text-[10px] text-white/30">Powered by your business data</p>

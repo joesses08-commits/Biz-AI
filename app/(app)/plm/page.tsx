@@ -931,8 +931,8 @@ export default function PLMPage() {
           </div>
         ) : activeTab === "all_products" ? (
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition w-44" />
                 <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                   <option value="">All Stages</option>
@@ -953,7 +953,7 @@ export default function PLMPage() {
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => {
                   const rfqReady = products.filter(p => p.current_stage === "ready_for_quote").map(p => p.id);
                   setRfqSelectedProducts(rfqReady);
