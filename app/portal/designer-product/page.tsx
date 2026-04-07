@@ -85,7 +85,6 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
 }
 
 function ProductPageInner() {
-  const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id") || "";
