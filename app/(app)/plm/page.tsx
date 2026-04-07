@@ -885,7 +885,7 @@ export default function PLMPage() {
                   <FileSpreadsheet size={11} />RFQ
                 </button>
                 <button onClick={() => {
-                  const quoteReceived = products.filter(p => ["quotes_received","samples_requested","artwork_sent","ready_for_quote"].includes(p.current_stage || "") && !p.killed).map(p => p.id);
+                  const quoteReceived = products.filter(p => p.current_stage === "quotes_received" && !p.killed).map(p => p.id);
                   setBulkSampleProductIds(quoteReceived);
                   setBulkSampleSelections({});
                   setShowSampleRequestModal(true);
