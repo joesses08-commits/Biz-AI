@@ -167,7 +167,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [showSetPin, setShowSetPin] = useState(false);
   const [pinPrompt, setPinPrompt] = useState<null | { resolve: (pin: string) => void }>(null);
   const [pinError, setPinError] = useState("");
-  // Products now navigate to full page
+  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: "", sku: "", description: "", specs: "", category: "", collection_id: "", notes: "" });
