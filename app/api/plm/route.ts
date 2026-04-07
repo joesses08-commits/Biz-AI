@@ -176,6 +176,8 @@ export async function POST(req: NextRequest) {
       notes: "Batch created",
       updated_by: user.email, updated_by_role: "admin",
     });
+    // PO created — clear action_required
+    await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
     return NextResponse.json({ success: true, batch: data });
   }
 
@@ -756,6 +758,11 @@ ${revNote}` : revNote;
         action_status: "action_required",
         updated_at: new Date().toISOString(),
       }).eq("id", product_id);
+      // If product already has orders, no action needed
+      const { data: existingBatches } = await supabaseAdmin.from("plm_batches").select("id").eq("product_id", product_id).limit(1);
+      if (existingBatches && existingBatches.length > 0) {
+        await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id);
+      }
       await supabaseAdmin.from("plm_stages").insert({
         product_id, user_id: user.id,
         stage: "sample_approved",

@@ -384,6 +384,8 @@ ${entry}` : entry;
   const isKilled = productStatus === "killed";
   const isHold = productStatus === "hold";
   const isLocked = isKilled || isHold;
+  const isAssignedToMe = (product.plm_assignments || []).some((a: any) => a.designer_id === portalUser?.id);
+  const showActionBanner = isAssignedToMe && product.action_status && product.action_status !== "up_to_date";
 
   const currentDevStage = stageInfo(product.current_stage || "concept");
   const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
