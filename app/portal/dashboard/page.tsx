@@ -79,21 +79,24 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
 
   const allSampleProducts = products.filter(p => p._has_sample);
   const filterBySearch = (p: any) => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku?.toLowerCase().includes(searchQuery.toLowerCase());
-  const activeSamples = allSampleProducts.filter(p => {
+  // Split pending samples into active/transit/upcoming
+  const pendingSamples = allSampleProducts.filter(p => {
+    const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
+    return reqs.some((s: any) => s.status === "requested");
+  });
+  const transitSamples = pendingSamples.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
     const active = reqs.find((s: any) => s.status === "requested");
-    return active && active.current_stage !== "sample_shipped" && (p._sample_priority != null && p._sample_priority <= maxSamples);
-  }).filter(filterBySearch).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
-  const transitSamples = allSampleProducts.filter(p => {
-    const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
-    const active = reqs.find((s: any) => s.status === "requested");
-    return active && active.current_stage === "sample_shipped";
+    return active?.current_stage === "sample_shipped";
   }).filter(filterBySearch);
-  const upcomingSamples = allSampleProducts.filter(p => {
+  const nonTransitPending = pendingSamples.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
     const active = reqs.find((s: any) => s.status === "requested");
-    return active && active.current_stage !== "sample_shipped" && (p._sample_priority == null || p._sample_priority > maxSamples);
-  }).filter(filterBySearch).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
+    return active?.current_stage !== "sample_shipped";
+  }).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
+  // Active = first maxSamples items (by priority order), Upcoming = rest
+  const activeSamples = nonTransitPending.slice(0, maxSamples).filter(filterBySearch);
+  const upcomingSamples = nonTransitPending.slice(maxSamples).filter(filterBySearch);
   const historySamples = allSampleProducts.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
     const hasActive = reqs.some((s: any) => s.status === "requested");
