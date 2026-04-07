@@ -134,13 +134,17 @@ export default function PLMPage() {
     const data = await res.json();
     setPrioFactories(data.factories || []);
     setPrioSamples(data.samples || []);
-    // Build order map per factory
+    // Build order map per factory and auto-fix priority numbers
     const orderMap: Record<string, string[]> = {};
     for (const f of (data.factories || [])) {
       const factorySamples = (data.samples || []).filter((s: any) => s.factory_id === f.id);
       const prioritized = factorySamples.filter((s: any) => s.priority_order != null).sort((a: any, b: any) => a.priority_order - b.priority_order);
       const unprioritized = factorySamples.filter((s: any) => s.priority_order == null);
-      orderMap[f.id] = [...prioritized, ...unprioritized].map((s: any) => s.id);
+      const ordered = [...prioritized, ...unprioritized].map((s: any) => s.id);
+      orderMap[f.id] = ordered;
+      // Auto-save corrected priority numbers
+      await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "save_priorities", factory_id: f.id, ordered_ids: ordered }) });
     }
     setPrioOrder(orderMap);
     if (!prioActiveFactory && data.factories?.length > 0) setPrioActiveFactory(data.factories[0].id);
