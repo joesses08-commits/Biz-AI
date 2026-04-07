@@ -750,7 +750,7 @@ Best regards,
                           <p className="text-xs text-pink-300 font-medium truncate">{activeDraftJob.product_file_name || "RFQ sheet"}</p>
                           <p className="text-[10px] text-white/30">Saved in draft — will be sent to factories</p>
                         </div>
-                        <button onClick={e => { e.preventDefault(); setActiveDraftJob(prev => ({...prev, product_file_base64: null, product_file_name: null})); }} className="text-white/20 hover:text-red-400 transition">
+                        <button onClick={e => { e.preventDefault(); setActiveDraftJob((prev: any) => ({...prev, product_file_base64: null, product_file_name: null})); }} className="text-white/20 hover:text-red-400 transition">
                           <X size={12} />
                         </button>
                       </>
