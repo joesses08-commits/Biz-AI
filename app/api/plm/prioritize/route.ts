@@ -18,13 +18,18 @@ export async function GET(req: NextRequest) {
   // Get all pending sample requests grouped by factory
   const { data: samples } = await supabaseAdmin
     .from("plm_sample_requests")
-    .select("*, plm_products(id, name, sku, images), factory_catalog(id, name)")
+    .select("*, plm_products(id, name, sku, images, status, killed), factory_catalog(id, name)")
     .eq("user_id", user.id)
     .in("status", ["requested"])
     .neq("current_stage", "sample_shipped")
     .order("priority_order", { ascending: true, nullsFirst: false });
 
-  return NextResponse.json({ factories: factories || [], samples: samples || [] });
+  // Filter out samples for products that are on hold or killed
+  const filteredSamples = (samples || []).filter((s: any) => 
+    !s.plm_products?.killed && s.plm_products?.status !== "hold"
+  );
+
+  return NextResponse.json({ factories: factories || [], samples: filteredSamples });
 }
 
 export async function POST(req: NextRequest) {
