@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Set action_status based on stage
-    const actionStatus = stage === "sample_arrived" ? "action_required" : "updates_made";
+    const actionStatus = (stage === "sample_arrived" || stage === "sample_shipped") ? "action_required" : "updates_made";
     await supabaseAdmin.from("plm_products").update({
       action_status: actionStatus,
       updated_at: new Date().toISOString(),
