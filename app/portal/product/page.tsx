@@ -53,12 +53,27 @@ export default function PortalProductPage() {
   const token = () => localStorage.getItem("portal_token") || "";
 
   const load = async (t?: string) => {
-    const res = await fetch(`/api/portal/product?id=${productId}`, {
-      headers: { Authorization: `Bearer ${t || token()}` },
-    });
-    if (res.status === 401) { router.push("/portal"); return; }
-    const data = await res.json();
-    setProduct(data.product);
+    const tok_ = t || token();
+    const headers = { Authorization: `Bearer ${tok_}` };
+    const portalUser = JSON.parse(localStorage.getItem("portal_user") || "{}");
+    const isDesigner = portalUser?.role === "designer";
+    if (isDesigner) {
+      const [prodRes, mainRes] = await Promise.all([
+        fetch(`/api/portal/designer?type=product&id=${productId}`, { headers }),
+        fetch("/api/portal/designer", { headers }),
+      ]);
+      if (prodRes.status === 401) { router.push("/portal"); return; }
+      const prodData = await prodRes.json();
+      const mainData = await mainRes.json();
+      setProduct(prodData.product);
+      setFactories(mainData.factories || []);
+      setCollections(mainData.collections || []);
+    } else {
+      const res = await fetch(`/api/portal/product?id=${productId}`, { headers });
+      if (res.status === 401) { router.push("/portal"); return; }
+      const data = await res.json();
+      setProduct(data.product);
+    }
     setLoading(false);
   };
 

@@ -32,11 +32,9 @@ export default function PortalLogin() {
     }
 
     // Store portal session
-    const role = data.user?.role || "factory";
     localStorage.setItem("portal_token", data.token);
     localStorage.setItem("portal_user", JSON.stringify(data.user));
     const role = data.user?.role || "factory";
-    // Redirect to role-appropriate dashboard
     if (role === "designer") {
       router.push("/portal/dashboard?role=designer");
     } else {
