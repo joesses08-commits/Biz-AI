@@ -263,7 +263,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                   </div>
                 )}
                 {isActive && !isCollapsed && (
-                  <button onClick={() => setExpandedProduct(expandedProduct === product.id ? null : product.id)}
+                  <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
                     Update Sample Status →
                   </button>
@@ -447,7 +447,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                         <p className="text-[10px] text-white/25 mt-0.5">{batches.length} order{batches.length !== 1 ? "s" : ""}</p>
                       </div>
                       {!isPast && (
-                        <button onClick={() => setExpandedProduct(expandedProduct === product.id ? null : product.id)}
+                        <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
                           className="text-xs text-white/40 hover:text-white border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-xl transition flex-shrink-0">
                           Update →
                         </button>
@@ -786,7 +786,7 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
                   </div>
                 )}
                 {isActive && !isCollapsed && (
-                  <button onClick={() => setExpandedProduct(expandedProduct === product.id ? null : product.id)}
+                  <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
                     Update Sample Status →
                   </button>
