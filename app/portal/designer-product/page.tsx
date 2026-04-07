@@ -142,11 +142,11 @@ function ProductPageInner() {
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const load = async () => {
-    const [prodRes, catRes, colRes] = await Promise.all([
+    const [prodRes, mainRes] = await Promise.all([
       fetch(`/api/portal/designer?type=product&id=${id}`, { headers: { Authorization: `Bearer ${getToken()}` } }),
       fetch("/api/portal/designer", { headers: { Authorization: `Bearer ${getToken()}` } }),
-      fetch("/api/portal/designer", { headers: { Authorization: `Bearer ${getToken()}` } }),
     ]);
+    if (prodRes.status === 401) { router.push("/portal"); return; }
     const prodData = await prodRes.json();
     const mainData = await mainRes.json();
     setProduct(prodData.product);
