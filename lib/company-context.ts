@@ -382,6 +382,125 @@ export async function updateCompanyBrain(userId: string, newContext: string) {
   } catch {}
 }
 
+
+// ─── PLM CONTEXT ─────────────────────────────────────────────────────────────
+async function getPLMContext(userId: string): Promise<string> {
+  try {
+    const { data: products } = await supabase
+      .from("plm_products")
+      .select("*, plm_collections(name, season), plm_batches(id, current_stage, order_quantity, linked_po_number, factory_id), plm_sample_requests(status, current_stage, factory_catalog(name))")
+      .eq("user_id", userId)
+      .eq("killed", false)
+      .order("created_at", { ascending: false });
+
+    if (!products || products.length === 0) return "";
+
+    const { data: collections } = await supabase
+      .from("plm_collections")
+      .select("id, name, season, year")
+      .eq("user_id", userId);
+
+    const { data: rfqJobs } = await supabase
+      .from("factory_quote_jobs")
+      .select("id, status, created_at, product_count")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    // Summarize products by stage
+    const stageSummary: Record<string, number> = {};
+    const actionRequired: string[] = [];
+    const inProduction: string[] = [];
+    const samplePending: string[] = [];
+    const recentOrders: string[] = [];
+
+    for (const p of products) {
+      const stage = p.current_stage || "concept";
+      stageSummary[stage] = (stageSummary[stage] || 0) + 1;
+
+      const batches = p.plm_batches || [];
+      const samples = p.plm_sample_requests || [];
+      const activeBatch = batches.find((b: any) => !["shipped", "delivered"].includes(b.current_stage));
+      const approvedSample = samples.find((s: any) => s.status === "approved");
+
+      if (p.action_status === "action_required" && batches.length === 0) {
+        actionRequired.push(`${p.name} (${p.sku || "no SKU"}) — needs attention at stage: ${stage}`);
+      }
+
+      if (activeBatch) {
+        inProduction.push(`${p.name} — ${activeBatch.current_stage}${activeBatch.order_quantity ? `, ${activeBatch.order_quantity} units` : ""}${approvedSample?.factory_catalog?.name ? ` @ ${approvedSample.factory_catalog.name}` : ""}`);
+      }
+
+      if (samples.some((s: any) => s.status === "requested")) {
+        const factoryNames = samples.filter((s: any) => s.status === "requested").map((s: any) => s.factory_catalog?.name || "unknown factory").join(", ");
+        samplePending.push(`${p.name} — sample at ${factoryNames} (stage: ${samples.find((s: any) => s.status === "requested")?.current_stage || "unknown"})`);
+      }
+
+      for (const b of batches) {
+        if (b.linked_po_number) {
+          recentOrders.push(`PO ${b.linked_po_number} — ${p.name} — ${b.current_stage}${b.order_quantity ? ` (${b.order_quantity} units)` : ""}`);
+        }
+      }
+    }
+
+    const collectionList = (collections || []).map((c: any) => `${c.name}${c.season ? ` (${c.season} ${c.year || ""})` : ""}`).join(", ");
+
+    let context = `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRODUCT LIFECYCLE (PLM)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total Active Products: ${products.length}
+Collections: ${collectionList || "None"}
+
+STAGE BREAKDOWN:
+${Object.entries(stageSummary).map(([stage, count]) => `  ${stage}: ${count} product${count > 1 ? "s" : ""}`).join("
+")}`;
+
+    if (actionRequired.length > 0) {
+      context += `
+
+NEEDS ATTENTION (${actionRequired.length}):
+${actionRequired.map(p => `  • ${p}`).join("
+")}`;
+    }
+
+    if (inProduction.length > 0) {
+      context += `
+
+IN PRODUCTION (${inProduction.length}):
+${inProduction.map(p => `  • ${p}`).join("
+")}`;
+    }
+
+    if (samplePending.length > 0) {
+      context += `
+
+SAMPLES IN PROGRESS (${samplePending.length}):
+${samplePending.map(p => `  • ${p}`).join("
+")}`;
+    }
+
+    if (recentOrders.length > 0) {
+      context += `
+
+ACTIVE PURCHASE ORDERS:
+${recentOrders.map(o => `  • ${o}`).join("
+")}`;
+    }
+
+    if (rfqJobs && rfqJobs.length > 0) {
+      context += `
+
+RECENT RFQ JOBS:
+${rfqJobs.map((j: any) => `  • ${new Date(j.created_at).toLocaleDateString()} — ${j.product_count || "?"} products — ${j.status}`).join("
+")}`;
+    }
+
+    return context;
+  } catch { return ""; }
+}
+
 // ─── CACHE ────────────────────────────────────────────────────────────────────
 const CACHE_MINUTES = 45;
 
@@ -421,7 +540,7 @@ DATA FRESHNESS RULES:
 - Always note the date of data when surfacing insights
 - Never present old data as current without flagging the date`;
 
-  const [profile, memory, gmail, sheets, outlook, excel, stripe, quickbooks] = await Promise.all([
+  const [profile, memory, gmail, sheets, outlook, excel, stripe, quickbooks, plm] = await Promise.all([
     getCompanyProfile(userId),
     getCompanyMemory(userId),
     getGmailContext(userId),
@@ -430,9 +549,10 @@ DATA FRESHNESS RULES:
     getExcelContext(userId),
     getStripeContext(userId),
     getQuickBooksContext(userId),
+    getPLMContext(userId),
   ]);
 
-  const context = [header, profile, memory, gmail, sheets, outlook, excel, stripe, quickbooks]
+  const context = [header, profile, memory, gmail, sheets, outlook, excel, stripe, quickbooks, plm]
     .filter(Boolean)
     .join("\n");
 
