@@ -532,7 +532,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                                             <div key={s} className="flex items-center gap-1">
                                               <div className="flex flex-col items-center">
                                                 <div className={`w-2 h-2 rounded-full ${isCurrent ? "ring-2 ring-offset-1 ring-offset-[#0a0a0a]" : ""}`}
-                                                  style={{ background: isCurrent || isDone ? c : "#374151", ringColor: c }} />
+                                                  style={{ background: isCurrent || isDone ? c : "#374151" }} />
                                               </div>
                                               {i < arr.length - 1 && <div className={`h-px w-4 ${isDone ? "bg-white/30" : "bg-white/10"}`} />}
                                             </div>
