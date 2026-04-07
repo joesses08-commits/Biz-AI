@@ -296,7 +296,7 @@ ${entry}` : entry;
 
   const saveOrderFactory = async (orderId: string) => {
     setSavingOrderFactory(true);
-    await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ action: "update_batch", id: orderId, factory_id: orderFactoryVal || null }) });
     setSavingOrderFactory(false);
     setEditingOrderFactory(null);
@@ -336,7 +336,7 @@ ${entry}` : entry;
   };
 
   const saveOrderField = async (orderId: string, field: string, value: any) => {
-    await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
       body: JSON.stringify({ action: "update_batch", id: orderId, [field]: value || null }) });
     load();
   };
