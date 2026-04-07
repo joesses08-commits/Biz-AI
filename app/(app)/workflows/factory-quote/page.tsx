@@ -691,7 +691,7 @@ Best regards,
       {activeTab === "jobs" && (
         <>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowNew(!showNew)}
+            <button onClick={() => { setShowNew(!showNew); if (!showNew) { setActiveDraftJob(null); setProductFile(null); } }}
               className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
               <Plus size={11} />New Quote Job
             </button>
