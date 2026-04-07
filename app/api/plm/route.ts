@@ -253,6 +253,8 @@ export async function POST(req: NextRequest) {
       }
       // Force always creates a new row — skip the killed check
       if (force) {
+        const { data: fprios } = await supabaseAdmin.from("plm_sample_requests").select("priority_order").eq("factory_id", factory.id).eq("user_id", user.id).eq("status", "requested").not("priority_order", "is", null);
+        const fmaxPrio = (fprios || []).reduce((max: number, r: any) => Math.max(max, r.priority_order || 0), 0);
         await supabaseAdmin.from("plm_sample_requests").insert({
           product_id,
           factory_id: factory.id,
@@ -262,6 +264,7 @@ export async function POST(req: NextRequest) {
           notes: note || "",
           label: label || null,
           qty: qty || null,
+          priority_order: fmaxPrio + 1,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -308,6 +311,8 @@ export async function POST(req: NextRequest) {
           updated_at: new Date().toISOString(),
         }).eq("id", existing.id);
       } else {
+        const { data: sprios } = await supabaseAdmin.from("plm_sample_requests").select("priority_order").eq("factory_id", factory.id).eq("user_id", user.id).eq("status", "requested").not("priority_order", "is", null);
+        const smaxPrio = (sprios || []).reduce((max: number, r: any) => Math.max(max, r.priority_order || 0), 0);
         await supabaseAdmin.from("plm_sample_requests").insert({
           product_id,
           factory_id: factory.id,
@@ -316,6 +321,7 @@ export async function POST(req: NextRequest) {
           current_stage: "sample_production",
           notes: note || "",
           label: label || null,
+          priority_order: smaxPrio + 1,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
@@ -510,10 +516,18 @@ ${senderName}`;
         const hasActive = (existingAny || []).some((r: any) => r.status === "requested");
         if ((hasApproved || hasActive) && !force) continue;
 
+        // Get next priority number for this factory
+        const { data: existingPrios } = await supabaseAdmin.from("plm_sample_requests")
+          .select("priority_order").eq("factory_id", factoryId).eq("user_id", user.id)
+          .eq("status", "requested").not("priority_order", "is", null);
+        const maxPrio = (existingPrios || []).reduce((max: number, r: any) => Math.max(max, r.priority_order || 0), 0);
+        const nextPrio = maxPrio + 1;
+
         const { data: newReq } = await supabaseAdmin.from("plm_sample_requests").insert({
           product_id, factory_id: factoryId, user_id: user.id,
           status: "requested", current_stage: "sample_production",
           notes: itemNote || note || "", label: label || null, qty: qty || null,
+          priority_order: nextPrio,
           created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
         }).select().single();
 
