@@ -30,6 +30,8 @@ export default function PortalProductPage() {
   const productId = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("id") : null;
 
   const [product, setProduct] = useState<any>(null);
+  const [factories, setFactories] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [portalUser, setPortalUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState("");
