@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEffectiveUser } from "@/lib/get-user";
-import { getEffectiveUser } from "@/lib/get-user";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
