@@ -184,12 +184,25 @@ export default function PortalProductPage() {
                 className="text-sm text-blue-400 hover:text-blue-300 underline break-all">{product.reference_url}</a>
             </div>
           )}
-          {product.factory_notes && (
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Notes from Factory</p>
-              <p className="text-sm text-white/60">{product.factory_notes}</p>
-            </div>
-          )}
+          {(() => {
+            const allBatchNotes = (product.plm_batches || []).flatMap((b: any) =>
+              (b.plm_batch_stages || []).filter((s: any) => s.notes && s.updated_by_role === "factory")
+                .map((s: any) => ({ note: s.notes, date: s.created_at }))
+            ).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            return allBatchNotes.length > 0 ? (
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Notes from Factory</p>
+                <div className="space-y-1.5">
+                  {allBatchNotes.map((n: any, i: number) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0 mt-1.5" />
+                      <p className="text-xs text-white/60">{n.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
         </div>
 
         {/* Sample Section — grouped by round, same as admin */}
