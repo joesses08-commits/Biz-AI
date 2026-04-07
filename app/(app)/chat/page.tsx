@@ -46,6 +46,8 @@ function getTitle(messages: Message[]) {
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
+  const [selectMode, setSelectMode] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -282,13 +284,30 @@ export default function ChatPage() {
     <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden">
 
       {/* Sidebar — chat history */}
-      <div className="w-60 flex-shrink-0 border-r border-white/[0.06] flex flex-col">
-        <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between">
+      <div className="w-60 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden">
+        <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
           <span className="text-xs font-semibold text-white/40 uppercase tracking-widest">Chats</span>
-          <button onClick={newConversation}
-            className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition">
-            <Plus size={12} className="text-white/50" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {selectMode && selectedChats.size > 0 && (
+              <button onClick={() => {
+                const updated = conversations.filter(c => !selectedChats.has(c.id));
+                setConversations(updated);
+                if (selectedChats.has(activeId || "")) setActiveId(updated[0]?.id || null);
+                setSelectedChats(new Set());
+                setSelectMode(false);
+              }} className="text-[10px] text-red-400 border border-red-500/20 bg-red-500/10 px-2 py-1 rounded-lg">
+                Delete {selectedChats.size}
+              </button>
+            )}
+            <button onClick={() => { setSelectMode(!selectMode); setSelectedChats(new Set()); }}
+              className="text-[10px] text-white/30 hover:text-white/60 px-2 py-1 rounded-lg border border-white/[0.06] hover:border-white/15 transition">
+              {selectMode ? "Cancel" : "Select"}
+            </button>
+            {!selectMode && <button onClick={newConversation}
+              className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition">
+              <Plus size={12} className="text-white/50" />
+            </button>}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto py-2">
@@ -298,20 +317,26 @@ export default function ChatPage() {
             </div>
           ) : (
             conversations.map(conv => (
-              <div key={conv.id} className={`group flex items-center hover:bg-white/[0.03] transition ${activeId === conv.id ? "bg-white/[0.05]" : ""}`}>
-                <button onClick={() => setActiveId(conv.id)} className="flex-1 text-left px-4 py-3">
-                  <p className={`text-xs truncate mb-0.5 ${activeId === conv.id ? "text-white/80" : "text-white/50"}`}>
+              <div key={conv.id} onClick={() => {
+                if (selectMode) {
+                  const next = new Set(selectedChats);
+                  next.has(conv.id) ? next.delete(conv.id) : next.add(conv.id);
+                  setSelectedChats(next);
+                } else {
+                  setActiveId(conv.id);
+                }
+              }} className={`flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-white/[0.03] transition overflow-hidden ${activeId === conv.id && !selectMode ? "bg-white/[0.05]" : ""} ${selectedChats.has(conv.id) ? "bg-red-500/[0.05]" : ""}`}>
+                {selectMode && (
+                  <div className={`w-4 h-4 rounded flex-shrink-0 border flex items-center justify-center ${selectedChats.has(conv.id) ? "bg-red-500 border-red-500" : "border-white/20"}`}>
+                    {selectedChats.has(conv.id) && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs truncate mb-0.5 ${activeId === conv.id && !selectMode ? "text-white/80" : "text-white/50"}`}>
                     {conv.title}
                   </p>
                   <p className="text-[10px] text-white/20">{formatDate(conv.createdAt)}</p>
-                </button>
-                <button onClick={() => {
-                  const updated = conversations.filter(c => c.id !== conv.id);
-                  setConversations(updated);
-                  if (activeId === conv.id) setActiveId(updated[0]?.id || null);
-                }} className="opacity-0 group-hover:opacity-100 transition px-3 py-3 text-white/20 hover:text-red-400">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-                </button>
+                </div>
               </div>
             ))
           )}
