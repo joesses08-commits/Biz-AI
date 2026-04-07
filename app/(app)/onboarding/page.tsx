@@ -481,9 +481,7 @@ export default function OnboardingPage() {
                 <button onClick={() => setCurrentStep(5)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">Continue →</button>
               )}
             </div>
-            {!buildingBrain && !brainDone && connectedIntegrations.length > 0 && (
 
-            )}
           </div>
         )}
 
