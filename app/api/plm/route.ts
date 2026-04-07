@@ -482,6 +482,120 @@ ${senderName}`;
     return NextResponse.json({ success: true, factories, skipped: skippedFactories });
   }
 
+  if (action === "bulk_sample_requests") {
+    const { items, note, provider } = body;
+    if (!items?.length) return NextResponse.json({ error: "No items" }, { status: 400 });
+
+    // Get all unique factory IDs
+    const allFactoryIds = [...new Set(items.flatMap((i: any) => i.factory_ids || []))];
+    const { data: allFactories } = await supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").in("id", allFactoryIds);
+    const factoryMap: Record<string, any> = {};
+    (allFactories || []).forEach((f: any) => { factoryMap[f.id] = f; });
+
+    // Get all product details
+    const allProductIds = items.map((i: any) => i.product_id);
+    const { data: allProducts } = await supabaseAdmin.from("plm_products").select("id, name, sku, current_stage, notes").in("id", allProductIds).eq("user_id", user.id);
+    const productMap: Record<string, any> = {};
+    (allProducts || []).forEach((p: any) => { productMap[p.id] = p; });
+
+    const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", user.id).single();
+    const senderName = profile?.full_name || user.email;
+
+    // Process each item — create sample requests in DB
+    for (const item of items) {
+      const { product_id, factory_ids, note: itemNote, force, label, qty } = item;
+      for (const factoryId of (factory_ids || [])) {
+        const { data: existingAny } = await supabaseAdmin.from("plm_sample_requests").select("id, status").eq("product_id", product_id).eq("factory_id", factoryId).in("status", ["requested", "approved"]);
+        const hasApproved = (existingAny || []).some((r: any) => r.status === "approved");
+        const hasActive = (existingAny || []).some((r: any) => r.status === "requested");
+        if ((hasApproved || hasActive) && !force) continue;
+
+        const { data: newReq } = await supabaseAdmin.from("plm_sample_requests").insert({
+          product_id, factory_id: factoryId, user_id: user.id,
+          status: "requested", current_stage: "sample_production",
+          notes: itemNote || note || "", label: label || null, qty: qty || null,
+          created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        }).select().single();
+
+        if (newReq) {
+          await supabaseAdmin.from("plm_sample_stages").insert({
+            sample_request_id: newReq.id, product_id, factory_id: factoryId, user_id: user.id,
+            stage: "sample_production", notes: itemNote || note || "Sample requested",
+            updated_by: user.email, updated_by_role: "admin",
+          });
+        }
+
+        // Update product stage
+        const product = productMap[product_id];
+        if (product && !["samples_requested","sample_production","sample_complete","sample_shipped","sample_arrived","sample_approved"].includes(product.current_stage)) {
+          await supabaseAdmin.from("plm_products").update({ current_stage: "samples_requested", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
+          await supabaseAdmin.from("plm_stages").insert({
+            product_id, user_id: user.id, stage: "samples_requested",
+            notes: `Sample requested from ${factoryMap[factoryId]?.name || "factory"}`,
+            updated_by: user.email, updated_by_role: "admin",
+          });
+        }
+      }
+    }
+
+    // Send one email per factory listing all their products
+    const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token, refresh_token, token_expiry").eq("user_id", user.id).single();
+    const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token, refresh_token, expires_at").eq("user_id", user.id).single();
+    const useGmail = gmailConn && (!msConn || provider === "gmail");
+
+    for (const factoryId of allFactoryIds) {
+      const factory = factoryMap[factoryId];
+      if (!factory?.email) continue;
+
+      // Get products for this factory
+      const factoryProducts = items.filter((i: any) => (i.factory_ids || []).includes(factoryId)).map((i: any) => productMap[i.product_id]).filter(Boolean);
+      if (!factoryProducts.length) continue;
+
+      const productList = factoryProducts.map((p: any) => `• ${p.name}${p.sku ? ` (${p.sku})` : ""}`).join("
+");
+      const contactName = factory.contact_name || factory.name;
+      const emailBody = `Hi ${contactName},
+
+We have submitted sample requests for the following product${factoryProducts.length > 1 ? "s" : ""}:
+
+${productList}
+
+Please log into the factory portal to view full product details and update sample status as you progress.${note ? `
+
+Note: ${note}` : ""}
+
+Portal: https://portal.myjimmy.ai
+
+Best regards,
+${senderName}`;
+
+      const subject = `Sample Request${factoryProducts.length > 1 ? `s (${factoryProducts.length} products)` : ` — ${factoryProducts[0]?.name}`}`;
+
+      if (useGmail && gmailConn) {
+        let accessToken = gmailConn.access_token;
+        if (new Date(gmailConn.token_expiry) < new Date()) {
+          const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ refresh_token: gmailConn.refresh_token, client_id: process.env.GOOGLE_CLIENT_ID!, client_secret: process.env.GOOGLE_CLIENT_SECRET!, grant_type: "refresh_token" }) });
+          const rd = await r.json();
+          if (rd.access_token) { accessToken = rd.access_token; await supabaseAdmin.from("gmail_connections").update({ access_token: rd.access_token, token_expiry: new Date(Date.now() + rd.expires_in * 1000).toISOString() }).eq("user_id", user.id); }
+        }
+        const mime = [`MIME-Version: 1.0`, `To: ${factory.email}`, `Subject: ${subject}`, `Content-Type: text/plain; charset=utf-8`, ``, emailBody].join("
+");
+        const encoded = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ raw: encoded }) }).catch(() => {});
+      } else if (msConn) {
+        let accessToken = msConn.access_token;
+        if (new Date(msConn.expires_at) < new Date()) {
+          const r = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ refresh_token: msConn.refresh_token, client_id: process.env.MICROSOFT_CLIENT_ID!, client_secret: process.env.MICROSOFT_CLIENT_SECRET!, grant_type: "refresh_token", scope: "https://graph.microsoft.com/.default offline_access" }) });
+          const rd = await r.json();
+          if (rd.access_token) { accessToken = rd.access_token; await supabaseAdmin.from("microsoft_connections").update({ access_token: rd.access_token, expires_at: new Date(Date.now() + rd.expires_in * 1000).toISOString() }).eq("user_id", user.id); }
+        }
+        await fetch("https://graph.microsoft.com/v1.0/me/sendMail", { method: "POST", headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ message: { subject, body: { contentType: "Text", content: emailBody }, toRecipients: [{ emailAddress: { address: factory.email } }] } }) }).catch(() => {});
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
   if (action === "delete_sample_request") {
     const { sample_request_id } = body;
     await supabaseAdmin.from("plm_sample_stages").delete().eq("sample_request_id", sample_request_id);

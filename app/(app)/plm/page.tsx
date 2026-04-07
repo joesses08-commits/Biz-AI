@@ -690,30 +690,31 @@ export default function PLMPage() {
 
               <div className="flex gap-2">
                 <button onClick={async () => {
-                  const toRequest = bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0);
+                  const toRequest = bulkSampleProductIds.filter(id => Array.isArray(bulkSampleSelections[id]) && bulkSampleSelections[id].length > 0);
                   if (!toRequest.length) return;
                   setSubmittingBulkSample(true);
-                  for (const productId of toRequest) {
-                    const p = products.find((pr: any) => pr.id === productId);
-                    const approvedReq = (p?.plm_sample_requests || []).find((r: any) => r.status === "approved");
-                    const isAdditional = !!approvedReq;
-                    const qty = bulkSampleSelections[`${productId}_qty`];
-                    const reason = bulkSampleSelections[`${productId}_reason`];
-                    await fetch("/api/plm", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        action: "create_sample_requests",
-                        product_id: productId,
-                        factory_ids: bulkSampleSelections[productId],
-                        note: isAdditional ? reason : bulkSampleNote,
-                        force: isAdditional,
-                        label: isAdditional ? "additional" : undefined,
-                        qty: isAdditional ? parseInt(qty) || undefined : undefined,
-                        provider: "gmail",
+                  // Group products by factory for bulk email
+                  await fetch("/api/plm", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      action: "bulk_sample_requests",
+                      items: toRequest.map(productId => {
+                        const p = products.find((pr: any) => pr.id === productId);
+                        const isAdditional = (p?.plm_sample_requests || []).some((r: any) => r.status === "approved");
+                        return {
+                          product_id: productId,
+                          factory_ids: bulkSampleSelections[productId],
+                          note: isAdditional ? bulkSampleSelections[`${productId}_reason`] : bulkSampleNote,
+                          force: isAdditional,
+                          label: isAdditional ? "additional" : undefined,
+                          qty: isAdditional ? parseInt(bulkSampleSelections[`${productId}_qty`]) || undefined : undefined,
+                        };
                       }),
-                    });
-                  }
+                      note: bulkSampleNote,
+                      provider: "gmail",
+                    }),
+                  });
                   setSubmittingBulkSample(false);
                   setShowSampleRequestModal(false);
                   setBulkSampleSelections({});
