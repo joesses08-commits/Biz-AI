@@ -194,6 +194,13 @@ export default function PortalProductPage() {
               <p className="text-sm text-white/60 whitespace-pre-wrap">{product.specs}</p>
             </div>
           )}
+          {product.factory_notes && (
+            <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Notes from Admin</p>
+              <p className="text-sm text-white/60 whitespace-pre-wrap">{product.factory_notes}</p>
+            </div>
+          )}
+
           {product.reference_url && (
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Reference / Dropbox</p>

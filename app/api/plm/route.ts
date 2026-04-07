@@ -388,13 +388,19 @@ export async function POST(req: NextRequest) {
       const noteEntry = note
         ? `Samples Requested: requested from ${factoryNames} - ${note}`
         : `Samples Requested: requested from ${factoryNames}`;
-      const { data: product } = await supabaseAdmin.from("plm_products").select("notes").eq("id", product_id).single();
+      const { data: product } = await supabaseAdmin.from("plm_products").select("notes, factory_notes").eq("id", product_id).single();
       const updatedNotes = product?.notes ? `${product.notes}
 ${noteEntry}` : noteEntry;
+      // Also save the note to factory_notes so factory can see it
+      const updatedFactoryNotes = note
+        ? (product?.factory_notes ? `${product.factory_notes}
+${note}` : note)
+        : product?.factory_notes || null;
 
       await supabaseAdmin.from("plm_products").update({
         current_stage: "samples_requested",
         notes: updatedNotes,
+        factory_notes: updatedFactoryNotes,
         updated_at: new Date().toISOString(),
       }).eq("id", product_id).eq("user_id", user.id);
 
