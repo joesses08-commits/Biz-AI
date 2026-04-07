@@ -56,11 +56,8 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
 
   useEffect(() => { loadProducts(); }, []);
 
-  const token = () => {
-    const user = JSON.parse(localStorage.getItem("portal_user") || "{}");
-    const role = user?.role || "factory";
-    return localStorage.getItem(`portal_token_${role}`) || localStorage.getItem("portal_token") || "";
-  };
+  const getRole = () => typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("role") || "factory" : "factory";
+  const token = () => localStorage.getItem(`portal_token_${getRole()}`) || "";
 
   const loadProducts = async () => {
     const res = await fetch("/api/portal/products", { headers: { Authorization: `Bearer ${token()}` } });
@@ -71,7 +68,12 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     setLoading(false);
   };
 
-  const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
+  const logout = () => {
+    const role = getRole();
+    localStorage.removeItem(`portal_token_${role}`);
+    localStorage.removeItem(`portal_user_${role}`);
+    router.push("/portal");
+  };
 
   const saveMax = async () => {
     setSavingMax(true);
@@ -513,10 +515,9 @@ export default function PortalDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("portal_user") || "{}");
-    const role = storedUser?.role || "factory";
-    const token = localStorage.getItem(`portal_token_${role}`) || localStorage.getItem("portal_token");
-    const user = localStorage.getItem(`portal_user_${role}`) || localStorage.getItem("portal_user");
+    const role = new URLSearchParams(window.location.search).get("role") || "factory";
+    const token = localStorage.getItem(`portal_token_${role}`);
+    const user = localStorage.getItem(`portal_user_${role}`);
     if (!token || !user) { router.push("/portal"); return; }
     setPortalUser(JSON.parse(user));
     setLoading(false);
