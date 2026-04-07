@@ -544,7 +544,7 @@ ${senderName}`;
     const useGmail = gmailConn && (!msConn || provider === "gmail");
 
     for (const factoryId of allFactoryIds) {
-      const factory = factoryMap[factoryId];
+      const factory = factoryMap[factoryId as string];
       if (!factory?.email) continue;
 
       // Get products for this factory
