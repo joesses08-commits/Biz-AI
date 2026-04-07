@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getEffectiveUser } from "@/lib/get-user";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -40,7 +41,7 @@ async function getUser() {
 }
 
 export async function GET(req: NextRequest) {
-  const user = await getUser();
+  const user = await getEffectiveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const type = req.nextUrl.searchParams.get("type");
 
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUser();
+  const user = await getEffectiveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const { action } = body;
