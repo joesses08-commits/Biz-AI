@@ -8,6 +8,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+import { createHash } from "crypto";
+function hashPin(pin: string) { return createHash("sha256").update(pin + "jimmy-pin-salt").digest("hex"); }
+async function checkPin(userId: string, pin: string): Promise<boolean> {
+  const { data } = await supabaseAdmin.from("profiles").select("admin_pin").eq("id", userId).single();
+  if (data?.admin_pin) return data.admin_pin === hashPin(pin);
+  return pin === process.env.ADMIN_MILESTONE_PIN;
+}
+
 async function getUser() {
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -106,7 +114,7 @@ export async function POST(req: NextRequest) {
 
     // Prevent unchecking unless admin provides correct PIN
     if (!value && currentMilestones[milestone] === true) {
-      if (!force || pin !== process.env.ADMIN_MILESTONE_PIN) {
+      if (!force || !(await checkPin(user.id, pin))) {
         return NextResponse.json({ error: "pin_required" }, { status: 403 });
       }
     }
@@ -485,7 +493,7 @@ ${senderName}`;
     const { sample_request_id, product_id, factory_id, stage, notes, outcome, pin } = body;
 
     // PIN required for outcome decisions
-    if (outcome && pin !== process.env.ADMIN_MILESTONE_PIN) {
+    if (outcome && !(await checkPin(user.id, pin))) {
       return NextResponse.json({ error: "pin_required" }, { status: 403 });
     }
 
@@ -651,7 +659,7 @@ ${noteEntry}` : noteEntry;
 
   if (action === "set_product_status") {
     const { product_id, status, pin } = body;
-    if (pin !== process.env.ADMIN_MILESTONE_PIN) {
+    if (!(await checkPin(user.id, pin))) {
       return NextResponse.json({ error: "pin_required" }, { status: 403 });
     }
     if (!["progression", "hold", "killed"].includes(status)) {

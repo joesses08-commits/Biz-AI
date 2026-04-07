@@ -38,6 +38,10 @@ export default function OnboardingPage() {
   const [companyAddress, setCompanyAddress] = useState("");
   const [companyBrief, setCompanyBrief] = useState("");
   const [saving, setSaving] = useState(false);
+  const [adminPin, setAdminPin] = useState("");
+  const [adminPinConfirm, setAdminPinConfirm] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [savingPin, setSavingPin] = useState(false);
   const [checking, setChecking] = useState(true);
   const [connectedIntegrations, setConnectedIntegrations] = useState<string[]>([]);
   const [buildingBrain, setBuildingBrain] = useState(false);
@@ -203,9 +207,10 @@ export default function OnboardingPage() {
   const steps = [
     { id: 1, label: "Welcome" },
     { id: 2, label: "Your Business" },
-    { id: 3, label: "Connect Tools" },
-    { id: 4, label: "Build Brain" },
-    { id: 5, label: "Launch" },
+    { id: 3, label: "Admin PIN" },
+    { id: 4, label: "Connect Tools" },
+    { id: 5, label: "Build Brain" },
+    { id: 6, label: "Launch" },
   ];
 
   if (checking) return (
@@ -296,6 +301,51 @@ export default function OnboardingPage() {
         {currentStep === 2 && (
           <div>
             <div className="text-center mb-8">
+              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Admin PIN</p>
+              <h1 className="text-3xl font-bold mb-3 tracking-tight">Set your Admin PIN.</h1>
+              <p className="text-white/40 text-sm leading-relaxed">Your PIN protects sensitive actions in Jimmy — like killing products, unchecking milestones, and changing product status. It can never be viewed again, but you can reset it via email.</p>
+            </div>
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">PIN (4-8 digits)</label>
+                <input type="password" value={adminPin} onChange={e => setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="••••" maxLength={8}
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest outline-none focus:border-white/30 transition" />
+              </div>
+              <div>
+                <label className="text-xs text-white/40 uppercase tracking-widest mb-2 block">Confirm PIN</label>
+                <input type="password" value={adminPinConfirm} onChange={e => setAdminPinConfirm(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="••••" maxLength={8}
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest outline-none focus:border-white/30 transition" />
+              </div>
+              {pinError && <p className="text-red-400 text-xs text-center">{pinError}</p>}
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3">
+                <p className="text-[11px] text-white/30">🔒 Your PIN is stored securely and can never be viewed. If you forget it, use the "Forgot PIN" option in Settings to reset via email.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setCurrentStep(1)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
+              <button onClick={async () => {
+                setPinError("");
+                if (adminPin.length < 4) { setPinError("PIN must be at least 4 digits"); return; }
+                if (adminPin !== adminPinConfirm) { setPinError("PINs don't match"); return; }
+                setSavingPin(true);
+                await fetch("/api/admin/pin", { method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "set_pin", pin: adminPin }) });
+                setSavingPin(false);
+                setCurrentStep(3);
+              }} disabled={savingPin || !adminPin || !adminPinConfirm}
+                className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 disabled:opacity-40 transition">
+                {savingPin ? "Saving..." : "Set PIN & Continue →"}
+              </button>
+            </div>
+            <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(3)}>Skip for now</p>
+          </div>
+        )}
+
+        {currentStep === 5 && (
+          <div>
+            <div className="text-center mb-8">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Connect Your Tools</p>
               <h1 className="text-3xl font-bold mb-3 tracking-tight">Give Jimmy full visibility.</h1>
               <p className="text-white/40 text-sm leading-relaxed">Connect the platforms your business runs on. Jimmy will read your full history and know your business from day one.</p>
@@ -324,15 +374,15 @@ export default function OnboardingPage() {
               })}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setCurrentStep(1)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
-              <button onClick={() => setCurrentStep(3)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
+              <button onClick={() => setCurrentStep(3)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
+              <button onClick={() => setCurrentStep(5)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
                 {connectedIntegrations.length > 0 ? "Continue →" : "Skip for now →"}
               </button>
             </div>
           </div>
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 5 && (
           <div>
             <div className="text-center mb-8">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Company Brain</p>
@@ -419,7 +469,7 @@ export default function OnboardingPage() {
 
             <div className="flex gap-3">
               {!buildingBrain && !brainDone && (
-                <button onClick={() => setCurrentStep(2)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
+                <button onClick={() => setCurrentStep(3)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
               )}
               {!brainDone && connectedIntegrations.length > 0 && (
                 <button onClick={buildBrain} disabled={buildingBrain}
@@ -428,18 +478,18 @@ export default function OnboardingPage() {
                 </button>
               )}
               {(brainDone || connectedIntegrations.length === 0) && (
-                <button onClick={() => setCurrentStep(4)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">Continue →</button>
+                <button onClick={() => setCurrentStep(5)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">Continue →</button>
               )}
             </div>
             {!buildingBrain && !brainDone && connectedIntegrations.length > 0 && (
-              <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(4)}>
+              <p className="text-center text-white/20 text-xs mt-4 cursor-pointer hover:text-white/40 transition" onClick={() => setCurrentStep(5)}>
                 Skip — build later from Settings
               </p>
             )}
           </div>
         )}
 
-        {currentStep === 4 && (
+        {currentStep === 5 && (
           <div>
             <div className="text-center mb-8">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">You're ready</p>

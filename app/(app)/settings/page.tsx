@@ -9,6 +9,8 @@ export default function SettingsPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
   const [saving, setSaving] = useState(false);
+  const [sendingPinReset, setSendingPinReset] = useState(false);
+  const [pinResetSent, setPinResetSent] = useState(false);
   const [saved, setSaved] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"brain" | "company" | "feed">("brain");
@@ -270,6 +272,25 @@ export default function SettingsPage() {
                 {saving ? "Saving..." : "Save"}
               </button>
               {saved && <span className="text-emerald-400 text-sm">Saved ✓</span>}
+            </div>
+
+            <div className="border-t border-white/[0.06] pt-5">
+              <p className="text-sm font-semibold text-white mb-1">Admin PIN</p>
+              <p className="text-xs text-white/30 mb-3">Your PIN protects sensitive actions. It can never be revealed — reset it via email if forgotten.</p>
+              {pinResetSent ? (
+                <p className="text-emerald-400 text-sm">✓ Reset link sent to your email</p>
+              ) : (
+                <button onClick={async () => {
+                  setSendingPinReset(true);
+                  await fetch("/api/admin/pin", { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "forgot_pin" }) });
+                  setSendingPinReset(false);
+                  setPinResetSent(true);
+                }} disabled={sendingPinReset}
+                  className="text-sm text-white/40 hover:text-white/70 border border-white/[0.08] px-4 py-2 rounded-xl transition disabled:opacity-40">
+                  {sendingPinReset ? "Sending..." : "Forgot PIN — Send Reset Email"}
+                </button>
+              )}
             </div>
           </div>
         )}
