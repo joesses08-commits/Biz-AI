@@ -715,7 +715,7 @@ Best regards,
             <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
-                {activeDraftJob && <span className="text-[10px] text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">From PLM</span>}
+                {activeDraftJob && activeDraftJob.order_details?.plm_product_ids?.length > 0 && <span className="text-[10px] text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">From PLM</span>}
               </div>
 
               <div>
@@ -743,7 +743,7 @@ Best regards,
                           <X size={12} />
                         </button>
                       </>
-                    ) : activeDraftJob && activeDraftJob.product_file_base64 ? (
+                    ) : activeDraftJob && activeDraftJob.product_file_base64 && !productFile ? (
                       <>
                         <FileSpreadsheet size={14} className="text-pink-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
