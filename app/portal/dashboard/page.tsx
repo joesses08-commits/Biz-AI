@@ -51,6 +51,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
   const [editingMax, setEditingMax] = useState(false);
   const [maxInput, setMaxInput] = useState("50");
   const [savingMax, setSavingMax] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => { loadProducts(); }, []);
 
@@ -77,21 +78,27 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
   };
 
   const allSampleProducts = products.filter(p => p._has_sample);
+  const filterBySearch = (p: any) => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku?.toLowerCase().includes(searchQuery.toLowerCase());
   const activeSamples = allSampleProducts.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
     const active = reqs.find((s: any) => s.status === "requested");
-    return active && (p._sample_priority != null && p._sample_priority <= maxSamples);
-  }).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
+    return active && active.current_stage !== "sample_shipped" && (p._sample_priority != null && p._sample_priority <= maxSamples);
+  }).filter(filterBySearch).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
+  const transitSamples = allSampleProducts.filter(p => {
+    const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
+    const active = reqs.find((s: any) => s.status === "requested");
+    return active && active.current_stage === "sample_shipped";
+  }).filter(filterBySearch);
   const upcomingSamples = allSampleProducts.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
     const active = reqs.find((s: any) => s.status === "requested");
-    return active && (p._sample_priority == null || p._sample_priority > maxSamples);
-  }).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
+    return active && active.current_stage !== "sample_shipped" && (p._sample_priority == null || p._sample_priority > maxSamples);
+  }).filter(filterBySearch).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
   const historySamples = allSampleProducts.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
     const hasActive = reqs.some((s: any) => s.status === "requested");
     return !hasActive;
-  }).sort((a: any, b: any) => {
+  }).filter(filterBySearch).sort((a: any, b: any) => {
     const aApproved = (a.plm_sample_requests || []).some((s: any) => s.status === "approved") ? 0 : 1;
     const bApproved = (b.plm_sample_requests || []).some((s: any) => s.status === "approved") ? 0 : 1;
     return aApproved - bApproved;
@@ -330,6 +337,16 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <p className="text-[10px] text-white/30 mt-1.5">{activeSamples.length} / {maxSamples} active · {upcomingSamples.length} upcoming</p>
             </div>
 
+            {/* Search bar */}
+            <div className="relative">
+              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition" />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">×</button>
+              )}
+            </div>
+
             {allSampleProducts.length === 0 ? (
               <div className="text-center py-20">
                 <Package size={28} className="text-white/10 mx-auto mb-3" />
@@ -360,6 +377,19 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                 </div>
                 <div className="space-y-4">
                 {upcomingSamples.map(product => renderSampleProduct(product, true, collapsedSamples, setCollapsedSamples))}
+                </div>
+              </div>
+            )}
+
+            {/* Transit Section */}
+            {transitSamples.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-blue-400" />
+                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">In Transit · {transitSamples.length}</p>
+                </div>
+                <div className="space-y-4">
+                {transitSamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
                 </div>
               </div>
             )}

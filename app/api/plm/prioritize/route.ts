@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
     .select("*, plm_products(id, name, sku, images), factory_catalog(id, name)")
     .eq("user_id", user.id)
     .in("status", ["requested"])
+    .neq("current_stage", "sample_shipped")
     .order("priority_order", { ascending: true, nullsFirst: false });
 
   return NextResponse.json({ factories: factories || [], samples: samples || [] });
