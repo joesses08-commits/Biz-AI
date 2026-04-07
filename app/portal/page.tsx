@@ -46,8 +46,8 @@ export default function PortalLogin() {
           <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
             <Factory size={22} className="text-white/60" />
           </div>
-          <h1 className="text-xl font-bold text-white">Factory Portal</h1>
-          <p className="text-sm text-white/30 mt-1">Powered by Jimmy AI</p>
+          <h1 className="text-xl font-bold text-white">Jimmy Portal</h1>
+          <p className="text-sm text-white/30 mt-1">Factory & Designer Access</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
