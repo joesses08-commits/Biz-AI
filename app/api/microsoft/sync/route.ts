@@ -161,7 +161,7 @@ async function syncUserMicrosoft(userId: string) {
   }
 
   const emailsRes = await fetch(
-    `https://graph.microsoft.com/v1.0/me/messages?$top=${topCount}&$filter=receivedDateTime gt ${afterDate}&$select=subject,from,receivedDateTime,body,isRead&$orderby=receivedDateTime desc`,
+    `https://graph.microsoft.com/v1.0/me/messages?$top=${topCount}&$filter=receivedDateTime gt ${afterDate}&$select=id,subject,from,receivedDateTime,body,isRead&$orderby=receivedDateTime desc`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   const emailsData = await emailsRes.json();
