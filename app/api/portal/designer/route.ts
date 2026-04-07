@@ -30,6 +30,16 @@ export async function GET(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Single product view
+  const type = req.nextUrl.searchParams.get("type");
+  if (type === "product") {
+    const id = req.nextUrl.searchParams.get("id");
+    const { data } = await supabaseAdmin.from("plm_products")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*))")
+      .eq("id", id).eq("user_id", portalUser.user_id).single();
+    return NextResponse.json({ product: data });
+  }
+
   const [productsRes, collectionsRes, factoriesRes, samplesRes] = await Promise.all([
     supabaseAdmin.from("plm_products")
       .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*)")
