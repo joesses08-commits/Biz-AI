@@ -300,6 +300,10 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       // Hold above killed
       if (a.status === "hold" && b.status !== "hold" && !b.killed) return 1;
       if (a.status !== "hold" && !a.killed && b.status === "hold") return -1;
+      // Action Required to top
+      const aAction = a.action_status === "action_required" && (a.plm_assignments || []).some((x: any) => x.designer_id === portalUser.id) ? 0 : 1;
+      const bAction = b.action_status === "action_required" && (b.plm_assignments || []).some((x: any) => x.designer_id === portalUser.id) ? 0 : 1;
+      if (aAction !== bAction) return aAction - bAction;
       // Sort by dev stage (earliest first)
       const aStage = DEV_STAGE_ORDER[a.current_stage] ?? 0;
       const bStage = DEV_STAGE_ORDER[b.current_stage] ?? 0;

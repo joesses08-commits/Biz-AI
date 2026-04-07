@@ -1399,7 +1399,7 @@ ${entry}` : entry;
           </div>
 
           {/* Action Status */}
-          {product.action_status && product.action_status !== "up_to_date" && (
+          {product.action_status && product.action_status !== "up_to_date" && orders.length === 0 && (
             <div className={`border rounded-2xl p-4 ${product.action_status === "action_required" ? "border-red-500/20 bg-red-500/[0.03]" : "border-blue-500/20 bg-blue-500/[0.03]"}`}>
               <div className="flex items-center justify-between mb-2">
                 <p className={`text-[10px] font-bold uppercase tracking-widest ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
