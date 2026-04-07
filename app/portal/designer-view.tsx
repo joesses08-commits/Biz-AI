@@ -285,9 +285,26 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
     load();
   };
 
+  const DEV_STAGE_ORDER: Record<string, number> = {
+    concept: 0, ready_for_quote: 1, artwork_sent: 2, quotes_received: 3,
+    samples_requested: 4, sample_approved: 5,
+  };
+
   const filtered = products.filter(p => !searchQuery ||
     p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(searchQuery.toLowerCase()));
+    p.sku?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      // Killed to bottom
+      if (a.killed && !b.killed) return 1;
+      if (!a.killed && b.killed) return -1;
+      // Hold above killed
+      if (a.status === "hold" && b.status !== "hold" && !b.killed) return 1;
+      if (a.status !== "hold" && !a.killed && b.status === "hold") return -1;
+      // Sort by dev stage (earliest first)
+      const aStage = DEV_STAGE_ORDER[a.current_stage] ?? 0;
+      const bStage = DEV_STAGE_ORDER[b.current_stage] ?? 0;
+      return aStage - bStage;
+    });
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
