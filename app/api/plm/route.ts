@@ -881,6 +881,12 @@ ${noteEntry}` : noteEntry;
   if (action === "dismiss_action") {
     const { product_id } = body;
     await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
+    await supabaseAdmin.from("plm_stages").insert({
+      product_id, user_id: user.id,
+      stage: "admin_dismissed",
+      notes: "Admin dismissed status update",
+      updated_by: user.email, updated_by_role: "admin",
+    });
     return NextResponse.json({ success: true });
   }
 

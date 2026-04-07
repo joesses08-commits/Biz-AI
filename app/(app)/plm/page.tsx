@@ -978,9 +978,30 @@ export default function PLMPage() {
             ) : (
               <div className="grid grid-cols-1 gap-3">
                 <div className="flex items-center gap-3 px-4 py-2">
-                  <button onClick={toggleAll} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/50 font-semibold hover:bg-white/5 transition">
+                  <button onClick={() => { if (selectedProducts.length > 0) { setSelectedProducts([]); } }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-white/20 text-white/70 bg-white/5 hover:bg-white/10" : "border-white/10 text-white/40 hover:bg-white/5"}`}>
                     {selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select"}
                   </button>
+                  {selectedProducts.length > 0 && (
+                    <button onClick={toggleAll} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/40 hover:bg-white/5 font-semibold transition">
+                      {selectedProducts.length === filteredProducts.length ? "Deselect All" : "Select All"}
+                    </button>
+                  )}
+                  {selectedProducts.length > 0 && (
+                    <button onClick={() => setShowExportModal(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/60 font-semibold hover:bg-white/5 transition">
+                      <Download size={11} />Export {selectedProducts.length}
+                    </button>
+                  )}
+                  {selectedProducts.length > 0 && (
+                    <button onClick={async () => {
+                      const res = await fetch("/api/plm?type=designers");
+                      const data = await res.json();
+                      setAssignDesigners(data.designers || []);
+                      setSelectedDesignerIds([]);
+                      setShowAssignModal(true);
+                    }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-blue-500/30 text-blue-400 bg-blue-500/10 font-semibold hover:bg-blue-500/20 transition">
+                      Assign {selectedProducts.length}
+                    </button>
+                  )}
                 </div>
                 {sortedProducts.map(product => {
                   const statusKey = getProductStatus(product);
