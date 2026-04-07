@@ -594,7 +594,7 @@ export default function PLMPage() {
 
               {/* Product list with factory picker per product */}
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {products.filter(p => ["quotes_received","samples_requested","artwork_sent","ready_for_quote"].includes(p.current_stage || "") || (p.plm_sample_requests || []).some((r: any) => r.status === "approved")).filter(p => !p.killed).map((p: any) => {
+                {products.filter(p => !p.killed).map((p: any) => {
                   const isSelected = bulkSampleProductIds.includes(p.id);
                   const selectedFactories = bulkSampleSelections[p.id] || [];
                   const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
