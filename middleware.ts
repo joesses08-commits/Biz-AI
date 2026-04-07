@@ -1,12 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function middleware(request: NextRequest) {
   const publicPaths = [
@@ -48,24 +42,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && request.nextUrl.pathname === "/login") {
-    // Check if designer — redirect to PLM instead of dashboard
-    const { data: profile } = await supabaseAdmin.from("profiles").select("is_designer").eq("id", user.id).single();
-    if (profile?.is_designer) {
-      return NextResponse.redirect(new URL("/plm", request.url));
-    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Restrict designers to allowed routes only
-  if (user) {
-    const { data: profile } = await supabaseAdmin.from("profiles").select("is_designer").eq("id", user.id).single();
-    if (profile?.is_designer) {
-      const allowedPaths = ["/plm", "/workflows", "/settings"];
-      const isAllowed = allowedPaths.some(p => request.nextUrl.pathname.startsWith(p));
-      if (!isAllowed) {
-        return NextResponse.redirect(new URL("/plm", request.url));
-      }
-    }
   }
 
   return response;

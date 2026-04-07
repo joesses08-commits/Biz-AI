@@ -32,22 +32,12 @@ export default function Sidebar() {
   const router = useRouter();
   const [googleOpen, setGoogleOpen] = useState(pathname.startsWith("/google") || pathname.startsWith("/gmail"));
   const [microsoftOpen, setMicrosoftOpen] = useState(pathname.startsWith("/microsoft"));
-  const [isDesigner, setIsDesigner] = useState(false);
-  const [designerName, setDesignerName] = useState("");
-
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("profiles").select("is_designer, full_name").eq("id", user.id).single().then(({ data }) => {
-        if (data?.is_designer) { setIsDesigner(true); setDesignerName(data.full_name || ""); }
-      });
-    });
-  }, []);
+
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -79,42 +69,6 @@ export default function Sidebar() {
     </Link>
   );
 
-  // Designer-only sidebar
-  if (isDesigner) {
-    return (
-      <aside className="w-[220px] flex-shrink-0 flex flex-col h-screen bg-bg-surface border-r border-bg-border">
-        <div className="px-5 py-5 border-b border-bg-border">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
-              <svg width="20" height="20" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                <rect width="40" height="40" rx="10" fill="#0a0a0a"/>
-                <line x1="24" y1="8" x2="24" y2="26" stroke="white" strokeWidth="4" strokeLinecap="round"/>
-                <path d="M24 26 Q24 34 18 35 Q11 36 10 30" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div>
-              <div className="text-sm font-bold text-text-primary leading-none" style={{ fontFamily: "var(--font-display)" }}>Jimmy</div>
-              <div className="text-[10px] text-text-muted mt-0.5 leading-none">Production Team</div>
-            </div>
-          </div>
-        </div>
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <NavItem href="/plm" icon={Package} label="Product Lifecycle" description="SKUs & collections" />
-          <NavItem href="/workflows" icon={Zap} label="Workflows" description="RFQ, PO & more" />
-          <NavItem href="/settings" icon={Settings} label="Settings" description="PIN & profile" />
-        </nav>
-        <div className="px-3 py-4 border-t border-bg-border space-y-1">
-          {designerName && <div className="px-3 py-1.5 text-[11px] text-text-muted truncate">{designerName}</div>}
-          <div onClick={handleSignOut} className="nav-item group cursor-pointer">
-            <LogOut size={16} className="text-text-muted group-hover:text-text-secondary flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-medium leading-none">Sign Out</div>
-            </div>
-          </div>
-        </div>
-      </aside>
-    );
-  }
 
   return (
     <aside className="w-[220px] flex-shrink-0 flex flex-col h-screen bg-bg-surface border-r border-bg-border">
