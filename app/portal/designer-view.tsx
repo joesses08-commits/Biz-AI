@@ -180,7 +180,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [prioSaved, setPrioSaved] = useState(false);
   const [dragOver, setDragOver] = useState<string | null>(null);
 
-  const tok = () => localStorage.getItem("portal_token") || "";
+  const tok = () => localStorage.getItem("portal_token_designer") || localStorage.getItem("portal_token") || "";
 
   useEffect(() => { load(); }, []);
 
@@ -219,7 +219,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
     else setPinPrompt(null);
   };
 
-  const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
+  const logout = () => { localStorage.removeItem("portal_token_designer"); localStorage.removeItem("portal_user_designer"); localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
 
   const createProduct = async () => {
     if (!newProduct.name) return;
