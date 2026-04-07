@@ -592,9 +592,15 @@ export default function PLMPage() {
                 <button onClick={() => setShowSampleRequestModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
 
+              {/* Info note */}
+              <div className="flex items-start gap-2.5 bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/30 flex-shrink-0 mt-1" />
+                <p className="text-[11px] text-white/40">Products with active sample requests are not shown here. To request an additional sample or revision, open the individual product card.</p>
+              </div>
+
               {/* Product list with factory picker per product */}
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {products.filter(p => !p.killed).map((p: any) => {
+                {products.filter(p => !p.killed && !(p.plm_sample_requests || []).some((r: any) => r.status === "requested")).map((p: any) => {
                   const isSelected = bulkSampleProductIds.includes(p.id);
                   const selectedFactories = bulkSampleSelections[p.id] || [];
                   const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
