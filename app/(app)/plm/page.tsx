@@ -805,7 +805,7 @@ export default function PLMPage() {
                 <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
                   <option value="">All Stages</option>
                   <optgroup label="Development">
-                    {Object.entries(DEV_STAGE_LABELS).map(([key, label]) => <option key={key} value={key}>{label as string}</option>)}
+                    {Object.entries(DEV_STAGE_LABELS).filter(([key]) => !["sample_production","sample_complete","sample_shipped","sample_arrived"].includes(key)).map(([key, label]) => <option key={key} value={key}>{label as string}</option>)}
                   </optgroup>
                   <optgroup label="Production">
                     {BATCH_STAGE_ORDER.map(s => <option key={s} value={s}>{BATCH_STAGE_LABELS[s]}</option>)}
