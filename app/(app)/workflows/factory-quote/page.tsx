@@ -691,7 +691,7 @@ Best regards,
       {activeTab === "jobs" && (
         <>
           <div className="flex items-center gap-2">
-            <button onClick={() => { if (!showNew) { setActiveDraftJob(null); setProductFile(null); setNewJob({ job_name: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" }); } setShowNew(!showNew); }}
+            <button onClick={() => { setActiveDraftJob(null); setProductFile(null); setNewJob({ job_name: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" }); setShowNew(!showNew); }}
               className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
               <Plus size={11} />New Quote Job
             </button>
