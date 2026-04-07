@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
   const [productsRes, collectionsRes, factoriesRes, samplesRes] = await Promise.all([
     supabaseAdmin.from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*)")
+      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*), plm_assignments(designer_id)")
       .eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
     supabaseAdmin.from("plm_collections").select("*").eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
     supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").eq("user_id", portalUser.user_id).order("name"),

@@ -453,6 +453,8 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                             <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>{stageLabel}</span>
                             {isKilled && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20">Killed</span>}
                             {isHold && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/20">On Hold</span>}
+                            {product.action_status === "action_required" && (product.plm_assignments || []).some((a: any) => a.designer_id === portalUser.id) && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>}
+                            {product.action_status === "updates_made" && (product.plm_assignments || []).some((a: any) => a.designer_id === portalUser.id) && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 uppercase tracking-wide">● Updates Made</span>}
                             {approvedSample && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Sample ✓</span>}
                             {batches.length > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">{batches.length} order{batches.length !== 1 ? "s" : ""}</span>}
                           </div>
