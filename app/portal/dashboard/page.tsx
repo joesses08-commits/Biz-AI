@@ -499,7 +499,6 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
     if (res.status === 401) { router.push("/portal"); return; }
     const data = await res.json();
     setProducts(data.products || []);
-    if (data.max_samples) { setMaxSamples(data.max_samples); setMaxInput(String(data.max_samples)); }
     setCollections(data.collections || []);
     setLoading(false);
   };
@@ -599,15 +598,6 @@ function DesignerView({ portalUser, router }: { portalUser: any; router: any }) 
   };
 
   const logout = () => { localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
-
-  const saveMax = async () => {
-    setSavingMax(true);
-    await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "update_max_samples", factory_id: portalUser?.factory_id, max_samples: parseInt(maxInput) || 50 }) });
-    setMaxSamples(parseInt(maxInput) || 50);
-    setSavingMax(false);
-    setEditingMax(false);
-  };
 
   const ProductForm = ({ form, setForm }: { form: any; setForm: any }) => (
     <div className="space-y-3">
