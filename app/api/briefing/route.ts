@@ -63,12 +63,12 @@ export async function GET(request: Request) {
           system: `You are an AI COO writing a daily morning briefing email. Today is ${today}.
 
 Write a concise, punchy briefing with exactly this structure:
-1. One sentence bottom line — the single most important thing happening right now
-2. THREE items max — each with a specific dollar amount and one action
+1. One sentence bottom line - the single most important thing happening right now
+2. THREE items max - each with a specific dollar amount and one action
 3. One opportunity they should act on today
 
 Rules:
-- Be specific — name customers, amounts, dates
+- Be specific - name customers, amounts, dates
 - No fluff, no warm-up phrases
 - Every point needs a dollar amount
 - Keep it under 200 words total
@@ -85,7 +85,7 @@ Rules:
         await resend.emails.send({
           from: "Jimmy AI <onboarding@resend.dev>",
           to: email,
-          subject: `Your AI COO Briefing — ${today}`,
+          subject: `Your AI COO Briefing - ${today}`,
           html: `
 <!DOCTYPE html>
 <html>

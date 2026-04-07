@@ -226,7 +226,7 @@ export async function POST(req: NextRequest) {
     // Log to stage history
     await supabaseAdmin.from("plm_stages").insert({
       product_id: id, user_id: user.id,
-      stage: "sample_approved", notes: "Product approved by admin — all pre-production milestones marked complete",
+      stage: "sample_approved", notes: "Product approved by admin - all pre-production milestones marked complete",
       updated_by: user.email, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });
@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
       .select("id, name, email, contact_name")
       .in("id", factory_ids);
 
-    // Create sample request per factory — skip if already exists and not killed
+    // Create sample request per factory - skip if already exists and not killed
     const skippedFactories: string[] = [];
     for (const factory of (factories || [])) {
       // Check if approved or active request exists
@@ -258,14 +258,14 @@ export async function POST(req: NextRequest) {
 
       if (hasApproved && !force) {
         skippedFactories.push(factory.name);
-        continue; // Sample already approved — block unless force (additional sample)
+        continue; // Sample already approved - block unless force (additional sample)
       }
 
       if (hasActive && !force) {
         skippedFactories.push(factory.name);
         continue; // Already has active request
       }
-      // Force always creates a new row — skip the killed check
+      // Force always creates a new row - skip the killed check
       if (force) {
         const { data: fprios } = await supabaseAdmin.from("plm_sample_requests").select("priority_order").eq("factory_id", factory.id).eq("user_id", user.id).eq("status", "requested").not("priority_order", "is", null);
         const fmaxPrio = (fprios || []).reduce((max: number, r: any) => Math.max(max, r.priority_order || 0), 0);
@@ -368,7 +368,7 @@ export async function POST(req: NextRequest) {
     const factoryNames = newlyCreated.map((f: any) => f.name).join(", ");
     if (!force && newlyCreated.length > 0) {
       const noteEntry = note
-        ? `Samples Requested: requested from ${factoryNames} — ${note}`
+        ? `Samples Requested: requested from ${factoryNames} - ${note}`
         : `Samples Requested: requested from ${factoryNames}`;
       const { data: product } = await supabaseAdmin.from("plm_products").select("notes").eq("id", product_id).single();
       const updatedNotes = product?.notes ? `${product.notes}
@@ -466,7 +466,7 @@ ${senderName}`;
       for (const factory of (factories || [])) {
         if (!factory.email) continue;
         const contactName = (factory as any).contact_name || factory.name;
-        const mime = [`MIME-Version: 1.0`, `To: ${factory.email}`, `Subject: Sample Request — ${productName}`, `Content-Type: text/plain; charset=utf-8`, ``, buildEmailBody(contactName)].join("\r\n");
+        const mime = [`MIME-Version: 1.0`, `To: ${factory.email}`, `Subject: Sample Request - ${productName}`, `Content-Type: text/plain; charset=utf-8`, ``, buildEmailBody(contactName)].join("\r\n");
         const encoded = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
         await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
           method: "POST",
@@ -494,7 +494,7 @@ ${senderName}`;
         await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
           method: "POST",
           headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ message: { subject: `Sample Request — ${productName}`, body: { contentType: "Text", content: buildEmailBody(contactName) }, toRecipients: [{ emailAddress: { address: factory.email } }] } }),
+          body: JSON.stringify({ message: { subject: `Sample Request - ${productName}`, body: { contentType: "Text", content: buildEmailBody(contactName) }, toRecipients: [{ emailAddress: { address: factory.email } }] } }),
         }).catch(() => {});
       }
     }
@@ -521,7 +521,7 @@ ${senderName}`;
     const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", user.id).single();
     const senderName = profile?.full_name || user.email;
 
-    // Process each item — create sample requests in DB
+    // Process each item - create sample requests in DB
     for (const item of items) {
       const { product_id, factory_ids, note: itemNote, force, label, qty } = item;
       for (const factoryId of (factory_ids || [])) {
@@ -583,7 +583,7 @@ ${senderName}`;
       const contactName = factory.contact_name || factory.name;
       const emailBody = "Hi " + contactName + ",\n\nWe have submitted sample requests for the following product" + (factoryProducts.length > 1 ? "s" : "") + ":\n\n" + productList + "\n\nPlease log into the factory portal to view full product details and update sample status as you progress." + (note ? "\n\nNote: " + note : "") + "\n\nPortal: https://portal.myjimmy.ai\n\nBest regards,\n" + senderName;
 
-      const subject = "Sample Request" + (factoryProducts.length > 1 ? "s (" + factoryProducts.length + " products)" : " — " + (factoryProducts[0]?.name || ""));
+      const subject = "Sample Request" + (factoryProducts.length > 1 ? "s (" + factoryProducts.length + " products)" : " - " + (factoryProducts[0]?.name || ""));
 
       if (useGmail && gmailConn) {
         let accessToken = gmailConn.access_token;
@@ -644,7 +644,7 @@ ${senderName}`;
     if (outcome) updates.status = outcome;
     if (notes) updates.notes = notes;
 
-    // Handle revision — mark current request as revision_complete, create new request for round 2
+    // Handle revision - mark current request as revision_complete, create new request for round 2
     if (outcome === "revision") {
       // Close current request with revision status
       await supabaseAdmin.from("plm_sample_requests").update({
@@ -719,13 +719,13 @@ ${revNote}` : revNote;
         const { data: otherFactory } = await supabaseAdmin.from("factory_catalog").select("name").eq("id", other.factory_id).single();
         await supabaseAdmin.from("plm_sample_requests").update({
           status: "killed",
-          notes: `Auto-killed — production started with ${factoryName}`,
+          notes: `Auto-killed - production started with ${factoryName}`,
           updated_at: new Date().toISOString(),
         }).eq("id", other.id);
         await supabaseAdmin.from("plm_sample_stages").insert({
           sample_request_id: other.id, product_id, factory_id: other.factory_id, user_id: user.id,
           stage: "killed",
-          notes: `Disregard sample — production started with ${factoryName}`,
+          notes: `Disregard sample - production started with ${factoryName}`,
           updated_by: user.email, updated_by_role: "admin",
         });
       }
@@ -737,7 +737,7 @@ ${revNote}` : revNote;
       await supabaseAdmin.from("plm_stages").insert({
         product_id, user_id: user.id,
         stage: "sample_approved",
-        notes: `Sample approved — ${factoryName} selected`,
+        notes: `Sample approved - ${factoryName} selected`,
         updated_by: user.email, updated_by_role: "admin",
       });
     } else if (outcome === "revision") {
@@ -798,9 +798,9 @@ ${noteEntry}` : noteEntry;
       updated_at: new Date().toISOString(),
     }).eq("id", product_id).eq("user_id", user.id);
     const noteMap: Record<string, string> = {
-      progression: "Product set to Progression — moving forward",
-      hold: "Product placed on Hold — paused but not cancelled",
-      killed: "Product Killed — no longer moving forward",
+      progression: "Product set to Progression - moving forward",
+      hold: "Product placed on Hold - paused but not cancelled",
+      killed: "Product Killed - no longer moving forward",
     };
     await supabaseAdmin.from("plm_stages").insert({
       product_id, user_id: user.id,
@@ -816,7 +816,7 @@ ${noteEntry}` : noteEntry;
         await supabaseAdmin.from("plm_sample_requests").update({ status: "killed", updated_at: new Date().toISOString() }).eq("id", sr.id);
         await supabaseAdmin.from("plm_sample_stages").insert({
           sample_request_id: sr.id, product_id, user_id: user.id,
-          stage: "killed", notes: "Product killed — sample auto-cancelled",
+          stage: "killed", notes: "Product killed - sample auto-cancelled",
           updated_by: user.email, updated_by_role: "admin",
         });
       }
