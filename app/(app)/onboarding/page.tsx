@@ -343,7 +343,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {currentStep === 5 && (
+        {currentStep === 3 && (
           <div>
             <div className="text-center mb-8">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Connect Your Tools</p>
@@ -374,15 +374,15 @@ export default function OnboardingPage() {
               })}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setCurrentStep(3)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
-              <button onClick={() => setCurrentStep(5)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
+              <button onClick={() => setCurrentStep(2)} className="px-6 py-3 rounded-xl text-white/40 hover:text-white border border-white/10 hover:border-white/20 transition text-sm">Back</button>
+              <button onClick={() => setCurrentStep(4)} className="flex-1 bg-white text-black font-semibold py-3 rounded-xl hover:bg-white/90 transition">
                 {connectedIntegrations.length > 0 ? "Continue →" : "Skip for now →"}
               </button>
             </div>
           </div>
         )}
 
-        {currentStep === 5 && (
+        {currentStep === 4 && (
           <div>
             <div className="text-center mb-8">
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Company Brain</p>
