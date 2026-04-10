@@ -43,7 +43,7 @@ async function fetchPLMData(userId: string): Promise<string> {
       const approvedSample = (p.plm_sample_requests || []).find((s: any) => s.status === "approved");
       let line = `  ${p.name}${p.sku ? " (" + p.sku + ")" : ""}`;
       if (activeBatch) line += " | PO: " + (activeBatch.linked_po_number || "pending") + " " + (activeBatch.order_quantity ? activeBatch.order_quantity + "u" : "") + " @ " + activeBatch.current_stage;
-      if (approvedSample?.factory_catalog?.name) line += " | factory: " + approvedSample.factory_catalog.name;
+      if ((approvedSample as any)?.factory_catalog?.name) line += " | factory: " + (approvedSample as any).factory_catalog.name;
       if (p.action_status === "action_required" && !batches.length) line += " | ACTION NEEDED";
       byStage[stage].push(line);
     }
