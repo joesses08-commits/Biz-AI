@@ -153,9 +153,11 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <label className={labelClass}>Who you are & what you do</label>
-                  <textarea value={brain.company_brief} onChange={e => setBrain({...brain, company_brief: e.target.value})}
+                  <textarea value={brain.company_brief} onChange={e => { if (e.target.value.length <= 800) setBrain({...brain, company_brief: e.target.value}); }}
                     rows={5} placeholder="Describe your business — what you sell, who you sell to, how you operate, key people, tools you use..."
+                    maxLength={800}
                     className={textareaClass} />
+                  <p className="text-[10px] text-white/20 mt-1">{brain.company_brief?.length || 0}/800 characters</p>
                 </div>
               </div>
             </div>

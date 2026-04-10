@@ -36,7 +36,7 @@ Return ONLY raw JSON, no markdown, start with {:
 }`,
       messages: [{
         role: "user",
-        content: `COMPANY: ${companyContext?.slice(0, 500) || "No context"}
+        content: `COMPANY: ${companyContext?.slice(0, 800) || "No context"}
 
 EVENT:
 Source: ${source}
