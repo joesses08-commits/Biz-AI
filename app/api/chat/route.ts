@@ -298,7 +298,6 @@ ${companyContext || "No integrations connected yet."}`;
           model: useModel,
           max_tokens: useModel === SONNET ? 2000 : 1500,
           system: systemPrompt,
-          tools: TOOLS,
           messages: currentMessages,
         });
       } catch (apiErr: any) {
