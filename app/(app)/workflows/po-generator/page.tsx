@@ -197,6 +197,9 @@ Download PO: ${publicUrl}` : ""),
     window.open(pdfUrl, "_blank");
   }
 
+  const [authorizedPO, setAuthorizedPO] = useState(false);
+  const [selectedFactory, setSelectedFactory] = useState("");
+
   const totalValue = poSelectedProducts.reduce((sum, pid) => {
     const line = poLineItems[pid];
     if (!line) return sum;
@@ -260,6 +263,22 @@ Download PO: ${publicUrl}` : ""),
                       className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                 </div>
+              </div>
+
+              {/* Factory Picker */}
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Factory (Sell To)</p>
+                <select value={selectedFactory} onChange={e => {
+                  setSelectedFactory(e.target.value);
+                  setSelectedProducts([]);
+                  setPOSelectedProducts([]);
+                  setPOFactoryPerProduct({});
+                }} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
+                  <option value="">Select a factory...</option>
+                  {factories.map((f: any) => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Products */}
@@ -401,7 +420,17 @@ Download PO: ${publicUrl}` : ""),
                 </div>
               </div>
 
-              <button onClick={handleGeneratePO} disabled={generatingPO || poSelectedProducts.length === 0}
+              {/* Authorization */}
+              <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.02]">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" checked={authorizedPO} onChange={e => setAuthorizedPO(e.target.checked)} className="mt-0.5 flex-shrink-0" />
+                  <span className="text-xs text-white/50 leading-relaxed">
+                    I, <strong className="text-white/70">{poForm.contact_name || "Authorized Signatory"}</strong>, authorize this Purchase Order on behalf of <strong className="text-white/70">{poForm.company_name || "my company"}</strong>. By checking this box, my name will appear as the authorized signature on the PO document.
+                  </span>
+                </label>
+              </div>
+
+              <button onClick={handleGeneratePO} disabled={generatingPO || poSelectedProducts.length === 0 || !authorizedPO}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-500 text-white text-sm font-semibold hover:bg-blue-400 transition disabled:opacity-40 disabled:cursor-not-allowed">
                 {generatingPO ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
                 {generatingPO ? "Generating..." : `Generate PO${poSelectedProducts.length > 0 ? ` for ${poSelectedProducts.length} Product${poSelectedProducts.length !== 1 ? "s" : ""}` : ""}`}
