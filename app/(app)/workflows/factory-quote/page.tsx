@@ -519,23 +519,23 @@ Best regards,
     }
   };
 
-  const uploadQuote = async (jobId: string, file: File) => {
-    setProcessing(jobId);
+  const uploadQuote = async (jobId: string, file: File, factoryName?: string) => {
+    setProcessing(factoryName ? jobId + factoryName : jobId);
     const reader = new FileReader();
     reader.onload = async (e) => {
       const base64 = (e.target?.result as string).split(",")[1];
       const job = jobs.find(j => j.id === jobId);
       const jobFactories = job?.factories || [];
-      const matchedFactory = jobFactories.find((f: any) =>
-        file.name.toLowerCase().includes(f.name?.toLowerCase())
-      );
+      const matchedFactory = factoryName
+        ? jobFactories.find((f: any) => f.name === factoryName)
+        : jobFactories.find((f: any) => file.name.toLowerCase().includes(f.name?.toLowerCase()));
       await fetch("/api/workflows/factory-quote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "process_file",
           job_id: jobId,
-          factory_name: matchedFactory?.name || file.name.replace(/\.xlsx?$/, ""),
+          factory_name: matchedFactory?.name || factoryName || file.name.replace(/\.xlsx?$/, ""),
           factory_email: matchedFactory?.email || "",
           file_base64: base64,
           file_name: file.name,
@@ -924,43 +924,45 @@ Best regards,
                         </div>
                       </div>
 
-                      {/* Factory statuses */}
-                      <div className="space-y-1 mb-3">
+                      {/* Factory statuses — per-factory upload */}
+                      <div className="space-y-2 mb-3">
                         {(job.factories || []).map((factory: any, i: number) => {
                           const received = job.factory_quotes?.find((q: any) =>
                             q.factory_name === factory.name || q.factory_email === factory.email
                           );
+                          const isProcessing = processing === job.id + factory.name;
                           return (
-                            <div key={i} className="flex items-center gap-2">
+                            <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${received ? "border-emerald-500/20 bg-emerald-500/[0.03]" : "border-white/[0.05] bg-white/[0.01]"}`}>
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : job.status === "rfq_sent" || job.status === "ready" || job.status === "complete" ? "bg-blue-400/40" : "bg-white/15"}`} />
-                              <span className="text-[11px] text-white/50">{factory.name}</span>
-                              {factory.email && <span className="text-[10px] text-white/20">{factory.email}</span>}
+                              <span className="text-[11px] text-white/60 flex-1">{factory.name}</span>
                               {received ? (
-                                <span className="text-[10px] text-emerald-400/70 ml-auto">{received.processed_data?.length || 0} products</span>
-                              ) : (job.status === "rfq_sent" || job.status === "ready" || job.status === "complete") ? (
-                                <span className="text-[10px] text-blue-400/40 ml-auto">awaiting reply</span>
-                              ) : null}
+                                <span className="text-[10px] text-emerald-400/80">{received.processed_data?.length || 0} products received</span>
+                              ) : job.status !== "complete" ? (
+                                <label className="cursor-pointer">
+                                  <input type="file" accept=".xlsx,.xls" className="hidden"
+                                    onChange={e => {
+                                      const file = e.target.files?.[0];
+                                      if (file) uploadQuote(job.id, file, factory.name);
+                                    }} />
+                                  {isProcessing ? (
+                                    <div className="flex items-center gap-1 text-blue-400">
+                                      <Loader2 size={10} className="animate-spin" />
+                                      <span className="text-[10px]">Processing...</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1 text-white/30 hover:text-white/60 transition">
+                                      <Upload size={10} />
+                                      <span className="text-[10px]">Upload quote</span>
+                                    </div>
+                                  )}
+                                </label>
+                              ) : (
+                                <span className="text-[10px] text-white/20">no quote received</span>
+                              )}
                             </div>
                           );
                         })}
                       </div>
-
-                      {/* Manual upload fallback */}
-                      {job.status !== "complete" && (
-                        <div className="border border-dashed border-white/[0.06] rounded-xl p-3 mb-3 text-center">
-                          <label className="cursor-pointer">
-                            <input type="file" accept=".xlsx,.xls" multiple className="hidden"
-                              onChange={e => { Array.from(e.target.files || []).forEach(f => uploadQuote(job.id, f)); }} />
-                            <div className="flex items-center justify-center gap-2 text-white/20 hover:text-white/40 transition">
-                              {processing === job.id ? (
-                                <><Loader2 size={12} className="animate-spin text-blue-400" /><span className="text-xs">Processing quote...</span></>
-                              ) : (
-                                <><Upload size={12} /><span className="text-xs">Upload a quote manually if not auto-detected</span></>
-                              )}
-                            </div>
-                          </label>
-                        </div>
-                      )}
 
                       {/* Actions */}
                       <div className="flex gap-2">
