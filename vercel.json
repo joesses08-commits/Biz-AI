@@ -2,23 +2,23 @@
   "crons": [
     {
       "path": "/api/gmail/sync",
-      "schedule": "0 * * * *"
+      "schedule": "45 6,9,12,14,16,18 * * *"
     },
     {
       "path": "/api/microsoft/sync",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/quickbooks/sync",
-      "schedule": "0 */4 * * *"
+      "schedule": "45 6,9,12,14,16,18 * * *"
     },
     {
       "path": "/api/google/sync",
-      "schedule": "0 * * * *"
+      "schedule": "45 6,9,12,14,16,18 * * *"
     },
     {
       "path": "/api/microsoft/files",
-      "schedule": "0 * * * *"
+      "schedule": "45 6,9,12,14,16,18 * * *"
+    },
+    {
+      "path": "/api/quickbooks/sync",
+      "schedule": "45 6,12,16,18 * * *"
     },
     {
       "path": "/api/microsoft/subscribe",
@@ -26,7 +26,11 @@
     },
     {
       "path": "/api/cron/snapshot",
-      "schedule": "*/30 6-20 * * *"
+      "schedule": "0 6,7,10,16,19 * * *"
+    },
+    {
+      "path": "/api/cron/snapshot",
+      "schedule": "30 12,14 * * *"
     }
   ]
 }

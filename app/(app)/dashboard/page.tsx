@@ -270,10 +270,45 @@ export default function DashboardPage() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStep, setSyncStep] = useState(0);
 
-  const cooldownMinutes = 60;
-  const minutesSinceRefresh = lastRefreshTime ? (Date.now() - lastRefreshTime.getTime()) / 60000 : 999;
-  const onCooldown = minutesSinceRefresh < cooldownMinutes;
-  const cooldownRemaining = Math.ceil(cooldownMinutes - minutesSinceRefresh);
+  // Snapshot windows: 7am, 10am, 12:30pm, 2:30pm, 4:30pm, 7pm ET
+  // User gets one refresh per window — next refresh available at next snapshot time
+  const getNextSnapshotTime = () => {
+    const now = new Date();
+    const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const h = etNow.getHours();
+    const m = etNow.getMinutes();
+    const totalMin = h * 60 + m;
+    const windows = [7*60, 10*60, 12*60+30, 14*60+30, 16*60, 19*60];
+    const next = windows.find(w => w > totalMin) || (7*60 + 24*60); // next day 7am
+    const diffMin = next - totalMin;
+    return diffMin;
+  };
+  const getCurrentWindow = () => {
+    const now = new Date();
+    const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const h = etNow.getHours();
+    const m = etNow.getMinutes();
+    const totalMin = h * 60 + m;
+    const windows = [7*60, 10*60, 12*60+30, 14*60+30, 16*60, 19*60];
+    for (let i = windows.length - 1; i >= 0; i--) {
+      if (totalMin >= windows[i]) return windows[i];
+    }
+    return -1; // before 7am
+  };
+  const currentWindow = getCurrentWindow();
+  const lastRefreshWindow = lastRefreshTime ? (() => {
+    const etLast = new Date(lastRefreshTime.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const h = etLast.getHours();
+    const m = etLast.getMinutes();
+    const totalMin = h * 60 + m;
+    const windows = [7*60, 10*60, 12*60+30, 14*60+30, 16*60, 19*60];
+    for (let i = windows.length - 1; i >= 0; i--) {
+      if (totalMin >= windows[i]) return windows[i];
+    }
+    return -1;
+  })() : -2;
+  const onCooldown = currentWindow !== -1 && lastRefreshWindow === currentWindow;
+  const cooldownRemaining = onCooldown ? getNextSnapshotTime() : 0;
 
   const refresh = async () => {
     if (onCooldown) return;
