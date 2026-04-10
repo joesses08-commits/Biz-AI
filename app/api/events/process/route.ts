@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Use haiku for individual event analysis — cheap and fast
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 500,
+      max_tokens: 250,
       system: `You are a business analyst. Analyze this business event quickly and extract key intelligence.
 
 Return ONLY raw JSON, no markdown, start with {:
@@ -58,11 +58,16 @@ Data: ${rawData.slice(0, 1500)}`
       analysis = { summary: raw.slice(0, 200), tone: "neutral", importance: "normal", action_required: false };
     }
 
+    // Skip low importance entirely — don't store, don't process
+    if (analysis.importance === "low") {
+      return NextResponse.json({ success: true, skipped: true, reason: "low_importance" });
+    }
+
     const { data: event, error } = await supabase.from("company_events").insert({
       user_id: userId,
       source,
       event_type: eventType,
-      raw_data: rawData.slice(0, 5000),
+      raw_data: rawData.slice(0, 1500),
       analysis: analysis.summary,
       tone: analysis.tone,
       intent: analysis.intent,

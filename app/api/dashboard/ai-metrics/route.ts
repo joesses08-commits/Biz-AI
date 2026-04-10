@@ -102,7 +102,7 @@ ${recentEventsText}`;
 
     const response = await anthropic.messages.create({
       model: "claude-sonnet-4-5",
-      max_tokens: 4000,
+      max_tokens: 2000,
       system: `You are a world-class Chief Operating Officer. Today is ${today}.
 
 You have full access to this person's Company Brain. Your job is to present the most important intelligence clearly.

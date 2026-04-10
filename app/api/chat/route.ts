@@ -296,7 +296,7 @@ ${companyContext || "No integrations connected yet."}`;
       try {
         response = await anthropic.messages.create({
           model: useModel,
-          max_tokens: useModel === SONNET ? 2000 : 1500,
+          max_tokens: 700,
           system: systemPrompt,
           messages: currentMessages,
         });

@@ -11,12 +11,22 @@ const supabaseAdmin = createClient(
 
 async function fetchPLMData(userId: string): Promise<string> {
   try {
+    const { data: snap_ts } = await supabaseAdmin
+      .from("context_cache")
+      .select("last_snapshot_at")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const changedSince = snap_ts?.last_snapshot_at
+      ? new Date(snap_ts.last_snapshot_at).toISOString()
+      : new Date(0).toISOString();
+
     const { data: products } = await supabaseAdmin
       .from("plm_products")
       .select("name, sku, current_stage, status, action_status, plm_collections(name), plm_batches(current_stage, order_quantity, linked_po_number), plm_sample_requests(status, current_stage, factory_catalog(name))")
       .eq("user_id", userId)
       .eq("killed", false)
-      .order("created_at", { ascending: false });
+      .gt("updated_at", changedSince)
+      .order("updated_at", { ascending: false });
 
     const { data: factories } = await supabaseAdmin
       .from("factory_catalog")
@@ -66,7 +76,7 @@ async function fetchRecentEvents(userId: string, since: string): Promise<string>
     .select("created_at, source, event_type, analysis, importance, recommended_action, dollar_amount")
     .eq("user_id", userId)
     .gt("created_at", since)
-    .in("importance", ["critical", "high"])
+    .in("importance", ["critical", "high", "normal"])
     .order("created_at", { ascending: false })
     .limit(20);
 
@@ -123,17 +133,26 @@ Max 400 tokens. Only update what actually changed.`,
 
   const currentRes = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 600,
-    system: `Update the CURRENT section of a wholesale business snapshot. Last 14 days only. Straight facts, no narrative.
-Format:
+    max_tokens: 800,
+    system: `You maintain the CURRENT section of a wholesale business snapshot. Your job is to take new company events and PLM changes and integrate them into the existing snapshot format.
+
+The snapshot uses this structure:
 CURRENT (as of [date]):
   ORDERS: [product] | [status] | [factory] | [date]
   SAMPLES: [product] | [stage] | [factory] | [date]
   PAYMENTS: [amount] | [from/to] | [date] | [status]
   EMAILS: [key supplier/buyer comms] | [date]
   OPEN ITEMS: [what needs action] | [date]
-Max 600 tokens. Focus on: supplier communications, buyer orders, invoices, payments, shipping, production updates. Skip newsletters, automated notifications, and non-actionable emails.`,
-    messages: [{ role: "user", content: "EXISTING CURRENT:\n" + existingCurrent + "\n\nNEW EVENTS (high/critical only):\n" + (recentEvents || "None") + "\n\nLIVE PLM:\n" + (plmData || "None") + "\n\nUpdate CURRENT section. Keep recent unresolved items. Add new. Remove resolved. Max 600 tokens." }],
+
+Rules:
+- Convert each new event summary into the correct section above using the same format
+- Keep all existing unresolved items
+- Update existing items if new events show progress
+- Remove items only if confirmed resolved
+- Last 14 days only
+- Straight facts, no narrative, no recommendations
+- Max 800 tokens output`,
+    messages: [{ role: "user", content: "EXISTING CURRENT:\n" + existingCurrent + "\n\nNEW EVENT SUMMARIES TO INTEGRATE:\n" + (recentEvents || "None") + "\n\nPLM CHANGES SINCE LAST UPDATE:\n" + (plmData || "None") + "\n\nIntegrate new events into the snapshot format. Output the full updated CURRENT section." }],
   });
   trackUsage(userId, "snapshot_current", "claude-haiku-4-5-20251001", currentRes.usage.input_tokens, currentRes.usage.output_tokens).catch(() => {});
   const newCurrent = currentRes.content[0].type === "text" ? currentRes.content[0].text : existingCurrent;
@@ -163,39 +182,55 @@ async function cleanSnapshot(userId: string) {
 
   const cleanRes = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 700,
-    system: `You clean a wholesale business snapshot. 
-Tasks:
-1. Move items older than 14 days from CURRENT to HISTORY (compressed)
-2. Compress HISTORY - merge duplicates, keep all dates and numbers, remove fluff
-3. Keep FACTS unchanged unless told to update
+    max_tokens: 7000,
+    system: `You are the daily cleaner for a wholesale business snapshot. The snapshot has grown to ~11,800 tokens overnight and you must compress it back to 7,000 tokens total.
 
-Output format:
+Target structure (7,000 tokens total):
+- FACTS: 2,800 tokens (40%) — company, products, factories, collections
+- HISTORY: 2,100 tokens (30%) — compressed older events, keep all dates and numbers
+- CURRENT: 2,100 tokens (30%) — last 14 days only, full detail
+
+Tasks:
+1. Update FACTS with any structural changes visible in CURRENT (new factory, new product stage, new collection)
+2. Move items older than 14 days from CURRENT into HISTORY (compressed format)
+3. Compress HISTORY by merging duplicate/similar entries — keep dates and numbers, remove repetition
+4. History can borrow up to 10% from current allocation if needed (max 2,800 history)
+
+Output format — output ALL THREE sections:
+UPDATED_FACTS:
+[facts here]
+
 UPDATED_HISTORY:
 [compressed history here]
 
 CLEANED_CURRENT:
-[current section with items older than 14 days removed]
+[last 14 days only here]
 
-Rules: Never delete data. Only compress and merge duplicates. Keep all dates. Max 700 tokens total output.`,
+Rules:
+- Never delete data — only compress and merge
+- Keep all dates, names, amounts
+- Target total output: 7,000 tokens
+- No narrative, straight facts only`,
     messages: [{ role: "user", content: "TODAY: " + new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) + "\n14 DAYS AGO: " + twoWeeksAgoStr + "\n\nCURRENT SECTION:\n" + (existing.snapshot_current || "") + "\n\nEXISTING HISTORY:\n" + (existing.snapshot_history || "") + "\n\nCompress and clean. Output UPDATED_HISTORY and CLEANED_CURRENT." }],
   });
 
   trackUsage(userId, "snapshot_clean", "claude-haiku-4-5-20251001", cleanRes.usage.input_tokens, cleanRes.usage.output_tokens).catch(() => {});
   const cleanText = cleanRes.content[0].type === "text" ? cleanRes.content[0].text : "";
 
+  const factsMatch = cleanText.match(/UPDATED_FACTS:([\s\S]*?)(?:UPDATED_HISTORY:|$)/);
   const historyMatch = cleanText.match(/UPDATED_HISTORY:([\s\S]*?)(?:CLEANED_CURRENT:|$)/);
   const currentMatch = cleanText.match(/CLEANED_CURRENT:([\s\S]*?)$/);
 
+  const newFacts = factsMatch ? factsMatch[1].trim() : existing.snapshot_facts || "";
   const newHistory = historyMatch ? historyMatch[1].trim() : existing.snapshot_history || "";
   const newCurrent = currentMatch ? currentMatch[1].trim() : existing.snapshot_current || "";
-  const combined = (existing.snapshot_facts || "") + "\n\n" + newHistory + "\n\n" + newCurrent;
+  const combined = newFacts + "\n\n" + newHistory + "\n\n" + newCurrent;
   const now = new Date().toISOString();
 
   await supabaseAdmin.from("context_cache").upsert({
     user_id: userId,
     context: combined,
-    snapshot_facts: existing.snapshot_facts || "",
+    snapshot_facts: newFacts,
     snapshot_history: newHistory,
     snapshot_current: newCurrent,
     cached_at: now,
