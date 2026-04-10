@@ -346,6 +346,16 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // Auth check — if no session, redirect to login (prevents back-button bypass)
+    import("@supabase/ssr").then(({ createBrowserClient }) => {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      supabase.auth.getSession().then(({ data }) => {
+        if (!data.session) window.location.replace("/login");
+      });
+    });
     // Only auto-load if nothing in memory AND nothing in localStorage
     const stored = loadFromStorage();
     if (!_cachedData && !stored.data) load();
