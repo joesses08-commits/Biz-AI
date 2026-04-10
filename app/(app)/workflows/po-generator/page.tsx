@@ -305,9 +305,8 @@ Download PO: ${publicUrl}` : ""),
                 <div className="border border-white/[0.06] rounded-xl overflow-hidden">
                   <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.06]">
                     <div className="col-span-1" />
-                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Product</div>
-                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Factory</div>
-                    <div className="col-span-2 text-[10px] text-white/30 uppercase tracking-widest">Qty</div>
+                    <div className="col-span-5 text-[10px] text-white/30 uppercase tracking-widest">Product</div>
+                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Qty</div>
                     <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Unit Price ($)</div>
                   </div>
                   {products.length === 0 ? (
@@ -330,28 +329,16 @@ Download PO: ${publicUrl}` : ""),
                                 onChange={e => {
                                   setPOSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id));
                                   if (e.target.checked && approvedFactory?.id) {
-                                    setPOFactoryPerProduct(prev => ({ ...prev, [p.id]: approvedFactory.id }));
+                                    setPOFactoryPerProduct(prev => ({ ...prev, [p.id]: selectedFactory || approvedFactory.id }));
                                   }
                                 }} className="rounded" />
                             </div>
-                            <div className="col-span-3 flex items-center gap-2 min-w-0">
+                            <div className="col-span-5 flex items-center gap-2 min-w-0">
                               {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                               <div className="min-w-0">
                                 <p className="text-xs text-white/70 truncate">{p.name}</p>
                                 {p.sku && <p className="text-[10px] text-white/25 font-mono">{p.sku}</p>}
                               </div>
-                            </div>
-                            <div className="col-span-3">
-                              {isSelected ? (
-                                <select value={selectedFactoryId}
-                                  onChange={e => setPOFactoryPerProduct(prev => ({ ...prev, [p.id]: e.target.value }))}
-                                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none">
-                                  <option value="">Select factory</option>
-                                  {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                                </select>
-                              ) : (
-                                <span className="text-[10px] text-white/20">{approvedFactory?.name || "—"}</span>
-                              )}
                             </div>
                             <div className="col-span-2">
                               {isSelected && (
