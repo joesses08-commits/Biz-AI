@@ -117,6 +117,9 @@ HOW TO ANALYZE:
 - Compare current to historical — never present a number in isolation
 - Connect dots across sources — the best insights combine things that seem unrelated
 - Understand tone and relationships — emails tell you why, numbers tell you what
+- Every item in the snapshot is tagged [SOURCE:X] — use this to populate the source field on each card
+- Source values: "Gmail", "Microsoft", "QuickBooks", "Stripe", "PLM", "Google Sheets", "OneDrive"
+- source_detail should be the specific product, invoice, email subject, or factory name
 
 OUTPUT FORMAT — Return ONLY raw JSON. No markdown. No backticks. Start with { end with }.
 

@@ -42,7 +42,7 @@ async function fetchPLMData(userId: string): Promise<string> {
 
     if (!products?.length && !factories?.length) return "";
 
-    const lines: string[] = ["PLM DATA:"];
+    const lines: string[] = ["[SOURCE:PLM]"];
     const byStage: Record<string, string[]> = {};
 
     for (const p of (products || [])) {
@@ -84,7 +84,7 @@ async function fetchRecentEvents(userId: string, since: string): Promise<string>
 
   return events.map((e: any) => {
     const date = new Date(e.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
-    return "[" + date + "] " + e.source + " | " + e.event_type + " | " + e.analysis + (e.dollar_amount ? " | $" + e.dollar_amount : "") + (e.recommended_action ? " -> " + e.recommended_action : "");
+    return "[" + date + "] [SOURCE:" + e.source + "] " + e.event_type + " | " + e.analysis + (e.dollar_amount ? " | $" + e.dollar_amount : "") + (e.recommended_action ? " -> " + e.recommended_action : "");
   }).join("\n");
 }
 
@@ -109,27 +109,8 @@ async function updateSnapshot(userId: string) {
   const existingHistory = existing?.snapshot_history || "";
   const existingCurrent = existing?.snapshot_current || "";
 
-  const structuralKeywords = ["new factory", "new customer", "new collection", "product killed", "factory selected", "sample approved", "po issued", "new buyer", "lost customer"];
-  const needsFactsUpdate = !existingFacts || structuralKeywords.some(kw => recentEvents.toLowerCase().includes(kw) || plmData.toLowerCase().includes(kw));
-
-  let newFacts = existingFacts;
-  if (needsFactsUpdate) {
-    const factsRes = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 400,
-      system: `Update the FACTS section of a wholesale business snapshot. Straight facts only, no narrative.
-Format:
-FACTS:
-  COMPANY: [name] | [industry] | [team size if known]
-  PRODUCTS: [product] ([SKU]) - [stage] | [factory if known]
-  FACTORIES: [name] - [status]
-  COLLECTIONS: [name] - [season, count]
-Max 400 tokens. Only update what actually changed.`,
-      messages: [{ role: "user", content: "EXISTING FACTS:\n" + existingFacts + "\n\nNEW DATA:\n" + recentEvents + "\n" + plmData + "\n\nUpdate facts only where something structurally changed." }],
-    });
-    trackUsage(userId, "snapshot_facts", "claude-haiku-4-5-20251001", factsRes.usage.input_tokens, factsRes.usage.output_tokens).catch(() => {});
-    newFacts = factsRes.content[0].type === "text" ? factsRes.content[0].text : existingFacts;
-  }
+  // Facts are only updated by the 6am cleaner — not during daily snapshot updates
+  const newFacts = existingFacts;
 
   const currentRes = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
