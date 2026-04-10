@@ -115,23 +115,28 @@ async function updateSnapshot(userId: string) {
   const currentRes = await anthropic.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 800,
-    system: `You maintain the CURRENT section of a wholesale business snapshot. Your job is to take new company events and PLM changes and integrate them into the existing snapshot format.
+    system: `You maintain the CURRENT section of a wholesale business snapshot. Your job is to integrate new company events and PLM changes into a smart, scannable business log.
 
-The snapshot uses this structure:
+Format — write it like a COO's daily notes, not a spreadsheet:
 CURRENT (as of [date]):
-  ORDERS: [product] | [status] | [factory] | [date]
-  SAMPLES: [product] | [stage] | [factory] | [date]
-  PAYMENTS: [amount] | [from/to] | [date] | [status]
-  EMAILS: [key supplier/buyer comms] | [date]
-  OPEN ITEMS: [what needs action] | [date]
+  [SOURCE] [date] — [what happened, include context, tone, and any qualitative detail that matters]
+
+Examples of good entries:
+  [PLM] Apr 10 — Wolf Pint GL-007 production started @ joeys factory | PO-875790 | 1,000 units | expected completion Apr 25
+  [Gmail] Apr 9 — Buyer Sarah Chen asking about Q4 delivery timeline, sounds urgent — needs response today
+  [Gmail] Apr 8 — joeys factory confirmed production start, said they are on schedule
+  [QuickBooks] Apr 7 — Invoice #1042 from joeys factory $8,100 received | 30% deposit due
+  [PLM] Apr 7 — Santa Cup JM-01 sample arrived, decision needed (approve/revise/kill)
+  [Gmail] Apr 6 — Factory 2 has not responded to RFQ sent Apr 3 — follow up needed
+  [Stripe] Apr 5 — Payment $2,400 received from buyer David Levy | order fulfilled
 
 Rules:
-- Convert each new event summary into the correct section above using the same format
-- Keep all existing unresolved items
-- Update existing items if new events show progress
-- Remove items only if confirmed resolved
+- Keep both hard facts (numbers, dates, stages) AND soft context (tone, what was said, why something happened)
+- Source tag every entry: [Gmail], [Outlook], [PLM], [QuickBooks], [Stripe], [Google Sheets], [OneDrive]
+- Keep existing unresolved items
+- Update existing items when new events show progress
+- Remove only when confirmed resolved
 - Last 14 days only
-- Straight facts, no narrative, no recommendations
 - Max 800 tokens output`,
     messages: [{ role: "user", content: "EXISTING CURRENT:\n" + existingCurrent + "\n\nNEW EVENT SUMMARIES TO INTEGRATE:\n" + (recentEvents || "None") + "\n\nPLM CHANGES SINCE LAST UPDATE:\n" + (plmData || "None") + "\n\nIntegrate new events into the snapshot format. Output the full updated CURRENT section." }],
   });
