@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    auditLog(user.id, "po_generated", { po_number, factory: factory?.name, product_count: product_ids?.length, total_value: totalValue }, request).catch(() => {});
+    auditLog(user.id, "po_generated", { po_number, factory: factory?.name }, request).catch(() => {});
     return NextResponse.json({ success: true });
   }
 
