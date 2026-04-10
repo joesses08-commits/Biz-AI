@@ -4,46 +4,54 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const integrations = [
-  { name: "Gmail" },{ name: "QuickBooks" },{ name: "Stripe" },{ name: "Slack" },{ name: "Zoom" },{ name: "HubSpot" },{ name: "Salesforce" },{ name: "Microsoft 365" },{ name: "Shopify" },{ name: "Xero" },{ name: "Google Sheets" },{ name: "OneDrive" },{ name: "Outlook" },{ name: "Excel" },{ name: "Notion" },{ name: "Linear" },{ name: "Asana" },{ name: "Plaid" },
+  { name: "Gmail" }, { name: "Outlook" }, { name: "Google Sheets" }, { name: "Google Drive" },
+  { name: "Microsoft Excel" }, { name: "OneDrive" }, { name: "QuickBooks" }, { name: "Stripe" },
 ];
 
 const features = [
   {
-    title: "Qualitative + Quantitative Intelligence",
-    description: "Not just your numbers — but what they mean in the context of the real world. Tariffs, competitors, market shifts, employee performance. Jimmy AI connects your internal data with what's happening outside your business.",
-    stat: "360°",
-    statLabel: "business visibility",
+    title: "Product Lifecycle Management",
+    description: "Every SKU tracked from concept to shelf. Move products through development stages, manage sample rounds per factory, approve or revise with one click, and issue production orders — all in one place.",
+    stat: "100%",
+    statLabel: "sourcing visibility",
   },
   {
-    title: "Ask Anything AI Agent",
-    description: "One chat window that knows everything about your business. Ask it anything — \"Why did we lose that client?\" \"Should I hire someone?\" — and it answers using your actual data, not generic advice.",
+    title: "Factory Quote Automation",
+    description: "Upload your product list. Jimmy emails your factories, collects their quotes, and builds a comparison sheet automatically — highlighting the best price per product and your margin at every price point.",
+    stat: "10x",
+    statLabel: "faster than spreadsheets",
+  },
+  {
+    title: "Sample Tracking & Factory Portal",
+    description: "Request samples from multiple factories simultaneously. Factories update their progress directly in their own portal — production, shipped, arrived. You see every round, every revision, every decision in one timeline.",
+    stat: "0",
+    statLabel: "missed sample updates",
+  },
+  {
+    title: "AI Command Center",
+    description: "Jimmy reads your emails, invoices, and production pipeline and tells you what actually needs your attention today. Not a summary — specific risks, opportunities, and next steps based on your real data.",
+    stat: "Daily",
+    statLabel: "AI briefings",
+  },
+  {
+    title: "PO Generator",
+    description: "Generate professional purchase orders in seconds. Select products, set quantities, pick your factory — Jimmy builds the PO and emails it directly to the factory from your Gmail or Outlook.",
+    stat: "60s",
+    statLabel: "from approved to PO sent",
+  },
+  {
+    title: "Ask Jimmy Anything",
+    description: "One chat window connected to your entire operation. Ask about products, factories, invoices, emails. Jimmy answers using your actual data — not generic advice.",
     stat: "∞",
     statLabel: "questions answered",
   },
-  {
-    title: "24/7 Live Data Across Every Platform",
-    description: "Gmail, Outlook, QuickBooks, Stripe, Slack, Sheets, Excel — all updating in real time. The moment something changes in your business, Jimmy AI knows. No manual reporting. No waiting for the monthly review.",
-    stat: "15+",
-    statLabel: "live integrations",
-  },
-  {
-    title: "Live Excel & Financial Modeling",
-    description: "Connect your actual spreadsheets. Model a new idea, run a scenario, build a pitch deck with live numbers — and send it directly to a buyer or investor without ever leaving Jimmy AI.",
-    stat: "60s",
-    statLabel: "to model any scenario",
-  },
-  {
-    title: "Company Workflow & Action Tracking",
-    description: "Every task, every commitment, every deadline — tracked automatically. The AI pulls action items from emails and meetings and assigns them to the right person. Nothing falls through the cracks.",
-    stat: "0",
-    statLabel: "missed commitments",
-  },
-  {
-    title: "Zoom Meeting Intelligence",
-    description: "Every meeting transcribed, summarized, and turned into action items automatically. Over time Jimmy AI builds a knowledge bank of everything your company has ever decided, discussed, and committed to.",
-    stat: "2min",
-    statLabel: "avg. meeting brief",
-  },
+];
+
+const workflow = [
+  { step: "01", title: "Send RFQs automatically", desc: "Upload your product list. Jimmy emails every factory, collects quotes, and builds your comparison sheet." },
+  { step: "02", title: "Track samples in real time", desc: "Factories update their portal as samples move through production, shipping, and arrival. You see everything live." },
+  { step: "03", title: "Issue POs in seconds", desc: "Sample approved? Jimmy generates the PO, emails the factory, and logs the order — all from one screen." },
+  { step: "04", title: "Monitor from your dashboard", desc: "Every product, every order, every factory — tracked automatically. Jimmy tells you what needs attention today." },
 ];
 
 export default function LandingPage() {
@@ -72,7 +80,7 @@ export default function LandingPage() {
         .fade-up { animation: fadeUp 0.8s ease forwards; }
         .d1 { animation-delay: 0.1s; opacity: 0; } .d2 { animation-delay: 0.25s; opacity: 0; } .d3 { animation-delay: 0.4s; opacity: 0; } .d4 { animation-delay: 0.55s; opacity: 0; }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-        .marquee-track { animation: marquee 35s linear infinite; display: flex; gap: 12px; }
+        .marquee-track { animation: marquee 30s linear infinite; display: flex; gap: 12px; }
         .integration-pill { border: 1px solid #1a1a1a; padding: 10px 18px; font-size: 13px; color: #555; letter-spacing: 0.03em; white-space: nowrap; }
       `}</style>
 
@@ -80,16 +88,19 @@ export default function LandingPage() {
       <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "20px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: scrollY > 50 ? "1px solid #111" : "1px solid transparent", background: scrollY > 50 ? "rgba(8,8,8,0.95)" : "transparent", backdropFilter: scrollY > 50 ? "blur(12px)" : "none", transition: "all 0.3s" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <div style={{ width: "28px", height: "28px", background: "#f0ede8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1L13 7L7 13M1 7H13" stroke="#080808" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="16" height="16" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+              <line x1="24" y1="8" x2="24" y2="26" stroke="#080808" strokeWidth="4" strokeLinecap="round"/>
+              <path d="M24 26 Q24 34 18 35 Q11 36 10 30" fill="none" stroke="#080808" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <span style={{ fontSize: "15px", fontWeight: "500", letterSpacing: "0.02em" }}>Jimmy AI</span>
+          <span style={{ fontSize: "15px", fontWeight: "500", letterSpacing: "0.02em" }}>Jimmy</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "36px" }}>
-          <a href="#features" className="nav-link">Product</a>
+          <a href="#how-it-works" className="nav-link">How It Works</a>
+          <a href="#features" className="nav-link">Features</a>
           <a href="#integrations" className="nav-link">Integrations</a>
-          <a href="#process" className="nav-link">How It Works</a>
           <Link href="/login" className="nav-link">Sign In</Link>
-          <a href="#contact" className="btn-primary" style={{ padding: "9px 20px", fontSize: "13px" }}>Book a Demo</a>
+          <a href="mailto:jo.esses08@gmail.com" className="btn-primary" style={{ padding: "9px 20px", fontSize: "13px" }}>Request Access</a>
         </div>
       </nav>
 
@@ -98,21 +109,21 @@ export default function LandingPage() {
         <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(#111 1px, transparent 1px), linear-gradient(90deg, #111 1px, transparent 1px)", backgroundSize: "80px 80px", opacity: 0.3, maskImage: "radial-gradient(ellipse 80% 60% at 50% 50%, black 40%, transparent 100%)" }} />
         <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%, -50%)", width: "600px", height: "400px", background: "radial-gradient(ellipse, rgba(240,237,232,0.04) 0%, transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", maxWidth: "820px" }}>
-          <div className="fade-up d1"><span className="label">The AI Operating System for Business</span></div>
+          <div className="fade-up d1"><span className="label">For wholesale product businesses</span></div>
           <h1 className="fade-up d2" style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(48px, 7vw, 88px)", fontWeight: "400", lineHeight: "1.05", letterSpacing: "-0.02em", margin: "24px 0 28px", color: "#f0ede8" }}>
-            Your business,{" "}<span style={{ fontStyle: "italic", color: "#888" }}>fully</span><br />understood.
+            Your sourcing operation,{" "}<br /><span style={{ fontStyle: "italic", color: "#888" }}>on autopilot.</span>
           </h1>
           <p className="fade-up d3" style={{ fontSize: "18px", color: "#777", lineHeight: "1.7", maxWidth: "560px", margin: "0 auto 40px", fontWeight: "300" }}>
-            Jimmy AI connects every tool your company runs on and gives you a single AI that knows everything — your numbers, your emails, your meetings, your risks — and tells you exactly what to do.
+            Jimmy connects your factories, samples, orders, emails, and financials into one AI-powered system — so your team spends less time managing spreadsheets and more time building the business.
           </p>
           <div className="fade-up d4" style={{ display: "flex", gap: "12px", justifyContent: "center", alignItems: "center" }}>
-            <a href="#contact" className="btn-primary">Book a Demo</a>
-            <a href="#features" className="btn-ghost">See how it works</a>
+            <a href="mailto:jo.esses08@gmail.com" className="btn-primary">Request Access</a>
+            <a href="#how-it-works" className="btn-ghost">See how it works</a>
           </div>
           <div className="fade-up d4" style={{ marginTop: "80px", display: "flex", gap: "48px", justifyContent: "center", alignItems: "center" }}>
-            {[["Ask anything", "About your business"], ["One platform", "Every tool connected"], ["Daily", "AI briefings"]].map(([stat, label]) => (
+            {[["RFQ to PO", "Fully automated"], ["One platform", "Factory to finance"], ["Invitation only", "Beta access"]].map(([stat, label]) => (
               <div key={label} style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "28px", fontWeight: "300", fontFamily: "'Playfair Display', serif", color: "#f0ede8" }}>{stat}</div>
+                <div style={{ fontSize: "22px", fontWeight: "300", fontFamily: "'Playfair Display', serif", color: "#f0ede8" }}>{stat}</div>
                 <div className="label" style={{ marginTop: "4px" }}>{label}</div>
               </div>
             ))}
@@ -120,37 +131,45 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Integrations marquee */}
-      <section id="integrations" style={{ borderTop: "1px solid #111", borderBottom: "1px solid #111", padding: "24px 0", overflow: "hidden" }}>
-        <div style={{ overflow: "hidden" }}>
-          <div className="marquee-track">
-            {[...integrations, ...integrations].map((item, i) => (
-              <div key={i} className="integration-pill">{item.name}</div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* What makes it different */}
+      {/* The problem */}
       <section style={{ padding: "120px 48px", maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ marginBottom: "48px" }}>
-          <span className="label">Why Jimmy AI</span>
+          <span className="label">The Problem</span>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 3vw, 42px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.2", letterSpacing: "-0.02em", maxWidth: "560px", color: "#f0ede8" }}>
-            Every business generates enormous data.<br /><span style={{ fontStyle: "italic", color: "#777" }}>Nobody can make sense of it.</span>
+            Wholesale runs on too many<br /><span style={{ fontStyle: "italic", color: "#777" }}>disconnected tools.</span>
           </h2>
           <p style={{ fontSize: "15px", color: "#666", lineHeight: "1.7", maxWidth: "520px", marginTop: "20px", fontWeight: "300" }}>
-            Your revenue is in Stripe. Your invoices are in QuickBooks. Your emails are in Gmail. Your decisions are in Zoom calls. None of these tools talk to each other — so you never see the full picture. Jimmy AI connects everything and tells you what it means.
+            Your RFQs are in email threads. Your samples are tracked in spreadsheets. Your orders are in one system, your invoices in another. Nothing talks to each other — so your team spends half their day managing information instead of making decisions.
           </p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1px", background: "#111", marginTop: "60px" }}>
           {[
-            { before: "Separate tools", after: "One intelligent platform", icon: "→" },
-            { before: "Monthly reports", after: "Real-time intelligence", icon: "→" },
-            { before: "Expensive exec team", after: "AI COO for a fraction of the cost", icon: "→" },
+            { before: "RFQs sent manually by email", after: "Automated — Jimmy emails every factory" },
+            { before: "Samples tracked in spreadsheets", after: "Live factory portal with real-time updates" },
+            { before: "POs built in Word or Excel", after: "Generated and sent in 60 seconds" },
           ].map((item) => (
             <div key={item.before} style={{ background: "#0a0a0a", padding: "36px" }}>
               <div style={{ fontSize: "13px", color: "#555", marginBottom: "8px", fontWeight: "300", textDecoration: "line-through" }}>{item.before}</div>
               <div style={{ fontSize: "16px", color: "#f0ede8", fontWeight: "500" }}>{item.after}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section id="how-it-works" style={{ padding: "0 48px 120px", borderTop: "1px solid #111", maxWidth: "1200px", margin: "0 auto" }}>
+        <div style={{ marginBottom: "72px", paddingTop: "120px" }}>
+          <span className="label">How It Works</span>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 4vw, 52px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+            From RFQ to shelf,<br /><span style={{ fontStyle: "italic", color: "#777" }}>automated.</span>
+          </h2>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1px", background: "#111" }}>
+          {workflow.map((s) => (
+            <div key={s.step} style={{ padding: "40px", background: "#0a0a0a" }}>
+              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "48px", color: "#1a1a1a", fontWeight: "400", lineHeight: "1", marginBottom: "24px" }}>{s.step}</div>
+              <h3 style={{ fontSize: "16px", fontWeight: "500", marginBottom: "12px", color: "#f0ede8" }}>{s.title}</h3>
+              <p style={{ fontSize: "13px", color: "#666", lineHeight: "1.7", fontWeight: "300" }}>{s.desc}</p>
             </div>
           ))}
         </div>
@@ -161,7 +180,7 @@ export default function LandingPage() {
         <div style={{ marginBottom: "72px" }}>
           <span className="label">The Platform</span>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 4vw, 52px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.1", letterSpacing: "-0.02em", maxWidth: "480px" }}>
-            Built for operators,<br /><span style={{ fontStyle: "italic", color: "#777" }}>not analysts.</span>
+            Everything your team needs.<br /><span style={{ fontStyle: "italic", color: "#777" }}>Nothing they don't.</span>
           </h2>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1px", background: "#111" }}>
@@ -176,48 +195,79 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="process" style={{ padding: "120px 48px", borderTop: "1px solid #111", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "72px" }}>
-          <span className="label">The Process</span>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 4vw, 52px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.1", letterSpacing: "-0.02em" }}>Live in a day.</h2>
+      {/* Integrations */}
+      <section id="integrations" style={{ borderTop: "1px solid #111", borderBottom: "1px solid #111", padding: "80px 48px" }}>
+        <div style={{ maxWidth: "1200px", margin: "0 auto 48px" }}>
+          <span className="label">Integrations</span>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(28px, 3vw, 42px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.2", letterSpacing: "-0.02em", maxWidth: "480px" }}>
+            Connects to the tools<br /><span style={{ fontStyle: "italic", color: "#777" }}>you already use.</span>
+          </h2>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1px", background: "#111" }}>
+        <div style={{ overflow: "hidden" }}>
+          <div className="marquee-track">
+            {[...integrations, ...integrations].map((item, i) => (
+              <div key={i} className="integration-pill">{item.name}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section style={{ padding: "120px 48px", maxWidth: "1200px", margin: "0 auto" }}>
+        <div style={{ marginBottom: "72px", textAlign: "center" }}>
+          <span className="label">Pricing</span>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 4vw, 52px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
+            Simple, transparent pricing.
+          </h2>
+          <p style={{ fontSize: "15px", color: "#666", marginTop: "16px", fontWeight: "300" }}>Currently in invite-only beta. Early clients receive preferred pricing.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1px", background: "#111" }}>
           {[
-            { step: "01", title: "Book a call", desc: "We personally onboard every client. 30 minutes and your workspace is ready." },
-            { step: "02", title: "Connect your tools", desc: "One click per platform. Gmail, QuickBooks, Stripe, Outlook — all live instantly." },
-            { step: "03", title: "Invite your team", desc: "Add your leadership. Set roles. The CEO sees everything. Everyone sees their scope." },
-            { step: "04", title: "Get briefed daily", desc: "Every morning your AI COO tells you exactly what needs your attention. Nothing else." },
-          ].map((s) => (
-            <div key={s.step} style={{ padding: "40px", background: "#0a0a0a" }}>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "48px", color: "#1a1a1a", fontWeight: "400", lineHeight: "1", marginBottom: "24px" }}>{s.step}</div>
-              <h3 style={{ fontSize: "16px", fontWeight: "500", marginBottom: "12px", color: "#f0ede8" }}>{s.title}</h3>
-              <p style={{ fontSize: "13px", color: "#666", lineHeight: "1.7", fontWeight: "300" }}>{s.desc}</p>
+            { name: "Starter", price: "$299", per: "/month", desc: "For small teams getting started with sourcing automation.", features: ["Product Lifecycle Management", "Factory Quote Automation", "Sample Tracking", "PO Generator", "AI Dashboard & Chat", "Gmail + Outlook"] },
+            { name: "Growth", price: "$999", per: "/month", desc: "For growing wholesale teams managing multiple collections.", features: ["Everything in Starter", "Unlimited products & factories", "Designer portal access", "QuickBooks + Stripe", "Priority support", "Advanced analytics"], highlight: true },
+            { name: "Enterprise", price: "$4,999", per: "/month", desc: "For established wholesale operations that need full control.", features: ["Everything in Growth", "Custom integrations", "Dedicated onboarding", "SLA guarantee", "Team training", "Custom workflows"] },
+          ].map((plan) => (
+            <div key={plan.name} style={{ padding: "48px 40px", background: plan.highlight ? "#0f0f0f" : "#0a0a0a", borderTop: plan.highlight ? "2px solid #f0ede8" : "none" }}>
+              <div style={{ marginBottom: "24px" }}>
+                <div style={{ fontSize: "13px", color: "#555", marginBottom: "8px", letterSpacing: "0.1em", textTransform: "uppercase" }}>{plan.name}</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: "42px", fontWeight: "400", color: "#f0ede8" }}>{plan.price}</span>
+                  <span style={{ color: "#555", fontSize: "14px" }}>{plan.per}</span>
+                </div>
+                <p style={{ fontSize: "13px", color: "#666", marginTop: "12px", lineHeight: "1.6", fontWeight: "300" }}>{plan.desc}</p>
+              </div>
+              <div style={{ borderTop: "1px solid #1a1a1a", paddingTop: "24px", marginBottom: "32px" }}>
+                {plan.features.map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="#444" strokeWidth="2" strokeLinecap="round"/></svg>
+                    <span style={{ fontSize: "13px", color: "#666", fontWeight: "300" }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+              <a href="mailto:jo.esses08@gmail.com" className={plan.highlight ? "btn-primary" : "btn-ghost"} style={{ display: "block", textAlign: "center", width: "100%" }}>Request Access</a>
             </div>
           ))}
         </div>
       </section>
 
-
-
       {/* CTA */}
-      <section id="contact" style={{ padding: "120px 48px", borderTop: "1px solid #111", textAlign: "center", position: "relative", overflow: "hidden" }}>
+      <section style={{ padding: "120px 48px", borderTop: "1px solid #111", textAlign: "center", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "800px", height: "400px", background: "radial-gradient(ellipse, rgba(240,237,232,0.03) 0%, transparent 70%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", maxWidth: "560px", margin: "0 auto" }}>
           <span className="label">Get Started</span>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(36px, 5vw, 64px)", fontWeight: "400", margin: "20px 0 24px", lineHeight: "1.05", letterSpacing: "-0.02em" }}>
-            Ready to meet your<br /><span style={{ fontStyle: "italic", color: "#777" }}>AI COO?</span>
+            Ready to automate<br /><span style={{ fontStyle: "italic", color: "#777" }}>your sourcing?</span>
           </h2>
           <p style={{ fontSize: "16px", color: "#666", marginBottom: "40px", lineHeight: "1.7", fontWeight: "300" }}>
-            We onboard every client personally. Book a 30-minute call and we'll show you exactly what Jimmy AI looks like running on your business.
+            Jimmy is invite-only. We onboard every client personally and make sure the platform is set up correctly for your operation before you go live.
           </p>
-          <a href="mailto:jo.esses08@gmail.com" className="btn-primary" style={{ fontSize: "15px", padding: "16px 36px" }}>Book a Demo →</a>
+          <a href="mailto:jo.esses08@gmail.com" className="btn-primary" style={{ fontSize: "15px", padding: "16px 36px" }}>Request Access →</a>
         </div>
       </section>
 
       {/* Footer */}
       <footer style={{ borderTop: "1px solid #111", padding: "32px 48px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: "13px", color: "#555", fontWeight: "300" }}>© 2026 Jimmy AI. All rights reserved.</span>
+        <span style={{ fontSize: "13px", color: "#555", fontWeight: "300" }}>© 2026 Jimmy. All rights reserved.</span>
         <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
           <Link href="/privacy" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Privacy</Link>
           <Link href="/terms" style={{ fontSize: "13px", color: "#555", textDecoration: "none" }}>Terms</Link>
