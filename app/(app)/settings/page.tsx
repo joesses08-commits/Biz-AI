@@ -17,6 +17,21 @@ export default function SettingsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsLoaded, setEventsLoaded] = useState(false);
+  const [showBrainModal, setShowBrainModal] = useState(false);
+  const [brainBuilt, setBrainBuilt] = useState(false);
+  const [buildingBrain, setBuildingBrain] = useState(false);
+  const [brainPin, setBrainPin] = useState("");
+  const [brainPinError, setBrainPinError] = useState("");
+  const [productCount, setProductCount] = useState(0);
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [microsoftConnected, setMicrosoftConnected] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [quickbooksConnected, setQuickbooksConnected] = useState(false);
+  const [checkNoStripe, setCheckNoStripe] = useState(false);
+  const [checkNoQB, setCheckNoQB] = useState(false);
+  const [checkPLM, setCheckPLM] = useState(false);
+  const [brainProgress, setBrainProgress] = useState("");
+  const [brainDone, setBrainDone] = useState(false);
 
   const [brain, setBrain] = useState({
     company_name: "",
@@ -27,6 +42,25 @@ export default function SettingsPage() {
     what_matters: "",
     where_data_lives: "",
   });
+
+  async function checkBrainStatus() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const [gmailRes, msRes, stripeRes, qbRes, profileRes, plmRes] = await Promise.all([
+      supabase.from("gmail_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("microsoft_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("stripe_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("quickbooks_connections").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("company_profiles").select("brain_built").eq("user_id", user.id).maybeSingle(),
+      supabase.from("plm_products").select("id", { count: "exact" }).eq("user_id", user.id).eq("killed", false),
+    ]);
+    setGoogleConnected(!!gmailRes.data);
+    setMicrosoftConnected(!!msRes.data);
+    setStripeConnected(!!stripeRes.data);
+    setQuickbooksConnected(!!qbRes.data);
+    setBrainBuilt(!!profileRes.data?.brain_built);
+    setProductCount(plmRes.count || 0);
+  }
 
   const loadEvents = async () => {
     if (eventsLoaded) return;
@@ -54,6 +88,8 @@ export default function SettingsPage() {
     fiscal_year_start: "January",
     timezone: "America/New_York",
   });
+
+  useEffect(() => { checkBrainStatus(); }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -141,6 +177,21 @@ export default function SettingsPage() {
 
         {activeTab === "brain" && (
           <div className="space-y-4">
+            {/* Build Brain Button */}
+            <div className={`border rounded-2xl p-5 flex items-center justify-between ${brainBuilt ? "border-emerald-500/20 bg-emerald-500/[0.02]" : "border-white/[0.06] bg-white/[0.01]"}`}>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-semibold text-white">Company Brain</h3>
+                  {brainBuilt && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Built</span>}
+                </div>
+                <p className="text-xs text-white/30">{brainBuilt ? "Your brain was built and is being maintained automatically by Jimmy." : "One-time setup — Jimmy reads your full history and builds your initial intelligence snapshot."}</p>
+              </div>
+              <button disabled={brainBuilt} onClick={() => setShowBrainModal(true)}
+                className={`flex-shrink-0 ml-4 px-4 py-2 rounded-xl text-xs font-semibold transition ${brainBuilt ? "bg-white/5 text-white/20 cursor-not-allowed border border-white/[0.06]" : "bg-emerald-500 text-white hover:bg-emerald-400"}`}>
+                {brainBuilt ? "Brain Built ✓" : "Build Brain →"}
+              </button>
+            </div>
+
             {/* Foundation */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
               <h2 className="text-sm font-semibold text-white mb-1">Foundation</h2>
@@ -371,6 +422,181 @@ export default function SettingsPage() {
         )}
 
       </div>
+
+      {/* Build Brain Modal */}
+      {showBrainModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-8 max-w-lg w-full">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-emerald-400"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>
+              </div>
+              <h2 className="text-base font-bold text-white">Build Company Brain</h2>
+            </div>
+            <p className="text-white/40 text-xs mb-6 leading-relaxed">Jimmy will read your last 1,000 emails, 15 files, all invoices and payments, and your entire PLM to build your initial intelligence snapshot. This can only be done once.</p>
+
+            <div className="space-y-3 mb-6">
+              {/* Google or Microsoft - auto checked */}
+              <label className={`flex items-start gap-3 p-3 rounded-xl border transition ${googleConnected || microsoftConnected ? "border-emerald-500/20 bg-emerald-500/[0.03] cursor-default" : "border-red-500/20 bg-red-500/[0.03] cursor-not-allowed"}`}>
+                <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 border ${googleConnected || microsoftConnected ? "bg-emerald-500 border-emerald-500" : "bg-transparent border-white/20"}`}>
+                  {(googleConnected || microsoftConnected) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <div>
+                  <p className={`text-xs font-semibold ${googleConnected || microsoftConnected ? "text-emerald-400" : "text-red-400"}`}>
+                    {googleConnected || microsoftConnected ? "✓ Email connected" : "✗ Connect Google Workspace or Microsoft 365 first"}
+                  </p>
+                  <p className="text-[10px] text-white/30 mt-0.5">{googleConnected ? "Google Workspace" : ""}{googleConnected && microsoftConnected ? " + " : ""}{microsoftConnected ? "Microsoft 365" : ""}{!googleConnected && !microsoftConnected ? "Required — go to Integrations" : ""}</p>
+                </div>
+              </label>
+
+              {/* PLM - auto checked based on count */}
+              <label className={`flex items-start gap-3 p-3 rounded-xl border transition ${productCount > 0 ? (checkPLM ? "border-emerald-500/20 bg-emerald-500/[0.03] cursor-pointer" : "border-white/[0.06] bg-white/[0.01] cursor-pointer") : "border-red-500/20 bg-red-500/[0.03] cursor-not-allowed"}`}
+                onClick={() => productCount > 0 && setCheckPLM(!checkPLM)}>
+                <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 border ${checkPLM && productCount > 0 ? "bg-emerald-500 border-emerald-500" : "bg-transparent border-white/20"}`}>
+                  {checkPLM && productCount > 0 && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <div>
+                  <p className={`text-xs font-semibold ${productCount === 0 ? "text-red-400" : checkPLM ? "text-emerald-400" : "text-white/70"}`}>
+                    PLM ({productCount} products) is up to date
+                  </p>
+                  <p className="text-[10px] text-white/30 mt-0.5">{productCount === 0 ? "Add products in Product Lifecycle first" : "Check this to confirm all products are at their current stage"}</p>
+                </div>
+              </label>
+
+              {/* Stripe */}
+              <label className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.01] cursor-pointer hover:border-white/10 transition"
+                onClick={() => !stripeConnected && setCheckNoStripe(!checkNoStripe)}>
+                <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 border ${stripeConnected || checkNoStripe ? "bg-emerald-500 border-emerald-500" : "bg-transparent border-white/20"}`}>
+                  {(stripeConnected || checkNoStripe) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <div>
+                  <p className={`text-xs font-semibold ${stripeConnected || checkNoStripe ? "text-emerald-400" : "text-white/70"}`}>
+                    {stripeConnected ? "✓ Stripe connected" : checkNoStripe ? "✓ I don't use Stripe" : "Stripe connected or I don't use it"}
+                  </p>
+                  <p className="text-[10px] text-white/30 mt-0.5">{stripeConnected ? "Will read last 100 charges" : "Check if you don't use Stripe"}</p>
+                </div>
+              </label>
+
+              {/* QuickBooks */}
+              <label className="flex items-start gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.01] cursor-pointer hover:border-white/10 transition"
+                onClick={() => !quickbooksConnected && setCheckNoQB(!checkNoQB)}>
+                <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 border ${quickbooksConnected || checkNoQB ? "bg-emerald-500 border-emerald-500" : "bg-transparent border-white/20"}`}>
+                  {(quickbooksConnected || checkNoQB) && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <div>
+                  <p className={`text-xs font-semibold ${quickbooksConnected || checkNoQB ? "text-emerald-400" : "text-white/70"}`}>
+                    {quickbooksConnected ? "✓ QuickBooks connected" : checkNoQB ? "✓ I don't use QuickBooks" : "QuickBooks connected or I don't use it"}
+                  </p>
+                  <p className="text-[10px] text-white/30 mt-0.5">{quickbooksConnected ? "Will read last 100 invoices and customers" : "Check if you don't use QuickBooks"}</p>
+                </div>
+              </label>
+
+              {/* Company brief */}
+              <label className={`flex items-start gap-3 p-3 rounded-xl border transition ${(brain.company_brief?.length || 0) >= 400 ? "border-emerald-500/20 bg-emerald-500/[0.03] cursor-default" : "border-red-500/20 bg-red-500/[0.03] cursor-not-allowed"}`}>
+                <div className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 mt-0.5 border ${(brain.company_brief?.length || 0) >= 400 ? "bg-emerald-500 border-emerald-500" : "bg-transparent border-white/20"}`}>
+                  {(brain.company_brief?.length || 0) >= 400 && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <div>
+                  <p className={`text-xs font-semibold ${(brain.company_brief?.length || 0) >= 400 ? "text-emerald-400" : "text-red-400"}`}>
+                    Company brief {brain.company_brief?.length || 0}/800 characters {(brain.company_brief?.length || 0) >= 400 ? "✓" : "(minimum 400)"}
+                  </p>
+                  <p className="text-[10px] text-white/30 mt-0.5">{(brain.company_brief?.length || 0) < 400 ? "Add more detail in Company Brain below first" : "Good — Jimmy knows your business context"}</p>
+                </div>
+              </label>
+            </div>
+
+            {/* PIN entry */}
+            <div className="mb-6">
+              <label className="text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Enter Admin PIN to confirm</label>
+              <input type="password" value={brainPin} onChange={e => setBrainPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="••••" maxLength={8}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-center text-xl tracking-widest outline-none focus:border-white/20 transition" />
+              {brainPinError && <p className="text-red-400 text-xs mt-1.5">{brainPinError}</p>}
+            </div>
+
+            {brainProgress && (
+              <div className="mb-4 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 border-2 border-white/20 border-t-white rounded-full animate-spin flex-shrink-0" />
+                  <p className="text-xs text-white/50">{brainProgress}</p>
+                </div>
+              </div>
+            )}
+
+            {brainDone && (
+              <div className="mb-4 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-center">
+                <p className="text-emerald-400 text-sm font-semibold">✓ Company Brain built successfully</p>
+                <p className="text-white/30 text-xs mt-1">Jimmy now knows your full business history</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              {!buildingBrain && !brainDone && (
+                <button onClick={() => { setShowBrainModal(false); setBrainPin(""); setBrainPinError(""); }}
+                  className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 hover:text-white text-xs transition">
+                  Cancel
+                </button>
+              )}
+              {brainDone ? (
+                <button onClick={() => { setShowBrainModal(false); setBrainDone(false); setBrainProgress(""); }}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition">
+                  Done →
+                </button>
+              ) : (
+                <button
+                  disabled={
+                    buildingBrain ||
+                    !(googleConnected || microsoftConnected) ||
+                    !checkPLM ||
+                    !(stripeConnected || checkNoStripe) ||
+                    !(quickbooksConnected || checkNoQB) ||
+                    (brain.company_brief?.length || 0) < 400 ||
+                    brainPin.length < 4
+                  }
+                  onClick={async () => {
+                    setBrainPinError("");
+                    setBuildingBrain(true);
+                    // Verify PIN
+                    const pinRes = await fetch("/api/admin/pin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify_pin", pin: brainPin }) });
+                    const pinData = await pinRes.json();
+                    if (!pinData.valid) { setBrainPinError("Incorrect PIN"); setBuildingBrain(false); return; }
+
+                    // Run brain build
+                    const sources = [];
+                    if (googleConnected) { sources.push("gmail"); sources.push("google_drive"); }
+                    if (microsoftConnected) sources.push("microsoft");
+                    if (stripeConnected) sources.push("stripe");
+                    if (quickbooksConnected) sources.push("quickbooks");
+                    sources.push("plm");
+
+                    for (const source of sources) {
+                      setBrainProgress(`Reading ${source === "gmail" ? "Gmail" : source === "google_drive" ? "Google Drive" : source === "microsoft" ? "Microsoft 365" : source === "stripe" ? "Stripe" : source === "quickbooks" ? "QuickBooks" : "Product Lifecycle"}...`);
+                      try {
+                        await fetch("/api/brain/backfill", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ source }) });
+                      } catch { continue; }
+                    }
+
+                    setBrainProgress("Composing your initial snapshot...");
+                    await fetch("/api/brain/backfill/finalize", { method: "POST", headers: { "Content-Type": "application/json" } });
+
+                    // Mark brain as built
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) await supabase.from("company_profiles").update({ brain_built: true }).eq("user_id", user.id);
+
+                    setBrainBuilt(true);
+                    setBuildingBrain(false);
+                    setBrainProgress("");
+                    setBrainDone(true);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center justify-center gap-2">
+                  {buildingBrain ? <><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Building...</> : "Build Company Brain →"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
