@@ -130,9 +130,9 @@ CURRENT (as of [date]):
   ORDERS: [product] | [status] | [factory] | [date]
   SAMPLES: [product] | [stage] | [factory] | [date]
   PAYMENTS: [amount] | [from/to] | [date] | [status]
-  EMAILS: [key comms] | [date]
+  EMAILS: [key supplier/buyer comms] | [date]
   OPEN ITEMS: [what needs action] | [date]
-Max 600 tokens. Business data only - ignore personal emails, social, non-business content.`,
+Max 600 tokens. Focus on: supplier communications, buyer orders, invoices, payments, shipping, production updates. Skip newsletters, automated notifications, and non-actionable emails.`,
     messages: [{ role: "user", content: "EXISTING CURRENT:\n" + existingCurrent + "\n\nNEW EVENTS (high/critical only):\n" + (recentEvents || "None") + "\n\nLIVE PLM:\n" + (plmData || "None") + "\n\nUpdate CURRENT section. Keep recent unresolved items. Add new. Remove resolved. Max 600 tokens." }],
   });
   trackUsage(userId, "snapshot_current", "claude-haiku-4-5-20251001", currentRes.usage.input_tokens, currentRes.usage.output_tokens).catch(() => {});
