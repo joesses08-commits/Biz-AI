@@ -212,43 +212,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section style={{ padding: "120px 48px", maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "72px", textAlign: "center" }}>
-          <span className="label">Pricing</span>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(32px, 4vw, 52px)", fontWeight: "400", marginTop: "16px", lineHeight: "1.1", letterSpacing: "-0.02em" }}>
-            Simple, transparent pricing.
-          </h2>
-          <p style={{ fontSize: "15px", color: "#666", marginTop: "16px", fontWeight: "300" }}>Currently in invite-only beta. Early clients receive preferred pricing.</p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1px", background: "#111" }}>
-          {[
-            { name: "Starter", price: "$299", per: "/month", desc: "For small teams getting started with sourcing automation.", features: ["Product Lifecycle Management", "Factory Quote Automation", "Sample Tracking", "PO Generator", "AI Dashboard & Chat", "Gmail + Outlook"] },
-            { name: "Growth", price: "$999", per: "/month", desc: "For growing wholesale teams managing multiple collections.", features: ["Everything in Starter", "Unlimited products & factories", "Designer portal access", "QuickBooks + Stripe", "Priority support", "Advanced analytics"], highlight: true },
-            { name: "Enterprise", price: "$4,999", per: "/month", desc: "For established wholesale operations that need full control.", features: ["Everything in Growth", "Custom integrations", "Dedicated onboarding", "SLA guarantee", "Team training", "Custom workflows"] },
-          ].map((plan) => (
-            <div key={plan.name} style={{ padding: "48px 40px", background: plan.highlight ? "#0f0f0f" : "#0a0a0a", borderTop: plan.highlight ? "2px solid #f0ede8" : "none" }}>
-              <div style={{ marginBottom: "24px" }}>
-                <div style={{ fontSize: "13px", color: "#555", marginBottom: "8px", letterSpacing: "0.1em", textTransform: "uppercase" }}>{plan.name}</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
-                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: "42px", fontWeight: "400", color: "#f0ede8" }}>{plan.price}</span>
-                  <span style={{ color: "#555", fontSize: "14px" }}>{plan.per}</span>
-                </div>
-                <p style={{ fontSize: "13px", color: "#666", marginTop: "12px", lineHeight: "1.6", fontWeight: "300" }}>{plan.desc}</p>
-              </div>
-              <div style={{ borderTop: "1px solid #1a1a1a", paddingTop: "24px", marginBottom: "32px" }}>
-                {plan.features.map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12" stroke="#444" strokeWidth="2" strokeLinecap="round"/></svg>
-                    <span style={{ fontSize: "13px", color: "#666", fontWeight: "300" }}>{f}</span>
-                  </div>
-                ))}
-              </div>
-              <a href="mailto:jo.esses08@gmail.com" className={plan.highlight ? "btn-primary" : "btn-ghost"} style={{ display: "block", textAlign: "center", width: "100%" }}>Request Access</a>
-            </div>
-          ))}
-        </div>
-      </section>
+
 
       {/* CTA */}
       <section style={{ padding: "120px 48px", borderTop: "1px solid #111", textAlign: "center", position: "relative", overflow: "hidden" }}>
