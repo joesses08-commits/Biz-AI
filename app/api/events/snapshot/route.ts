@@ -119,7 +119,9 @@ Update the snapshot now. Keep unresolved items. Add new important items. Remove 
   );
 
   if (hasImportant) {
-    await supabaseAdmin.from("dashboard_cache").delete().eq("user_id", userId);
+    // Dashboard cache is NOT auto-deleted on snapshot updates
+    // Only the manual Refresh button should trigger a dashboard rebuild
+    // This prevents expensive Sonnet calls every time an email arrives
   }
 
   return { success: true, newEventsProcessed: newEvents?.length || 0, importantEvents: hasImportant };

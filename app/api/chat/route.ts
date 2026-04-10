@@ -214,8 +214,7 @@ export async function POST(request: NextRequest) {
     if (snapshot?.context && snapshot.context.length > 200) {
       companyContext += `\n\nBRAIN SNAPSHOT:\n${snapshot.context}`;
     } else {
-      const liveContext = await buildFullCompanyContext(user.id);
-      companyContext += `\n\nLIVE BUSINESS DATA:\n${liveContext.slice(0, 2500)}`;
+      companyContext += `\n\nNOTE: No business snapshot available yet. Ask the user to visit their dashboard and click Refresh to build their business context.`;
     }
     if (recentEvents?.length) {
       const actionItems = recentEvents.filter((e: any) => e.action_required);

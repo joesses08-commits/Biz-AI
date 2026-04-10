@@ -226,6 +226,9 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardAI | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
   const [syncing, setSyncing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(() => {
+    try { const s = localStorage.getItem("jimmy_last_refresh"); return s ? new Date(s) : null; } catch { return null; }
+  });
   const [syncMessage, setSyncMessage] = useState("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(initialCachedAt);
 
@@ -267,7 +270,16 @@ export default function DashboardPage() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStep, setSyncStep] = useState(0);
 
+  const cooldownMinutes = 60;
+  const minutesSinceRefresh = lastRefreshTime ? (Date.now() - lastRefreshTime.getTime()) / 60000 : 999;
+  const onCooldown = minutesSinceRefresh < cooldownMinutes;
+  const cooldownRemaining = Math.ceil(cooldownMinutes - minutesSinceRefresh);
+
   const refresh = async () => {
+    if (onCooldown) return;
+    const now = new Date();
+    setLastRefreshTime(now);
+    try { localStorage.setItem("jimmy_last_refresh", now.toISOString()); } catch {}
     setSyncing(true);
     setSyncProgress(0);
     setSyncStep(0);
@@ -326,10 +338,10 @@ export default function DashboardPage() {
           {syncMessage && <p className="text-emerald-400/70 text-xs mt-1">{syncMessage}</p>}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={refresh} disabled={syncing || loading}
+          <button onClick={refresh} disabled={syncing || loading || onCooldown}
             className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition px-4 py-2.5 rounded-xl border border-white/[0.06] hover:border-white/20 bg-white/[0.02] disabled:opacity-40">
             <RefreshCw size={12} className={syncing || loading ? "animate-spin" : ""} />
-            {syncing || loading ? syncMessage || "Refreshing..." : "Refresh"}
+            {syncing || loading ? syncMessage || "Refreshing..." : onCooldown ? `Refresh in ${cooldownRemaining}m` : "Refresh"}
           </button>
         </div>
       </div>
