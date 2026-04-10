@@ -94,7 +94,7 @@ export default function SecurityPage() {
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
               <p style={{ marginBottom: "8px" }}>Sessions automatically expire after 8 hours of inactivity.</p>
               <p style={{ marginBottom: "8px" }}>Sensitive actions (changing product status, building the company brain) require a separate Admin PIN.</p>
-              <p>We never store passwords in plaintext. All passwords are hashed using bcrypt.</p>
+              <p>We never store passwords in plaintext. All passwords and PINs are hashed using SHA-256 with a unique salt before storage.</p>
             </div>
           </div>
 
@@ -139,7 +139,7 @@ export default function SecurityPage() {
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
               <p style={{ marginBottom: "8px" }}>Every sensitive action in Jimmy is logged — who did it, when, and from which IP address.</p>
               <p style={{ marginBottom: "8px" }}>Logged actions include: product stage changes, purchase order generation, brain builds, integration connections, and PIN verifications.</p>
-              <p>Audit logs are retained for 12 months and cannot be modified or deleted by users.</p>
+              <p>Audit logs are stored securely and cannot be modified or deleted by users.</p>
             </div>
           </div>
 

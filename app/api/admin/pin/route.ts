@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createHash, randomBytes } from "crypto";
+import { auditLog } from "@/lib/audit";
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -56,9 +57,13 @@ export async function POST(req: NextRequest) {
     const envPin = process.env.ADMIN_MILESTONE_PIN;
     if (!profile?.admin_pin) {
       if (pin === envPin) return NextResponse.json({ success: true });
-      return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
+      auditLog(user.id, "pin_failed", {}).catch(() => {});
+    return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
     }
-    if (profile.admin_pin === hashPin(pin)) return NextResponse.json({ success: true });
+    if (profile.admin_pin === hashPin(pin)) {
+      auditLog(user.id, "pin_verified", {}).catch(() => {});
+      return NextResponse.json({ success: true });
+    }
     return NextResponse.json({ error: "Invalid PIN" }, { status: 401 });
   }
 

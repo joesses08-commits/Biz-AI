@@ -212,6 +212,10 @@ export async function POST(req: NextRequest) {
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", id).eq("user_id", user.id).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    // Audit log stage change
+    if (updates.current_stage && existing?.current_stage !== updates.current_stage) {
+      auditLog(user.id, "plm_stage_update", { product_id: id, from: existing?.current_stage, to: updates.current_stage }).catch(() => {});
+    }
     // Log stage change to history
     if (updates.current_stage && updates.current_stage !== existing?.current_stage) {
       const { error: stageErr } = await supabaseAdmin.from("plm_stages").insert({
@@ -255,6 +259,7 @@ export async function POST(req: NextRequest) {
   if (action === "create_sample_requests") {
     const { product_id, factory_ids, note, force, label, qty } = body;
     if (!product_id || !factory_ids?.length) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    auditLog(user.id, "sample_request", { product_id, factory_ids, qty }).catch(() => {});
 
     // Get factory details
     const { data: factories } = await supabaseAdmin
