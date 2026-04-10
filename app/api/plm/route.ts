@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auditLog } from "@/lib/audit";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";

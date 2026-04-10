@@ -31,7 +31,26 @@ export async function middleware(request: NextRequest) {
 
   if (isPublic) return NextResponse.next();
 
+  // Check session age — force logout after 8 hours
+  const sessionCreated = request.cookies.get("session_created")?.value;
+  const now = Date.now();
+  const EIGHT_HOURS = 8 * 60 * 60 * 1000;
+  if (sessionCreated && now - parseInt(sessionCreated) > EIGHT_HOURS) {
+    const logoutUrl = new URL("/login?reason=timeout", request.url);
+    const res = NextResponse.redirect(logoutUrl);
+    res.cookies.delete("session_created");
+    return res;
+  }
+
   let response = NextResponse.next({ request: { headers: request.headers } });
+  if (!sessionCreated) {
+    response.cookies.set("session_created", String(now), {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 8,
+    });
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

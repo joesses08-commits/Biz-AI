@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
@@ -148,6 +149,15 @@ async function executeTool(name: string, input: any, userId: string): Promise<an
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 20 AI requests per minute per IP
+    const ip = request.headers.get("x-forwarded-for") || "unknown";
+    const { allowed, remaining } = rateLimit(`chat:${ip}`, RATE_LIMITS.ai.maxRequests, RATE_LIMITS.ai.windowMs);
+    if (!allowed) {
+      return NextResponse.json({ error: "Too many requests. Please wait a moment." }, {
+        status: 429,
+        headers: { "Retry-After": "60" },
+      });
+    }
     const cookieStore = cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
