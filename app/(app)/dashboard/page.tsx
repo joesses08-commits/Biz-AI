@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { RefreshCw, ArrowUpRight, TrendingUp, TrendingDown, Minus, Shield, Zap, Settings, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -347,14 +348,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Auth check — if no session, redirect to login (prevents back-button bypass)
-    import("@supabase/ssr").then(({ createBrowserClient }) => {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-      supabase.auth.getSession().then(({ data }) => {
-        if (!data.session) window.location.replace("/login");
-      });
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) window.location.replace("/login");
     });
     // Only auto-load if nothing in memory AND nothing in localStorage
     const stored = loadFromStorage();
