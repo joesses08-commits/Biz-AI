@@ -18,9 +18,14 @@ export async function middleware(request: NextRequest) {
   );
   // Subdomain routing
   const host = request.headers.get("host") || "";
-  if (host.startsWith("portal.") || host.startsWith("factory.") || host.startsWith("warehouse.")) {
+  if (host.startsWith("portal.") || host.startsWith("factory.")) {
     if (request.nextUrl.pathname === "/") {
       return NextResponse.redirect(new URL("/portal", request.url));
+    }
+  }
+  if (host.startsWith("warehouse.")) {
+    if (request.nextUrl.pathname === "/") {
+      return NextResponse.redirect(new URL("/portal/warehouse", request.url));
     }
   }
   if (host.startsWith("team.")) {
