@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Package,
+import { Package, Warehouse,
   LayoutDashboard,
   MessageSquare,
   CheckSquare,

@@ -162,6 +162,43 @@ export async function POST(req: NextRequest) {
         updated_by_role: "admin",
         created_at: new Date().toISOString(),
       });
+
+      // Auto-create inventory record as incoming
+      const { data: defaultWarehouse } = await supabaseAdmin
+        .from("warehouses")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("active", true)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (defaultWarehouse) {
+        const { data: existingInv } = await supabaseAdmin
+          .from("inventory")
+          .select("*")
+          .eq("product_id", p.id)
+          .eq("warehouse_id", defaultWarehouse.id)
+          .maybeSingle();
+
+        if (existingInv) {
+          await supabaseAdmin.from("inventory").update({
+            quantity_incoming: (existingInv.quantity_incoming || 0) + qty,
+            cost_per_unit: unitPrice || existingInv.cost_per_unit,
+            po_number: poNum,
+            updated_at: new Date().toISOString(),
+          }).eq("id", existingInv.id);
+        } else {
+          await supabaseAdmin.from("inventory").insert({
+            user_id: user.id,
+            product_id: p.id,
+            warehouse_id: defaultWarehouse.id,
+            quantity_incoming: qty,
+            cost_per_unit: unitPrice || null,
+            po_number: poNum,
+          });
+        }
+      }
     }
   }
 
