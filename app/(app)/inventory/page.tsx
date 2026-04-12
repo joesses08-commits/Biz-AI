@@ -258,7 +258,7 @@ export default function InventoryPage() {
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowAddUser(false)} className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-xs">Cancel</button>
-              <button onClick={createWarehouseUser} disabled={saving || !userForm.warehouse_id || !userForm.name || !userForm.email || !userForm.pin} className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-xs font-semibold disabled:opacity-40 hover:bg-blue-400 transition">
+              <button onClick={createWarehouseUser} disabled={saving || !userForm.warehouse_id || !userForm.name || !userForm.email || !userForm.password} className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-xs font-semibold disabled:opacity-40 hover:bg-blue-400 transition">
                 {saving ? "Saving..." : "Create User"}
               </button>
             </div>
