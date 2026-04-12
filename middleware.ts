@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
     "/api/quickbooks/connect", "/api/quickbooks/callback", "/api/quickbooks/sync",
     "/api/google/sync", "/api/stripe/connect", "/api/stripe/callback",
     "/api/briefing", "/api/webhook", "/api/events/process", "/api/events/snapshot",
-    "/api/workflows/factory-quote", "/api/plm", "/api/portal",
+    "/api/workflows/factory-quote", "/api/plm", "/api/portal", "/api/warehouse",
   ];
 
   const isPublic = publicPaths.some(path =>
@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
   );
   // Subdomain routing
   const host = request.headers.get("host") || "";
-  if (host.startsWith("portal.") || host.startsWith("factory.")) {
+  if (host.startsWith("portal.") || host.startsWith("factory.") || host.startsWith("warehouse.")) {
     if (request.nextUrl.pathname === "/") {
       return NextResponse.redirect(new URL("/portal", request.url));
     }
