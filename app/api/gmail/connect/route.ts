@@ -5,8 +5,8 @@ export async function GET() {
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/gmail/callback`;
 
   const scopes = [
-    // Gmail — read + send
-    "https://mail.google.com/",
+    // Gmail — read + send (gmail.modify)
+    "https://www.googleapis.com/auth/gmail.modify",
     // Drive — full read + write
     "https://www.googleapis.com/auth/drive",
     // Sheets — read + write
