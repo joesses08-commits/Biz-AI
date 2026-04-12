@@ -44,7 +44,7 @@ export default function InventoryPage() {
     await fetch("/api/inventory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_warehouse_user", ...userForm }) });
     setSaving(false);
     setShowAddUser(false);
-    setUserForm({ warehouse_id: "", name: "", email: "", pin: "" });
+    setUserForm({ warehouse_id: "", name: "", email: "", password: "" });
   }
 
   async function adjustInventory() {
