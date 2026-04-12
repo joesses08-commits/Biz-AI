@@ -559,7 +559,7 @@ export default function SettingsPage() {
                     // Verify PIN
                     const pinRes = await fetch("/api/admin/pin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify_pin", pin: brainPin }) });
                     const pinData = await pinRes.json();
-                    if (!pinData.valid) { setBrainPinError("Incorrect PIN"); setBuildingBrain(false); return; }
+                    if (!pinData.success) { setBrainPinError("Incorrect PIN"); setBuildingBrain(false); return; }
 
                     // Run brain build
                     const sources = [];
