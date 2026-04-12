@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Package, Warehouse,
+import { Package, Warehouse, Warehouse,
   LayoutDashboard,
   MessageSquare,
   CheckSquare,
@@ -117,6 +117,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}
         <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" description="Business metrics" />
         <NavItem href="/chat" icon={MessageSquare} label="AI Analyst" description="Ask questions" />
         <NavItem href="/plm" icon={Package} label="Product Lifecycle" description="SKUs & collections" dot={plmActionCount > 0 ? "red" : plmUpdateCount > 0 ? "yellow" : null} />
+        <NavItem href="/inventory" icon={Warehouse} label="Inventory" description="Stock & warehouses" />
         <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
         <NavItem href="/coming-soon" icon={Sparkles} label="Coming Soon" description="What's next" />
 
