@@ -175,6 +175,16 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  // Gate: brain must be built before AI features work
+  const { data: brainProfile } = await supabaseAdmin
+    .from("company_profiles")
+    .select("brain_built")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!brainProfile?.brain_built) {
+    return NextResponse.json({ error: "brain_not_built" }, { status: 403 });
+  }
+
     const { messages, approvedAction, pendingTools, userId: passedUserId } = await request.json();
 
     // If this is an approval execution — run the tools directly, no Claude needed

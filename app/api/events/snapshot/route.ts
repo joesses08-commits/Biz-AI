@@ -89,6 +89,17 @@ async function fetchRecentEvents(userId: string, since: string): Promise<string>
 }
 
 async function updateSnapshot(userId: string) {
+
+  // Gate: brain must be built before snapshot runs
+  const { data: brainProfile } = await supabaseAdmin
+    .from("company_profiles")
+    .select("brain_built")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!brainProfile?.brain_built) {
+    return { message: "Brain not built yet — skipping snapshot", skipped: true };
+  }
+
   const { data: existing } = await supabaseAdmin.from("context_cache").select("*").eq("user_id", userId).maybeSingle();
   const { data: profile } = await supabaseAdmin.from("company_profiles").select("company_name, company_brief").eq("user_id", userId).maybeSingle();
 

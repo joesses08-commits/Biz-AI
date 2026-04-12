@@ -242,6 +242,11 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/dashboard/ai-metrics");
       const json = await res.json();
+    if (json.error === "brain_not_built") {
+      setData({ _brain_not_built: true } as any);
+      setLoading(false);
+      return;
+    }
       if (res.status === 402) {
         setData({ error: "quota_exceeded", message: json.message, reason: json.reason });
         setLoading(false);
