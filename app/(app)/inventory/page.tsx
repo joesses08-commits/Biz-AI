@@ -254,7 +254,7 @@ export default function InventoryPage() {
               </div>
               <div><label className={labelClass}>Name *</label><input value={userForm.name} onChange={e => setUserForm({...userForm, name: e.target.value})} placeholder="John Smith" className={inputClass} /></div>
               <div><label className={labelClass}>Email *</label><input value={userForm.email} onChange={e => setUserForm({...userForm, email: e.target.value})} placeholder="john@warehouse.com" className={inputClass} /></div>
-              <div><label className={labelClass}>PIN (4-8 digits) *</label><input type="password" value={userForm.pin} onChange={e => setUserForm({...userForm, pin: e.target.value.replace(/\D/g, "").slice(0, 8)})} placeholder="••••" className={inputClass + " text-center tracking-widest text-xl"} /></div>
+              <div><label className={labelClass}>Password *</label><input type="password" value={userForm.password} onChange={e => setUserForm({...userForm, password: e.target.value})} placeholder="Create a password" className={inputClass} /></div>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowAddUser(false)} className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-xs">Cancel</button>
