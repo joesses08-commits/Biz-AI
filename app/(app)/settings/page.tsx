@@ -3,6 +3,31 @@
 import { useState, useEffect } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 
+function SnapshotViewer() {
+  const [snapshot, setSnapshot] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("context_cache").select("context, cached_at").eq("user_id", user.id).maybeSingle();
+      setSnapshot(data?.context || "No snapshot yet — build your brain first.");
+      setLoading(false);
+    }
+    load();
+  }, []);
+  if (loading) return <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />;
+  return (
+    <div className="bg-black/20 rounded-xl p-4 font-mono text-[11px] text-white/50 leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">
+      {snapshot}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -213,17 +238,14 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Living Context */}
+            {/* Snapshot */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
               <div className="flex items-start justify-between mb-1">
-                <h2 className="text-sm font-semibold text-white">Living Context</h2>
+                <h2 className="text-sm font-semibold text-white">Intelligence Snapshot</h2>
                 <span className="text-[10px] text-white/20 bg-white/5 border border-white/10 rounded-lg px-2 py-1">Auto-updated by Jimmy</span>
               </div>
-              <p className="text-white/30 text-xs mb-5">What's happening right now — current projects, deals, priorities, recent changes. Jimmy also writes here automatically when it learns something new from your emails, files, and conversations.</p>
-              <textarea value={brain.company_brain} onChange={e => setBrain({...brain, company_brain: e.target.value})}
-                rows={10}
-                placeholder="Current projects, deals, priorities, recent changes... Jimmy will also write here as it learns from your integrations."
-                className={textareaClass} />
+              <p className="text-white/30 text-xs mb-5">Jimmy's live understanding of your business — updated 6 times a day from your emails, files, and PLM. Read only.</p>
+              <SnapshotViewer />
             </div>
 
             {/* Data Standards */}

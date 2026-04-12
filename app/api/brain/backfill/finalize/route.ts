@@ -90,6 +90,7 @@ Write the knowledge summary now.`
         .from("company_profiles")
         .update({
           company_brain: newBrain,
+          brain_built: true,
           updated_at: new Date().toISOString(),
         })
         .eq("id", profile.id);
