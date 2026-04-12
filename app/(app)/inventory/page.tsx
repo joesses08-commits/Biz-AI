@@ -15,7 +15,7 @@ export default function InventoryPage() {
   const [saving, setSaving] = useState(false);
 
   const [warehouseForm, setWarehouseForm] = useState({ name: "", address: "", city: "", state: "", country: "US", contact_name: "", contact_email: "", contact_phone: "", notes: "" });
-  const [userForm, setUserForm] = useState({ warehouse_id: "", name: "", email: "", pin: "" });
+  const [userForm, setUserForm] = useState({ warehouse_id: "", name: "", email: "", password: "" });
   const [adjustForm, setAdjustForm] = useState({ quantity_adjustment: "", notes: "" });
 
   useEffect(() => { load(); }, []);
