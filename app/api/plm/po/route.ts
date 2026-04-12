@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── GENERATE PO ──
-  const { product_ids, line_items, factory_per_product, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name } = body;
+  const { product_ids, line_items, factory_per_product, warehouse_id, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name } = body;
 
   if (!product_ids?.length) return NextResponse.json({ error: "No products" }, { status: 400 });
 
@@ -164,16 +164,22 @@ export async function POST(req: NextRequest) {
       });
 
       // Auto-create inventory record as incoming
-      const { data: defaultWarehouse } = await supabaseAdmin
-        .from("warehouses")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("active", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
+      // Use selected warehouse or fall back to first warehouse
+      let targetWarehouseId = warehouse_id;
+      if (!targetWarehouseId) {
+        const { data: defaultWarehouse } = await supabaseAdmin
+          .from("warehouses")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("active", true)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        targetWarehouseId = defaultWarehouse?.id;
+      }
 
-      if (defaultWarehouse) {
+      if (targetWarehouseId) {
+        const defaultWarehouse = { id: targetWarehouseId };
         const { data: existingInv } = await supabaseAdmin
           .from("inventory")
           .select("*")
@@ -192,7 +198,7 @@ export async function POST(req: NextRequest) {
           await supabaseAdmin.from("inventory").insert({
             user_id: user.id,
             product_id: p.id,
-            warehouse_id: defaultWarehouse.id,
+            warehouse_id: targetWarehouseId,
             quantity_incoming: qty,
             cost_per_unit: unitPrice || null,
             po_number: poNum,

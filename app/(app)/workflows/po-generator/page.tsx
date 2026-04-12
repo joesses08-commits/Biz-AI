@@ -96,6 +96,10 @@ export default function POGeneratorPage() {
     const plmData = await plmRes.json();
     setProducts(plmData.products || []);
     setFactories(plmData.factories || []);
+    // Load warehouses
+    const invRes = await fetch("/api/inventory");
+    const invData = await invRes.json();
+    setWarehouses(invData.warehouses || []);
     if (historyRes.ok) {
       const historyData = await historyRes.json();
       setHistory(historyData.history || []);
@@ -123,6 +127,7 @@ export default function POGeneratorPage() {
         product_ids: poSelectedProducts,
         line_items: poLineItems,
         factory_per_product: poFactoryPerProduct,
+        warehouse_id: selectedWarehouse || null,
         ...poForm,
       }),
     });
@@ -199,6 +204,8 @@ Download PO: ${publicUrl}` : ""),
 
   const [authorizedPO, setAuthorizedPO] = useState(false);
   const [selectedFactory, setSelectedFactory] = useState("");
+  const [selectedWarehouse, setSelectedWarehouse] = useState("");
+  const [warehouses, setWarehouses] = useState<any[]>([]);
 
   const totalValue = poSelectedProducts.reduce((sum, pid) => {
     const line = poLineItems[pid];
@@ -279,6 +286,19 @@ Download PO: ${publicUrl}` : ""),
                     <option key={f.id} value={f.id}>{f.name}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Warehouse Picker */}
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Ship To Warehouse</p>
+                <select value={selectedWarehouse} onChange={e => setSelectedWarehouse(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
+                  <option value="">Select destination warehouse...</option>
+                  {warehouses.map((w: any) => (
+                    <option key={w.id} value={w.id}>{w.name}{w.city ? ` — ${w.city}, ${w.state}` : ""}</option>
+                  ))}
+                </select>
+                {warehouses.length === 0 && <p className="text-[10px] text-white/20 mt-1.5">No warehouses yet — add one in Inventory</p>}
               </div>
 
               {/* Products */}

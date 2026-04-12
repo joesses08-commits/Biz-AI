@@ -9,7 +9,7 @@ export default function WarehousePortal() {
   const [shipments, setShipments] = useState<any[]>([]);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
   const [email, setEmail] = useState("");
-  const [pin, setPin] = useState("");
+  const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
   const [showReceive, setShowReceive] = useState<any>(null);
@@ -21,7 +21,7 @@ export default function WarehousePortal() {
   async function login() {
     setLoggingIn(true);
     setLoginError("");
-    const res = await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", email, pin }) });
+    const res = await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", email, password }) });
     const data = await res.json();
     if (!res.ok) { setLoginError("Invalid email or PIN"); setLoggingIn(false); return; }
     setWarehouseUser(data.warehouse_user);
@@ -77,10 +77,10 @@ export default function WarehousePortal() {
         </div>
         <div className="space-y-3 mb-4">
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={inputClass} />
-          <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="PIN" className={inputClass + " text-center tracking-widest text-xl"} onKeyDown={e => e.key === "Enter" && login()} />
+          <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className={inputClass} onKeyDown={e => e.key === "Enter" && login()} />
         </div>
         {loginError && <p className="text-red-400 text-xs text-center mb-3">{loginError}</p>}
-        <button onClick={login} disabled={loggingIn || !email || !pin} className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm disabled:opacity-40 hover:bg-white/90 transition">
+        <button onClick={login} disabled={loggingIn || !email || !password} className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm disabled:opacity-40 hover:bg-white/90 transition">
           {loggingIn ? "Signing in..." : "Sign In"}
         </button>
       </div>

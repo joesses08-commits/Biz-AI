@@ -132,9 +132,9 @@ export async function POST(request: NextRequest) {
 
   // Create warehouse portal user
   if (action === "create_warehouse_user") {
-    const { warehouse_id, name, email, pin } = body;
+    const { warehouse_id, name, email, password } = body;
     const { createHash } = await import("crypto");
-    const pin_hash = createHash("sha256").update(pin + "jimmy-warehouse-salt").digest("hex");
+    const pin_hash = createHash("sha256").update(password + "jimmy-warehouse-salt").digest("hex");
     const { data, error } = await supabaseAdmin.from("warehouse_portal_users").insert({
       user_id: user.id, warehouse_id, name, email, pin_hash,
     }).select().single();
