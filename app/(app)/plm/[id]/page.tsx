@@ -1609,20 +1609,18 @@ ${entry}` : entry;
 
           {/* ── IMAGES ── */}
           {enlargedImage && (
-            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer"
+            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center cursor-pointer"
               onClick={() => setEnlargedImage(null)}>
-              <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                <img
-                  src={enlargedImage}
-                  alt=""
-                  className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
-                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-                />
-                <button onClick={() => setEnlargedImage(null)}
-                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white/70 hover:text-white transition">
-                  <X size={16} />
-                </button>
-              </div>
+              <img
+                src={enlargedImage}
+                alt=""
+                style={{ maxWidth: "92vw", maxHeight: "92vh", width: "auto", height: "auto", borderRadius: "16px", objectFit: "contain", boxShadow: "0 0 80px rgba(0,0,0,0.8)" }}
+              />
+              <button onClick={() => setEnlargedImage(null)}
+                style={{ position: "fixed", top: "16px", right: "16px" }}
+                className="w-9 h-9 rounded-full bg-black/60 flex items-center justify-center text-white/70 hover:text-white transition">
+                <X size={18} />
+              </button>
             </div>
           )}
           <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
