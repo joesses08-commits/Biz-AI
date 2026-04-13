@@ -708,6 +708,12 @@ ${entry}` : entry;
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color, border: `1px solid ${currentDevStage.color}30` }}>
                   {currentDevStage.label}
                 </span>
+                {product.action_status === "action_required" && (
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">⚡ Action Required</span>
+                )}
+                {product.action_status === "updates_made" && (
+                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">● Updates Made</span>
+                )}
                 {/* Product Status Dropdown */}
                 <div className="relative">
                   <button onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -747,80 +753,46 @@ ${entry}` : entry;
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-        <div className="col-span-2 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 space-y-6">
 
           {/* ── FACTORY TRACKS SECTION ── */}
           {(() => {
-            const TRACK_STAGES = [
-              { key: "artwork_sent",      label: "Artwork Sent",      color: "#8b5cf6" },
-              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899" },
-              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6" },
-              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b" },
-              { key: "sample_production", label: "In Production",     color: "#f59e0b" },
-              { key: "sample_complete",   label: "Sample Complete",   color: "#10b981" },
-              { key: "sample_shipped",    label: "Sample Shipped",    color: "#3b82f6" },
-              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6" },
-              { key: "sample_reviewed",   label: "Sample Reviewed",   color: "#10b981" },
+            const FIRST_CYCLE_STAGES = [
+              { key: "artwork_sent",      label: "Artwork Sent",      color: "#8b5cf6", type: "completion" },
+              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899", type: "request", estimateLabel: "Estimated quote received date" },
+              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6", type: "completion", hasPrice: true },
             ];
+            const SAMPLE_CYCLE_STAGES = [
+              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b", type: "request", estimateLabel: "Estimated sample arrival date" },
+              { key: "sample_production", label: "In Production",     color: "#f59e0b", type: "completion" },
+              { key: "sample_complete",   label: "Sample Complete",   color: "#10b981", type: "completion" },
+              { key: "sample_shipped",    label: "Sample Shipped",    color: "#3b82f6", type: "completion" },
+              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6", type: "completion" },
+              { key: "sample_reviewed",   label: "Sample Reviewed",   color: "#10b981", type: "review" },
+            ];
+            const COLLAPSIBLE_KEYS = ["sample_production","sample_complete","sample_shipped","sample_arrived"];
 
             const getStageStatus = (track: any, stageKey: string, revNum: number) => {
-              const stages = track.plm_track_stages || [];
-              return stages.find((s: any) => s.stage === stageKey && s.revision_number === revNum);
+              return (track.plm_track_stages || []).find((s: any) => s.stage === stageKey && s.revision_number === revNum);
             };
-
             const getCurrentRevision = (track: any) => {
-              const stages = track.plm_track_stages || [];
-              return stages.filter((s: any) => s.stage === "revision_requested").length;
+              return (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
             };
-
             const hasSampleArrived = (track: any, revNum: number) => {
-              return (track.plm_track_stages || []).some((s: any) =>
-                s.stage === "sample_arrived" && s.status === "done" && s.revision_number === revNum
-              );
+              return (track.plm_track_stages || []).some((s: any) => s.stage === "sample_arrived" && s.status === "done" && s.revision_number === revNum);
             };
-
             const markStage = async (track: any, stageKey: string, status: string, revNum: number, extra?: any) => {
               setUpdatingStage(`${track.id}-${stageKey}-${revNum}`);
               await fetch("/api/plm/tracks", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  action: "update_stage",
-                  track_id: track.id,
-                  product_id: product.id,
-                  factory_id: track.factory_id,
-                  stage: stageKey,
-                  status,
-                  revision_number: revNum,
-                  ...extra,
-                }),
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "update_stage", track_id: track.id, product_id: product.id, factory_id: track.factory_id, stage: stageKey, status, revision_number: revNum, ...extra }),
               });
               setUpdatingStage(null);
               load();
             };
+            const availableFactories = factories.filter((f: any) => !tracks.some(t => t.factory_id === f.id));
 
-            const availableFactories = factories.filter((f: any) =>
-              !tracks.some(t => t.factory_id === f.id)
-            );
-
-            // Stages shown only in first cycle
-            const FIRST_CYCLE_STAGES = [
-              { key: "artwork_sent",      label: "Artwork Sent",      color: "#8b5cf6" },
-              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899" },
-              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6" },
-            ];
-            // Stages repeated every revision cycle
-            const SAMPLE_CYCLE_STAGES = [
-              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b" },
-              { key: "sample_production", label: "In Production",     color: "#f59e0b" },
-              { key: "sample_complete",   label: "Sample Complete",   color: "#10b981" },
-              { key: "sample_shipped",    label: "Sample Shipped",    color: "#3b82f6" },
-              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6" },
-              { key: "sample_reviewed",   label: "Sample Reviewed",   color: "#10b981" },
-            ];
-
-            const renderStageRow = (track: any, stageDef: any, revNum: number, isLatest: boolean) => {
+            const StageRow = ({ track, stageDef, revNum, isLatest, collapsed }: any) => {
               const isApproved = track.status === "approved";
               const isKilledTrack = track.status === "killed";
               const stageData = getStageStatus(track, stageDef.key, revNum);
@@ -828,177 +800,276 @@ ${entry}` : entry;
               const isSkipped = stageData?.status === "skipped";
               const isUpdating = updatingStage === `${track.id}-${stageDef.key}-${revNum}`;
               const canEdit = !isLocked && !isKilledTrack && !isApproved && isLatest;
+              const [expanded, setExpanded] = useState(false);
+              const [dateVal, setDateVal] = useState(new Date().toISOString().split("T")[0]);
+              const [noteVal, setNoteVal] = useState("");
+              const [priceVal, setPriceVal] = useState("");
+              const [saving, setSaving] = useState(false);
 
-              // Check if this is sample_reviewed and there is a revision after it
-              const revisionAfter = stageDef.key === "sample_reviewed" &&
-                (track.plm_track_stages || []).some((s: any) =>
-                  s.stage === "revision_requested" && s.revision_number === revNum
-                );
+              if (collapsed) return null;
+
+              const isReviewStage = stageDef.key === "sample_reviewed";
+              const revisionAfter = isReviewStage && (track.plm_track_stages || []).some((s: any) => s.stage === "revision_requested" && s.revision_number === revNum);
+              const isApprovedReview = isReviewStage && isApproved && revNum === getCurrentRevision(track) - 1 || (isReviewStage && isApproved && getCurrentRevision(track) === 0);
 
               return (
-                <div key={`${stageDef.key}-${revNum}`}
-                  className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl group transition
-                    ${isDone ? "bg-white/[0.02]" : isSkipped ? "opacity-40" : canEdit ? "hover:bg-white/[0.02]" : ""}`}>
-                  <button
-                    onClick={() => canEdit && markStage(track, stageDef.key,
-                      isDone ? "pending" : "done", revNum,
-                      isDone ? {} : { actual_date: new Date().toISOString().split("T")[0] })}
-                    disabled={!canEdit || isUpdating}
-                    className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 transition"
-                    style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}25` } :
-                      isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } :
-                      { borderColor: "rgba(255,255,255,0.15)" }}>
-                    {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> :
-                     isDone ? <Check size={8} style={{ color: stageDef.color }} /> :
-                     isSkipped ? <span className="text-[7px] text-white/30">—</span> : null}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[11px]"
-                        style={isDone ? { color: "rgba(255,255,255,0.75)", fontWeight: 500 } :
-                          isSkipped ? { color: "rgba(255,255,255,0.2)" } :
-                          { color: "rgba(255,255,255,0.4)" }}>
-                        {stageDef.label}
-                      </span>
-                      {/* Revision indicator on sample_reviewed */}
-                      {revisionAfter && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">↻ Revision requested</span>
-                      )}
-                      {stageData?.expected_date && !isDone && (
-                        <span className="text-[9px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">
-                          Est {new Date(stageData.expected_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                <div className={`${isDone ? "bg-white/[0.02] rounded-xl" : ""}`}>
+                  <div className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl group transition ${canEdit && !expanded ? "hover:bg-white/[0.02]" : ""} ${expanded ? "bg-white/[0.03] rounded-b-none" : ""}`}>
+                    <button
+                      onClick={() => {
+                        if (!canEdit || isUpdating || isDone) {
+                          if (isDone && canEdit) markStage(track, stageDef.key, "pending", revNum);
+                          return;
+                        }
+                        setExpanded(!expanded);
+                        setDateVal(new Date().toISOString().split("T")[0]);
+                        setNoteVal(stageData?.notes || "");
+                        setPriceVal(stageData?.quoted_price ? String(stageData.quoted_price) : "");
+                      }}
+                      disabled={isUpdating}
+                      className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 transition hover:scale-110"
+                      style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}25` } :
+                        isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } :
+                        expanded ? { borderColor: stageDef.color, background: `${stageDef.color}10` } :
+                        { borderColor: "rgba(255,255,255,0.15)" }}>
+                      {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> :
+                       isDone ? <Check size={8} style={{ color: stageDef.color }} /> :
+                       isSkipped ? <span className="text-[7px] text-white/30">—</span> : null}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px]" style={isDone ? { color: "rgba(255,255,255,0.8)", fontWeight: 600 } : isSkipped ? { color: "rgba(255,255,255,0.2)" } : expanded ? { color: stageDef.color, fontWeight: 500 } : { color: "rgba(255,255,255,0.45)" }}>
+                          {stageDef.label}
                         </span>
-                      )}
-                      {isDone && stageData?.actual_date && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full"
-                          style={{ color: stageDef.color, background: `${stageDef.color}15` }}>
-                          {new Date(stageData.actual_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                      {stageData?.quoted_price && (
-                        <span className="text-[9px] text-emerald-400 font-bold">${stageData.quoted_price}</span>
-                      )}
+                        {isApprovedReview && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✓ Approved</span>}
+                        {revisionAfter && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">↻ Revision requested</span>}
+                        {stageData?.expected_date && !isDone && (
+                          <span className="text-[9px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">
+                            Est {new Date(stageData.expected_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        )}
+                        {isDone && stageData?.actual_date && (
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ color: stageDef.color, background: `${stageDef.color}15` }}>
+                            {new Date(stageData.actual_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </span>
+                        )}
+                        {stageData?.quoted_price && <span className="text-[9px] text-emerald-400 font-bold">${stageData.quoted_price}</span>}
+                      </div>
+                      {stageData?.notes && <p className="text-[10px] text-white/30 mt-0.5 leading-tight">{stageData.notes}</p>}
+                      {isSkipped && stageData?.skip_reason && <p className="text-[10px] text-white/20 mt-0.5 italic">{stageData.skip_reason}</p>}
                     </div>
-                    {stageData?.notes && (
-                      <p className="text-[10px] text-white/30 mt-0.5 leading-tight">{stageData.notes}</p>
-                    )}
-                    {isSkipped && stageData?.skip_reason && (
-                      <p className="text-[10px] text-white/20 mt-0.5 italic">{stageData.skip_reason}</p>
+                    {canEdit && !expanded && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                        {!isSkipped && !isDone && (
+                          <button onClick={() => { setSkipModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key }); setSkipReason(""); }}
+                            className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">skip</button>
+                        )}
+                        {isSkipped && (
+                          <button onClick={() => markStage(track, stageDef.key, "pending", revNum)}
+                            className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">unskip</button>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {canEdit && (
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
-                      {!isSkipped ? (
-                        <button onClick={() => {
-                          setSkipModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key });
-                          setSkipReason("");
-                        }} className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">skip</button>
+
+                  {/* Magnified inline expansion */}
+                  {expanded && canEdit && (
+                    <div className="mx-2 mb-2 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl rounded-tl-none space-y-2.5">
+                      {stageDef.type === "request" ? (
+                        <div>
+                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">{stageDef.estimateLabel}</p>
+                          <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
+                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                        </div>
                       ) : (
-                        <button onClick={() => markStage(track, stageDef.key, "pending", revNum)}
-                          className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">unskip</button>
+                        <div>
+                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Date completed</p>
+                          <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
+                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                        </div>
                       )}
-                      <button onClick={() => {
-                        setExpectedDateModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key });
-                        setExpectedDate(stageData?.expected_date || "");
-                      }} className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">date</button>
-                      <button onClick={() => {
-                        const price = prompt("Enter price for this stage (e.g. 2.45):");
-                        if (price === null) return;
-                        const notes = prompt("Add a note (optional):");
-                        markStage(track, stageDef.key, stageData?.status || "pending", revNum, {
-                          quoted_price: price ? parseFloat(price) : null,
-                          notes: notes || stageData?.notes || null,
-                        });
-                      }} className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">+ info</button>
+                      {stageDef.hasPrice && (
+                        <div>
+                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Price (ELC) — auto-filled from RFQ if available</p>
+                          <input type="number" step="0.01" value={priceVal} onChange={e => setPriceVal(e.target.value)}
+                            placeholder="e.g. 2.45"
+                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Note (optional)</p>
+                        <input type="text" value={noteVal} onChange={e => setNoteVal(e.target.value)}
+                          placeholder="Add a note..."
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button onClick={async () => {
+                          setSaving(true);
+                          const extra: any = { notes: noteVal || null };
+                          if (stageDef.type === "request") {
+                            extra.expected_date = dateVal;
+                          } else {
+                            extra.actual_date = dateVal;
+                          }
+                          if (stageDef.hasPrice && priceVal) extra.quoted_price = parseFloat(priceVal);
+                          await markStage(track, stageDef.key, stageDef.type === "request" ? "pending" : "done", revNum, extra);
+                          setSaving(false);
+                          setExpanded(false);
+                        }} disabled={saving}
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold disabled:opacity-40">
+                          {saving ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
+                          {stageDef.type === "request" ? "Save estimate" : "Mark complete"}
+                        </button>
+                        <button onClick={() => setExpanded(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-[10px]">Cancel</button>
+                      </div>
                     </div>
                   )}
                 </div>
               );
             };
 
-            const renderCycle = (track: any, revNum: number, isLatest: boolean) => {
+            const FactoryColumn = ({ track }: { track: any }) => {
               const isApproved = track.status === "approved";
               const isKilledTrack = track.status === "killed";
-              const sampleArrived = hasSampleArrived(track, revNum);
-              const revisionStage = (track.plm_track_stages || []).find((s: any) =>
-                s.stage === "revision_requested" && s.revision_number === revNum
-              );
-              // Only show first-cycle stages (artwork, quote) on revision 0
-              const stagesToShow = revNum === 0
-                ? [...FIRST_CYCLE_STAGES, ...SAMPLE_CYCLE_STAGES]
-                : SAMPLE_CYCLE_STAGES;
+              const revision = getCurrentRevision(track);
+              const [cycleCollapsed, setCycleCollapsed] = useState<Record<number, boolean>>({});
+              const [factoryNote, setFactoryNote] = useState(track.notes || "");
+              const [savingNote, setSavingNote] = useState(false);
+              const [editingNote, setEditingNote] = useState(false);
+
+              const toggleCycle = (r: number) => setCycleCollapsed(prev => ({ ...prev, [r]: !prev[r] }));
+
+              const renderCycle = (revNum: number, isLatest: boolean) => {
+                const sampleArrived = hasSampleArrived(track, revNum);
+                const revisionStage = (track.plm_track_stages || []).find((s: any) => s.stage === "revision_requested" && s.revision_number === revNum);
+                const stagesToShow = revNum === 0 ? [...FIRST_CYCLE_STAGES, ...SAMPLE_CYCLE_STAGES] : SAMPLE_CYCLE_STAGES;
+                const isCollapsed = cycleCollapsed[revNum] !== false && revNum < revision;
+
+                return (
+                  <div key={revNum}>
+                    {revNum > 0 && (
+                      <div className="flex items-center gap-2 py-1.5 mb-0.5 cursor-pointer" onClick={() => toggleCycle(revNum)}>
+                        <div className="h-px flex-1 bg-amber-500/20" />
+                        <span className="text-[9px] text-amber-400/70 font-semibold flex items-center gap-1">↻ Revision {revNum} {isCollapsed ? "▸" : "▾"}</span>
+                        <div className="h-px flex-1 bg-amber-500/20" />
+                      </div>
+                    )}
+                    <div className="space-y-0.5">
+                      {stagesToShow.map(stageDef => {
+                        const isCollapsibleStage = COLLAPSIBLE_KEYS.includes(stageDef.key);
+                        const collapsed = isCollapsed && isCollapsibleStage;
+                        return <StageRow key={`${stageDef.key}-${revNum}`} track={track} stageDef={stageDef} revNum={revNum} isLatest={isLatest} collapsed={collapsed} />;
+                      })}
+                    </div>
+                    {/* Review buttons */}
+                    {sampleArrived && isLatest && !isApproved && !isKilledTrack && !isLocked && !revisionStage && (
+                      <div className="flex items-center gap-1.5 pt-2 mt-1 border-t border-white/[0.04] flex-wrap">
+                        <p className="text-[9px] text-white/25">Review:</p>
+                        <button onClick={() => { setApproveModal({ track }); setApprovePrice(""); }}
+                          className="text-[9px] px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">✓ Approve</button>
+                        <button onClick={() => { setRevisionModal({ track }); setRevisionNotes(""); }}
+                          className="text-[9px] px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">↻ Revision</button>
+                        <button onClick={() => { setKillModal({ track }); setKillNotes(""); }}
+                          className="text-[9px] px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">✕ Kill</button>
+                      </div>
+                    )}
+                    {revisionStage && (
+                      <div className="flex items-center gap-2 px-2 py-1.5 mt-1 bg-amber-500/[0.04] rounded-lg border border-amber-500/10">
+                        <span className="text-[9px] text-amber-400/80 font-medium">↻ Revision requested</span>
+                        {revisionStage.notes && <span className="text-[9px] text-white/30">· {revisionStage.notes}</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              };
 
               return (
-                <div key={revNum}>
-                  {revNum > 0 && (
-                    <div className="flex items-center gap-2 py-2 mb-1">
-                      <div className="h-px flex-1 bg-amber-500/20" />
-                      <span className="text-[10px] text-amber-400/70 font-semibold">↻ Revision {revNum}</span>
-                      <div className="h-px flex-1 bg-amber-500/20" />
-                    </div>
-                  )}
-                  <div className="space-y-0.5">
-                    {stagesToShow.map(stageDef => renderStageRow(track, stageDef, revNum, isLatest))}
+                <div className={`flex-1 min-w-[240px] max-w-[320px] border border-white/[0.06] rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isKilledTrack ? "border-red-500/10 opacity-60" : "bg-white/[0.01]"}`}>
+                  {/* Factory header */}
+                  <div className="px-4 py-3 border-b border-white/[0.04] flex items-center gap-2">
+                    <Factory size={11} className="text-white/30 flex-shrink-0" />
+                    <span className="text-xs font-bold text-white truncate flex-1">{track.factory_catalog?.name}</span>
+                    {isApproved && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">✓{track.approved_price ? ` $${track.approved_price}` : ""}</span>}
+                    {isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">Discontinued</span>}
+                    {revision > 0 && !isApproved && !isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 flex-shrink-0">Rev {revision}</span>}
                   </div>
-
-                  {/* Review buttons — only after sample arrived */}
-                  {sampleArrived && isLatest && !isApproved && !isKilledTrack && !isLocked && !revisionStage && (
-                    <div className="flex items-center gap-1.5 pt-2 mt-1 border-t border-white/[0.04] flex-wrap">
-                      <p className="text-[9px] text-white/25 mr-0.5">Review:</p>
-                      <button onClick={() => { setApproveModal({ track }); setApprovePrice(""); }}
-                        className="text-[9px] px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
-                        ✓ Approve
+                  {/* Stages */}
+                  <div className="px-3 py-3 space-y-0.5">
+                    {Array.from({ length: revision + 1 }, (_, i) => i).map(revNum => renderCycle(revNum, revNum === revision))}
+                  </div>
+                  {/* Factory notes */}
+                  <div className="px-3 pb-3 border-t border-white/[0.04] pt-2 mt-1">
+                    {editingNote ? (
+                      <div className="space-y-1.5">
+                        <textarea value={factoryNote} onChange={e => setFactoryNote(e.target.value)} rows={2}
+                          placeholder="Notes for this factory..."
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/60 placeholder-white/15 text-[10px] focus:outline-none resize-none" autoFocus />
+                        <div className="flex gap-1">
+                          <button onClick={async () => {
+                            setSavingNote(true);
+                            await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: factoryNote }) });
+                            setSavingNote(false); setEditingNote(false); load();
+                          }} disabled={savingNote} className="text-[9px] px-2 py-1 rounded bg-white text-black font-bold disabled:opacity-40">Save</button>
+                          <button onClick={() => setEditingNote(false)} className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/30">Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => setEditingNote(true)} className="w-full text-left group">
+                        {factoryNote ? (
+                          <p className="text-[10px] text-white/35 group-hover:text-white/60 transition leading-relaxed">{factoryNote}</p>
+                        ) : (
+                          <p className="text-[10px] text-white/15 group-hover:text-white/30 transition italic">+ Add factory note</p>
+                        )}
                       </button>
-                      <button onClick={() => { setRevisionModal({ track }); setRevisionNotes(""); }}
-                        className="text-[9px] px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
-                        ↻ Revision
-                      </button>
-                      <button onClick={() => { setKillModal({ track }); setKillNotes(""); }}
-                        className="text-[9px] px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
-                        ✕ Kill
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               );
             };
 
+            // Group tracks into rows of 4
+            const trackRows: any[][] = [];
+            for (let i = 0; i < tracks.length; i += 4) trackRows.push(tracks.slice(i, i + 4));
+
             return (
-              <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
-                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
+              <div className="space-y-4">
+                {/* Request Samples + Add Factory buttons */}
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-white">Factory Tracks</p>
-                    <p className="text-xs text-white/30 mt-0.5">Per-factory development pipeline</p>
+                    <h2 className="text-sm font-bold text-white">Factory Tracks</h2>
+                    <p className="text-[11px] text-white/30 mt-0.5">Per-factory development pipeline</p>
                   </div>
-                  {!isLocked && (
-                    <button onClick={() => setAddingFactory(true)}
-                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
-                      <Plus size={11} />Add Factory
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!isLocked && (
+                      <button onClick={() => setShowSampleModal(true)}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
+                        <Plus size={11} />Request Samples
+                      </button>
+                    )}
+                    {!isLocked && (
+                      <button onClick={() => setAddingFactory(true)}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
+                        <Plus size={11} />Add Factory
+                      </button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Add factory row */}
                 {addingFactory && (
-                  <div className="px-6 py-3 border-b border-white/[0.04] flex items-center gap-2">
+                  <div className="flex items-center gap-2 p-3 border border-white/[0.08] rounded-xl bg-white/[0.02]">
                     <select value={newTrackFactoryId} onChange={e => setNewTrackFactoryId(e.target.value)}
                       className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none">
                       <option value="">Select factory...</option>
-                      {availableFactories.map((f: any) => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
+                      {availableFactories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
                     </select>
                     <button onClick={async () => {
                       if (!newTrackFactoryId) return;
-                      await fetch("/api/plm/tracks", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "create_track", product_id: product.id, factory_id: newTrackFactoryId }),
-                      });
-                      setAddingFactory(false);
-                      setNewTrackFactoryId("");
-                      load();
-                    }} disabled={!newTrackFactoryId}
-                      className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                      await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "create_track", product_id: product.id, factory_id: newTrackFactoryId }) });
+                      setAddingFactory(false); setNewTrackFactoryId(""); load();
+                    }} disabled={!newTrackFactoryId} className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                       <Check size={11} />Add
                     </button>
                     <button onClick={() => { setAddingFactory(false); setNewTrackFactoryId(""); }}
@@ -1007,36 +1078,17 @@ ${entry}` : entry;
                 )}
 
                 {tracks.length === 0 ? (
-                  <div className="px-6 py-10 text-center">
+                  <div className="py-10 text-center border border-dashed border-white/[0.06] rounded-2xl">
                     <p className="text-xs text-white/20">No factories added yet</p>
                     <p className="text-[11px] text-white/15 mt-1">Click "Add Factory" to start tracking</p>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <div className="flex divide-x divide-white/[0.04]" style={{ minWidth: `${Math.max(tracks.length * 300, 600)}px` }}>
-                      {tracks.map((track: any) => {
-                        const factory = track.factory_catalog;
-                        const isApproved = track.status === "approved";
-                        const isKilledTrack = track.status === "killed";
-                        const revision = getCurrentRevision(track);
-                        return (
-                          <div key={track.id} className={`flex-1 min-w-[280px] ${isApproved ? "bg-emerald-500/[0.02]" : isKilledTrack ? "bg-red-500/[0.02] opacity-60" : ""}`}>
-                            <div className="px-4 py-2.5 border-b border-white/[0.04] flex items-center gap-2">
-                              <Factory size={11} className="text-white/30 flex-shrink-0" />
-                              <span className="text-xs font-bold text-white truncate">{factory?.name}</span>
-                              {isApproved && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0 ml-auto">✓{track.approved_price ? ` $${track.approved_price}` : ""}</span>}
-                              {isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0 ml-auto">Discontinued</span>}
-                              {revision > 0 && !isApproved && !isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 flex-shrink-0 ml-auto">Rev {revision}</span>}
-                            </div>
-                            <div className="px-3 py-3">
-                              {Array.from({ length: revision + 1 }, (_, i) => i).map(revNum =>
-                                renderCycle(track, revNum, revNum === revision)
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <div className="space-y-4">
+                    {trackRows.map((row, rowIdx) => (
+                      <div key={rowIdx} className="flex gap-3 items-start">
+                        {row.map((track: any) => <FactoryColumn key={track.id} track={track} />)}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -1733,95 +1785,71 @@ ${entry}` : entry;
               </div>
             )}
           </div>
-        </div>
 
-        {/* ── RIGHT SIDEBAR ── */}
-        <div className="space-y-4">
-          <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Status</p>
-            <div className="space-y-3">
-              <div>
-                <p className="text-[10px] text-white/30 mb-1.5">Development</p>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color, border: `1px solid ${currentDevStage.color}30` }}>
-                  {currentDevStage.label}
-                </span>
-              </div>
-              {orders.length > 0 && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-2">Orders</p>
-                  {orders.map((o: any) => {
-                    const s = stageInfo(o.current_stage);
-                    return (
-                      <div key={o.id} className="flex items-center justify-between py-1.5 border-b border-white/[0.04] last:border-0">
-                        <span className="text-[11px] text-white/50">Order #{o.batch_number}</span>
-                        <span className="text-[10px] font-semibold" style={{ color: s.color }}>{s.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Info</p>
-            <div className="space-y-2">
-              <div className="flex justify-between"><span className="text-[11px] text-white/30">Created</span><span className="text-[11px] text-white/50">{new Date(product.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
-              <div className="flex justify-between"><span className="text-[11px] text-white/30">Orders</span><span className="text-[11px] text-white/50">{orders.length}</span></div>
-              <div className="flex justify-between"><span className="text-[11px] text-white/30">Total units</span><span className="text-[11px] text-white/50">{orders.reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0).toLocaleString()}</span></div>
-              {product.designer_name && <div className="flex justify-between"><span className="text-[11px] text-white/30">Designer</span><span className="text-[11px] text-white/50">{product.designer_name}</span></div>}
-            </div>
-          </div>
-
-          {/* Action Status */}
-          {product.action_status && product.action_status !== "up_to_date" && (product.action_status !== "action_required" || orders.length === 0) && (
-            <div className={`border rounded-2xl p-4 ${product.action_status === "action_required" ? "border-red-500/20 bg-red-500/[0.03]" : "border-blue-500/20 bg-blue-500/[0.03]"}`}>
-              <div className="flex items-center justify-between mb-2">
-                <p className={`text-[10px] font-bold uppercase tracking-widest ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
-                  {product.action_status === "action_required" ? "⚡ Action Required" : "● Updates Made"}
-                </p>
-                <button onClick={async () => {
-                  await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
-                  load();
-                }} className="text-[10px] text-white/20 hover:text-white/50 transition">Dismiss</button>
-              </div>
-              <p className="text-[11px] text-white/40">
-                {product.action_status === "action_required" ? "This product needs your attention." : "Factory has made progress on this product."}
-              </p>
-            </div>
-          )}
-
-          {/* Team Assignment */}
-          <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Assigned Team</p>
-            <div className="space-y-2">
-              {(product.plm_assignments || []).map((a: any) => (
-                <div key={a.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[9px] text-white/50 font-bold">
-                      {(a.factory_portal_users?.name || a.factory_portal_users?.email || "?")[0].toUpperCase()}
+          {/* ── INFO + TEAM STRIP ── */}
+          <div className="flex gap-4 flex-wrap">
+            <div className="flex-1 min-w-[200px] border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Info</p>
+              <div className="space-y-2">
+                <div className="flex justify-between"><span className="text-[11px] text-white/30">Created</span><span className="text-[11px] text-white/50">{new Date(product.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
+                <div className="flex justify-between"><span className="text-[11px] text-white/30">Orders</span><span className="text-[11px] text-white/50">{orders.length}</span></div>
+                <div className="flex justify-between"><span className="text-[11px] text-white/30">Total units</span><span className="text-[11px] text-white/50">{orders.reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0).toLocaleString()}</span></div>
+                {product.designer_name && <div className="flex justify-between"><span className="text-[11px] text-white/30">Designer</span><span className="text-[11px] text-white/50">{product.designer_name}</span></div>}
+                {orders.length > 0 && orders.map((o: any) => {
+                  const s = stageInfo(o.current_stage);
+                  return (
+                    <div key={o.id} className="flex items-center justify-between">
+                      <span className="text-[11px] text-white/30">Order #{o.batch_number}</span>
+                      <span className="text-[10px] font-semibold" style={{ color: s.color }}>{s.label}</span>
                     </div>
-                    <span className="text-[11px] text-white/50 truncate">{a.factory_portal_users?.name || a.factory_portal_users?.email}</span>
-                  </div>
-                  <button onClick={async () => {
-                    const currentIds = (product.plm_assignments || []).map((x: any) => x.designer_id).filter((x: string) => x !== a.designer_id);
-                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "assign_product", product_id: product.id, designer_ids: currentIds }) });
-                    load();
-                  }} className="text-white/20 hover:text-red-400 transition text-xs">×</button>
-                </div>
-              ))}
-              {(product.plm_assignments || []).length === 0 && (
-                <p className="text-[11px] text-white/20">No one assigned</p>
-              )}
-              <AssignTeamMember productId={product.id} currentAssignments={product.plm_assignments || []} onAssign={() => load()} />
+                  );
+                })}
+              </div>
             </div>
+            <div className="flex-1 min-w-[200px] border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Assigned Team</p>
+              <div className="space-y-2">
+                {(product.plm_assignments || []).map((a: any) => (
+                  <div key={a.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[9px] text-white/50 font-bold">
+                        {(a.factory_portal_users?.name || a.factory_portal_users?.email || "?")[0].toUpperCase()}
+                      </div>
+                      <span className="text-[11px] text-white/50 truncate">{a.factory_portal_users?.name || a.factory_portal_users?.email}</span>
+                    </div>
+                    <button onClick={async () => {
+                      const currentIds = (product.plm_assignments || []).map((x: any) => x.designer_id).filter((x: string) => x !== a.designer_id);
+                      await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "assign_product", product_id: product.id, designer_ids: currentIds }) });
+                      load();
+                    }} className="text-white/20 hover:text-red-400 transition text-xs">×</button>
+                  </div>
+                ))}
+                {(product.plm_assignments || []).length === 0 && <p className="text-[11px] text-white/20">No one assigned</p>}
+                <AssignTeamMember productId={product.id} currentAssignments={product.plm_assignments || []} onAssign={() => load()} />
+              </div>
+            </div>
+            {product.action_status && product.action_status !== "up_to_date" && (
+              <div className={`flex-1 min-w-[200px] border rounded-2xl p-4 ${product.action_status === "action_required" ? "border-red-500/20 bg-red-500/[0.03]" : "border-blue-500/20 bg-blue-500/[0.03]"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className={`text-[10px] font-bold uppercase tracking-widest ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
+                    {product.action_status === "action_required" ? "⚡ Action Required" : "● Updates Made"}
+                  </p>
+                  <button onClick={async () => {
+                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
+                    load();
+                  }} className="text-[10px] text-white/20 hover:text-white/50 transition">Dismiss</button>
+                </div>
+                <p className="text-[11px] text-white/40">
+                  {product.action_status === "action_required" ? "This product needs your attention." : "Factory has made progress on this product."}
+                </p>
+              </div>
+            )}
           </div>
-        </div>
+
       </div>
     </div>
   );
 }
-
 function AssignTeamMember({ productId, currentAssignments, onAssign }: { productId: string; currentAssignments: any[]; onAssign: () => void }) {
   const [designers, setDesigners] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
