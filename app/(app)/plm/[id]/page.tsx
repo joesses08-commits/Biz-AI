@@ -157,6 +157,8 @@ export default function ProductPage() {
   // Images
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+  const [dragOverImage, setDragOverImage] = useState(false);
 
   const load = async () => {
     const [prodRes, catRes, colRes, tracksRes] = await Promise.all([
@@ -1593,11 +1595,26 @@ ${entry}` : entry;
               </select>
             </div>
             <InlineField label="Reference / Dropbox Link" value={product.reference_url || ""} onSave={v => saveField("reference_url", v)} disabled={isKilled} />
+            {product.reference_url && (
+              <a href={product.reference_url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 transition underline underline-offset-2">
+                ↗ Open link
+              </a>
+            )}
             <InlineField label="Admin Notes (private)" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline disabled={isKilled} />
             <InlineField label="Factory Notes (visible to factory)" value={product.factory_notes || ""} onSave={v => saveField("factory_notes", v)} multiline disabled={isKilled} />
           </div>
 
           {/* ── IMAGES ── */}
+          {enlargedImage && (
+            <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer"
+              onClick={() => setEnlargedImage(null)}>
+              <img src={enlargedImage} alt="Product" className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl" />
+              <button className="absolute top-4 right-4 text-white/50 hover:text-white transition">
+                <X size={20} />
+              </button>
+            </div>
+          )}
           <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[10px] text-white/25 uppercase tracking-widest">Images</p>
@@ -1607,39 +1624,70 @@ ${entry}` : entry;
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
               </label>
             </div>
-            {(product.images || []).length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 border border-dashed border-white/[0.06] rounded-xl">
-                <ImagePlus size={20} className="text-white/10 mb-2" />
-                <p className="text-xs text-white/20">No images yet</p>
-                <label className="mt-2 text-xs text-white/30 hover:text-white/60 cursor-pointer underline underline-offset-2">
-                  Upload one
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
-                </label>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-3">
-                {(product.images || []).map((url: string, idx: number) => (
-                  <div key={url} className={`relative group rounded-xl overflow-hidden border aspect-square ${idx === 0 ? "border-blue-500/40" : "border-white/[0.06]"}`}>
-                    <img src={url} alt="Product" className="w-full h-full object-cover" />
-                    {idx === 0 && (
-                      <div className="absolute top-1.5 left-1.5 text-[9px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full">Cover</div>
-                    )}
-                    <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1.5">
-                      {idx !== 0 && (
-                        <button onClick={() => setCoverImage(url)}
-                          className="text-[10px] px-2 py-1 rounded-lg bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:bg-blue-500/50 transition">
-                          Set as Cover
-                        </button>
+            {/* Drag and drop zone */}
+            <div
+              onDragOver={e => { e.preventDefault(); setDragOverImage(true); }}
+              onDragLeave={() => setDragOverImage(false)}
+              onDrop={async e => {
+                e.preventDefault();
+                setDragOverImage(false);
+                const file = e.dataTransfer.files?.[0];
+                if (!file || !file.type.startsWith("image/")) return;
+                setUploadingImage(true);
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("product_id", id as string);
+                await fetch("/api/plm/upload", { method: "POST", body: formData });
+                setUploadingImage(false);
+                load();
+              }}
+              className={`transition rounded-xl ${dragOverImage ? "ring-2 ring-blue-500/40 bg-blue-500/5" : ""}`}>
+              {(product.images || []).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 border border-dashed border-white/[0.06] rounded-xl">
+                  <ImagePlus size={20} className="text-white/10 mb-2" />
+                  <p className="text-xs text-white/20">No images yet</p>
+                  <p className="text-[11px] text-white/15 mt-1">Drag & drop or click to upload</p>
+                  <label className="mt-2 text-xs text-white/30 hover:text-white/60 cursor-pointer underline underline-offset-2">
+                    Upload one
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                  </label>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-3">
+                  {(product.images || []).map((url: string, idx: number) => (
+                    <div key={url} className={`relative group rounded-xl overflow-hidden border aspect-square ${idx === 0 ? "border-blue-500/40" : "border-white/[0.06]"}`}>
+                      <img src={url} alt="Product" className="w-full h-full object-cover cursor-zoom-in"
+                        onClick={() => setEnlargedImage(url)} />
+                      {idx === 0 && (
+                        <div className="absolute top-1.5 left-1.5 text-[9px] font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded-full pointer-events-none">Cover</div>
                       )}
-                      <button onClick={() => handleImageDelete(url)} disabled={deletingImage === url}
-                        className="p-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition">
-                        {deletingImage === url ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
-                      </button>
+                      <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-1.5">
+                        <button onClick={() => setEnlargedImage(url)}
+                          className="text-[10px] px-2 py-1 rounded-lg bg-white/10 border border-white/20 text-white/70 hover:bg-white/20 transition">
+                          View Full
+                        </button>
+                        {idx !== 0 && (
+                          <button onClick={() => setCoverImage(url)}
+                            className="text-[10px] px-2 py-1 rounded-lg bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:bg-blue-500/50 transition">
+                            Set as Cover
+                          </button>
+                        )}
+                        <button onClick={() => handleImageDelete(url)} disabled={deletingImage === url}
+                          className="p-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 transition">
+                          {deletingImage === url ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                  {/* Drag to add more */}
+                  <label className={`flex flex-col items-center justify-center aspect-square rounded-xl border border-dashed cursor-pointer transition ${dragOverImage ? "border-blue-500/40 bg-blue-500/5" : "border-white/[0.06] hover:border-white/15"}`}>
+                    {uploadingImage ? <Loader2 size={16} className="animate-spin text-white/20" /> : <ImagePlus size={16} className="text-white/15" />}
+                    <p className="text-[10px] text-white/15 mt-1">{uploadingImage ? "Uploading..." : "Add more"}</p>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── PRODUCT HISTORY ── */}
