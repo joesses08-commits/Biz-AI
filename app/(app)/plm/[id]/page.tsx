@@ -454,7 +454,9 @@ ${entry}` : entry;
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white"
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => e.preventDefault()}>
 
       {/* Locked banner */}
       {isKilled && (
@@ -1609,10 +1611,18 @@ ${entry}` : entry;
           {enlargedImage && (
             <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-pointer"
               onClick={() => setEnlargedImage(null)}>
-              <img src={enlargedImage} alt="Product" className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl" />
-              <button className="absolute top-4 right-4 text-white/50 hover:text-white transition">
-                <X size={20} />
-              </button>
+              <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                <img
+                  src={enlargedImage}
+                  alt=""
+                  className="max-w-full max-h-[90vh] rounded-2xl object-contain shadow-2xl"
+                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+                <button onClick={() => setEnlargedImage(null)}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/50 flex items-center justify-center text-white/70 hover:text-white transition">
+                  <X size={16} />
+                </button>
+              </div>
             </div>
           )}
           <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
@@ -1630,14 +1640,17 @@ ${entry}` : entry;
               onDragLeave={() => setDragOverImage(false)}
               onDrop={async e => {
                 e.preventDefault();
+                e.stopPropagation();
                 setDragOverImage(false);
-                const file = e.dataTransfer.files?.[0];
-                if (!file || !file.type.startsWith("image/")) return;
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+                if (!files.length) return;
                 setUploadingImage(true);
-                const formData = new FormData();
-                formData.append("file", file);
-                formData.append("product_id", id as string);
-                await fetch("/api/plm/upload", { method: "POST", body: formData });
+                for (const file of files) {
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  formData.append("product_id", id as string);
+                  await fetch("/api/plm/upload", { method: "POST", body: formData });
+                }
                 setUploadingImage(false);
                 load();
               }}
