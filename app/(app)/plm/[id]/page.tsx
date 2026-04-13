@@ -134,22 +134,45 @@ export default function ProductPage() {
   const [updatingOrderStage, setUpdatingOrderStage] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
 
+  // Factory tracks
+  const [tracks, setTracks] = useState<any[]>([]);
+  const [addingFactory, setAddingFactory] = useState(false);
+  const [newTrackFactoryId, setNewTrackFactoryId] = useState("");
+  const [updatingStage, setUpdatingStage] = useState<string | null>(null);
+  const [skipModal, setSkipModal] = useState<{trackId: string, productId: string, factoryId: string, stage: string} | null>(null);
+  const [skipReason, setSkipReason] = useState("");
+  const [expectedDateModal, setExpectedDateModal] = useState<{trackId: string, productId: string, factoryId: string, stage: string} | null>(null);
+  const [expectedDate, setExpectedDate] = useState("");
+  const [approveModal, setApproveModal] = useState<{track: any} | null>(null);
+  const [approvePrice, setApprovePrice] = useState("");
+  const [approvingTrack, setApprovingTrack] = useState(false);
+  const [killModal, setKillModal] = useState<{track: any} | null>(null);
+  const [killNotes, setKillNotes] = useState("");
+  const [killingTrack, setKillingTrack] = useState(false);
+  const [revisionModal, setRevisionModal] = useState<{track: any} | null>(null);
+  const [revisionNotes, setRevisionNotes] = useState("");
+  const [requestingRevision, setRequestingRevision] = useState(false);
+  const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
+
   // Images
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const load = async () => {
-    const [prodRes, catRes, colRes] = await Promise.all([
+    const [prodRes, catRes, colRes, tracksRes] = await Promise.all([
       fetch(`/api/plm?type=product&id=${id}`),
       fetch("/api/catalog?type=factories"),
       fetch("/api/plm?type=collections"),
+      fetch(`/api/plm/tracks?product_id=${id}`),
     ]);
     const prodData = await prodRes.json();
     const catData = await catRes.json();
     const colData = await colRes.json();
+    const tracksData = await tracksRes.json();
     setProduct(prodData.product);
     setFactories(catData.factories || []);
     setCollections(colData.collections || []);
+    setTracks(tracksData.tracks || []);
     setLoading(false);
   };
 
@@ -723,95 +746,394 @@ ${entry}` : entry;
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-8 grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         <div className="col-span-2 space-y-6">
 
-          {/* ── DEVELOPMENT SECTION ── */}
-          <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
-            <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white">Development</p>
-                <p className="text-xs text-white/30 mt-0.5">Concept through sample approved</p>
-              </div>
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color }}>
-                {currentDevStage.label}
-              </span>
-            </div>
+          {/* ── FACTORY TRACKS SECTION ── */}
+          {(() => {
+            const TRACK_STAGES = [
+              { key: "artwork_sent",      label: "Artwork Sent",      color: "#8b5cf6" },
+              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899" },
+              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6" },
+              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b" },
+              { key: "sample_production", label: "Sample Production", color: "#f59e0b" },
+              { key: "sample_complete",   label: "Sample Complete",   color: "#10b981" },
+              { key: "sample_shipped",    label: "Sample Shipped",    color: "#3b82f6" },
+              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6" },
+              { key: "sample_reviewed",   label: "Sample Reviewed",   color: "#10b981" },
+            ];
 
-            {/* Dev stage — prev/next navigation */}
-            <div className="px-6 py-5">
-              {(() => {
-                const currentIdx = DEV_STAGES.findIndex(s => s.key === (product.current_stage || "concept"));
-                const prev = currentIdx > 0 ? DEV_STAGES[currentIdx - 1] : null;
-                const next = currentIdx < DEV_STAGES.length - 1 ? DEV_STAGES[currentIdx + 1] : null;
-                const current = DEV_STAGES[currentIdx] || DEV_STAGES[0];
-                return (
-                  <div className="space-y-4">
-                    {/* Progress bar */}
-                    <div className="w-full bg-white/[0.05] rounded-full h-1">
-                      <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / DEV_STAGES.length) * 100}%`, background: current.color }} />
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <button onClick={() => prev && updateDevStage(prev.key)} disabled={!prev || updatingDevStage || isKilled || isHold}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
-                        ← {prev ? prev.label : "Start"}
-                      </button>
-                      <div className="text-center">
-                        <div className="flex items-center gap-2 justify-center">
-                          <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
-                          <span className="text-sm font-semibold text-white">{current.label}</span>
-                        </div>
-                        <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {DEV_STAGES.length}</p>
-                      </div>
-                      <button onClick={() => next && setPendingDevStage(next.key)} disabled={!next || updatingDevStage || isKilled || isHold}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
-                        style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
-                        {next ? next.label : "Complete"} →
-                      </button>
-                    </div>
-                    {/* Note + confirm when advancing */}
-                    {pendingDevStage && (
-                      <div className="border border-white/[0.08] rounded-xl p-3 space-y-2 bg-white/[0.01]">
-                        <p className="text-xs text-white/50">Advancing to <strong className="text-white/70">{DEV_STAGES.find(s => s.key === pendingDevStage)?.label}</strong></p>
-                        <input value={devStageNote} onChange={e => setDevStageNote(e.target.value)}
-                          placeholder="Add a note (e.g. sent to factories A, B, C)..."
-                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none" />
-                        <div className="flex gap-2">
-                          <button onClick={() => updateDevStage(pendingDevStage)} disabled={updatingDevStage}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
-                            {updatingDevStage ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />} Confirm
-                          </button>
-                          <button onClick={() => { setPendingDevStage(null); setDevStageNote(""); }} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-                        </div>
-                      </div>
-                    )}
-                    {updatingDevStage && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
+            const getStageStatus = (track: any, stageKey: string) => {
+              const stages = track.plm_track_stages || [];
+              return stages.find((s: any) => s.stage === stageKey && s.revision_number === (track._revision || 0));
+            };
 
-                    {/* Full stage timeline */}
-                    <div className="border-t border-white/[0.04] pt-4 space-y-1">
-                      {DEV_STAGES.map((s, i) => {
-                        const isPast = i < currentIdx;
-                        const isCurrent = i === currentIdx;
-                        return (
-                          <button key={s.key} onClick={() => updateDevStage(s.key)} disabled={updatingDevStage || isLocked}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.03] transition text-left">
-                            <div className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition"
-                              style={isCurrent ? { borderColor: s.color, background: `${s.color}20` } : isPast ? { borderColor: "#10b981", background: "#10b98120" } : { borderColor: "rgba(255,255,255,0.1)" }}>
-                              {isPast ? <Check size={10} className="text-emerald-400" /> :
-                               isCurrent ? <div className="w-2 h-2 rounded-full" style={{ background: s.color }} /> :
-                               <div className="w-1.5 h-1.5 rounded-full bg-white/10" />}
-                            </div>
-                            <span className="text-xs font-medium transition"
-                              style={isCurrent ? { color: s.color } : isPast ? { color: "rgba(255,255,255,0.4)" } : { color: "rgba(255,255,255,0.2)" }}>
-                              {s.label}
-                            </span>
-                            {isCurrent && <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${s.color}20`, color: s.color }}>Current</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
+            const getCurrentRevision = (track: any) => {
+              const stages = track.plm_track_stages || [];
+              const revisions = stages.filter((s: any) => s.stage === "revision_requested");
+              return revisions.length;
+            };
+
+            const markStage = async (track: any, stageKey: string, status: string, extra?: any) => {
+              setUpdatingStage(`${track.id}-${stageKey}`);
+              await fetch("/api/plm/tracks", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "update_stage",
+                  track_id: track.id,
+                  product_id: product.id,
+                  factory_id: track.factory_id,
+                  stage: stageKey,
+                  status,
+                  revision_number: getCurrentRevision(track),
+                  ...extra,
+                }),
+              });
+              setUpdatingStage(null);
+              load();
+            };
+
+            const availableFactories = factories.filter(f =>
+              !tracks.some(t => t.factory_id === f.id)
+            );
+
+            return (
+              <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Factory Tracks</p>
+                    <p className="text-xs text-white/30 mt-0.5">Per-factory development pipeline</p>
                   </div>
-                );
-              })()}
+                  {!isLocked && (
+                    <button onClick={() => setAddingFactory(true)}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
+                      <Plus size={11} />Add Factory
+                    </button>
+                  )}
+                </div>
+
+                {/* Add factory row */}
+                {addingFactory && (
+                  <div className="px-6 py-3 border-b border-white/[0.04] flex items-center gap-2">
+                    <select value={newTrackFactoryId} onChange={e => setNewTrackFactoryId(e.target.value)}
+                      className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none">
+                      <option value="">Select factory...</option>
+                      {availableFactories.map((f: any) => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </select>
+                    <button onClick={async () => {
+                      if (!newTrackFactoryId) return;
+                      await fetch("/api/plm/tracks", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "create_track", product_id: product.id, factory_id: newTrackFactoryId }),
+                      });
+                      setAddingFactory(false);
+                      setNewTrackFactoryId("");
+                      load();
+                    }} disabled={!newTrackFactoryId}
+                      className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                      <Check size={11} />Add
+                    </button>
+                    <button onClick={() => { setAddingFactory(false); setNewTrackFactoryId(""); }}
+                      className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  </div>
+                )}
+
+                {tracks.length === 0 ? (
+                  <div className="px-6 py-10 text-center">
+                    <p className="text-xs text-white/20">No factories added yet</p>
+                    <p className="text-[11px] text-white/15 mt-1">Click "Add Factory" to start tracking</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-white/[0.04]">
+                    {tracks.map((track: any) => {
+                      const factory = track.factory_catalog;
+                      const isApproved = track.status === "approved";
+                      const isKilledTrack = track.status === "killed";
+                      const revision = getCurrentRevision(track);
+                      const isExpanded = expandedTrack === track.id || tracks.length === 1;
+
+                      return (
+                        <div key={track.id} className={`${isApproved ? "bg-emerald-500/[0.02]" : isKilledTrack ? "bg-red-500/[0.02] opacity-60" : ""}`}>
+                          {/* Factory header row */}
+                          <div className="px-6 py-3 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition"
+                            onClick={() => setExpandedTrack(expandedTrack === track.id ? null : track.id)}>
+                            <div className="flex items-center gap-2.5">
+                              <Factory size={13} className="text-white/30 flex-shrink-0" />
+                              <span className="text-sm font-semibold text-white">{factory?.name}</span>
+                              {isApproved && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  ✓ Approved{track.approved_price ? ` · $${track.approved_price}` : ""}
+                                </span>
+                              )}
+                              {isKilledTrack && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">Discontinued</span>
+                              )}
+                              {revision > 0 && !isApproved && !isKilledTrack && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">Rev {revision}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {!isApproved && !isKilledTrack && !isLocked && (
+                                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                                  <button onClick={() => { setApproveModal({ track }); setApprovePrice(""); }}
+                                    className="text-[10px] px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
+                                    Approve
+                                  </button>
+                                  <button onClick={() => { setRevisionModal({ track }); setRevisionNotes(""); }}
+                                    className="text-[10px] px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
+                                    Revision
+                                  </button>
+                                  <button onClick={() => { setKillModal({ track }); setKillNotes(""); }}
+                                    className="text-[10px] px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
+                                    Kill
+                                  </button>
+                                </div>
+                              )}
+                              <span className="text-white/20 text-xs">{isExpanded ? "▾" : "▸"}</span>
+                            </div>
+                          </div>
+
+                          {/* Stage checklist */}
+                          {isExpanded && (
+                            <div className="px-6 pb-4 space-y-1">
+                              {TRACK_STAGES.map((stageDef) => {
+                                const stageData = getStageStatus(track, stageDef.key);
+                                const isDone = stageData?.status === "done";
+                                const isSkipped = stageData?.status === "skipped";
+                                const isPending = !stageData || stageData.status === "pending";
+                                const isUpdating = updatingStage === `${track.id}-${stageDef.key}`;
+
+                                return (
+                                  <div key={stageDef.key} className={`flex items-center gap-3 px-3 py-2 rounded-xl group transition ${isDone ? "bg-white/[0.02]" : isSkipped ? "opacity-40" : "hover:bg-white/[0.02]"}`}>
+                                    {/* Status dot / checkbox */}
+                                    <button
+                                      onClick={() => !isLocked && !isKilledTrack && markStage(track, stageDef.key, isDone ? "pending" : "done", isDone ? {} : { actual_date: new Date().toISOString().split("T")[0] })}
+                                      disabled={isLocked || isKilledTrack || isUpdating}
+                                      className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition hover:scale-110"
+                                      style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}25` } : isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } : { borderColor: "rgba(255,255,255,0.15)" }}>
+                                      {isUpdating ? <Loader2 size={9} className="animate-spin text-white/40" /> :
+                                       isDone ? <Check size={9} style={{ color: stageDef.color }} /> :
+                                       isSkipped ? <span className="text-[8px] text-white/30">—</span> : null}
+                                    </button>
+
+                                    {/* Stage label */}
+                                    <span className="text-xs flex-1 transition"
+                                      style={isDone ? { color: "rgba(255,255,255,0.7)", fontWeight: 500 } : isSkipped ? { color: "rgba(255,255,255,0.25)" } : { color: "rgba(255,255,255,0.4)" }}>
+                                      {stageDef.label}
+                                      {isSkipped && stageData?.skip_reason && <span className="text-[10px] text-white/20 ml-1.5">· {stageData.skip_reason}</span>}
+                                    </span>
+
+                                    {/* Dates */}
+                                    <div className="flex items-center gap-3 text-[10px]">
+                                      {stageData?.expected_date && (
+                                        <span className="text-white/25">
+                                          Est: {new Date(stageData.expected_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                        </span>
+                                      )}
+                                      {isDone && stageData?.actual_date && (
+                                        <span style={{ color: stageDef.color, opacity: 0.7 }}>
+                                          Done: {new Date(stageData.actual_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                        </span>
+                                      )}
+                                      {stageData?.quoted_price && (
+                                        <span className="text-white/40 font-semibold">${stageData.quoted_price}</span>
+                                      )}
+                                    </div>
+
+                                    {/* Notes */}
+                                    {stageData?.notes && (
+                                      <span className="text-[10px] text-white/25 max-w-[120px] truncate">{stageData.notes}</span>
+                                    )}
+
+                                    {/* Actions — show on hover */}
+                                    {!isLocked && !isKilledTrack && (
+                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                        {!isSkipped && (
+                                          <button onClick={() => { setSkipModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key }); setSkipReason(""); }}
+                                            className="text-[9px] px-2 py-0.5 rounded-lg border border-white/[0.06] text-white/25 hover:text-white/50 hover:border-white/20 transition">
+                                            skip
+                                          </button>
+                                        )}
+                                        {isSkipped && (
+                                          <button onClick={() => markStage(track, stageDef.key, "pending")}
+                                            className="text-[9px] px-2 py-0.5 rounded-lg border border-white/[0.06] text-white/25 hover:text-white/50 transition">
+                                            unskip
+                                          </button>
+                                        )}
+                                        <button onClick={() => { setExpectedDateModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key }); setExpectedDate(stageData?.expected_date || ""); }}
+                                          className="text-[9px] px-2 py-0.5 rounded-lg border border-white/[0.06] text-white/25 hover:text-white/50 hover:border-white/20 transition">
+                                          est. date
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+
+                              {/* Revision history */}
+                              {revision > 0 && (
+                                <div className="mt-2 pt-2 border-t border-white/[0.04]">
+                                  {(track.plm_track_stages || [])
+                                    .filter((s: any) => s.stage === "revision_requested")
+                                    .map((s: any, i: number) => (
+                                      <div key={s.id} className="flex items-center gap-2 px-3 py-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                                        <span className="text-[10px] text-amber-400/70">Revision {i + 1} requested</span>
+                                        {s.notes && <span className="text-[10px] text-white/25">· {s.notes}</span>}
+                                        {s.actual_date && <span className="text-[10px] text-white/20 ml-auto">{new Date(s.actual_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>}
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* ── MODALS FOR FACTORY TRACKS ── */}
+
+          {/* Skip stage modal */}
+          {skipModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+                <p className="text-sm font-semibold">Skip this stage?</p>
+                <p className="text-xs text-white/40">Enter a reason so you remember why this was skipped.</p>
+                <input value={skipReason} onChange={e => setSkipReason(e.target.value)}
+                  placeholder="e.g. Not needed for this product"
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none"
+                  autoFocus onKeyDown={e => e.key === "Enter" && (async () => {
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", ...skipModal, status: "skipped", skip_reason: skipReason, revision_number: 0 }) });
+                    setSkipModal(null); load();
+                  })()} />
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", ...skipModal, status: "skipped", skip_reason: skipReason || "Skipped", revision_number: 0 }) });
+                    setSkipModal(null); load();
+                  }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Skip Stage</button>
+                  <button onClick={() => setSkipModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Expected date modal */}
+          {expectedDateModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+                <p className="text-sm font-semibold">Set expected date</p>
+                <input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none" autoFocus />
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", ...expectedDateModal, status: "pending", expected_date: expectedDate, revision_number: 0 }) });
+                    setExpectedDateModal(null); load();
+                  }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Save</button>
+                  <button onClick={() => setExpectedDateModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Approve track modal */}
+          {approveModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+                <p className="text-sm font-semibold">Approve — {approveModal.track.factory_catalog?.name}</p>
+                <p className="text-xs text-white/40">Lock in this factory. Enter the agreed price.</p>
+                <div>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Agreed Price (ELC)</p>
+                  <input type="number" step="0.01" value={approvePrice} onChange={e => setApprovePrice(e.target.value)}
+                    placeholder="e.g. 2.45"
+                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center"
+                    autoFocus />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    setApprovingTrack(true);
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "approve_track", track_id: approveModal.track.id, product_id: product.id, factory_id: approveModal.track.factory_id, approved_price: approvePrice ? parseFloat(approvePrice) : null }) });
+                    setApprovingTrack(false); setApproveModal(null); load();
+                  }} disabled={approvingTrack}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-semibold disabled:opacity-40">
+                    {approvingTrack ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                    Approve Factory
+                  </button>
+                  <button onClick={() => setApproveModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Revision modal */}
+          {revisionModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+                <p className="text-sm font-semibold">Request Revision — {revisionModal.track.factory_catalog?.name}</p>
+                <p className="text-xs text-white/40">Describe what needs to change. The factory will be notified.</p>
+                <textarea value={revisionNotes} onChange={e => setRevisionNotes(e.target.value)}
+                  placeholder="e.g. Color needs to be darker, handle needs reinforcing..."
+                  rows={3} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" autoFocus />
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    setRequestingRevision(true);
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "request_revision", track_id: revisionModal.track.id, product_id: product.id, factory_id: revisionModal.track.factory_id, notes: revisionNotes }) });
+                    setRequestingRevision(false); setRevisionModal(null); load();
+                  }} disabled={requestingRevision || !revisionNotes}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
+                    {requestingRevision ? <Loader2 size={11} className="animate-spin" /> : null}
+                    Send Revision Request
+                  </button>
+                  <button onClick={() => setRevisionModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Kill track modal */}
+          {killModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+                <p className="text-sm font-semibold">Discontinue — {killModal.track.factory_catalog?.name}</p>
+                <p className="text-xs text-white/40">This factory will be marked as discontinued for this product.</p>
+                <textarea value={killNotes} onChange={e => setKillNotes(e.target.value)}
+                  placeholder="e.g. Price too high, lead time too slow..."
+                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" autoFocus />
+                <div className="flex gap-2 flex-col">
+                  <button onClick={async () => {
+                    setKillingTrack(true);
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "kill_track", track_id: killModal.track.id, product_id: product.id, factory_id: killModal.track.factory_id, notes: killNotes, kill_product: false }) });
+                    setKillingTrack(false); setKillModal(null); load();
+                  }} disabled={killingTrack}
+                    className="flex-1 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-semibold disabled:opacity-40">
+                    Discontinue Factory Only
+                  </button>
+                  <button onClick={async () => {
+                    setKillingTrack(true);
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "kill_track", track_id: killModal.track.id, product_id: product.id, factory_id: killModal.track.factory_id, notes: killNotes, kill_product: true }) });
+                    setKillingTrack(false); setKillModal(null); load();
+                  }} disabled={killingTrack}
+                    className="flex-1 py-2.5 rounded-xl bg-red-900/30 border border-red-900/40 text-red-600 text-xs font-semibold disabled:opacity-40">
+                    Kill Entire Product
+                  </button>
+                  <button onClick={() => setKillModal(null)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs text-center">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ── SAMPLE REQUESTS SECTION ── */}
           {(() => {
