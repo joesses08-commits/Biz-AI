@@ -304,6 +304,51 @@ ${noteEntry}` : noteEntry;
         }
       }
 
+      // Mark artwork_sent + quote_requested on factory tracks for each factory + product
+      if (plmProductIds.length > 0) {
+        for (const productId of plmProductIds) {
+          for (const factory of (job.factories || [])) {
+            // Find factory in catalog by name or email
+            const { data: catalogFactory } = await supabaseAdmin
+              .from("factory_catalog")
+              .select("id")
+              .eq("user_id", user.id)
+              .or(`name.eq.${factory.name},email.eq.${factory.email || ""}`)
+              .single();
+            if (!catalogFactory) continue;
+
+            // Find or skip track
+            const { data: track } = await supabaseAdmin
+              .from("plm_factory_tracks")
+              .select("id, plm_track_stages(id, stage)")
+              .eq("product_id", productId)
+              .eq("factory_id", catalogFactory.id)
+              .single();
+            if (!track) continue;
+
+            const revStages = (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested");
+            const revNum = revStages.length;
+            const today = new Date().toISOString().split("T")[0];
+
+            for (const stageKey of ["artwork_sent", "quote_requested"]) {
+              const existing = (track.plm_track_stages || []).find((s: any) => s.stage === stageKey);
+              if (existing) {
+                await supabaseAdmin.from("plm_track_stages").update({
+                  status: "done", actual_date: today,
+                  notes: `RFQ sent to ${factory.name}`, updated_at: new Date().toISOString(),
+                }).eq("id", existing.id);
+              } else {
+                await supabaseAdmin.from("plm_track_stages").insert({
+                  track_id: track.id, product_id: productId, factory_id: catalogFactory.id,
+                  stage: stageKey, status: "done", actual_date: today,
+                  notes: `RFQ sent to ${factory.name}`, revision_number: revNum, updated_by: "admin",
+                });
+              }
+            }
+          }
+        }
+      }
+
       return NextResponse.json({ success: true, results, provider: useGmail ? "gmail" : "outlook" });
     }
 
@@ -402,6 +447,63 @@ Return ONLY raw JSON, no markdown:
         raw_file_base64: file_base64.slice(0, 500000) || null,
         status: "processed",
       });
+
+      // Mark quote_received on factory tracks for each product
+      const { data: jobForTrack } = await supabaseAdmin
+        .from("factory_quote_jobs")
+        .select("order_details")
+        .eq("id", job_id)
+        .single();
+      const plmProductIdsForTrack = (jobForTrack?.order_details as any)?.plm_product_ids || [];
+
+      if (plmProductIdsForTrack.length > 0) {
+        // Find factory by name or email
+        const { data: catalogFactory } = await supabaseAdmin
+          .from("factory_catalog")
+          .select("id")
+          .or(`name.eq.${factory_name},email.eq.${factory_email || ""}`)
+          .single();
+
+        if (catalogFactory) {
+          const today = new Date().toISOString().split("T")[0];
+          for (const productId of plmProductIdsForTrack) {
+            const { data: track } = await supabaseAdmin
+              .from("plm_factory_tracks")
+              .select("id, plm_track_stages(id, stage)")
+              .eq("product_id", productId)
+              .eq("factory_id", catalogFactory.id)
+              .single();
+            if (!track) continue;
+
+            const revStages = (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested");
+            const revNum = revStages.length;
+
+            // Find price from parsed products if available
+            const matchedProduct = (processedProducts || []).find((p: any) =>
+              p.product_id === productId || p.sku || p.name
+            );
+            const quotedPrice = matchedProduct?.price || matchedProduct?.unit_price || null;
+
+            const existing = (track.plm_track_stages || []).find((s: any) => s.stage === "quote_received");
+            if (existing) {
+              await supabaseAdmin.from("plm_track_stages").update({
+                status: "done", actual_date: today,
+                notes: `Quote received from ${factory_name}`,
+                quoted_price: quotedPrice || null,
+                updated_at: new Date().toISOString(),
+              }).eq("id", existing.id);
+            } else {
+              await supabaseAdmin.from("plm_track_stages").insert({
+                track_id: track.id, product_id: productId, factory_id: catalogFactory.id,
+                stage: "quote_received", status: "done", actual_date: today,
+                notes: `Quote received from ${factory_name}`,
+                quoted_price: quotedPrice || null,
+                revision_number: revNum, updated_by: "admin",
+              });
+            }
+          }
+        }
+      }
 
       const { data: allQuotes } = await supabaseAdmin.from("factory_quotes").select("id").eq("job_id", job_id);
       const totalFactories = (jobRow?.factories || []).length;
