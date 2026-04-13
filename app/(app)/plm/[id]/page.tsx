@@ -992,18 +992,31 @@ ${entry}` : entry;
 
                 return (
                   <div key={revNum}>
-                    <div className="flex items-center gap-2 py-1.5 mb-0.5 cursor-pointer hover:bg-white/[0.02] rounded-lg px-1 transition" onClick={() => toggleCycle(revNum)}>
-                      <div className={`h-px flex-1 ${revNum > 0 ? "bg-amber-500/20" : "bg-white/[0.06]"}`} />
-                      <span className={`text-[10px] font-medium flex items-center gap-1 px-1 ${revNum > 0 ? "text-amber-400/70" : "text-white/30"}`}>
-                        {revNum === 0 ? "Round 1" : `↻ Revision ${revNum}`} {isCollapsed ? "▸" : "▾"}
-                      </span>
-                      <div className={`h-px flex-1 ${revNum > 0 ? "bg-amber-500/20" : "bg-white/[0.06]"}`} />
-                    </div>
+                    {revNum > 0 && (
+                      <div className="flex items-center gap-2 mt-2 mb-1">
+                        <div className="h-px flex-1 bg-amber-500/20" />
+                        <span className="text-[10px] text-amber-400/70 font-semibold">↻ Revision {revNum}</span>
+                        <div className="h-px flex-1 bg-amber-500/20" />
+                      </div>
+                    )}
                     <div className="space-y-0.5">
-                      {stagesToShow.map(stageDef => {
+                      {stagesToShow.map((stageDef: any) => {
                         const isCollapsibleStage = COLLAPSIBLE_KEYS.includes(stageDef.key);
                         const collapsed = isCollapsed && isCollapsibleStage;
-                        return <StageRow key={`${stageDef.key}-${revNum}`} track={track} stageDef={stageDef} revNum={revNum} isLatest={isLatest} collapsed={collapsed} />;
+                        const isSampleRequested = stageDef.key === "sample_requested";
+                        return (
+                          <div key={`${stageDef.key}-${revNum}`}>
+                            {isSampleRequested && (
+                              <div className="flex justify-end pr-1 mt-1 mb-0.5">
+                                <button onClick={() => toggleCycle(revNum)}
+                                  className="text-[9px] px-2 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 hover:border-white/20 transition">
+                                  {isCollapsed ? "▸ expand" : "▾ collapse"}
+                                </button>
+                              </div>
+                            )}
+                            <StageRow track={track} stageDef={stageDef} revNum={revNum} isLatest={isLatest} collapsed={collapsed} />
+                          </div>
+                        );
                       })}
                     </div>
                     {/* Review buttons */}
