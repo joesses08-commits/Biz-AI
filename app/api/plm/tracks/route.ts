@@ -255,5 +255,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "update_track_notes") {
+    const { track_id, notes } = body;
+    await supabaseAdmin.from("plm_factory_tracks").update({ notes, updated_at: new Date().toISOString() }).eq("id", track_id).eq("user_id", user.id);
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
