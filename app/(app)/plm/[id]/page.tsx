@@ -503,6 +503,18 @@ ${entry}` : entry;
                 placeholder="e.g. Priority samples needed by May 1st"
                 rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Request date</p>
+                <input type="date" id="sampleRequestDate" defaultValue={new Date().toISOString().split("T")[0]}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+              </div>
+              <div>
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Est. arrival date</p>
+                <input type="date" id="sampleArrivalDate"
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+              </div>
+            </div>
             <div className="flex gap-2">
               <button onClick={() => requestSamples()} disabled={requestingSamples || sampleFactoryIds.length === 0}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 transition disabled:opacity-40">
@@ -809,8 +821,12 @@ ${entry}` : entry;
               if (collapsed) return null;
 
               const isReviewStage = stageDef.key === "sample_reviewed";
-              const revisionAfter = isReviewStage && (track.plm_track_stages || []).some((s: any) => s.stage === "revision_requested" && s.revision_number === revNum);
-              const isApprovedReview = isReviewStage && isApproved && revNum === getCurrentRevision(track) - 1 || (isReviewStage && isApproved && getCurrentRevision(track) === 0);
+
+              // sample_reviewed should show check if: track approved AND this is the last revision cycle
+              const totalRevisions = getCurrentRevision(track);
+              const isApprovedReview = isReviewStage && isApproved && revNum === totalRevisions;
+              // sample_reviewed shows revision badge if revision was requested AFTER this review
+              const revisionAfterThis = isReviewStage && (track.plm_track_stages || []).some((s: any) => s.stage === "revision_requested" && s.revision_number === revNum);
 
               return (
                 <div className={`${isDone ? "bg-white/[0.02] rounded-xl" : ""}`}>
@@ -828,12 +844,12 @@ ${entry}` : entry;
                       }}
                       disabled={isUpdating}
                       className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 transition hover:scale-110"
-                      style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}25` } :
+                      style={(isDone || isApprovedReview) ? { borderColor: stageDef.color, background: `${stageDef.color}25` } :
                         isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } :
                         expanded ? { borderColor: stageDef.color, background: `${stageDef.color}10` } :
                         { borderColor: "rgba(255,255,255,0.15)" }}>
                       {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> :
-                       isDone ? <Check size={8} style={{ color: stageDef.color }} /> :
+                       (isDone || isApprovedReview) ? <Check size={8} style={{ color: stageDef.color }} /> :
                        isSkipped ? <span className="text-[7px] text-white/30">—</span> : null}
                     </button>
                     <div className="flex-1 min-w-0">
@@ -842,7 +858,7 @@ ${entry}` : entry;
                           {stageDef.label}
                         </span>
                         {isApprovedReview && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✓ Approved</span>}
-                        {revisionAfter && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">↻ Revision requested</span>}
+                        {revisionAfterThis && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">↻ Revision requested</span>}
                         {stageData?.expected_date && !isDone && (
                           <span className="text-[9px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">
                             Est {new Date(stageData.expected_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -943,7 +959,9 @@ ${entry}` : entry;
                 const sampleArrived = hasSampleArrived(track, revNum);
                 const revisionStage = (track.plm_track_stages || []).find((s: any) => s.stage === "revision_requested" && s.revision_number === revNum);
                 const stagesToShow = revNum === 0 ? [...FIRST_CYCLE_STAGES, ...SAMPLE_CYCLE_STAGES] : SAMPLE_CYCLE_STAGES;
-                const isCollapsed = cycleCollapsed[revNum] === true || (cycleCollapsed[revNum] === undefined && revNum < revision && revNum !== revision - 1);
+                const isCollapsed = revNum === 0
+                  ? cycleCollapsed[0] === true
+                  : cycleCollapsed[revNum] === true || (cycleCollapsed[revNum] === undefined && revNum < revision);
 
                 return (
                   <div key={revNum}>
@@ -984,7 +1002,7 @@ ${entry}` : entry;
               };
 
               return (
-                <div className={`flex-1 min-w-[240px] max-w-[320px] border border-white/[0.06] rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isKilledTrack ? "border-red-500/10 opacity-60" : "bg-white/[0.01]"}`}>
+                <div className={`flex-1 min-w-0 border border-white/[0.06] rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isKilledTrack ? "border-red-500/10 opacity-60" : "bg-white/[0.01]"}`}>
                   {/* Factory header */}
                   <div className="px-4 py-3 border-b border-white/[0.04] flex items-center gap-2">
                     <Factory size={11} className="text-white/30 flex-shrink-0" />
@@ -1007,9 +1025,10 @@ ${entry}` : entry;
                         <div className="flex gap-1">
                           <button onClick={async () => {
                             setSavingNote(true);
+                            const noteWithDate = factoryNote ? `${factoryNote} — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "";
                             await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: factoryNote }) });
-                            setSavingNote(false); setEditingNote(false); load();
+                              body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: noteWithDate }) });
+                            setSavingNote(false); setEditingNote(false); setFactoryNote(noteWithDate); load();
                           }} disabled={savingNote} className="text-[9px] px-2 py-1 rounded bg-white text-black font-bold disabled:opacity-40">Save</button>
                           <button onClick={() => setEditingNote(false)} className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/30">Cancel</button>
                         </div>
