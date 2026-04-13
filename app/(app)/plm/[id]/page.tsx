@@ -804,101 +804,145 @@ ${entry}` : entry;
               !tracks.some(t => t.factory_id === f.id)
             );
 
+            // Stages shown only in first cycle
+            const FIRST_CYCLE_STAGES = [
+              { key: "artwork_sent",      label: "Artwork Sent",      color: "#8b5cf6" },
+              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899" },
+              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6" },
+            ];
+            // Stages repeated every revision cycle
+            const SAMPLE_CYCLE_STAGES = [
+              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b" },
+              { key: "sample_production", label: "In Production",     color: "#f59e0b" },
+              { key: "sample_complete",   label: "Sample Complete",   color: "#10b981" },
+              { key: "sample_shipped",    label: "Sample Shipped",    color: "#3b82f6" },
+              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6" },
+              { key: "sample_reviewed",   label: "Sample Reviewed",   color: "#10b981" },
+            ];
+
+            const renderStageRow = (track: any, stageDef: any, revNum: number, isLatest: boolean) => {
+              const isApproved = track.status === "approved";
+              const isKilledTrack = track.status === "killed";
+              const stageData = getStageStatus(track, stageDef.key, revNum);
+              const isDone = stageData?.status === "done";
+              const isSkipped = stageData?.status === "skipped";
+              const isUpdating = updatingStage === `${track.id}-${stageDef.key}-${revNum}`;
+              const canEdit = !isLocked && !isKilledTrack && !isApproved && isLatest;
+
+              // Check if this is sample_reviewed and there is a revision after it
+              const revisionAfter = stageDef.key === "sample_reviewed" &&
+                (track.plm_track_stages || []).some((s: any) =>
+                  s.stage === "revision_requested" && s.revision_number === revNum
+                );
+
+              return (
+                <div key={`${stageDef.key}-${revNum}`}
+                  className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl group transition
+                    ${isDone ? "bg-white/[0.02]" : isSkipped ? "opacity-40" : canEdit ? "hover:bg-white/[0.02]" : ""}`}>
+                  <button
+                    onClick={() => canEdit && markStage(track, stageDef.key,
+                      isDone ? "pending" : "done", revNum,
+                      isDone ? {} : { actual_date: new Date().toISOString().split("T")[0] })}
+                    disabled={!canEdit || isUpdating}
+                    className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 transition"
+                    style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}25` } :
+                      isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } :
+                      { borderColor: "rgba(255,255,255,0.15)" }}>
+                    {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> :
+                     isDone ? <Check size={8} style={{ color: stageDef.color }} /> :
+                     isSkipped ? <span className="text-[7px] text-white/30">—</span> : null}
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[11px]"
+                        style={isDone ? { color: "rgba(255,255,255,0.75)", fontWeight: 500 } :
+                          isSkipped ? { color: "rgba(255,255,255,0.2)" } :
+                          { color: "rgba(255,255,255,0.4)" }}>
+                        {stageDef.label}
+                      </span>
+                      {/* Revision indicator on sample_reviewed */}
+                      {revisionAfter && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">↻ Revision requested</span>
+                      )}
+                      {stageData?.expected_date && !isDone && (
+                        <span className="text-[9px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">
+                          Est {new Date(stageData.expected_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                      {isDone && stageData?.actual_date && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full"
+                          style={{ color: stageDef.color, background: `${stageDef.color}15` }}>
+                          {new Date(stageData.actual_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                      {stageData?.quoted_price && (
+                        <span className="text-[9px] text-emerald-400 font-bold">${stageData.quoted_price}</span>
+                      )}
+                    </div>
+                    {stageData?.notes && (
+                      <p className="text-[10px] text-white/30 mt-0.5 leading-tight">{stageData.notes}</p>
+                    )}
+                    {isSkipped && stageData?.skip_reason && (
+                      <p className="text-[10px] text-white/20 mt-0.5 italic">{stageData.skip_reason}</p>
+                    )}
+                  </div>
+                  {canEdit && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                      {!isSkipped ? (
+                        <button onClick={() => {
+                          setSkipModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key });
+                          setSkipReason("");
+                        }} className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">skip</button>
+                      ) : (
+                        <button onClick={() => markStage(track, stageDef.key, "pending", revNum)}
+                          className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">unskip</button>
+                      )}
+                      <button onClick={() => {
+                        setExpectedDateModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key });
+                        setExpectedDate(stageData?.expected_date || "");
+                      }} className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">date</button>
+                      <button onClick={() => {
+                        const price = prompt("Enter price for this stage (e.g. 2.45):");
+                        if (price === null) return;
+                        const notes = prompt("Add a note (optional):");
+                        markStage(track, stageDef.key, stageData?.status || "pending", revNum, {
+                          quoted_price: price ? parseFloat(price) : null,
+                          notes: notes || stageData?.notes || null,
+                        });
+                      }} className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">+ info</button>
+                    </div>
+                  )}
+                </div>
+              );
+            };
+
             const renderCycle = (track: any, revNum: number, isLatest: boolean) => {
               const isApproved = track.status === "approved";
               const isKilledTrack = track.status === "killed";
               const sampleArrived = hasSampleArrived(track, revNum);
-              const revisionStages = (track.plm_track_stages || []).filter((s: any) =>
+              const revisionStage = (track.plm_track_stages || []).find((s: any) =>
                 s.stage === "revision_requested" && s.revision_number === revNum
               );
+              // Only show first-cycle stages (artwork, quote) on revision 0
+              const stagesToShow = revNum === 0
+                ? [...FIRST_CYCLE_STAGES, ...SAMPLE_CYCLE_STAGES]
+                : SAMPLE_CYCLE_STAGES;
 
               return (
                 <div key={revNum}>
                   {revNum > 0 && (
                     <div className="flex items-center gap-2 py-2 mb-1">
                       <div className="h-px flex-1 bg-amber-500/20" />
-                      <span className="text-[10px] text-amber-400/60 font-semibold">Revision {revNum}</span>
+                      <span className="text-[10px] text-amber-400/70 font-semibold">↻ Revision {revNum}</span>
                       <div className="h-px flex-1 bg-amber-500/20" />
                     </div>
                   )}
                   <div className="space-y-0.5">
-                    {TRACK_STAGES.map((stageDef) => {
-                      const stageData = getStageStatus(track, stageDef.key, revNum);
-                      const isDone = stageData?.status === "done";
-                      const isSkipped = stageData?.status === "skipped";
-                      const isUpdating = updatingStage === `${track.id}-${stageDef.key}-${revNum}`;
-
-                      return (
-                        <div key={`${stageDef.key}-${revNum}`}
-                          className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl group transition ${isDone ? "bg-white/[0.02]" : isSkipped ? "opacity-40" : "hover:bg-white/[0.02]"}`}>
-                          <button
-                            onClick={() => !isLocked && !isKilledTrack && !isApproved && isLatest &&
-                              markStage(track, stageDef.key, isDone ? "pending" : "done", revNum,
-                                isDone ? {} : { actual_date: new Date().toISOString().split("T")[0] })}
-                            disabled={isLocked || isKilledTrack || isApproved || !isLatest || isUpdating}
-                            className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 mt-0.5 transition"
-                            style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}25` } :
-                              isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } :
-                              { borderColor: "rgba(255,255,255,0.15)" }}>
-                            {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> :
-                             isDone ? <Check size={8} style={{ color: stageDef.color }} /> :
-                             isSkipped ? <span className="text-[7px] text-white/30">—</span> : null}
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-[11px]"
-                                style={isDone ? { color: "rgba(255,255,255,0.75)", fontWeight: 500 } :
-                                  isSkipped ? { color: "rgba(255,255,255,0.2)" } :
-                                  { color: "rgba(255,255,255,0.4)" }}>
-                                {stageDef.label}
-                              </span>
-                              {stageData?.expected_date && !isDone && (
-                                <span className="text-[9px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">
-                                  Est {new Date(stageData.expected_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                </span>
-                              )}
-                              {isDone && stageData?.actual_date && (
-                                <span className="text-[9px] px-1.5 py-0.5 rounded-full"
-                                  style={{ color: stageDef.color, background: `${stageDef.color}15` }}>
-                                  {new Date(stageData.actual_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                                </span>
-                              )}
-                              {stageData?.quoted_price && (
-                                <span className="text-[9px] text-white/50 font-semibold">${stageData.quoted_price}</span>
-                              )}
-                            </div>
-                            {stageData?.notes && (
-                              <p className="text-[10px] text-white/30 mt-0.5 leading-tight">{stageData.notes}</p>
-                            )}
-                            {isSkipped && stageData?.skip_reason && (
-                              <p className="text-[10px] text-white/20 mt-0.5 italic">{stageData.skip_reason}</p>
-                            )}
-                          </div>
-                          {!isLocked && !isKilledTrack && !isApproved && isLatest && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
-                              {!isSkipped ? (
-                                <button onClick={() => { setSkipModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key }); setSkipReason(""); }}
-                                  className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">
-                                  skip
-                                </button>
-                              ) : (
-                                <button onClick={() => markStage(track, stageDef.key, "pending", revNum)}
-                                  className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">
-                                  unskip
-                                </button>
-                              )}
-                              <button onClick={() => { setExpectedDateModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key }); setExpectedDate(stageData?.expected_date || ""); }}
-                                className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">
-                                date
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {stagesToShow.map(stageDef => renderStageRow(track, stageDef, revNum, isLatest))}
                   </div>
 
-                  {sampleArrived && isLatest && !isApproved && !isKilledTrack && !isLocked && (
+                  {/* Review buttons — only after sample arrived */}
+                  {sampleArrived && isLatest && !isApproved && !isKilledTrack && !isLocked && !revisionStage && (
                     <div className="flex items-center gap-1.5 pt-2 mt-1 border-t border-white/[0.04] flex-wrap">
                       <p className="text-[9px] text-white/25 mr-0.5">Review:</p>
                       <button onClick={() => { setApproveModal({ track }); setApprovePrice(""); }}
@@ -907,7 +951,7 @@ ${entry}` : entry;
                       </button>
                       <button onClick={() => { setRevisionModal({ track }); setRevisionNotes(""); }}
                         className="text-[9px] px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
-                        ↩ Revision
+                        ↻ Revision
                       </button>
                       <button onClick={() => { setKillModal({ track }); setKillNotes(""); }}
                         className="text-[9px] px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
@@ -915,19 +959,6 @@ ${entry}` : entry;
                       </button>
                     </div>
                   )}
-
-                  {revisionStages.map((s: any) => (
-                    <div key={s.id} className="flex items-center gap-2 px-2 py-1.5 mt-1 bg-amber-500/[0.04] rounded-lg border border-amber-500/10">
-                      <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-                      <span className="text-[9px] text-amber-400/80 font-medium">Revision requested</span>
-                      {s.notes && <span className="text-[9px] text-white/30">· {s.notes}</span>}
-                      {s.actual_date && (
-                        <span className="text-[9px] text-white/20 ml-auto">
-                          {new Date(s.actual_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                    </div>
-                  ))}
                 </div>
               );
             };
