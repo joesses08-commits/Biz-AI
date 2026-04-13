@@ -992,13 +992,13 @@ ${entry}` : entry;
 
                 return (
                   <div key={revNum}>
-                    {revNum > 0 && (
-                      <div className="flex items-center gap-2 py-1.5 mb-0.5 cursor-pointer" onClick={() => toggleCycle(revNum)}>
-                        <div className="h-px flex-1 bg-amber-500/20" />
-                        <span className="text-[9px] text-amber-400/70 font-semibold flex items-center gap-1">↻ Revision {revNum} {isCollapsed ? "▸" : "▾"}</span>
-                        <div className="h-px flex-1 bg-amber-500/20" />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 py-1.5 mb-0.5 cursor-pointer hover:bg-white/[0.02] rounded-lg px-1 transition" onClick={() => toggleCycle(revNum)}>
+                      <div className={`h-px flex-1 ${revNum > 0 ? "bg-amber-500/20" : "bg-white/[0.06]"}`} />
+                      <span className={`text-[10px] font-medium flex items-center gap-1 px-1 ${revNum > 0 ? "text-amber-400/70" : "text-white/30"}`}>
+                        {revNum === 0 ? "Round 1" : `↻ Revision ${revNum}`} {isCollapsed ? "▸" : "▾"}
+                      </span>
+                      <div className={`h-px flex-1 ${revNum > 0 ? "bg-amber-500/20" : "bg-white/[0.06]"}`} />
+                    </div>
                     <div className="space-y-0.5">
                       {stagesToShow.map(stageDef => {
                         const isCollapsibleStage = COLLAPSIBLE_KEYS.includes(stageDef.key);
