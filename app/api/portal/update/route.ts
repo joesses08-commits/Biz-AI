@@ -75,6 +75,55 @@ export async function POST(req: NextRequest) {
       await supabaseAdmin.from("plm_sample_requests").update({ priority_order: null }).eq("id", sampleReq.id);
     }
 
+    // Mirror update to plm_factory_tracks + plm_track_stages
+    const { data: track } = await supabaseAdmin
+      .from("plm_factory_tracks")
+      .select("id")
+      .eq("product_id", product_id)
+      .eq("factory_id", portalUser.factory_id)
+      .single();
+
+    if (track) {
+      // Get current revision number
+      const { data: revStages } = await supabaseAdmin
+        .from("plm_track_stages")
+        .select("id")
+        .eq("track_id", track.id)
+        .eq("stage", "revision_requested");
+      const revNum = (revStages || []).length;
+
+      // Upsert the stage into plm_track_stages
+      const { data: existingStage } = await supabaseAdmin
+        .from("plm_track_stages")
+        .select("id")
+        .eq("track_id", track.id)
+        .eq("stage", stage)
+        .eq("revision_number", revNum)
+        .single();
+
+      if (existingStage) {
+        await supabaseAdmin.from("plm_track_stages").update({
+          status: "done",
+          actual_date: new Date().toISOString().split("T")[0],
+          notes: notes || null,
+          updated_by: "factory",
+          updated_at: new Date().toISOString(),
+        }).eq("id", existingStage.id);
+      } else {
+        await supabaseAdmin.from("plm_track_stages").insert({
+          track_id: track.id,
+          product_id,
+          factory_id: portalUser.factory_id,
+          stage,
+          status: "done",
+          actual_date: new Date().toISOString().split("T")[0],
+          notes: notes || null,
+          revision_number: revNum,
+          updated_by: "factory",
+        });
+      }
+    }
+
   } else {
     // Production stage — update the specific order (batch)
     if (!batch_id) return NextResponse.json({ error: "batch_id required for production stages" }, { status: 400 });
