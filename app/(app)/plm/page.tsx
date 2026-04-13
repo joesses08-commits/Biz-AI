@@ -52,6 +52,7 @@ export default function PLMPage() {
   const router = useRouter();
   const [collections, setCollections] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [productTracks, setProductTracks] = useState<Record<string, any[]>>({});
   const [factories, setFactories] = useState<any[]>([]);
   const [portalUsers, setPortalUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,9 +125,17 @@ export default function PLMPage() {
     const catData = await catRes.json();
     const portalData = await portalRes.json();
     setCollections(plmData.collections || []);
-    setProducts(plmData.products || []);
     setFactories(catData.factories || []);
     setPortalUsers(portalData.users || []);
+    // Load factory tracks for each product
+    const prods = plmData.products || [];
+    const tracksResults = await Promise.all(
+      prods.map((p: any) => fetch(`/api/plm/tracks?product_id=${p.id}`).then(r => r.json()))
+    );
+    const tracksMap: Record<string, any[]> = {};
+    prods.forEach((p: any, i: number) => { tracksMap[p.id] = tracksResults[i]?.tracks || []; });
+    setProductTracks(tracksMap);
+    setProducts(prods);
     setLoading(false);
   };
 
@@ -1009,6 +1018,68 @@ export default function PLMPage() {
                     </div>
                   );
                   const lastMilestone = milestones.sample_approved ? "Sample Approved" : milestones.sampling ? "Sampling" : milestones.design_brief ? "Design Brief" : null;
+                  const tracks = productTracks[product.id] || [];
+                  const approvedTracks = tracks.filter((t: any) => t.status === "approved");
+                  const activeTracks = tracks.filter((t: any) => t.status === "active");
+                  const killedTracks = tracks.filter((t: any) => t.status === "killed");
+
+                  // Build award badges from tracks
+                  const awardBadges: { label: string; color: string; bg: string; border: string }[] = [];
+
+                  if (approvedTracks.length > 0) {
+                    approvedTracks.forEach((t: any) => {
+                      const price = t.approved_price ? ` · $${t.approved_price}` : "";
+                      awardBadges.push({
+                        label: `✓ Sample Approved · ${t.factory_catalog?.name}${price}`,
+                        color: "#10b981", bg: "#10b98115", border: "#10b98130",
+                      });
+                    });
+                  }
+
+                  // Count factories at each key stage
+                  const stageGroups: Record<string, string[]> = {};
+                  activeTracks.forEach((t: any) => {
+                    const stages = t.plm_track_stages || [];
+                    const doneStages = stages.filter((s: any) => s.status === "done").map((s: any) => s.stage);
+                    const lastDone = ["sample_arrived","sample_shipped","sample_complete","sample_production","sample_requested","quote_received","quote_requested","artwork_sent"]
+                      .find(s => doneStages.includes(s));
+                    if (lastDone) {
+                      if (!stageGroups[lastDone]) stageGroups[lastDone] = [];
+                      stageGroups[lastDone].push(t.factory_catalog?.name || "Factory");
+                    }
+                  });
+
+                  const STAGE_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+                    sample_arrived:   { label: "Sample Arrived",   color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
+                    sample_shipped:   { label: "Sample Shipped",   color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630" },
+                    sample_complete:  { label: "Sample Complete",  color: "#10b981", bg: "#10b98115", border: "#10b98130" },
+                    sample_production:{ label: "In Production",    color: "#f59e0b", bg: "#f59e0b15", border: "#f59e0b30" },
+                    sample_requested: { label: "Sample Requested", color: "#f59e0b", bg: "#f59e0b15", border: "#f59e0b30" },
+                    quote_received:   { label: "Quote Received",   color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630" },
+                    quote_requested:  { label: "Quote Requested",  color: "#ec4899", bg: "#ec489915", border: "#ec489930" },
+                    artwork_sent:     { label: "Artwork Sent",     color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
+                  };
+
+                  Object.entries(stageGroups).forEach(([stage, factoryNames]) => {
+                    const cfg = STAGE_BADGE_CONFIG[stage];
+                    if (!cfg) return;
+                    const count = factoryNames.length;
+                    const names = count <= 2 ? factoryNames.join(", ") : `${factoryNames[0]} +${count - 1}`;
+                    awardBadges.push({
+                      label: `${cfg.label} · ${names}`,
+                      color: cfg.color, bg: cfg.bg, border: cfg.border,
+                    });
+                  });
+
+                  if (killedTracks.length > 0 && activeTracks.length === 0 && approvedTracks.length === 0) {
+                    awardBadges.push({ label: "All Factories Discontinued", color: "#ef4444", bg: "#ef444415", border: "#ef444430" });
+                  }
+
+                  if (tracks.length === 0) {
+                    // No tracks yet — show concept stage
+                    awardBadges.push({ label: "Concept", color: "#6b7280", bg: "#6b728015", border: "#6b728030" });
+                  }
+
                   return (
                     <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
                       style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
@@ -1019,37 +1090,32 @@ export default function PLMPage() {
                         <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />
                       )}
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <p className="text-sm font-semibold text-white">{product.name}</p>
                           {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
-                          {product.action_status === "action_required" && !(product.plm_batches || []).length && (
+                          {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
+                          {product.action_status === "action_required" && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
                           )}
                           {product.action_status === "updates_made" && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 uppercase tracking-wide">● Updates Made</span>
                           )}
-                        </div>
-                        <div className="flex items-center gap-3">
                           {productStatusMode === "hold" && (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">⏸ Hold</span>
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">⏸ Hold</span>
                           )}
-                          {statusKey ? (
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {awardBadges.map((badge, i) => (
+                            <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                              {badge.label}
+                            </span>
+                          ))}
+                          {statusKey && (
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${BATCH_STAGE_COLORS[statusKey]}20`, color: BATCH_STAGE_COLORS[statusKey], border: `1px solid ${BATCH_STAGE_COLORS[statusKey]}30` }}>
                               {BATCH_STAGE_LABELS[statusKey]}
                             </span>
-                          ) : product.current_stage && DEV_STAGE_LABELS[product.current_stage] ? (
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${DEV_STAGE_COLORS[product.current_stage]}20`, color: DEV_STAGE_COLORS[product.current_stage], border: `1px solid ${DEV_STAGE_COLORS[product.current_stage]}30` }}>
-                              {DEV_STAGE_LABELS[product.current_stage]}
-                              {product.current_stage === "sample_approved" && (() => {
-                                const approvedReq = (product.plm_sample_requests || []).find((r: any) => r.status === "approved");
-                                return approvedReq?.factory_catalog?.name ? ` · ${approvedReq.factory_catalog.name}` : "";
-                              })()}
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-white/20">Concept</span>
                           )}
-                          {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
-                          {product.factory_catalog && <span className="text-[10px] text-white/25 flex items-center gap-1"><Factory size={9} />{product.factory_catalog.name}</span>}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
