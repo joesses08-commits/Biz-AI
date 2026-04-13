@@ -988,9 +988,7 @@ ${entry}` : entry;
                 const sampleArrived = hasSampleArrived(track, revNum);
                 const revisionStage = (track.plm_track_stages || []).find((s: any) => s.stage === "revision_requested" && s.revision_number === revNum);
                 const stagesToShow = revNum === 0 ? [...FIRST_CYCLE_STAGES, ...SAMPLE_CYCLE_STAGES] : SAMPLE_CYCLE_STAGES;
-                const isCollapsed = revNum === 0
-                  ? cycleCollapsed[0] === true
-                  : cycleCollapsed[revNum] === true || (cycleCollapsed[revNum] === undefined && revNum < revision);
+                const isCollapsed = cycleCollapsed[revNum] === true;
 
                 return (
                   <div key={revNum}>
