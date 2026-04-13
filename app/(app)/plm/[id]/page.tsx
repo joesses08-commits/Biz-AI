@@ -977,7 +977,7 @@ ${entry}` : entry;
               const isApproved = track.status === "approved";
               const isKilledTrack = track.status === "killed";
               const revision = getCurrentRevision(track);
-              const [cycleCollapsed, setCycleCollapsed] = useState<Record<number, boolean>>({});
+              const [cycleCollapsed, setCycleCollapsed] = useState<Record<number, boolean>>({ 0: true });
               const [factoryNote, setFactoryNote] = useState(track.notes || "");
               const [savingNote, setSavingNote] = useState(false);
               const [editingNote, setEditingNote] = useState(false);
