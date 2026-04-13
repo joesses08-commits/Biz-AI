@@ -784,15 +784,15 @@ ${entry}` : entry;
           {(() => {
             const FIRST_CYCLE_STAGES = [
               { key: "artwork_sent",      label: "Artwork Sent",      color: "#8b5cf6", type: "completion" },
-              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899", type: "completion" },
-              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6", type: "completion", hasPrice: true, hasEstimate: true, estimateLabel: "When did you estimate receiving this?" },
+              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899", type: "completion", askEstimate: true, estimateLabel: "Estimated date to receive quote", estimateTarget: "quote_received" },
+              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6", type: "completion", hasPrice: true },
             ];
             const SAMPLE_CYCLE_STAGES = [
-              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b", type: "completion" },
+              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b", type: "completion", askEstimate: true, estimateLabel: "Estimated sample arrival date", estimateTarget: "sample_arrived" },
               { key: "sample_production", label: "In Production",     color: "#f59e0b", type: "completion" },
               { key: "sample_complete",   label: "Sample Complete",   color: "#10b981", type: "completion" },
               { key: "sample_shipped",    label: "Sample Shipped",    color: "#3b82f6", type: "completion" },
-              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6", type: "completion", hasEstimate: true, estimateLabel: "When did you estimate arrival?" },
+              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6", type: "completion" },
               { key: "sample_reviewed",   label: "Sample Reviewed",   color: "#10b981", type: "review" },
             ];
             const COLLAPSIBLE_KEYS = ["sample_production","sample_complete","sample_shipped","sample_arrived"];
@@ -909,10 +909,10 @@ ${entry}` : entry;
                         <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
                           className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                       </div>
-                      {stageDef.hasEstimate && (
+                      {stageDef.askEstimate && (
                         <div>
                           <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">{stageDef.estimateLabel}</p>
-                          <input type="date" value={priceVal} onChange={e => setPriceVal(e.target.value)}
+                          <input type="date" value={noteVal} onChange={e => setNoteVal(e.target.value)}
                             className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                         </div>
                       )}
@@ -924,17 +924,23 @@ ${entry}` : entry;
                             className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                         </div>
                       )}
-                      <div>
-                        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Note (optional)</p>
-                        <input type="text" value={noteVal} onChange={e => setNoteVal(e.target.value)}
-                          placeholder="Add a note..."
-                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
-                      </div>
+                      {!stageDef.askEstimate && (
+                        <div>
+                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Note (optional)</p>
+                          <input type="text" value={noteVal} onChange={e => setNoteVal(e.target.value)}
+                            placeholder="Add a note..."
+                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                        </div>
+                      )}
                       <div className="flex gap-1.5">
                         <button onClick={async () => {
                           setSaving(true);
-                          const extra: any = { notes: noteVal || null, actual_date: dateVal };
-                          if (stageDef.hasEstimate && priceVal) extra.expected_date = priceVal;
+                          const extra: any = { actual_date: dateVal };
+                          if (stageDef.askEstimate && noteVal) {
+                            // Save estimate to the target stage
+                            await markStage(track, stageDef.estimateTarget, "pending", revNum, { expected_date: noteVal });
+                          }
+                          if (!stageDef.askEstimate && noteVal) extra.notes = noteVal;
                           if (stageDef.hasPrice && priceVal) extra.quoted_price = parseFloat(priceVal);
                           await markStage(track, stageDef.key, "done", revNum, extra);
                           setSaving(false);
@@ -1187,6 +1193,9 @@ ${entry}` : entry;
                       body: JSON.stringify({ action: "update_stage", track_id: revisionModal.track.id, product_id: product.id, factory_id: revisionModal.track.factory_id, stage: "sample_reviewed", status: "done", revision_number: revNum, actual_date: new Date().toISOString().split("T")[0], notes: "Revision requested" }) });
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "request_revision", track_id: revisionModal.track.id, product_id: product.id, factory_id: revisionModal.track.factory_id, notes: revisionNotes }) });
+                    // Auto-mark sample_requested on new revision cycle
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", track_id: revisionModal.track.id, product_id: product.id, factory_id: revisionModal.track.factory_id, stage: "sample_requested", status: "done", revision_number: revNum + 1, actual_date: new Date().toISOString().split("T")[0], notes: revisionNotes || "Revision requested" }) });
                     setRequestingRevision(false); setRevisionModal(null); load();
                   }} disabled={requestingRevision || !revisionNotes}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
