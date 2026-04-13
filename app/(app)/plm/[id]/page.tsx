@@ -244,6 +244,19 @@ ${entry}` : entry;
       return;
     }
     setShowSampleModal(false);
+    // Also mark sample_requested on factory tracks for each factory
+    const tracksData = await fetch(`/api/plm/tracks?product_id=${id}`).then(r => r.json());
+    const allTracks = tracksData.tracks || [];
+    for (const fid of sampleFactoryIds) {
+      const track = allTracks.find((t: any) => t.factory_id === fid);
+      if (track) {
+        const revNum = (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
+        await fetch("/api/plm/tracks", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "update_stage", track_id: track.id, product_id: id, factory_id: fid, stage: "sample_requested", status: "done", revision_number: revNum, actual_date: new Date().toISOString().split("T")[0], notes: sampleNote || null }),
+        });
+      }
+    }
     setSampleFactoryIds([]);
     setSampleNote("");
     const requested = (data.factories || []).map((f: any) => f.name);
@@ -771,15 +784,15 @@ ${entry}` : entry;
           {(() => {
             const FIRST_CYCLE_STAGES = [
               { key: "artwork_sent",      label: "Artwork Sent",      color: "#8b5cf6", type: "completion" },
-              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899", type: "request", estimateLabel: "Estimated quote received date" },
-              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6", type: "completion", hasPrice: true },
+              { key: "quote_requested",   label: "Quote Requested",   color: "#ec4899", type: "completion" },
+              { key: "quote_received",    label: "Quote Received",    color: "#3b82f6", type: "completion", hasPrice: true, hasEstimate: true, estimateLabel: "When did you estimate receiving this?" },
             ];
             const SAMPLE_CYCLE_STAGES = [
-              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b", type: "request", estimateLabel: "Estimated sample arrival date" },
+              { key: "sample_requested",  label: "Sample Requested",  color: "#f59e0b", type: "completion" },
               { key: "sample_production", label: "In Production",     color: "#f59e0b", type: "completion" },
               { key: "sample_complete",   label: "Sample Complete",   color: "#10b981", type: "completion" },
               { key: "sample_shipped",    label: "Sample Shipped",    color: "#3b82f6", type: "completion" },
-              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6", type: "completion" },
+              { key: "sample_arrived",    label: "Sample Arrived",    color: "#8b5cf6", type: "completion", hasEstimate: true, estimateLabel: "When did you estimate arrival?" },
               { key: "sample_reviewed",   label: "Sample Reviewed",   color: "#10b981", type: "review" },
             ];
             const COLLAPSIBLE_KEYS = ["sample_production","sample_complete","sample_shipped","sample_arrived"];
@@ -889,24 +902,23 @@ ${entry}` : entry;
                   </div>
 
                   {/* Magnified inline expansion */}
-                  {expanded && canEdit && (
+                  {expanded && canEdit && stageDef.type !== "review" && (
                     <div className="mx-2 mb-2 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl rounded-tl-none space-y-2.5">
-                      {stageDef.type === "request" ? (
+                      <div>
+                        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Date completed</p>
+                        <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
+                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                      </div>
+                      {stageDef.hasEstimate && (
                         <div>
                           <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">{stageDef.estimateLabel}</p>
-                          <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
-                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Date completed</p>
-                          <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
+                          <input type="date" value={priceVal} onChange={e => setPriceVal(e.target.value)}
                             className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                         </div>
                       )}
                       {stageDef.hasPrice && (
                         <div>
-                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Price (ELC) — auto-filled from RFQ if available</p>
+                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Price (ELC)</p>
                           <input type="number" step="0.01" value={priceVal} onChange={e => setPriceVal(e.target.value)}
                             placeholder="e.g. 2.45"
                             className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
@@ -921,23 +933,34 @@ ${entry}` : entry;
                       <div className="flex gap-1.5">
                         <button onClick={async () => {
                           setSaving(true);
-                          const extra: any = { notes: noteVal || null };
-                          if (stageDef.type === "request") {
-                            extra.expected_date = dateVal;
-                          } else {
-                            extra.actual_date = dateVal;
-                          }
+                          const extra: any = { notes: noteVal || null, actual_date: dateVal };
+                          if (stageDef.hasEstimate && priceVal) extra.expected_date = priceVal;
                           if (stageDef.hasPrice && priceVal) extra.quoted_price = parseFloat(priceVal);
-                          await markStage(track, stageDef.key, stageDef.type === "request" ? "pending" : "done", revNum, extra);
+                          await markStage(track, stageDef.key, "done", revNum, extra);
                           setSaving(false);
                           setExpanded(false);
                         }} disabled={saving}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold disabled:opacity-40">
                           {saving ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
-                          {stageDef.type === "request" ? "Save estimate" : "Mark complete"}
+                          Mark complete
                         </button>
                         <button onClick={() => setExpanded(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-[10px]">Cancel</button>
                       </div>
+                    </div>
+                  )}
+                  {/* Review stage expansion — shows approve/revision/kill inline */}
+                  {expanded && canEdit && stageDef.type === "review" && hasSampleArrived(track, revNum) && (
+                    <div className="mx-2 mb-2 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl rounded-tl-none space-y-2">
+                      <p className="text-[9px] text-white/40 uppercase tracking-widest">Review outcome</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        <button onClick={() => { setExpanded(false); setApproveModal({ track }); setApprovePrice(""); }}
+                          className="text-[10px] px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">✓ Approve</button>
+                        <button onClick={() => { setExpanded(false); setRevisionModal({ track }); setRevisionNotes(""); }}
+                          className="text-[10px] px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">↻ Revision</button>
+                        <button onClick={() => { setExpanded(false); setKillModal({ track }); setKillNotes(""); }}
+                          className="text-[10px] px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">✕ Kill</button>
+                      </div>
+                      <button onClick={() => setExpanded(false)} className="text-[9px] text-white/20 hover:text-white/40">Cancel</button>
                     </div>
                   )}
                 </div>
@@ -1130,6 +1153,9 @@ ${entry}` : entry;
                 <div className="flex gap-2">
                   <button onClick={async () => {
                     setApprovingTrack(true);
+                    const revNum = (approveModal.track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", track_id: approveModal.track.id, product_id: product.id, factory_id: approveModal.track.factory_id, stage: "sample_reviewed", status: "done", revision_number: revNum, actual_date: new Date().toISOString().split("T")[0], notes: `Approved${approvePrice ? ` at $${approvePrice}` : ""}` }) });
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "approve_track", track_id: approveModal.track.id, product_id: product.id, factory_id: approveModal.track.factory_id, approved_price: approvePrice ? parseFloat(approvePrice) : null }) });
                     setApprovingTrack(false); setApproveModal(null); load();
@@ -1156,6 +1182,9 @@ ${entry}` : entry;
                 <div className="flex gap-2">
                   <button onClick={async () => {
                     setRequestingRevision(true);
+                    const revNum = (revisionModal.track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", track_id: revisionModal.track.id, product_id: product.id, factory_id: revisionModal.track.factory_id, stage: "sample_reviewed", status: "done", revision_number: revNum, actual_date: new Date().toISOString().split("T")[0], notes: "Revision requested" }) });
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "request_revision", track_id: revisionModal.track.id, product_id: product.id, factory_id: revisionModal.track.factory_id, notes: revisionNotes }) });
                     setRequestingRevision(false); setRevisionModal(null); load();
@@ -1182,6 +1211,9 @@ ${entry}` : entry;
                 <div className="flex gap-2 flex-col">
                   <button onClick={async () => {
                     setKillingTrack(true);
+                    const revNum = (killModal.track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", track_id: killModal.track.id, product_id: product.id, factory_id: killModal.track.factory_id, stage: "sample_reviewed", status: "done", revision_number: revNum, actual_date: new Date().toISOString().split("T")[0], notes: killNotes || "Factory discontinued" }) });
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "kill_track", track_id: killModal.track.id, product_id: product.id, factory_id: killModal.track.factory_id, notes: killNotes, kill_product: false }) });
                     setKillingTrack(false); setKillModal(null); load();
