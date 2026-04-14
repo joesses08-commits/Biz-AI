@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Layers, ChevronDown, Factory, X, Package } from "lucide-react";
+import { Layers, Factory } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const TRACK_STAGES = [
@@ -143,9 +143,6 @@ function FactoryStageCell({ products, factoryId, stageKey, color }: any) {
 }
 
 function CollectionCard({ collection, onRFQ, onSampleRequest, onNavigate }: any) {
-  const [open, setOpen] = useState(false);
-  const [showProducts, setShowProducts] = useState(false);
-  const [noteProduct, setNoteProduct] = useState<any>(null);
   const router = useRouter();
   const products = (collection.plm_products || []).filter((p: any) => !p.killed);
   const factories = getAllFactories(products);
@@ -154,26 +151,38 @@ function CollectionCard({ collection, onRFQ, onSampleRequest, onNavigate }: any)
   ).length;
   const actionCount = products.filter((p: any) => p.action_status === "action_required").length;
 
-  return (
-    <div className="border border-white/[0.06] rounded-2xl bg-white/[0.01] overflow-hidden">
-      {noteProduct && <ProductNoteModal product={noteProduct} onClose={() => setNoteProduct(null)} />}
+  // Mini factory summary — top 3 stages with most progress
+  const topStages = factories.slice(0, 3).map((f: any) => {
+    const doneCount = TRACK_STAGES.filter(s => s.key !== "_track_exists").reduce((acc, stageDef) => {
+      const { done } = getFactoryStageInfo(products, f.id, stageDef.key);
+      return acc + done.length;
+    }, 0);
+    return { name: f.name, done: doneCount, total: products.length * (TRACK_STAGES.length - 1) };
+  });
 
-      {/* Collection header */}
-      <div className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-white/[0.02] transition" onClick={() => setOpen(!open)}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-            <Layers size={14} className="text-white/40" />
+  return (
+    <div className="border border-white/[0.06] rounded-2xl bg-white/[0.01] overflow-hidden hover:border-white/10 transition cursor-pointer group"
+      onClick={() => router.push(`/plm/collection/${collection.id}`)}>
+      <div className="px-6 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+            <Layers size={16} className="text-white/40" />
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-bold text-white">{collection.name}</h3>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-base font-bold text-white">{collection.name}</h3>
               {collection.season && <span className="text-[10px] text-white/25 bg-white/[0.04] px-2 py-0.5 rounded-full">{collection.season} {collection.year}</span>}
               {approvedCount > 0 && <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">✓ {approvedCount} approved</span>}
               {actionCount > 0 && <span className="text-[10px] text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">⚡ {actionCount} need attention</span>}
             </div>
-            <div className="flex items-center gap-3 mt-0.5">
+            <div className="flex items-center gap-4">
               <span className="text-[11px] text-white/30">{products.length} products</span>
-              {factories.length > 0 && <span className="text-[11px] text-white/25">{factories.length} {factories.length === 1 ? "factory" : "factories"}</span>}
+              <span className="text-[11px] text-white/25">{factories.length} {factories.length === 1 ? "factory" : "factories"}</span>
+              {topStages.map(f => (
+                <span key={f.name} className="text-[11px] text-white/25 flex items-center gap-1">
+                  <Factory size={9} className="text-white/20" />{f.name}
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -186,157 +195,9 @@ function CollectionCard({ collection, onRFQ, onSampleRequest, onNavigate }: any)
             className="text-[10px] px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition font-semibold">
             Samples
           </button>
-          <button onClick={e => { e.stopPropagation(); onNavigate(collection.id); }}
-            className="text-[10px] px-2.5 py-1 rounded-lg border border-white/[0.06] text-white/30 hover:text-white/60 transition">
-            View All
-          </button>
-          <ChevronDown size={14} className="text-white/20 transition-transform flex-shrink-0" style={{ transform: open ? "rotate(180deg)" : "none" }} />
+          <span className="text-white/20 group-hover:text-white/50 transition text-sm">→</span>
         </div>
       </div>
-
-      {open && (
-        <div className="border-t border-white/[0.04]">
-          {products.length === 0 ? (
-            <div className="px-6 py-8 text-center"><p className="text-xs text-white/20">No products in this collection</p></div>
-          ) : (
-            <>
-              {/* Factory stage grid */}
-              {factories.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left" style={{ minWidth: `${220 + factories.length * 130}px` }}>
-                    <thead>
-                      <tr className="border-b border-white/[0.04] bg-white/[0.01]">
-                        <th className="px-5 py-3 text-[10px] text-white/25 uppercase tracking-widest font-medium w-52">Stage</th>
-                        {factories.map((f: any) => (
-                          <th key={f.id} className="px-3 py-3 text-[10px] text-white/50 font-semibold text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <Factory size={9} className="text-white/30" />
-                              <span className="truncate max-w-[100px]">{f.name}</span>
-                            </div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {TRACK_STAGES.map(stageDef => (
-                        <tr key={stageDef.key} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition">
-                          <td className="px-5 py-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: stageDef.color, opacity: 0.7 }} />
-                              <span className="text-[11px] text-white/50">{stageDef.label}</span>
-                            </div>
-                          </td>
-                          {factories.map((f: any) => (
-                            <td key={f.id} className="px-3 py-2 align-top">
-                              <FactoryStageCell
-                                products={products}
-                                factoryId={f.id}
-                                stageKey={stageDef.key}
-                                color={stageDef.color}
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                      {/* Outcome rows */}
-                      <tr className="border-t-2 border-white/[0.06]">
-                        <td className="px-5 py-2">
-                          <span className="text-[10px] text-white/25 uppercase tracking-widest font-medium">Outcomes</span>
-                        </td>
-                        {factories.map((f: any) => <td key={f.id} />)}
-                      </tr>
-                      {[
-                        { key: "approved", label: "✓ Approved", color: "#10b981" },
-                        { key: "active",   label: "↻ In Progress", color: "#f59e0b" },
-                        { key: "killed",   label: "✕ Discontinued", color: "#ef4444" },
-                      ].map(outcome => (
-                        <tr key={outcome.key} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition">
-                          <td className="px-5 py-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-medium" style={{ color: outcome.color }}>{outcome.label}</span>
-                            </div>
-                          </td>
-                          {factories.map((f: any) => {
-                            const count = products.filter((p: any) => {
-                              const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id);
-                              return track && track.status === outcome.key;
-                            }).length;
-                            const total = products.filter((p: any) =>
-                              (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id)
-                            ).length;
-                            return (
-                              <td key={f.id} className="px-3 py-2 text-center">
-                                {total > 0 ? (
-                                  <span className="text-xs font-bold" style={{ color: count > 0 ? outcome.color : "rgba(255,255,255,0.15)" }}>
-                                    {count}/{total}
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] text-white/10">—</span>
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Products list toggle */}
-              <div className="border-t border-white/[0.04] px-5 py-3">
-                <button onClick={() => setShowProducts(!showProducts)}
-                  className="flex items-center gap-2 text-[11px] text-white/30 hover:text-white/60 transition">
-                  <Package size={11} />
-                  {showProducts ? "Hide" : "Show"} all {products.length} products
-                  <ChevronDown size={10} style={{ transform: showProducts ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
-                </button>
-              </div>
-
-              {showProducts && (
-                <div className="border-t border-white/[0.04] divide-y divide-white/[0.03]">
-                  {products.map((p: any) => {
-                    const approvedTrack = (p.plm_factory_tracks || []).find((t: any) => t.status === "approved");
-                    const activeFactories = (p.plm_factory_tracks || []).filter((t: any) => t.status === "active").length;
-                    return (
-                      <div key={p.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition">
-                        {p.images?.[0]
-                          ? <img src={p.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0 border border-white/[0.06]" />
-                          : <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex-shrink-0" />}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-semibold text-white truncate">{p.name}</span>
-                            {p.sku && <span className="text-[10px] text-white/25 font-mono">{p.sku}</span>}
-                            {approvedTrack && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                                ✓ {approvedTrack.factory_catalog?.name}{approvedTrack.approved_price ? ` · $${approvedTrack.approved_price}` : ""}
-                              </span>
-                            )}
-                            {p.action_status === "action_required" && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">⚡ Action</span>
-                            )}
-                          </div>
-                          {activeFactories > 0 && <p className="text-[10px] text-white/25 mt-0.5">{activeFactories} active {activeFactories === 1 ? "factory" : "factories"}</p>}
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <button onClick={() => setNoteProduct(p)}
-                            className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">
-                            Notes
-                          </button>
-                          <button onClick={() => router.push(`/plm/${p.id}`)}
-                            className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">
-                            Open →
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }
