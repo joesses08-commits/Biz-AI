@@ -291,7 +291,16 @@ export default function CollectionPage() {
                       {p.notes && <span className="text-[10px] text-white/20 truncate max-w-xs">{p.notes}</span>}
                     </div>
                   </div>
-                  <span className="text-white/20 text-xs flex-shrink-0">→</span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button onClick={e => { e.stopPropagation(); setNoteProduct(p); }}
+                      className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">
+                      Notes
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); router.push(`/plm/${p.id}`); }}
+                      className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">
+                      Open →
+                    </button>
+                  </div>
                 </div>
               );
             })}
