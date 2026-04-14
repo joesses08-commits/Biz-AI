@@ -1029,6 +1029,18 @@ export default function PLMPage() {
                     artwork_sent:     { label: "Artwork Sent",     color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
                   };
 
+                  // Also include approved tracks in stage groups
+                  tracks.filter((t: any) => t.status === "approved").forEach((t: any) => {
+                    const stages = t.plm_track_stages || [];
+                    const doneStages = stages.filter((s: any) => s.status === "done").map((s: any) => s.stage);
+                    const lastDone = ["sample_arrived","sample_shipped","sample_complete","sample_production","sample_requested","quote_received","quote_requested","artwork_sent"]
+                      .find(s => doneStages.includes(s));
+                    if (lastDone) {
+                      if (!stageGroups[lastDone]) stageGroups[lastDone] = [];
+                      stageGroups[lastDone].push(t.factory_catalog?.name || "Factory");
+                    }
+                  });
+
                   // Count factories per stage — show "X/Y factories" format
                   const totalTracks = tracks.length;
                   Object.entries(stageGroups).forEach(([stage, factoryNames]) => {
