@@ -124,7 +124,7 @@ function FactoryStageCell({ products, factoryId, stageKey, color }: any) {
               {p.images?.[0]
                 ? <img src={p.images[0]} alt="" className="w-4 h-4 rounded object-cover flex-shrink-0" />
                 : <div className="w-4 h-4 rounded bg-white/[0.06] flex-shrink-0" />}
-              <span className="text-[9px] truncate" style={{ color }}}>✓ {p.name}</span>
+              <span className="text-[9px] truncate" style={{ color }}>✓ {p.name}</span>
             </button>
           ))}
           {notDone.map((p: any) => (
