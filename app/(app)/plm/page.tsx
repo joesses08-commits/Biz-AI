@@ -1082,10 +1082,10 @@ export default function PLMPage() {
                   // Orders
                   const orderCount = (product.plm_batches || []).length;
                   if (orderCount > 0) {
-                    const orderFactories = [...new Set((product.plm_batches || []).map((b: any) => {
+                    const orderFactories = Array.from(new Set((product.plm_batches || []).map((b: any) => {
                       const f = factories.find((f: any) => f.id === b.factory_id);
                       return f?.name || "Factory";
-                    }))].join(", ");
+                    }))).join(", ");
                     awardBadges.push({
                       label: `${orderCount} ${orderCount === 1 ? "Order" : "Orders"} · ${orderFactories}`,
                       color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630",
