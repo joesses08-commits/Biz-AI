@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import CollectionsView from "@/components/CollectionsView";
 import { useRouter } from "next/navigation";
 import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet, FileText } from "lucide-react";
 
@@ -899,45 +900,13 @@ export default function PLMPage() {
         {loading ? (
           <div className="flex items-center justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
         ) : activeTab === "collections" ? (
-          <div className="space-y-4">
-            {collections.length === 0 ? (
-              <div className="text-center py-20"><Layers size={32} className="text-white/10 mx-auto mb-3" /><p className="text-white/30 text-sm">No collections yet</p></div>
-            ) : collections.map(collection => {
-              const prods = collection.plm_products || [];
-              const progress = getCollectionProgress(prods);
-              const health = getCollectionHealth(prods);
-              const healthColors: Record<string,string> = { on_track:"#10b981", warning:"#f59e0b", at_risk:"#ef4444", empty:"#6b7280" };
-              const healthLabels: Record<string,string> = { on_track:"On Track", warning:"Some Delays", at_risk:"At Risk", empty:"No Products" };
-              return (
-                <div key={collection.id} className="border border-white/[0.06] rounded-2xl bg-white/[0.01] overflow-hidden hover:border-white/10 transition cursor-pointer" onClick={() => setActiveTab("all_products")}>
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-base font-semibold text-white">{collection.name}</h3>
-                          {collection.season && <span className="text-[10px] text-white/30 bg-white/[0.04] px-2 py-0.5 rounded-full">{collection.season} {collection.year}</span>}
-                        </div>
-                        <p className="text-xs text-white/30">{progress.total} products · {progress.complete} delivered</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full" style={{ background: healthColors[health] }} />
-                          <span className="text-[11px] font-medium" style={{ color: healthColors[health] }}>{healthLabels[health]}</span>
-                        </div>
-                        <ChevronRight size={14} className="text-white/20" />
-                      </div>
-                    </div>
-                    <div className="mb-4">
-                      <div className="w-full bg-white/[0.05] rounded-full h-1.5">
-                        <div className="h-1.5 rounded-full bg-emerald-500 transition-all" style={{ width: `${progress.pct}%` }} />
-                      </div>
-                      <p className="text-[10px] text-white/20 mt-1">{progress.pct}% complete</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <CollectionsView
+            collections={collections}
+            factories={factories}
+            onRFQ={(productIds) => { setRfqSelectedProducts(productIds); setShowRfqModal(true); }}
+            onSampleRequest={(productIds) => { setBulkSampleProductIds(productIds); setBulkSampleSelections({}); setShowSampleRequestModal(true); }}
+            onNavigate={(collectionId) => { setFilterCollection(collectionId); setActiveTab("all_products"); }}
+          />
         ) : activeTab === "all_products" ? (
           <div>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
