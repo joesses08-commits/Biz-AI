@@ -1144,11 +1144,9 @@ ${entry}` : entry;
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {trackRows.map((row, rowIdx) => (
-                      <div key={rowIdx} className="grid gap-3 items-start" style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}>
-                        {row.map((track: any) => <FactoryColumn key={track.id} track={track} />)}
-                      </div>
-                    ))}
+                    <div className="grid gap-3 items-start" style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}>
+                      {tracks.map((track: any) => <FactoryColumn key={track.id} track={track} />)}
+                    </div>
                   </div>
                 )}
               </div>
