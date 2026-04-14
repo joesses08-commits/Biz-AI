@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Layers, Factory } from "lucide-react";
+import { Layers, Factory, X, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const TRACK_STAGES = [
