@@ -1005,19 +1005,6 @@ export default function PLMPage() {
                     });
                   }
 
-                  // Count factories at each key stage
-                  const stageGroups: Record<string, string[]> = {};
-                  activeTracks.forEach((t: any) => {
-                    const stages = t.plm_track_stages || [];
-                    const doneStages = stages.filter((s: any) => s.status === "done").map((s: any) => s.stage);
-                    const lastDone = ["sample_arrived","sample_shipped","sample_complete","sample_production","sample_requested","quote_received","quote_requested","artwork_sent"]
-                      .find(s => doneStages.includes(s));
-                    if (lastDone) {
-                      if (!stageGroups[lastDone]) stageGroups[lastDone] = [];
-                      stageGroups[lastDone].push(t.factory_catalog?.name || "Factory");
-                    }
-                  });
-
                   const STAGE_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
                     sample_arrived:   { label: "Sample Arrived",   color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
                     sample_shipped:   { label: "Sample Shipped",   color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630" },
@@ -1029,31 +1016,24 @@ export default function PLMPage() {
                     artwork_sent:     { label: "Artwork Sent",     color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
                   };
 
-                  // Also include approved tracks in stage groups
-                  tracks.filter((t: any) => t.status === "approved").forEach((t: any) => {
-                    const stages = t.plm_track_stages || [];
-                    const doneStages = stages.filter((s: any) => s.status === "done").map((s: any) => s.stage);
-                    const lastDone = ["sample_arrived","sample_shipped","sample_complete","sample_production","sample_requested","quote_received","quote_requested","artwork_sent"]
-                      .find(s => doneStages.includes(s));
-                    if (lastDone) {
-                      if (!stageGroups[lastDone]) stageGroups[lastDone] = [];
-                      stageGroups[lastDone].push(t.factory_catalog?.name || "Factory");
-                    }
+                  // Count how many tracks have each stage checked (done) regardless of track status
+                  const stageCounts: Record<string, number> = {};
+                  tracks.forEach((t: any) => {
+                    (t.plm_track_stages || []).forEach((s: any) => {
+                      if (s.status === "done" && STAGE_BADGE_CONFIG[s.stage]) {
+                        stageCounts[s.stage] = (stageCounts[s.stage] || 0) + 1;
+                      }
+                    });
                   });
 
-                  // Count factories per stage — show "X/Y factories" format
                   const totalTracks = tracks.length;
-                  Object.entries(stageGroups).forEach(([stage, factoryNames]) => {
+                  Object.entries(stageCounts).forEach(([stage, count]) => {
                     const cfg = STAGE_BADGE_CONFIG[stage];
                     if (!cfg) return;
-                    const count = factoryNames.length;
                     const label = totalTracks > 1
                       ? `${cfg.label} · ${count}/${totalTracks} factories`
-                      : `${cfg.label} · ${factoryNames[0]}`;
-                    awardBadges.push({
-                      label,
-                      color: cfg.color, bg: cfg.bg, border: cfg.border,
-                    });
+                      : `${cfg.label}`;
+                    awardBadges.push({ label, color: cfg.color, bg: cfg.bg, border: cfg.border });
                   });
 
                   if (killedTracks.length > 0 && activeTracks.length === 0 && approvedTracks.length === 0) {
