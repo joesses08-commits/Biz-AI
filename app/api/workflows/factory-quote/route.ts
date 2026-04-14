@@ -317,13 +317,29 @@ ${noteEntry}` : noteEntry;
               .single();
             if (!catalogFactory) continue;
 
-            // Find or skip track
-            const { data: track } = await supabaseAdmin
+            // Find or auto-create track
+            let { data: track } = await supabaseAdmin
               .from("plm_factory_tracks")
               .select("id, plm_track_stages(id, stage)")
               .eq("product_id", productId)
               .eq("factory_id", catalogFactory.id)
               .single();
+
+            if (!track) {
+              // Get user_id from product
+              const { data: prod } = await supabaseAdmin
+                .from("plm_products")
+                .select("user_id")
+                .eq("id", productId)
+                .single();
+              if (!prod) continue;
+              const { data: newTrack } = await supabaseAdmin
+                .from("plm_factory_tracks")
+                .insert({ user_id: prod.user_id, product_id: productId, factory_id: catalogFactory.id, status: "active" })
+                .select("id, plm_track_stages(id, stage)")
+                .single();
+              track = newTrack;
+            }
             if (!track) continue;
 
             const revStages = (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested");
