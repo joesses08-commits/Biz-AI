@@ -1090,6 +1090,7 @@ ${entry}` : entry;
             // Group tracks into rows of 4
             const trackRows: any[][] = [];
             for (let i = 0; i < tracks.length; i += 4) trackRows.push(tracks.slice(i, i + 4));
+            const maxCols = Math.min(tracks.length, 4);
 
             return (
               <div className="space-y-4">
@@ -1144,7 +1145,7 @@ ${entry}` : entry;
                 ) : (
                   <div className="space-y-4">
                     {trackRows.map((row, rowIdx) => (
-                      <div key={rowIdx} className="flex gap-3 items-start">
+                      <div key={rowIdx} className="grid gap-3 items-start" style={{ gridTemplateColumns: `repeat(${maxCols}, 1fr)` }}>
                         {row.map((track: any) => <FactoryColumn key={track.id} track={track} />)}
                       </div>
                     ))}
