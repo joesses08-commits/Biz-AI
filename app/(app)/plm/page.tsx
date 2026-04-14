@@ -1026,13 +1026,13 @@ export default function PLMPage() {
                   const milestones = product.milestones || {};
                   const productStatusMode = product.status || "progression";
                   if (product.killed || productStatusMode === "killed") return (
-                    <div key={product.id} onClick={() => router.push(`/plm/${product.id}`)} className="flex items-center gap-3 p-4 border border-red-500/20 rounded-2xl bg-red-500/[0.02] opacity-60 cursor-pointer hover:opacity-80 transition">
-                      {product.images?.[0] && <img src={product.images[0]} alt="" className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />}
+                    <div key={product.id} onClick={() => router.push(`/plm/${product.id}`)} className="flex items-center gap-3 p-4 border border-red-500/10 rounded-xl bg-red-500/[0.01] opacity-50 cursor-pointer hover:opacity-70 transition">
+                      {product.images?.[0] && <img src={product.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 grayscale" />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white/50 truncate line-through">{product.name}</p>
-                        {product.sku && <p className="text-[11px] text-white/20 font-mono">{product.sku}</p>}
+                        <p className="text-sm font-semibold text-white/40 truncate line-through">{product.name}</p>
+                        {product.sku && <p className="text-[10px] text-white/20 font-mono">{product.sku}</p>}
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20 flex-shrink-0">Killed — Click to Revive</span>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400/70 border border-red-500/15 flex-shrink-0">Product Discontinued</span>
                     </div>
                   );
                   const lastMilestone = milestones.sample_approved ? "Sample Approved" : milestones.sampling ? "Sampling" : milestones.design_brief ? "Design Brief" : null;
@@ -1069,14 +1069,33 @@ export default function PLMPage() {
                     awardBadges.push({ label, color: stageDef.color, bg: stageDef.bg, border: stageDef.border });
                   });
 
-                  // Approved factories
-                  approvedTracks.forEach((t: any) => {
+                  // Approved factory (only 1)
+                  if (approvedTracks.length > 0) {
+                    const t = approvedTracks[0];
                     const price = t.approved_price ? ` · $${t.approved_price}` : "";
                     awardBadges.push({
                       label: `✓ Approved · ${t.factory_catalog?.name}${price}`,
                       color: "#10b981", bg: "#10b98115", border: "#10b98130",
                     });
-                  });
+                  }
+
+                  // Orders
+                  const orderCount = (product.plm_batches || []).length;
+                  if (orderCount > 0) {
+                    const orderFactories = [...new Set((product.plm_batches || []).map((b: any) => {
+                      const f = factories.find((f: any) => f.id === b.factory_id);
+                      return f?.name || "Factory";
+                    }))].join(", ");
+                    awardBadges.push({
+                      label: `${orderCount} ${orderCount === 1 ? "Order" : "Orders"} · ${orderFactories}`,
+                      color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630",
+                    });
+                  } else if (approvedTracks.length > 0) {
+                    awardBadges.push({
+                      label: "No orders yet",
+                      color: "#6b7280", bg: "#6b728015", border: "#6b728030",
+                    });
+                  }
 
                   if (killedTracks.length > 0 && activeTracks.length === 0 && approvedTracks.length === 0) {
                     awardBadges.push({ label: "All Factories Discontinued", color: "#ef4444", bg: "#ef444415", border: "#ef444430" });
