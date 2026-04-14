@@ -112,7 +112,7 @@ export default function PLMPage() {
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [rfqSelectedProducts, setRfqSelectedProducts] = useState<string[]>([]);
   const [rfqInclude, setRfqInclude] = useState<string[]>(["name","sku","description","specs","images"]);
-  const [rfqAskFor, setRfqAskFor] = useState<string[]>(["price","sample_lead_time","moq","lead_time"]);
+  const [rfqAskFor, setRfqAskFor] = useState<string[]>(["price","moq","lead_time","sample_lead_time","payment_terms"]);
   const [creatingRfq, setCreatingRfq] = useState(false);
   const [rfqJobId, setRfqJobId] = useState<string|null>(null);
 

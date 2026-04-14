@@ -344,7 +344,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
     }));
   };
 
-  const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Payment terms"];
+  const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Sample lead time", "Payment terms"];
 
   const buildDraftBody = (jobName: string, fields: string[]) => {
     const fieldList = fields.map(f => `• ${f}`).join("\n");
@@ -488,7 +488,7 @@ Best regards,
     if (data.job?.id) {
       await loadJobs();
       const jobName = newJob.job_name;
-      const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Payment terms"];
+      const DEFAULT_FIELDS = ["Unit price (USD)", "MOQ", "Lead time", "Sample lead time", "Payment terms"];
       const emailBody = `Hi [contact name],
 
 Please find attached our product list for the ${jobName}. We would appreciate it if you could review the attached file and provide us with your pricing and details.
@@ -586,7 +586,7 @@ Best regards,
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Fields to request</p>
               <div className="flex flex-wrap gap-2">
-                {["Unit price (USD)", "MOQ", "Lead time", "Payment terms", "Packaging details", "Samples available"].map(field => {
+                {["Unit price (USD)", "MOQ", "Lead time", "Sample lead time", "Sample price", "Payment terms", "Packaging details", "Notes/Comments"].map(field => {
                   const active = draftModal.fields.includes(field);
                   return (
                     <button key={field} onClick={() => {
