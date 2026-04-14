@@ -110,6 +110,127 @@ function StageCell({ products, factoryId, stageKey, color }: any) {
           ))}
         </div>
       )}
+      {/* RFQ Modal */}
+      {showRfqModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">RFQ — {collection.name}</p>
+              <button onClick={() => setShowRfqModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <p className="text-xs text-white/40">{rfqProductIds.length} products selected from this collection</p>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Ask factories to fill in</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[["price","Unit Price"],["moq","MOQ"],["lead_time","Lead Time"],["sample_lead_time","Sample Lead Time"],["payment_terms","Payment Terms"],["sample_price","Sample Price"],["packaging","Packaging"],["notes","Notes"]].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={rfqAskFor.includes(key)}
+                      onChange={e => setRfqAskFor(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))} />
+                    <span className="text-xs text-white/60">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {rfqDone && (
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+                <span className="text-xs text-emerald-300">✓ RFQ created! Check Workflows → Factory Quote.</span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setCreatingRfq(true);
+                const res = await fetch("/api/plm/rfq", { method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ product_ids: rfqProductIds, include: rfqInclude, ask_for: rfqAskFor }) });
+                const data = await res.json();
+                if (data.file_base64) {
+                  const bytes = Uint8Array.from(atob(data.file_base64), c => c.charCodeAt(0));
+                  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = url; a.download = data.file_name || "RFQ.xlsx"; a.click();
+                  URL.revokeObjectURL(url);
+                }
+                setCreatingRfq(false); setRfqDone(true);
+              }} disabled={creatingRfq}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-pink-500 text-white text-xs font-semibold disabled:opacity-40">
+                {creatingRfq ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                {creatingRfq ? "Creating..." : `Create RFQ for ${rfqProductIds.length} Products`}
+              </button>
+              <button onClick={() => setShowRfqModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sample Request Modal */}
+      {showSampleModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-xl p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Request Samples — {collection.name}</p>
+              <button onClick={() => setShowSampleModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <p className="text-xs text-white/40">{sampleProductIds.length} products · all factories pre-selected. Expand to adjust.</p>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {sampleProductIds.map(pid => {
+                const p = products.find((pr: any) => pr.id === pid);
+                if (!p) return null;
+                const [expanded, setExpanded] = useState(false);
+                const sel = sampleSelections[pid] || factories.map((f: any) => f.id);
+                return (
+                  <div key={pid} className="border border-white/[0.06] rounded-xl p-3 space-y-2">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                      {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                      <span className="text-xs font-medium text-white/70 flex-1">{p.name}</span>
+                      <span className="text-[9px] text-white/30">{sel.length}/{factories.length} factories</span>
+                      <button onClick={e => { e.stopPropagation(); setSampleProductIds(prev => prev.filter(id => id !== pid)); }}
+                        className="text-white/20 hover:text-red-400 text-xs">×</button>
+                    </div>
+                    {expanded && (
+                      <div className="flex flex-wrap gap-1.5 pl-8">
+                        {factories.map((f: any) => (
+                          <button key={f.id}
+                            onClick={() => setSampleSelections(prev => ({
+                              ...prev,
+                              [pid]: sel.includes(f.id) ? sel.filter((id: string) => id !== f.id) : [...sel, f.id]
+                            }))}
+                            className={`text-[10px] px-2 py-0.5 rounded border transition ${sel.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/25"}`}>
+                            {f.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Note (optional)</p>
+              <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)} rows={2}
+                placeholder="e.g. Priority samples needed by May 1st"
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setRequestingSamples(true);
+                for (const pid of sampleProductIds) {
+                  const factoryIds = sampleSelections[pid] || factories.map((f: any) => f.id);
+                  if (!factoryIds.length) continue;
+                  await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "gmail" }) });
+                }
+                setRequestingSamples(false);
+                setShowSampleModal(false);
+                setSampleNote("");
+              }} disabled={requestingSamples || sampleProductIds.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
+                {requestingSamples ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                {requestingSamples ? "Requesting..." : `Request Samples for ${sampleProductIds.length} Products`}
+              </button>
+              <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -120,11 +241,28 @@ export default function CollectionPage() {
   const [collection, setCollection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [noteProduct, setNoteProduct] = useState<any>(null);
+  const [showRfqModal, setShowRfqModal] = useState(false);
+  const [rfqProductIds, setRfqProductIds] = useState<string[]>([]);
+  const [rfqInclude, setRfqInclude] = useState<string[]>(["name","sku","description","specs","images"]);
+  const [rfqAskFor, setRfqAskFor] = useState<string[]>(["price","moq","lead_time","sample_lead_time","payment_terms"]);
+  const [creatingRfq, setCreatingRfq] = useState(false);
+  const [rfqDone, setRfqDone] = useState(false);
+  const [showSampleModal, setShowSampleModal] = useState(false);
+  const [sampleProductIds, setSampleProductIds] = useState<string[]>([]);
+  const [sampleNote, setSampleNote] = useState("");
+  const [requestingSamples, setRequestingSamples] = useState(false);
+  const [factories, setFactories] = useState<any[]>([]);
+  const [sampleSelections, setSampleSelections] = useState<Record<string, string[]>>({});
 
   useEffect(() => {
-    fetch("/api/plm/collection/" + id)
-      .then(r => r.json())
-      .then(d => { setCollection(d.collection); setLoading(false); });
+    Promise.all([
+      fetch("/api/plm/collection/" + id).then(r => r.json()),
+      fetch("/api/catalog?type=factories").then(r => r.json()),
+    ]).then(([d, catData]) => {
+      setCollection(d.collection);
+      setFactories(catData.factories || []);
+      setLoading(false);
+    });
   }, [id]);
 
   if (loading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 size={20} className="animate-spin text-white/20" /></div>;
@@ -181,11 +319,18 @@ export default function CollectionPage() {
               <p className="text-white/30 text-sm ml-11">{products.length} products · {factories.length} factories</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => router.push(`/plm?collection=${id}&rfq=1`)}
+              <button onClick={() => { setRfqProductIds(products.map((p: any) => p.id)); setShowRfqModal(true); setRfqDone(false); }}
                 className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
                 <FileSpreadsheet size={11} />RFQ Collection
               </button>
-              <button onClick={() => router.push(`/plm?collection=${id}&samples=1`)}
+              <button onClick={() => {
+                const ids = products.map((p: any) => p.id);
+                setSampleProductIds(ids);
+                const sel: Record<string, string[]> = {};
+                ids.forEach((pid: string) => { sel[pid] = factories.map((f: any) => f.id); });
+                setSampleSelections(sel);
+                setShowSampleModal(true);
+              }}
                 className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
                 <Plus size={11} />Request Samples
               </button>
@@ -307,6 +452,127 @@ export default function CollectionPage() {
           </div>
         </div>
       </div>
+      {/* RFQ Modal */}
+      {showRfqModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">RFQ — {collection.name}</p>
+              <button onClick={() => setShowRfqModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <p className="text-xs text-white/40">{rfqProductIds.length} products selected from this collection</p>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Ask factories to fill in</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[["price","Unit Price"],["moq","MOQ"],["lead_time","Lead Time"],["sample_lead_time","Sample Lead Time"],["payment_terms","Payment Terms"],["sample_price","Sample Price"],["packaging","Packaging"],["notes","Notes"]].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={rfqAskFor.includes(key)}
+                      onChange={e => setRfqAskFor(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))} />
+                    <span className="text-xs text-white/60">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {rfqDone && (
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+                <span className="text-xs text-emerald-300">✓ RFQ created! Check Workflows → Factory Quote.</span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setCreatingRfq(true);
+                const res = await fetch("/api/plm/rfq", { method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ product_ids: rfqProductIds, include: rfqInclude, ask_for: rfqAskFor }) });
+                const data = await res.json();
+                if (data.file_base64) {
+                  const bytes = Uint8Array.from(atob(data.file_base64), c => c.charCodeAt(0));
+                  const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a"); a.href = url; a.download = data.file_name || "RFQ.xlsx"; a.click();
+                  URL.revokeObjectURL(url);
+                }
+                setCreatingRfq(false); setRfqDone(true);
+              }} disabled={creatingRfq}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-pink-500 text-white text-xs font-semibold disabled:opacity-40">
+                {creatingRfq ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                {creatingRfq ? "Creating..." : `Create RFQ for ${rfqProductIds.length} Products`}
+              </button>
+              <button onClick={() => setShowRfqModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sample Request Modal */}
+      {showSampleModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-xl p-6 space-y-4 my-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Request Samples — {collection.name}</p>
+              <button onClick={() => setShowSampleModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <p className="text-xs text-white/40">{sampleProductIds.length} products · all factories pre-selected. Expand to adjust.</p>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {sampleProductIds.map(pid => {
+                const p = products.find((pr: any) => pr.id === pid);
+                if (!p) return null;
+                const [expanded, setExpanded] = useState(false);
+                const sel = sampleSelections[pid] || factories.map((f: any) => f.id);
+                return (
+                  <div key={pid} className="border border-white/[0.06] rounded-xl p-3 space-y-2">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                      {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                      <span className="text-xs font-medium text-white/70 flex-1">{p.name}</span>
+                      <span className="text-[9px] text-white/30">{sel.length}/{factories.length} factories</span>
+                      <button onClick={e => { e.stopPropagation(); setSampleProductIds(prev => prev.filter(id => id !== pid)); }}
+                        className="text-white/20 hover:text-red-400 text-xs">×</button>
+                    </div>
+                    {expanded && (
+                      <div className="flex flex-wrap gap-1.5 pl-8">
+                        {factories.map((f: any) => (
+                          <button key={f.id}
+                            onClick={() => setSampleSelections(prev => ({
+                              ...prev,
+                              [pid]: sel.includes(f.id) ? sel.filter((id: string) => id !== f.id) : [...sel, f.id]
+                            }))}
+                            className={`text-[10px] px-2 py-0.5 rounded border transition ${sel.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/25"}`}>
+                            {f.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Note (optional)</p>
+              <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)} rows={2}
+                placeholder="e.g. Priority samples needed by May 1st"
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setRequestingSamples(true);
+                for (const pid of sampleProductIds) {
+                  const factoryIds = sampleSelections[pid] || factories.map((f: any) => f.id);
+                  if (!factoryIds.length) continue;
+                  await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "gmail" }) });
+                }
+                setRequestingSamples(false);
+                setShowSampleModal(false);
+                setSampleNote("");
+              }} disabled={requestingSamples || sampleProductIds.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
+                {requestingSamples ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
+                {requestingSamples ? "Requesting..." : `Request Samples for ${sampleProductIds.length} Products`}
+              </button>
+              <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
