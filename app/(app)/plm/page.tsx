@@ -1044,45 +1044,38 @@ export default function PLMPage() {
                   // Build award badges from tracks
                   const awardBadges: { label: string; color: string; bg: string; border: string }[] = [];
 
-                  if (approvedTracks.length > 0) {
-                    approvedTracks.forEach((t: any) => {
-                      const price = t.approved_price ? ` · $${t.approved_price}` : "";
-                      awardBadges.push({
-                        label: `✓ Sample Approved · ${t.factory_catalog?.name}${price}`,
-                        color: "#10b981", bg: "#10b98115", border: "#10b98130",
-                      });
-                    });
-                  }
 
-                  const STAGE_BADGE_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-                    sample_arrived:   { label: "Sample Arrived",   color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
-                    sample_shipped:   { label: "Sample Shipped",   color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630" },
-                    sample_complete:  { label: "Sample Complete",  color: "#10b981", bg: "#10b98115", border: "#10b98130" },
-                    sample_production:{ label: "In Production",    color: "#f59e0b", bg: "#f59e0b15", border: "#f59e0b30" },
-                    sample_requested: { label: "Sample Requested", color: "#f59e0b", bg: "#f59e0b15", border: "#f59e0b30" },
-                    quote_received:   { label: "Quote Received",   color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630" },
-                    quote_requested:  { label: "Quote Requested",  color: "#ec4899", bg: "#ec489915", border: "#ec489930" },
-                    artwork_sent:     { label: "Artwork Sent",     color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
-                  };
 
-                  // Count how many tracks have each stage checked (done) regardless of track status
-                  const stageCounts: Record<string, number> = {};
-                  tracks.forEach((t: any) => {
-                    (t.plm_track_stages || []).forEach((s: any) => {
-                      if (s.status === "done" && STAGE_BADGE_CONFIG[s.stage]) {
-                        stageCounts[s.stage] = (stageCounts[s.stage] || 0) + 1;
-                      }
-                    });
-                  });
+                  // Fixed ordered badges
+                  const ORDERED_STAGES = [
+                    { key: "artwork_sent",     label: "Artwork Sent",     color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
+                    { key: "quote_requested",  label: "Quote Requested",  color: "#ec4899", bg: "#ec489915", border: "#ec489930" },
+                    { key: "quote_received",   label: "Quote Received",   color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630" },
+                    { key: "sample_requested", label: "Sample Requested", color: "#f59e0b", bg: "#f59e0b15", border: "#f59e0b30" },
+                    { key: "sample_reviewed",  label: "Sample Reviewed",  color: "#10b981", bg: "#10b98115", border: "#10b98130" },
+                  ];
 
                   const totalTracks = tracks.length;
-                  Object.entries(stageCounts).forEach(([stage, count]) => {
-                    const cfg = STAGE_BADGE_CONFIG[stage];
-                    if (!cfg) return;
+
+                  // Count done per stage across all tracks
+                  ORDERED_STAGES.forEach(stageDef => {
+                    const count = tracks.filter((t: any) =>
+                      (t.plm_track_stages || []).some((s: any) => s.stage === stageDef.key && s.status === "done")
+                    ).length;
+                    if (count === 0) return;
                     const label = totalTracks > 1
-                      ? `${cfg.label} · ${count}/${totalTracks} factories`
-                      : `${cfg.label}`;
-                    awardBadges.push({ label, color: cfg.color, bg: cfg.bg, border: cfg.border });
+                      ? `${stageDef.label} · ${count}/${totalTracks} factories`
+                      : stageDef.label;
+                    awardBadges.push({ label, color: stageDef.color, bg: stageDef.bg, border: stageDef.border });
+                  });
+
+                  // Approved factories
+                  approvedTracks.forEach((t: any) => {
+                    const price = t.approved_price ? ` · $${t.approved_price}` : "";
+                    awardBadges.push({
+                      label: `✓ Approved · ${t.factory_catalog?.name}${price}`,
+                      color: "#10b981", bg: "#10b98115", border: "#10b98130",
+                    });
                   });
 
                   if (killedTracks.length > 0 && activeTracks.length === 0 && approvedTracks.length === 0) {
