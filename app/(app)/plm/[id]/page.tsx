@@ -1169,8 +1169,11 @@ ${entry}` : entry;
                   autoFocus />
                 <div className="flex gap-2">
                   <button onClick={async () => {
+                    // Find current revision number for this track
+                    const track = tracks.find((t: any) => t.id === skipModal.trackId);
+                    const revNum = track ? (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length : 0;
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "update_stage", ...skipModal, status: "skipped", skip_reason: skipReason || "Skipped" }) });
+                      body: JSON.stringify({ action: "update_stage", ...skipModal, status: "skipped", skip_reason: skipReason || "Skipped", revision_number: revNum }) });
                     setSkipModal(null); load();
                   }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Skip Stage</button>
                   <button onClick={() => setSkipModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
