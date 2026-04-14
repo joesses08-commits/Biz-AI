@@ -119,6 +119,7 @@ export default function CollectionPage() {
   const router = useRouter();
   const [collection, setCollection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [noteProduct, setNoteProduct] = useState<any>(null);
 
   useEffect(() => {
     fetch("/api/plm/collection/" + id)
@@ -136,6 +137,30 @@ export default function CollectionPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
+      {/* Product note modal */}
+      {noteProduct && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setNoteProduct(null)}>
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {noteProduct.images?.[0] && <img src={noteProduct.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover" />}
+                <div>
+                  <p className="text-sm font-semibold text-white">{noteProduct.name}</p>
+                  {noteProduct.sku && <p className="text-[10px] text-white/30 font-mono">{noteProduct.sku}</p>}
+                </div>
+              </div>
+              <button onClick={() => setNoteProduct(null)} className="text-white/30 hover:text-white/60 p-1"><X size={14} /></button>
+            </div>
+            {noteProduct.notes && <div><p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Notes</p><p className="text-xs text-white/60 leading-relaxed">{noteProduct.notes}</p></div>}
+            {noteProduct.factory_notes && <div><p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Factory Notes</p><p className="text-xs text-white/60 leading-relaxed">{noteProduct.factory_notes}</p></div>}
+            {!noteProduct.notes && !noteProduct.factory_notes && <p className="text-xs text-white/20 italic">No notes on this product</p>}
+            <button onClick={() => { setNoteProduct(null); router.push(`/plm/${noteProduct.id}`); }}
+              className="w-full py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/60 text-xs hover:text-white/80 transition">
+              Open Product →
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-full mx-auto">
@@ -244,8 +269,7 @@ export default function CollectionPage() {
               const activeFactories = (p.plm_factory_tracks || []).filter((t: any) => t.status === "active").length;
               const killedFactories = (p.plm_factory_tracks || []).filter((t: any) => t.status === "killed").length;
               return (
-                <div key={p.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-4 py-3 bg-white/[0.01] hover:border-white/10 transition cursor-pointer"
-                  onClick={() => router.push(`/plm/${p.id}`)}>
+                <div key={p.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-4 py-3 bg-white/[0.01] hover:border-white/10 transition">
                   {p.images?.[0]
                     ? <img src={p.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-white/[0.06]" />
                     : <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />}
