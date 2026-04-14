@@ -107,6 +107,7 @@ export default function CollectionPage() {
   // RFQ modal
   const [showRfqModal, setShowRfqModal] = useState(false);
   const [rfqProductIds, setRfqProductIds] = useState<string[]>([]);
+  const [rfqInclude, setRfqInclude] = useState<string[]>(["name","sku","description","specs","images"]);
   const [rfqAskFor, setRfqAskFor] = useState<string[]>(["price","moq","lead_time","sample_lead_time","payment_terms"]);
   const [creatingRfq, setCreatingRfq] = useState(false);
   const [rfqDone, setRfqDone] = useState(false);
@@ -203,12 +204,24 @@ export default function CollectionPage() {
             </div>
             <p className="text-xs text-white/40">{rfqProductIds.length} products from this collection</p>
             <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Include in sheet</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["images","Image URLs"],["category","Category"],["notes","Notes"]].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={rfqInclude.includes(key)}
+                      onChange={e => setRfqInclude((prev: string[]) => e.target.checked ? [...prev, key] : prev.filter((k: string) => k !== key))} />
+                    <span className="text-xs text-white/60">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Ask factories to fill in</p>
               <div className="grid grid-cols-2 gap-2">
-                {[["price","Unit Price"],["moq","MOQ"],["lead_time","Lead Time"],["sample_lead_time","Sample Lead Time"],["payment_terms","Payment Terms"],["sample_price","Sample Price"],["packaging","Packaging"],["notes","Notes"]].map(([key, label]) => (
+                {[["price","Unit Price"],["moq","MOQ"],["lead_time","Lead Time"],["sample_lead_time","Sample Lead Time"],["payment_terms","Payment Terms"],["sample_price","Sample Price"],["packaging","Packaging"],["notes","Notes/Comments"]].map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={rfqAskFor.includes(key)}
-                      onChange={e => setRfqAskFor(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))} />
+                      onChange={e => setRfqAskFor((prev: string[]) => e.target.checked ? [...prev, key] : prev.filter((k: string) => k !== key))} />
                     <span className="text-xs text-white/60">{label}</span>
                   </label>
                 ))}
@@ -223,7 +236,7 @@ export default function CollectionPage() {
               <button onClick={async () => {
                 setCreatingRfq(true);
                 const res = await fetch("/api/plm/rfq", { method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ product_ids: rfqProductIds, include: ["name","sku","description","specs","images"], ask_for: rfqAskFor }) });
+                  body: JSON.stringify({ product_ids: rfqProductIds, include: rfqInclude, ask_for: rfqAskFor }) });
                 const data = await res.json();
                 if (data.file_base64) {
                   const bytes = Uint8Array.from(atob(data.file_base64), c => c.charCodeAt(0));
