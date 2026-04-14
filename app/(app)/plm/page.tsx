@@ -669,6 +669,55 @@ export default function PLMPage() {
                 <button onClick={() => setShowSampleRequestModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
               </div>
 
+              {/* Collection quick-select */}
+              {collections.length > 0 && (
+                <div className="border border-white/[0.06] rounded-xl p-3 space-y-2 bg-white/[0.02]">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Quick-select by collection</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {collections.map((c: any) => {
+                      const collectionProductIds = products
+                        .filter((p: any) => p.collection_id === c.id && !p.killed)
+                        .map((p: any) => p.id);
+                      const allSelected = collectionProductIds.every((id: string) => bulkSampleProductIds.includes(id));
+                      return (
+                        <button key={c.id}
+                          onClick={() => {
+                            if (allSelected) {
+                              setBulkSampleProductIds(prev => prev.filter((id: string) => !collectionProductIds.includes(id)));
+                            } else {
+                              setBulkSampleProductIds(prev => [...new Set([...prev, ...collectionProductIds])]);
+                              // Auto-select all factories for each product
+                              const newSelections: Record<string, any> = { ...bulkSampleSelections };
+                              collectionProductIds.forEach((pid: string) => {
+                                if (!newSelections[pid]) {
+                                  newSelections[pid] = factories.map((f: any) => f.id);
+                                }
+                              });
+                              setBulkSampleSelections(newSelections);
+                            }
+                          }}
+                          className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20"}`}>
+                          {c.name} ({collectionProductIds.length})
+                        </button>
+                      );
+                    })}
+                    <button onClick={() => {
+                      const allIds = products.filter((p: any) => !p.killed).map((p: any) => p.id);
+                      setBulkSampleProductIds(allIds);
+                      const newSelections: Record<string, any> = {};
+                      allIds.forEach((pid: string) => { newSelections[pid] = factories.map((f: any) => f.id); });
+                      setBulkSampleSelections(newSelections);
+                    }} className="text-[10px] px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 hover:text-white/60 transition">
+                      Select All
+                    </button>
+                    <button onClick={() => { setBulkSampleProductIds([]); setBulkSampleSelections({}); }}
+                      className="text-[10px] px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 hover:text-white/60 transition">
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Info note */}
               <div className="flex items-start gap-2.5 bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-white/30 flex-shrink-0 mt-1" />
