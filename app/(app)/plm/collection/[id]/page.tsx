@@ -174,18 +174,19 @@ function StageCell({ products, factoryId, stageKey, color }: any) {
               {sampleProductIds.map(pid => {
                 const p = products.find((pr: any) => pr.id === pid);
                 if (!p) return null;
-                const [expanded, setExpanded] = useState(false);
                 const sel = sampleSelections[pid] || factories.map((f: any) => f.id);
+                const isExpanded = expandedSampleProducts.includes(pid);
                 return (
                   <div key={pid} className="border border-white/[0.06] rounded-xl p-3 space-y-2">
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                    <div className="flex items-center gap-2 cursor-pointer"
+                      onClick={() => setExpandedSampleProducts(prev => prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid])}>
                       {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                       <span className="text-xs font-medium text-white/70 flex-1">{p.name}</span>
                       <span className="text-[9px] text-white/30">{sel.length}/{factories.length} factories</span>
                       <button onClick={e => { e.stopPropagation(); setSampleProductIds(prev => prev.filter(id => id !== pid)); }}
                         className="text-white/20 hover:text-red-400 text-xs">×</button>
                     </div>
-                    {expanded && (
+                    {isExpanded && (
                       <div className="flex flex-wrap gap-1.5 pl-8">
                         {factories.map((f: any) => (
                           <button key={f.id}
@@ -253,6 +254,7 @@ export default function CollectionPage() {
   const [requestingSamples, setRequestingSamples] = useState(false);
   const [factories, setFactories] = useState<any[]>([]);
   const [sampleSelections, setSampleSelections] = useState<Record<string, string[]>>({});
+  const [expandedSampleProducts, setExpandedSampleProducts] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -269,7 +271,6 @@ export default function CollectionPage() {
   if (!collection) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><p className="text-white/30">Collection not found</p></div>;
 
   const products = (collection.plm_products || []).filter((p: any) => !p.killed);
-  const factories = getAllFactories(products);
   const approvedCount = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.status === "approved")).length;
   const actionCount = products.filter((p: any) => p.action_status === "action_required").length;
 
@@ -516,18 +517,19 @@ export default function CollectionPage() {
               {sampleProductIds.map(pid => {
                 const p = products.find((pr: any) => pr.id === pid);
                 if (!p) return null;
-                const [expanded, setExpanded] = useState(false);
                 const sel = sampleSelections[pid] || factories.map((f: any) => f.id);
+                const isExpanded = expandedSampleProducts.includes(pid);
                 return (
                   <div key={pid} className="border border-white/[0.06] rounded-xl p-3 space-y-2">
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+                    <div className="flex items-center gap-2 cursor-pointer"
+                      onClick={() => setExpandedSampleProducts(prev => prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid])}>
                       {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                       <span className="text-xs font-medium text-white/70 flex-1">{p.name}</span>
                       <span className="text-[9px] text-white/30">{sel.length}/{factories.length} factories</span>
                       <button onClick={e => { e.stopPropagation(); setSampleProductIds(prev => prev.filter(id => id !== pid)); }}
                         className="text-white/20 hover:text-red-400 text-xs">×</button>
                     </div>
-                    {expanded && (
+                    {isExpanded && (
                       <div className="flex flex-wrap gap-1.5 pl-8">
                         {factories.map((f: any) => (
                           <button key={f.id}
