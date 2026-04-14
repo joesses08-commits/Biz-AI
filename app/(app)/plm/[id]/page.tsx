@@ -1157,6 +1157,47 @@ ${entry}` : entry;
             );
           })()}
 
+          {/* Skip stage modal */}
+          {skipModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+                <p className="text-sm font-semibold">Skip this stage?</p>
+                <p className="text-xs text-white/40">Enter a reason so you remember why this was skipped.</p>
+                <input value={skipReason} onChange={e => setSkipReason(e.target.value)}
+                  placeholder="e.g. Not needed for this product"
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none"
+                  autoFocus />
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", ...skipModal, status: "skipped", skip_reason: skipReason || "Skipped" }) });
+                    setSkipModal(null); load();
+                  }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Skip Stage</button>
+                  <button onClick={() => setSkipModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Expected date modal */}
+          {expectedDateModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+                <p className="text-sm font-semibold">Set expected date</p>
+                <input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none" autoFocus />
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "update_stage", ...expectedDateModal, status: "pending", expected_date: expectedDate }) });
+                    setExpectedDateModal(null); load();
+                  }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Save</button>
+                  <button onClick={() => setExpectedDateModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Approve track modal */}
           {approveModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
