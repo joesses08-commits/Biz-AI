@@ -1173,7 +1173,7 @@ ${entry}` : entry;
                     const track = tracks.find((t: any) => t.id === skipModal.trackId);
                     const revNum = track ? (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length : 0;
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "update_stage", ...skipModal, status: "skipped", skip_reason: skipReason || "Skipped", revision_number: revNum }) });
+                      body: JSON.stringify({ action: "update_stage", track_id: skipModal.trackId, product_id: skipModal.productId, factory_id: skipModal.factoryId, stage: skipModal.stage, status: "skipped", skip_reason: skipReason || "Skipped", revision_number: revNum }) });
                     setSkipModal(null); load();
                   }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Skip Stage</button>
                   <button onClick={() => setSkipModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
@@ -1192,7 +1192,7 @@ ${entry}` : entry;
                 <div className="flex gap-2">
                   <button onClick={async () => {
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "update_stage", ...expectedDateModal, status: "pending", expected_date: expectedDate }) });
+                      body: JSON.stringify({ action: "update_stage", track_id: expectedDateModal.trackId, product_id: expectedDateModal.productId, factory_id: expectedDateModal.factoryId, stage: expectedDateModal.stage, status: "pending", expected_date: expectedDate, revision_number: 0 }) });
                     setExpectedDateModal(null); load();
                   }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Save</button>
                   <button onClick={() => setExpectedDateModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
