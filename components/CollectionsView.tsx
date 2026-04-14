@@ -238,6 +238,46 @@ function CollectionCard({ collection, onRFQ, onSampleRequest, onNavigate }: any)
                           ))}
                         </tr>
                       ))}
+                      {/* Outcome rows */}
+                      <tr className="border-t-2 border-white/[0.06]">
+                        <td className="px-5 py-2">
+                          <span className="text-[10px] text-white/25 uppercase tracking-widest font-medium">Outcomes</span>
+                        </td>
+                        {factories.map((f: any) => <td key={f.id} />)}
+                      </tr>
+                      {[
+                        { key: "approved", label: "✓ Approved", color: "#10b981" },
+                        { key: "active",   label: "↻ In Progress", color: "#f59e0b" },
+                        { key: "killed",   label: "✕ Discontinued", color: "#ef4444" },
+                      ].map(outcome => (
+                        <tr key={outcome.key} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition">
+                          <td className="px-5 py-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-medium" style={{ color: outcome.color }}>{outcome.label}</span>
+                            </div>
+                          </td>
+                          {factories.map((f: any) => {
+                            const count = products.filter((p: any) => {
+                              const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id);
+                              return track && track.status === outcome.key;
+                            }).length;
+                            const total = products.filter((p: any) =>
+                              (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id)
+                            ).length;
+                            return (
+                              <td key={f.id} className="px-3 py-2 text-center">
+                                {total > 0 ? (
+                                  <span className="text-xs font-bold" style={{ color: count > 0 ? outcome.color : "rgba(255,255,255,0.15)" }}>
+                                    {count}/{total}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-white/10">—</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
