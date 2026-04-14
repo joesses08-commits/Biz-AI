@@ -1,574 +1,423 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { RefreshCw, ArrowUpRight, TrendingUp, TrendingDown, Minus, Shield, Zap, Settings, ExternalLink } from "lucide-react";
-import Link from "next/link";
+import {
+  Package, Factory, Layers, TrendingUp, Clock, CheckCircle,
+  AlertTriangle, ChevronRight, BarChart3, Loader2, RefreshCw
+} from "lucide-react";
 
-type Metric = {
-  id: string;
-  label: string;
-  value: string;
-  sub?: string;
-  trend?: "up" | "down" | "neutral";
-  category?: string;
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+const STAGE_ORDER = [
+  "artwork_sent", "quote_requested", "quote_received",
+  "sample_requested", "sample_production", "sample_complete",
+  "sample_shipped", "sample_arrived", "sample_reviewed"
+];
+
+const STAGE_LABELS: Record<string, string> = {
+  artwork_sent: "Artwork Sent", quote_requested: "Quote Req.", quote_received: "Quote Rec.",
+  sample_requested: "Sample Req.", sample_production: "In Production", sample_complete: "Complete",
+  sample_shipped: "Shipped", sample_arrived: "Arrived", sample_reviewed: "Reviewed"
 };
 
-type RiskItem = {
-  title: string;
-  detail: string;
-  dollar_impact: string;
-  action: string;
-  urgency: "critical" | "high" | "medium";
-  source?: string;
-  source_detail?: string;
+const STAGE_COLORS: Record<string, string> = {
+  artwork_sent: "#8b5cf6", quote_requested: "#ec4899", quote_received: "#3b82f6",
+  sample_requested: "#f59e0b", sample_production: "#f59e0b", sample_complete: "#10b981",
+  sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", sample_reviewed: "#10b981"
 };
-
-type OpportunityItem = {
-  title: string;
-  detail: string;
-  dollar_impact: string;
-  action: string;
-  timeframe: string;
-  source?: string;
-  source_detail?: string;
-};
-
-type OperationItem = {
-  title: string;
-  detail: string;
-  action: string;
-  due: string;
-  source?: string;
-  source_detail?: string;
-};
-
-type TopItem = {
-  type: string;
-  label: string;
-  value: string;
-  status?: "good" | "warning" | "urgent" | "neutral";
-};
-
-type DashboardAI = {
-  business_type?: string;
-  briefing?: string;
-  risks?: RiskItem[];
-  opportunities?: OpportunityItem[];
-  operations?: OperationItem[];
-  metrics?: Metric[];
-  top_items?: TopItem[];
-  chart_data?: { label: string; value: number }[];
-  chart_label?: string;
-  error?: string;
-  message?: string;
-  reason?: string;
-};
-
-const SOURCE_LINKS: Record<string, string> = {
-  "Gmail": "/gmail",
-  "Stripe": "/stripe",
-  "QuickBooks": "/quickbooks",
-  "Google Sheets": "/google/sheets",
-  "Microsoft 365": "/microsoft",
-  "Manual": "/settings",
-};
-
-const SOURCE_COLORS: Record<string, string> = {
-  "Gmail": "text-red-400/70",
-  "Stripe": "text-purple-400/70",
-  "QuickBooks": "text-green-400/70",
-  "Google Sheets": "text-emerald-400/70",
-  "Microsoft 365": "text-blue-400/70",
-};
-
-function SourceTag({ source, source_detail }: { source?: string; source_detail?: string }) {
-  if (!source) return null;
-  const href = SOURCE_LINKS[source] || "#";
-  const color = SOURCE_COLORS[source] || "text-white/25";
-  return (
-    <Link href={href} className={`flex items-center gap-1 mt-3 pt-3 border-t border-white/[0.05] group ${color} hover:opacity-100 transition`}>
-      <span className="text-[10px] font-medium">{source}</span>
-      {source_detail && <span className="text-[10px] text-white/20 truncate">· {source_detail}</span>}
-      <ExternalLink size={9} className="flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100 transition" />
-    </Link>
-  );
-}
-
-function TrendIcon({ trend }: { trend?: string }) {
-  if (trend === "up") return <TrendingUp size={11} className="text-emerald-400" />;
-  if (trend === "down") return <TrendingDown size={11} className="text-red-400" />;
-  return <Minus size={11} className="text-white/20" />;
-}
-
-function MetricCard({ metric }: { metric: Metric }) {
-  const trendColor = metric.trend === "up" ? "text-emerald-400" : metric.trend === "down" ? "text-red-400" : "text-white/30";
-  return (
-    <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5 hover:border-white/10 transition-all duration-200">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">{metric.label}</span>
-        <TrendIcon trend={metric.trend} />
-      </div>
-      <div className="text-2xl font-bold text-white tracking-tight mb-1">{metric.value}</div>
-      {metric.sub && <div className={`text-[11px] ${trendColor}`}>{metric.sub}</div>}
-    </div>
-  );
-}
-
-function RiskCard({ item }: { item: RiskItem }) {
-  const colors = {
-    critical: { bg: "bg-red-500/5", border: "border-red-500/20", badge: "bg-red-500/10 text-red-400", dot: "bg-red-400" },
-    high: { bg: "bg-amber-500/5", border: "border-amber-500/20", badge: "bg-amber-500/10 text-amber-400", dot: "bg-amber-400" },
-    medium: { bg: "bg-white/[0.02]", border: "border-white/[0.06]", badge: "bg-white/5 text-white/40", dot: "bg-white/30" },
-  };
-  const c = colors[item.urgency] || colors.medium;
-  return (
-    <div className={`${c.bg} border ${c.border} rounded-2xl p-5`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`} />
-          <p className="text-sm font-semibold text-white">{item.title}</p>
-        </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${c.badge}`}>{item.urgency}</span>
-      </div>
-      <p className="text-xs text-white/50 leading-relaxed mb-3">{item.detail}</p>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-red-400">{item.dollar_impact} at risk</span>
-        <span className="text-[11px] text-white/30">{item.action}</span>
-      </div>
-      <SourceTag source={item.source} source_detail={item.source_detail} />
-    </div>
-  );
-}
-
-function OpportunityCard({ item }: { item: OpportunityItem }) {
-  const timeColors: Record<string, string> = {
-    today: "bg-emerald-500/10 text-emerald-400",
-    "this week": "bg-blue-500/10 text-blue-400",
-    "this month": "bg-purple-500/10 text-purple-400",
-  };
-  const badgeColor = timeColors[item.timeframe] || "bg-white/5 text-white/40";
-  return (
-    <div className="bg-emerald-500/[0.03] border border-emerald-500/10 rounded-2xl p-5">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-emerald-400" />
-          <p className="text-sm font-semibold text-white">{item.title}</p>
-        </div>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${badgeColor}`}>{item.timeframe}</span>
-      </div>
-      <p className="text-xs text-white/50 leading-relaxed mb-3">{item.detail}</p>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-emerald-400">{item.dollar_impact}</span>
-        <span className="text-[11px] text-white/30">{item.action}</span>
-      </div>
-      <SourceTag source={item.source} source_detail={item.source_detail} />
-    </div>
-  );
-}
-
-function OperationCard({ item }: { item: OperationItem }) {
-  const dueColors: Record<string, string> = {
-    today: "bg-red-500/10 text-red-400",
-    "this week": "bg-amber-500/10 text-amber-400",
-    "this month": "bg-blue-500/10 text-blue-400",
-  };
-  const badgeColor = dueColors[item.due] || "bg-white/5 text-white/40";
-  return (
-    <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <p className="text-sm font-semibold text-white">{item.title}</p>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${badgeColor}`}>{item.due}</span>
-      </div>
-      <p className="text-xs text-white/50 leading-relaxed mb-3">{item.detail}</p>
-      <p className="text-[11px] text-white/40">→ {item.action}</p>
-      <SourceTag source={item.source} source_detail={item.source_detail} />
-    </div>
-  );
-}
-
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#111] border border-white/10 rounded-xl px-3 py-2 shadow-2xl">
-      <p className="text-[10px] text-white/40 mb-1">{label}</p>
-      <p className="text-sm font-bold text-white">{payload[0].value?.toLocaleString()}</p>
-    </div>
-  );
-}
-
-function StatusDot({ status }: { status?: string }) {
-  const colors: Record<string, string> = { good: "bg-emerald-400", warning: "bg-amber-400", urgent: "bg-red-400", neutral: "bg-white/20" };
-  return <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors[status || "neutral"]}`} />;
-}
-
-let _cachedData: DashboardAI | null = null;
-let _cachedAt: Date | null = null;
-
-function loadFromStorage(): { data: DashboardAI | null; cachedAt: Date | null } {
-  try {
-    const raw = localStorage.getItem("jimmy_dashboard");
-    if (!raw) return { data: null, cachedAt: null };
-    const parsed = JSON.parse(raw);
-    return { data: parsed.data, cachedAt: parsed.cachedAt ? new Date(parsed.cachedAt) : null };
-  } catch { return { data: null, cachedAt: null }; }
-}
-
-function saveToStorage(data: DashboardAI, cachedAt: Date) {
-  try { localStorage.setItem("jimmy_dashboard", JSON.stringify({ data, cachedAt: cachedAt.toISOString() })); } catch {}
-}
 
 export default function DashboardPage() {
-  const stored = typeof window !== "undefined" ? loadFromStorage() : { data: null, cachedAt: null };
-  const initialData = _cachedData || stored.data;
-  const initialCachedAt = _cachedAt || stored.cachedAt;
-
-  const [data, setData] = useState<DashboardAI | null>(initialData);
-  const [loading, setLoading] = useState(!initialData);
-  const [syncing, setSyncing] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(() => {
-    try { const s = localStorage.getItem("jimmy_last_refresh"); return s ? new Date(s) : null; } catch { return null; }
-  });
-  const [syncMessage, setSyncMessage] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialCachedAt);
-
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
 
   const load = async () => {
     setLoading(true);
-    try {
-      const res = await fetch("/api/dashboard/ai-metrics");
-      const json = await res.json();
-    if (json.error === "brain_not_built") {
-      setData({ _brain_not_built: true } as any);
-      setLoading(false);
-      return;
-    }
-      if (res.status === 402) {
-        setData({ error: "quota_exceeded", message: json.message, reason: json.reason });
-        setLoading(false);
-        return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const [
+      { data: products },
+      { data: collections },
+      { data: factories },
+      { data: tracks },
+      { data: orders },
+    ] = await Promise.all([
+      supabase.from("plm_products").select("id, name, sku, images, killed, status, action_status, collection_id, plm_collections(name), plm_batches(id, current_stage, factory_id, order_quantity)").eq("user_id", user.id).eq("killed", false),
+      supabase.from("plm_collections").select("id, name, season, year").eq("user_id", user.id),
+      supabase.from("factory_catalog").select("id, name").eq("user_id", user.id),
+      supabase.from("plm_factory_tracks").select("id, product_id, factory_id, status, approved_price, factory_catalog(name), plm_track_stages(stage, status, actual_date, revision_number)").eq("user_id", user.id),
+      supabase.from("plm_batches").select("id, product_id, current_stage, factory_id, order_quantity, factory_catalog(name)").eq("user_id", user.id),
+    ]);
+
+    setData({ products: products || [], collections: collections || [], factories: factories || [], tracks: tracks || [], orders: orders || [], userId: user.id });
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <Loader2 size={20} className="animate-spin text-white/20" />
+    </div>
+  );
+
+  if (!data) return null;
+
+  const { products, collections, factories, tracks, orders } = data;
+
+  // ── Key metrics
+  const totalProducts = products.length;
+  const approvedProducts = products.filter((p: any) =>
+    tracks.some((t: any) => t.product_id === p.id && t.status === "approved")
+  ).length;
+  const actionRequired = products.filter((p: any) => p.action_status === "action_required").length;
+  const activeOrders = orders.filter((o: any) => !["shipped","delivered"].includes(o.current_stage)).length;
+  const totalFactories = factories.length;
+  const approvedTracks = tracks.filter((t: any) => t.status === "approved");
+  const avgApprovedPrice = approvedTracks.length > 0
+    ? (approvedTracks.reduce((sum: number, t: any) => sum + (t.approved_price || 0), 0) / approvedTracks.filter((t: any) => t.approved_price).length).toFixed(2)
+    : null;
+
+  // ── Stage pipeline counts (across all active tracks)
+  const stageCounts: Record<string, number> = {};
+  tracks.filter((t: any) => t.status === "active").forEach((t: any) => {
+    const done = (t.plm_track_stages || []).filter((s: any) => s.status === "done").map((s: any) => s.stage);
+    const lastDone = STAGE_ORDER.slice().reverse().find(s => done.includes(s));
+    if (lastDone) stageCounts[lastDone] = (stageCounts[lastDone] || 0) + 1;
+  });
+
+  // ── Products needing attention
+  const needsAttention = products.filter((p: any) =>
+    p.action_status === "action_required" || p.action_status === "updates_made"
+  ).slice(0, 5);
+
+  // ── Factory performance
+  const factoryStats = factories.map((f: any) => {
+    const factoryTracks = tracks.filter((t: any) => t.factory_id === f.id);
+    const approved = factoryTracks.filter((t: any) => t.status === "approved").length;
+    const active = factoryTracks.filter((t: any) => t.status === "active").length;
+    const killed = factoryTracks.filter((t: any) => t.status === "killed").length;
+    const prices = factoryTracks.filter((t: any) => t.approved_price).map((t: any) => t.approved_price);
+    const avgPrice = prices.length > 0 ? (prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2) : null;
+    return { ...f, approved, active, killed, total: factoryTracks.length, avgPrice };
+  }).filter((f: any) => f.total > 0).sort((a: any, b: any) => b.approved - a.approved);
+
+  // ── Collection progress
+  const collectionStats = collections.map((c: any) => {
+    const prods = products.filter((p: any) => p.collection_id === c.id);
+    const approvedProds = prods.filter((p: any) =>
+      tracks.some((t: any) => t.product_id === p.id && t.status === "approved")
+    ).length;
+    const sampleProds = prods.filter((p: any) =>
+      tracks.some((t: any) => t.product_id === p.id &&
+        (t.plm_track_stages || []).some((s: any) => s.stage === "sample_arrived" && s.status === "done"))
+    ).length;
+    return { ...c, total: prods.length, approved: approvedProds, sampled: sampleProds };
+  }).filter((c: any) => c.total > 0);
+
+  // ── Recent track activity
+  const recentActivity: any[] = [];
+  tracks.forEach((t: any) => {
+    (t.plm_track_stages || []).forEach((s: any) => {
+      if (s.status === "done" && s.actual_date) {
+        recentActivity.push({
+          factory: t.factory_catalog?.name,
+          stage: s.stage,
+          date: s.actual_date,
+          product_id: t.product_id,
+          productName: products.find((p: any) => p.id === t.product_id)?.name,
+        });
       }
-      _cachedData = json;
-      _cachedAt = new Date();
-      setData(json);
-      setLastUpdated(_cachedAt);
-      saveToStorage(json, _cachedAt);
-    } catch {}
-    finally { setLoading(false); }
-  };
-
-  const SYNC_STEPS = [
-    { message: "Connecting to integrations...", icon: "⚡", pct: 8 },
-    { message: "Reading Gmail & Outlook...", icon: "📧", pct: 18 },
-    { message: "Pulling Stripe payments...", icon: "💳", pct: 28 },
-    { message: "Syncing QuickBooks invoices...", icon: "📒", pct: 38 },
-    { message: "Scanning Google Drive...", icon: "📁", pct: 48 },
-    { message: "Processing new events...", icon: "⚙️", pct: 58 },
-    { message: "Updating Company Brain...", icon: "🧠", pct: 68 },
-    { message: "Analyzing business context...", icon: "🔍", pct: 78 },
-    { message: "Writing your briefing...", icon: "✍️", pct: 88 },
-    { message: "Finalizing dashboard...", icon: "✅", pct: 95 },
-  ];
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [syncStep, setSyncStep] = useState(0);
-
-  // Snapshot windows: 7am, 10am, 12:30pm, 2:30pm, 4:30pm, 7pm ET
-  // User gets one refresh per window — next refresh available at next snapshot time
-  const getNextSnapshotTime = () => {
-    const now = new Date();
-    const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-    const h = etNow.getHours();
-    const m = etNow.getMinutes();
-    const totalMin = h * 60 + m;
-    const windows = [7*60, 10*60, 12*60+30, 14*60+30, 16*60, 19*60];
-    const next = windows.find(w => w > totalMin) || (7*60 + 24*60); // next day 7am
-    const diffMin = next - totalMin;
-    return diffMin;
-  };
-  const getCurrentWindow = () => {
-    const now = new Date();
-    const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-    const h = etNow.getHours();
-    const m = etNow.getMinutes();
-    const totalMin = h * 60 + m;
-    const windows = [7*60, 10*60, 12*60+30, 14*60+30, 16*60, 19*60];
-    for (let i = windows.length - 1; i >= 0; i--) {
-      if (totalMin >= windows[i]) return windows[i];
-    }
-    return -1; // before 7am
-  };
-  const currentWindow = getCurrentWindow();
-  const lastRefreshWindow = lastRefreshTime ? (() => {
-    const etLast = new Date(lastRefreshTime.toLocaleString("en-US", { timeZone: "America/New_York" }));
-    const h = etLast.getHours();
-    const m = etLast.getMinutes();
-    const totalMin = h * 60 + m;
-    const windows = [7*60, 10*60, 12*60+30, 14*60+30, 16*60, 19*60];
-    for (let i = windows.length - 1; i >= 0; i--) {
-      if (totalMin >= windows[i]) return windows[i];
-    }
-    return -1;
-  })() : -2;
-  const onCooldown = currentWindow !== -1 && lastRefreshWindow === currentWindow;
-  const cooldownRemaining = onCooldown ? getNextSnapshotTime() : 0;
-
-  const refresh = async () => {
-    if (onCooldown) return;
-    const now = new Date();
-    setLastRefreshTime(now);
-    try { localStorage.setItem("jimmy_last_refresh", now.toISOString()); } catch {}
-    setSyncing(true);
-    setSyncProgress(0);
-    setSyncStep(0);
-    let stepIndex = 0;
-    const stepInterval = setInterval(() => {
-      if (stepIndex < SYNC_STEPS.length - 1) {
-        stepIndex++;
-        setSyncStep(stepIndex);
-        setSyncProgress(SYNC_STEPS[stepIndex].pct);
-      }
-    }, 1800);
-    try {
-      await fetch("/api/sync", { method: "POST" });
-      await fetch("/api/cache", { method: "DELETE" });
-      _cachedData = null;
-      try { localStorage.removeItem("jimmy_dashboard"); } catch {}
-      clearInterval(stepInterval);
-      setSyncProgress(100);
-      await load();
-      setSyncProgress(0);
-      setSyncStep(0);
-    } catch {
-      clearInterval(stepInterval);
-      setSyncMessage("Refresh failed — try again");
-      setSyncProgress(0);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  useEffect(() => {
-    // Auth check — if no session, redirect to login (prevents back-button bypass)
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) window.location.replace("/login");
     });
-    // Only auto-load if nothing in memory AND nothing in localStorage
-    const stored = loadFromStorage();
-    if (!_cachedData && !stored.data) load();
-  }, []);
+  });
+  recentActivity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const latestActivity = recentActivity.slice(0, 8);
 
-  const groupedMetrics = [
-    { label: "Revenue", items: data?.metrics?.filter(m => m.category === "revenue") || [] },
-    { label: "Cash", items: data?.metrics?.filter(m => m.category === "cash") || [] },
-    { label: "Customers", items: data?.metrics?.filter(m => m.category === "customers") || [] },
-    { label: "Operations", items: data?.metrics?.filter(m => m.category === "operations") || [] },
-    { label: "Activity", items: data?.metrics?.filter(m => m.category === "activity") || [] },
-    { label: "Other", items: data?.metrics?.filter(m => !["revenue","cash","customers","operations","activity"].includes(m.category || "")) || [] },
-  ].filter(g => g.items.length > 0);
+  const ic = "border border-white/[0.06] rounded-2xl bg-white/[0.01]";
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <p className="text-white/30 text-sm mb-1">{greeting}</p>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Command Center</h1>
-          {data?.business_type && <p className="text-white/25 text-xs mt-1">{data.business_type}</p>}
-          {lastUpdated && <p className="text-white/15 text-xs mt-0.5">Updated {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>}
-          {syncMessage && <p className="text-emerald-400/70 text-xs mt-1">{syncMessage}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={refresh} disabled={syncing || loading || onCooldown}
-            className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition px-4 py-2.5 rounded-xl border border-white/[0.06] hover:border-white/20 bg-white/[0.02] disabled:opacity-40">
-            <RefreshCw size={12} className={syncing || loading ? "animate-spin" : ""} />
-            {syncing || loading ? syncMessage || "Refreshing..." : onCooldown ? `Refresh in ${cooldownRemaining}m` : "Refresh"}
-          </button>
+      <div className="border-b border-white/[0.06] px-8 py-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">PLM Dashboard</h1>
+            <p className="text-white/30 text-sm mt-0.5">Product lifecycle overview</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {actionRequired > 0 && (
+              <button onClick={() => router.push("/plm")}
+                className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
+                <AlertTriangle size={11} />⚡ {actionRequired} need attention
+              </button>
+            )}
+            <button onClick={load} className="p-2 rounded-xl border border-white/[0.06] text-white/30 hover:text-white/60 transition">
+              <RefreshCw size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Sync Progress Bar */}
-      {syncing && (
-        <div className="mb-6 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-            <p className="text-xs text-white/50 font-medium">
-              {SYNC_STEPS[syncStep]?.icon} {SYNC_STEPS[syncStep]?.message}
-            </p>
-            <p className="text-[10px] text-white/20 ml-auto">{syncProgress}%</p>
+      <div className="max-w-7xl mx-auto px-8 py-8 space-y-8">
+
+        {/* ── KPI row ── */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {[
+            { label: "Total Products", value: totalProducts, icon: Package, color: "#8b5cf6", sub: `${approvedProducts} approved` },
+            { label: "Factories", value: totalFactories, icon: Factory, color: "#3b82f6", sub: `${approvedTracks.length} approved tracks` },
+            { label: "Collections", value: collections.length, icon: Layers, color: "#ec4899", sub: `${collectionStats.length} active` },
+            { label: "Active Orders", value: activeOrders, icon: TrendingUp, color: "#f59e0b", sub: orders.length > 0 ? `${orders.length} total` : "No orders" },
+            { label: "Avg Approved ELC", value: avgApprovedPrice ? `$${avgApprovedPrice}` : "—", icon: BarChart3, color: "#10b981", sub: `${approvedTracks.filter((t: any) => t.approved_price).length} with price` },
+          ].map(item => (
+            <div key={item.label} className={`${ic} p-5`}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] text-white/30 uppercase tracking-widest">{item.label}</p>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: `${item.color}15` }}>
+                  <item.icon size={13} style={{ color: item.color }} />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-white">{item.value}</p>
+              <p className="text-[11px] text-white/30 mt-1">{item.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Stage pipeline ── */}
+        <div className={`${ic} p-6`}>
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-sm font-semibold">Pipeline Overview</p>
+            <p className="text-[11px] text-white/30">Active factory tracks by furthest stage</p>
           </div>
-          <div className="w-full bg-white/[0.05] rounded-full h-1">
-            <div
-              className="h-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-700"
-              style={{ width: `${syncProgress}%` }}
-            />
+          <div className="flex items-end gap-2 h-24">
+            {STAGE_ORDER.map(stage => {
+              const count = stageCounts[stage] || 0;
+              const max = Math.max(...Object.values(stageCounts), 1);
+              const pct = (count / max) * 100;
+              return (
+                <div key={stage} className="flex-1 flex flex-col items-center gap-1.5">
+                  <p className="text-[10px] font-semibold text-white/50">{count > 0 ? count : ""}</p>
+                  <div className="w-full rounded-t-lg transition-all" style={{
+                    height: `${Math.max(pct * 0.7, count > 0 ? 8 : 2)}px`,
+                    background: count > 0 ? STAGE_COLORS[stage] : "rgba(255,255,255,0.05)",
+                    opacity: count > 0 ? 0.8 : 1,
+                  }} />
+                </div>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-4 mt-3 overflow-hidden">
-            {SYNC_STEPS.map((step, i) => (
-              <div key={i} className={`flex items-center gap-1 text-[10px] whitespace-nowrap transition-all ${i <= syncStep ? "text-white/40" : "text-white/15"}`}>
-                <span>{step.icon}</span>
-                <span className={i === syncStep ? "text-blue-400 font-medium" : ""}>{step.message.replace("...", "")}</span>
+          <div className="flex gap-2 mt-2">
+            {STAGE_ORDER.map(stage => (
+              <div key={stage} className="flex-1 text-center">
+                <p className="text-[8px] text-white/25 leading-tight">{STAGE_LABELS[stage]}</p>
               </div>
             ))}
           </div>
         </div>
-      )}
 
-      {/* AI Briefing */}
-      <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 mb-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <p className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-2">AI COO — Today's Briefing</p>
-            {loading ? (
-              <div className="space-y-2">
-                <div className="h-3 bg-white/5 rounded-lg animate-pulse w-full" />
-                <div className="h-3 bg-white/5 rounded-lg animate-pulse w-2/3" />
-              </div>
-            ) : data?.error === "quota_exceeded" ? (
-              <div>
-                <p className="text-sm text-red-400 font-semibold mb-1">You're out of AI tokens</p>
-                <p className="text-xs text-white/40 mb-2">{data.message}</p>
-                <a href="/quota" className="text-xs bg-white text-black font-semibold px-3 py-1.5 rounded-lg hover:bg-white/90 transition">Buy More Tokens →</a>
-              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          {/* ── Factory performance ── */}
+          <div className={`${ic} p-6`}>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm font-semibold">Factory Performance</p>
+              <button onClick={() => router.push("/plm")} className="text-[11px] text-white/30 hover:text-white/60 transition">View PLM →</button>
+            </div>
+            {factoryStats.length === 0 ? (
+              <p className="text-xs text-white/20 text-center py-6">No factory tracks yet</p>
             ) : (
-              <p className="text-sm text-white/70 leading-relaxed">{data?.briefing || "Loading your briefing..."}</p>
+              <div className="space-y-3">
+                {factoryStats.map((f: any) => {
+                  const successRate = f.total > 0 ? Math.round((f.approved / f.total) * 100) : 0;
+                  return (
+                    <div key={f.id} className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                        <Factory size={11} className="text-white/40" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-white truncate">{f.name}</span>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {f.avgPrice && <span className="text-[10px] text-emerald-400">${f.avgPrice} avg</span>}
+                            <span className="text-[10px] text-white/30">{f.approved}/{f.total}</span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-white/[0.05] rounded-full h-1">
+                          <div className="h-1 rounded-full transition-all" style={{ width: `${successRate}%`, background: successRate > 50 ? "#10b981" : successRate > 20 ? "#f59e0b" : "#ef4444" }} />
+                        </div>
+                        <div className="flex items-center gap-3 mt-1">
+                          {f.approved > 0 && <span className="text-[9px] text-emerald-400">✓ {f.approved} approved</span>}
+                          {f.active > 0 && <span className="text-[9px] text-amber-400">↻ {f.active} active</span>}
+                          {f.killed > 0 && <span className="text-[9px] text-red-400/60">✕ {f.killed} discontinued</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          <Link href="/chat" className="flex items-center gap-1.5 text-xs font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/10 px-3 py-2 rounded-xl transition flex-shrink-0">
-            Ask AI <ArrowUpRight size={11} />
-          </Link>
-        </div>
-      </div>
 
-      {/* Three Pillars */}
-      {!loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Shield size={12} className="text-red-400" />
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Risk Protector</p>
-              {data?.risks?.length ? <span className="text-[10px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-full">{data.risks.length}</span> : null}
+          {/* ── Collection progress ── */}
+          <div className={`${ic} p-6`}>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm font-semibold">Collection Progress</p>
+              <button onClick={() => router.push("/plm?tab=collections")} className="text-[11px] text-white/30 hover:text-white/60 transition">View Collections →</button>
             </div>
-            <div className="space-y-3">
-              {data?.risks?.length ? data.risks.map((r, i) => <RiskCard key={i} item={r} />) : (
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 text-center">
-                  <p className="text-white/20 text-xs">No risks detected</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Zap size={12} className="text-emerald-400" />
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Growth Engine</p>
-              {data?.opportunities?.length ? <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded-full">{data.opportunities.length}</span> : null}
-            </div>
-            <div className="space-y-3">
-              {data?.opportunities?.length ? data.opportunities.map((o, i) => <OpportunityCard key={i} item={o} />) : (
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 text-center">
-                  <p className="text-white/20 text-xs">No opportunities detected</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Settings size={12} className="text-blue-400" />
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Operations</p>
-              {data?.operations?.length ? <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded-full">{data.operations.length}</span> : null}
-            </div>
-            <div className="space-y-3">
-              {data?.operations?.length ? data.operations.map((o, i) => <OperationCard key={i} item={o} />) : (
-                <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 text-center">
-                  <p className="text-white/20 text-xs">No actions needed</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Metrics */}
-      {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          {[1,2,3,4,5,6,7,8].map(i => <div key={i} className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-5 h-24 animate-pulse" />)}
-        </div>
-      ) : groupedMetrics.length > 0 && (
-        <div className="mb-6">
-          {groupedMetrics.map(group => (
-            <div key={group.label} className="mb-5">
-              <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest mb-3">{group.label}</p>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {group.items.map(metric => <MetricCard key={metric.id} metric={metric} />)}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Chart + Top Items */}
-      {(data?.chart_data?.length || data?.top_items?.length) ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          {data?.chart_data && data.chart_data.length > 0 && (
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-              <p className="text-xs font-semibold text-white/40 mb-5">{data.chart_label || "Trend"}</p>
-              <ResponsiveContainer width="100%" height={180}>
-                <AreaChart data={data.chart_data} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-                  <defs>
-                    <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ffffff" stopOpacity={0.08} />
-                      <stop offset="95%" stopColor="#ffffff" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#ffffff25" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: "#ffffff25" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="value" stroke="#ffffff30" fill="url(#grad)" strokeWidth={1.5} dot={false} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          {data?.top_items && data.top_items.length > 0 && (
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-              <p className="text-xs font-semibold text-white/40 mb-4">Key Items</p>
-              <div className="space-y-1">
-                {data.top_items.slice(0, 8).map((item, i) => (
-                  <div key={i} className="flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0">
-                    <StatusDot status={item.status} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/70 truncate">{item.label}</p>
-                      <p className="text-[10px] text-white/25 capitalize">{item.type}</p>
+            {collectionStats.length === 0 ? (
+              <p className="text-xs text-white/20 text-center py-6">No collections yet</p>
+            ) : (
+              <div className="space-y-4">
+                {collectionStats.map((c: any) => {
+                  const approvedPct = c.total > 0 ? Math.round((c.approved / c.total) * 100) : 0;
+                  const sampledPct = c.total > 0 ? Math.round((c.sampled / c.total) * 100) : 0;
+                  return (
+                    <div key={c.id} className="cursor-pointer hover:bg-white/[0.02] -mx-2 px-2 py-1.5 rounded-xl transition"
+                      onClick={() => router.push(`/plm/collection/${c.id}`)}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-white">{c.name}</span>
+                        <div className="flex items-center gap-2">
+                          {c.season && <span className="text-[9px] text-white/25">{c.season} {c.year}</span>}
+                          <span className="text-[10px] text-white/30">{c.total} products</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div>
+                          <div className="flex justify-between mb-0.5">
+                            <span className="text-[9px] text-emerald-400/70">Approved</span>
+                            <span className="text-[9px] text-white/30">{c.approved}/{c.total}</span>
+                          </div>
+                          <div className="w-full bg-white/[0.05] rounded-full h-1">
+                            <div className="h-1 rounded-full bg-emerald-500 transition-all" style={{ width: `${approvedPct}%` }} />
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-0.5">
+                            <span className="text-[9px] text-purple-400/70">Samples Arrived</span>
+                            <span className="text-[9px] text-white/30">{c.sampled}/{c.total}</span>
+                          </div>
+                          <div className="w-full bg-white/[0.05] rounded-full h-1">
+                            <div className="h-1 rounded-full bg-purple-500 transition-all" style={{ width: `${sampledPct}%` }} />
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-xs font-semibold text-white/50 flex-shrink-0">{item.value}</span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* ── Needs attention ── */}
+          <div className={`${ic} p-6`}>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm font-semibold">Needs Attention</p>
+              <button onClick={() => router.push("/plm")} className="text-[11px] text-white/30 hover:text-white/60 transition">View All →</button>
+            </div>
+            {needsAttention.length === 0 ? (
+              <div className="text-center py-6">
+                <CheckCircle size={24} className="text-emerald-500/40 mx-auto mb-2" />
+                <p className="text-xs text-white/20">All caught up</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {needsAttention.map((p: any) => (
+                  <div key={p.id} onClick={() => router.push(`/plm/${p.id}`)}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.04] hover:border-white/10 cursor-pointer transition">
+                    {p.images?.[0]
+                      ? <img src={p.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                      : <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex-shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white truncate">{p.name}</p>
+                      <p className="text-[10px] text-white/30">{p.plm_collections?.name}</p>
+                    </div>
+                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${p.action_status === "action_required" ? "bg-red-500/15 text-red-400 border border-red-500/20" : "bg-blue-500/15 text-blue-400 border border-blue-500/20"}`}>
+                      {p.action_status === "action_required" ? "⚡ Action" : "● Updates"}
+                    </span>
                   </div>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* ── Recent activity ── */}
+          <div className={`${ic} p-6`}>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm font-semibold">Recent Activity</p>
+              <Clock size={13} className="text-white/20" />
             </div>
-          )}
+            {latestActivity.length === 0 ? (
+              <p className="text-xs text-white/20 text-center py-6">No activity yet</p>
+            ) : (
+              <div className="space-y-2.5">
+                {latestActivity.map((a: any, i: number) => (
+                  <div key={i} onClick={() => a.product_id && router.push(`/plm/${a.product_id}`)}
+                    className="flex items-center gap-3 cursor-pointer hover:bg-white/[0.02] -mx-2 px-2 py-1.5 rounded-xl transition">
+                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: STAGE_COLORS[a.stage] || "#6b7280" }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[11px] font-medium text-white/70 truncate">{a.productName}</span>
+                        <span className="text-[10px] text-white/30">·</span>
+                        <span className="text-[10px]" style={{ color: STAGE_COLORS[a.stage] || "#6b7280" }}>{STAGE_LABELS[a.stage] || a.stage}</span>
+                      </div>
+                      {a.factory && <p className="text-[10px] text-white/25">{a.factory}</p>}
+                    </div>
+                    <span className="text-[9px] text-white/20 flex-shrink-0">
+                      {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      ) : null}
 
-      {/* Ask AI */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold text-white/70">Dig deeper with your AI COO</p>
-          <p className="text-xs text-white/25 mt-0.5">Ask about any risk, opportunity, or operation in detail</p>
-        </div>
-        <Link href="/chat" className="text-xs font-semibold text-black bg-white hover:bg-white/90 px-4 py-2.5 rounded-xl transition flex-shrink-0">
-          Open AI Analyst →
-        </Link>
+        {/* ── Active orders ── */}
+        {orders.length > 0 && (
+          <div className={`${ic} p-6`}>
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-sm font-semibold">Production Orders</p>
+              <p className="text-[11px] text-white/30">{activeOrders} active · {orders.length} total</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {orders.slice(0, 6).map((o: any) => {
+                const product = products.find((p: any) => p.id === o.product_id);
+                const stageColors: Record<string, string> = {
+                  po_issued: "#f59e0b", production_started: "#f59e0b", production_complete: "#10b981",
+                  qc_inspection: "#f59e0b", ready_to_ship: "#3b82f6", shipped: "#10b981"
+                };
+                const stageLabels: Record<string, string> = {
+                  po_issued: "PO Issued", production_started: "In Production", production_complete: "Complete",
+                  qc_inspection: "QC Inspection", ready_to_ship: "Ready to Ship", shipped: "Shipped"
+                };
+                const sc = stageColors[o.current_stage] || "#6b7280";
+                return (
+                  <div key={o.id} onClick={() => product && router.push(`/plm/${product.id}`)}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-white/[0.04] hover:border-white/10 cursor-pointer transition">
+                    {product?.images?.[0]
+                      ? <img src={product.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                      : <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex-shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-white truncate">{product?.name || "Unknown"}</p>
+                      <p className="text-[10px] text-white/30">{o.factory_catalog?.name} · {o.order_quantity?.toLocaleString()} units</p>
+                    </div>
+                    <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
+                      style={{ color: sc, background: `${sc}15`, border: `1px solid ${sc}30` }}>
+                      {stageLabels[o.current_stage] || o.current_stage}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
-
     </div>
   );
 }

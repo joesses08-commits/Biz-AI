@@ -1,36 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/gmail/sync",
-      "schedule": "45 6,9,12,14,16,18 * * *"
-    },
-    {
-      "path": "/api/microsoft/sync",
-      "schedule": "45 6,9,12,14,16,18 * * *"
-    },
-    {
-      "path": "/api/google/sync",
-      "schedule": "45 6,9,12,14,16,18 * * *"
-    },
-    {
-      "path": "/api/microsoft/files",
-      "schedule": "45 6,9,12,14,16,18 * * *"
-    },
-    {
-      "path": "/api/quickbooks/sync",
-      "schedule": "45 6,12,16,18 * * *"
-    },
-    {
       "path": "/api/microsoft/subscribe",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/snapshot",
-      "schedule": "0 6,7,10,16,19 * * *"
-    },
-    {
-      "path": "/api/cron/snapshot",
-      "schedule": "30 12,14 * * *"
     }
   ]
 }
