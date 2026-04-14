@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
   }
 
   const [{ data: collections }, { data: products }, { data: factories }] = await Promise.all([
-    supabaseAdmin.from("plm_collections").select("*, plm_products(id, name, sku, images, action_status, status, killed, plm_factory_tracks(id, factory_id, status, approved_price, factory_catalog(id, name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number)))").eq("user_id", user.id).order("created_at", { ascending: false }),
+    supabaseAdmin.from("plm_collections").select("*, plm_products(id, name, sku, images, action_status, action_note, status, killed, notes, factory_notes, plm_factory_tracks(id, factory_id, status, approved_price, factory_catalog(id, name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number)))").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabaseAdmin.from("plm_products").select("*, plm_collections(name), factory_catalog(name), plm_batches(*), plm_sample_requests(id, status, factory_id, factory_catalog(id, name, email))").eq("user_id", user.id).order("created_at", { ascending: false }),
     supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").eq("user_id", user.id).order("name", { ascending: true }),
   ]);
