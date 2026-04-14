@@ -1029,13 +1029,17 @@ export default function PLMPage() {
                     artwork_sent:     { label: "Artwork Sent",     color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
                   };
 
+                  // Count factories per stage — show "X/Y factories" format
+                  const totalTracks = tracks.length;
                   Object.entries(stageGroups).forEach(([stage, factoryNames]) => {
                     const cfg = STAGE_BADGE_CONFIG[stage];
                     if (!cfg) return;
                     const count = factoryNames.length;
-                    const names = count <= 2 ? factoryNames.join(", ") : `${factoryNames[0]} +${count - 1}`;
+                    const label = totalTracks > 1
+                      ? `${cfg.label} · ${count}/${totalTracks} factories`
+                      : `${cfg.label} · ${factoryNames[0]}`;
                     awardBadges.push({
-                      label: `${cfg.label} · ${names}`,
+                      label,
                       color: cfg.color, bg: cfg.bg, border: cfg.border,
                     });
                   });
