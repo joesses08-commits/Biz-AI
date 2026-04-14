@@ -685,7 +685,7 @@ export default function PLMPage() {
                             if (allSelected) {
                               setBulkSampleProductIds(prev => prev.filter((id: string) => !collectionProductIds.includes(id)));
                             } else {
-                              setBulkSampleProductIds(prev => [...new Set([...prev, ...collectionProductIds])]);
+                              setBulkSampleProductIds(prev => Array.from(new Set([...prev, ...collectionProductIds])));
                               // Auto-select all factories for each product
                               const newSelections: Record<string, any> = { ...bulkSampleSelections };
                               collectionProductIds.forEach((pid: string) => {
