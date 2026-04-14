@@ -903,9 +903,9 @@ export default function PLMPage() {
           <CollectionsView
             collections={collections}
             factories={factories}
-            onRFQ={(productIds) => { setRfqSelectedProducts(productIds); setShowRfqModal(true); }}
-            onSampleRequest={(productIds) => { setBulkSampleProductIds(productIds); setBulkSampleSelections({}); setShowSampleRequestModal(true); }}
-            onNavigate={(collectionId) => { setFilterCollection(collectionId); setActiveTab("all_products"); }}
+            onRFQ={(productIds: string[]) => { setRfqSelectedProducts(productIds); setShowRfqModal(true); }}
+            onSampleRequest={(productIds: string[]) => { setBulkSampleProductIds(productIds); setBulkSampleSelections({}); setShowSampleRequestModal(true); }}
+            onNavigate={(collectionId: string) => { setFilterCollection(collectionId); setActiveTab("all_products"); }}
           />
         ) : activeTab === "all_products" ? (
           <div>
