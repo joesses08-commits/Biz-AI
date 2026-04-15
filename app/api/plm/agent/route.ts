@@ -119,7 +119,7 @@ Today: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeri
 
   const inputTokens = response.usage.input_tokens;
   const outputTokens = response.usage.output_tokens;
-  await trackUsage(user.id, "claude-haiku-4-5-20251001", String(inputTokens), String(outputTokens), "plm_agent");
+  await trackUsage(user.id, "plm_agent", "claude-haiku-4-5-20251001", inputTokens, outputTokens);
 
   const reply = response.content.find((c: any) => c.type === "text")?.text || "";
   return NextResponse.json({ reply });
