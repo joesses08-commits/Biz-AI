@@ -1378,6 +1378,7 @@ ${entry}` : entry;
                   <button onClick={() => setKillModal(null)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs text-center">Cancel</button>
                 </div>
               </div>
+            </div>
           )}
 
           {/* Disqualify Modal */}
