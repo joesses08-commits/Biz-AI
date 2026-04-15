@@ -264,6 +264,15 @@ export async function POST(req: NextRequest) {
   // ── DISQUALIFY TRACK
   if (action === "disqualify_track") {
     const { track_id, reason, note, product_name, factory_name, factory_email } = body;
+
+    // Get user profile for sign-off
+    const { data: profile } = await supabaseAdmin.from("profiles")
+      .select("full_name, company_name").eq("id", user.id).single();
+    const { data: companyProfile } = await supabaseAdmin.from("company_profiles")
+      .select("company_name").eq("user_id", user.id).single();
+    const senderName = profile?.full_name || user.email?.split("@")[0] || "The Team";
+    const companyName = companyProfile?.company_name || profile?.company_name || "Our Company";
+
     await supabaseAdmin.from("plm_factory_tracks").update({
       status: "killed",
       disqualify_reason: reason,
@@ -289,7 +298,8 @@ Please disregard any further sample production for this item. We hope to work to
 Thank you again for your partnership.
 
 Best regards,
-Jimmy AI`;
+${senderName}
+${companyName}`;
       await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
