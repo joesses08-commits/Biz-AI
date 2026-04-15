@@ -1660,9 +1660,9 @@ ${entry}` : entry;
                     <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Cost Breakdown</p>
                     <div className="grid grid-cols-4 gap-3">
                       <div><label className={lc}>First Cost ($)</label><input type="number" step="0.01" value={newOrder.unit_price} onChange={e => setNewOrder({...newOrder, unit_price: e.target.value})} placeholder="2.00" className={ic} /></div>
-                      <div><label className={lc}>Tariff ($)</label><input type="number" step="0.01" value={newOrder.tariff} onChange={e => setNewOrder({...newOrder, tariff: e.target.value})} placeholder="0.20" className={ic} /></div>
+                      <div><label className={lc}>Tariff (%)</label><input type="number" step="0.1" value={newOrder.tariff} onChange={e => setNewOrder({...newOrder, tariff: e.target.value})} placeholder="10" className={ic} /></div>
                       <div><label className={lc}>Freight ($)</label><input type="number" step="0.01" value={newOrder.freight} onChange={e => setNewOrder({...newOrder, freight: e.target.value})} placeholder="0.15" className={ic} /></div>
-                      <div><label className={lc}>Duty ($)</label><input type="number" step="0.01" value={newOrder.duty} onChange={e => setNewOrder({...newOrder, duty: e.target.value})} placeholder="0.10" className={ic} /></div>
+                      <div><label className={lc}>Duty (%)</label><input type="number" step="0.1" value={newOrder.duty} onChange={e => setNewOrder({...newOrder, duty: e.target.value})} placeholder="5" className={ic} /></div>
                     </div>
                   </div>
 
@@ -1855,19 +1855,19 @@ ${entry}` : entry;
                           {/* Cost inputs */}
                           <div className="grid grid-cols-4 gap-2">
                             {[
-                              { label: "First Cost", key: "unit_price", val: getV("unit_price","") },
-                              { label: "Tariff", key: "tariff", val: getV("tariff","") },
-                              { label: "Freight", key: "freight", val: getV("freight","") },
-                              { label: "Duty", key: "duty", val: getV("duty","") },
-                            ].map(f => (
+                              { label: "First Cost", key: "unit_price", val: getV("unit_price",""), prefix: "$", step: "0.01", ph: "0.00" },
+                              { label: "Tariff %", key: "tariff", val: getV("tariff",""), prefix: "%", step: "0.1", ph: "0" },
+                              { label: "Freight $", key: "freight", val: getV("freight",""), prefix: "$", step: "0.01", ph: "0.00" },
+                              { label: "Duty %", key: "duty", val: getV("duty",""), prefix: "%", step: "0.1", ph: "0" },
+                            ].map((f: any) => (
                               <div key={f.label}>
                                 <p className="text-[9px] text-white/25 mb-1">{f.label}</p>
                                 <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2 py-1.5">
-                                  <span className="text-[10px] text-white/30">$</span>
-                                  <input type="number" step="0.01" value={f.val}
-                                    onChange={e => setV((f as any).key, e.target.value)}
+                                  <span className="text-[10px] text-white/30">{f.prefix}</span>
+                                  <input type="number" step={f.step} value={f.val}
+                                    onChange={e => setV(f.key, e.target.value)}
                                     className="flex-1 bg-transparent text-xs text-white/70 focus:outline-none w-full"
-                                    placeholder="0.00" />
+                                    placeholder={f.ph} />
                                 </div>
                               </div>
                             ))}
