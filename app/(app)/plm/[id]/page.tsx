@@ -1086,7 +1086,7 @@ ${entry}` : entry;
                     {isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">Disqualified</span>}
                     {revision > 0 && !isApproved && !isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 flex-shrink-0">Rev {revision}</span>}
                     {!isApproved && !isKilledTrack && !isLocked && (
-                      <button onClick={e => { e.stopPropagation(); setDisqualifyReason("price"); setDisqualifyNote(""); setDisqualifyEmailPreview(""); setDisqualifyModal({ track }); }}
+                      <button onClick={e => { e.stopPropagation(); (window as any).__disqualifyTrack?.(track); }}
                         className="text-[9px] px-1.5 py-0.5 rounded border border-red-500/20 text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition flex-shrink-0 ml-auto">
                         Disqualify
                       </button>
