@@ -1826,10 +1826,12 @@ ${entry}` : entry;
                       const setV = (key: string, val: string) => setOrderFinancials((prev: any) => ({ ...prev, [oid]: { ...(prev[oid] || {}), [key]: val } }));
 
                       const fc = parseFloat(getV("unit_price", "")) || 0;
-                      const tr = parseFloat(getV("tariff", "")) || 0;
+                      const trPct = parseFloat(getV("tariff", "")) || 0;
                       const fr = parseFloat(getV("freight", "")) || 0;
-                      const du = parseFloat(getV("duty", "")) || 0;
-                      const liveElc = fc + tr + fr + du; // per unit
+                      const duPct = parseFloat(getV("duty", "")) || 0;
+                      const tr = fc * trPct / 100;
+                      const du = fc * duPct / 100;
+                      const liveElc = fc + tr + du + fr; // ELC = first cost + tariff% + duty% + freight$
                       const liveMpct = parseFloat(getV("margin", "0")) || 0;
                       const rawSell = liveElc > 0 && liveMpct > 0 ? liveElc * (1 + liveMpct / 100) : 0;
                       const liveSell = isFinite(rawSell) ? rawSell : 0;
