@@ -1953,22 +1953,48 @@ ${entry}` : entry;
                       );
                     })()}
 
-                    {/* Stage history */}
-                    {history.length > 0 && (
-                      <div className="space-y-1 border-t border-white/[0.04] pt-2">
-                        {history.slice(0, 3).map((h: any) => {
-                          const s = stageInfo(h.stage);
-                          return (
-                            <div key={h.id} className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
-                              <span className="text-[11px] text-white/40">{s.label}</span>
-                              {h.notes && <span className="text-[11px] text-white/25">· {h.notes}</span>}
-                              <span className="text-[10px] text-white/20 ml-auto">{new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                            </div>
-                          );
-                        })}
+                    {/* Factory updates / stage history */}
+                    <div className="border-t border-white/[0.04] pt-3 space-y-2">
+                      <p className="text-[10px] text-white/25 uppercase tracking-widest">Factory Updates</p>
+                      {history.length === 0 ? (
+                        <p className="text-[11px] text-white/20 italic">No updates yet</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {history.map((h: any) => {
+                            const s = stageInfo(h.stage);
+                            return (
+                              <div key={h.id} className="flex items-start gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                                <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: s.color }} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
+                                    <span className="text-[10px] text-white/20">{new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                  </div>
+                                  {h.notes && <p className="text-[11px] text-white/40 mt-0.5">{h.notes}</p>}
+                                  {h.updated_by && <p className="text-[10px] text-white/20">{h.updated_by_role === "factory" ? "Factory" : "Admin"}</p>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Order notes */}
+                      <div className="pt-1">
+                        <p className="text-[10px] text-white/25 mb-1.5">Order Notes</p>
+                        <textarea
+                          defaultValue={order.batch_notes || order.notes || ""}
+                          onBlur={async e => {
+                            await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ action: "update_batch", id: order.id, batch_notes: e.target.value }) });
+                            load();
+                          }}
+                          rows={2}
+                          placeholder="Add notes about this order..."
+                          className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2 text-white/50 placeholder-white/15 text-xs focus:outline-none focus:border-white/15 resize-none transition"
+                        />
                       </div>
-                    )}
+                    </div>
                   </div>
                 );
               })}
