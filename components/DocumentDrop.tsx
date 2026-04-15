@@ -32,20 +32,6 @@ export default function DocumentDrop() {
   const fileDataRef = useRef<{ base64: string; name: string; type: string } | null>(null);
   const dragCounterRef = useRef(0);
 
-  const handleDragEnter = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    dragCounterRef.current++;
-    
-  }, [dropState]);
-
-  const handleDragLeave = useCallback((e: DragEvent) => {
-    e.preventDefault();
-    dragCounterRef.current--;
-    
-  }, []);
-
-  const handleDragOver = useCallback((e: DragEvent) => { e.preventDefault(); }, []);
-
   const processFile = useCallback(async (file: File, hint?: string) => {
     setFileName(file.name);
     setDropState("identifying");
@@ -83,26 +69,7 @@ export default function DocumentDrop() {
     setDropState("confirming");
   }, [userHint]);
 
-  const handleDrop = useCallback(async (e: DragEvent) => {
-    e.preventDefault();
-    dragCounterRef.current = 0;
-    const file = e.dataTransfer?.files?.[0];
-    if (!file) { setDropState("idle"); return; }
-    await processFile(file);
-  }, [processFile]);
 
-  useEffect(() => {
-    window.addEventListener("dragenter", handleDragEnter);
-    window.addEventListener("dragleave", handleDragLeave);
-    window.addEventListener("dragover", handleDragOver);
-    window.addEventListener("drop", handleDrop);
-    return () => {
-      window.removeEventListener("dragenter", handleDragEnter);
-      window.removeEventListener("dragleave", handleDragLeave);
-      window.removeEventListener("dragover", handleDragOver);
-      window.removeEventListener("drop", handleDrop);
-    };
-  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
 
   const execute = async () => {
     if (!identified || !fileDataRef.current) return;
