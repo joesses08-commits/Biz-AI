@@ -1933,17 +1933,9 @@ ${entry}` : entry;
                       );
                     })()}
 
-                    {false && <div className="flex items-center gap-4">
-                            {order.linked_po_number && <div>
-                              <p className="text-[10px] text-white/25 mb-0.5">PO</p>
-                              <p className="text-xs font-mono text-white/50">{order.linked_po_number}</p>
-                            </div>}
-                          </div>
+}
 
-                          {order.payment_terms && <p className="text-[10px] text-white/25">{order.payment_terms}</p>}
-                        </div>
-                      );
-                    })()}
+                    {/* end order financials */}
 
                     {/* Stage history */}
                     {history.length > 0 && (
