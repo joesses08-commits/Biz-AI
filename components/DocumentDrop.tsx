@@ -35,13 +35,13 @@ export default function DocumentDrop() {
   const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault();
     dragCounterRef.current++;
-    if (dropState === "idle") setDropState("dragging");
+    
   }, [dropState]);
 
   const handleDragLeave = useCallback((e: DragEvent) => {
     e.preventDefault();
     dragCounterRef.current--;
-    if (dragCounterRef.current === 0) setDropState("idle");
+    
   }, []);
 
   const handleDragOver = useCallback((e: DragEvent) => { e.preventDefault(); }, []);
