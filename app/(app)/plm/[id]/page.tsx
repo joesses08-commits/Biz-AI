@@ -130,6 +130,8 @@ export default function ProductPage() {
   // Orders
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [newOrder, setNewOrder] = useState({ factory_id: "", order_quantity: "", unit_price: "", tariff: "", freight: "", duty: "", margin_pct: "0", linked_po_number: "", payment_terms: "", batch_notes: "" });
+  const [orderFinancials, setOrderFinancials] = useState<Record<string, any>>({});
+  const [savingFinancials, setSavingFinancials] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
   const [updatingOrderStage, setUpdatingOrderStage] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
@@ -1825,32 +1827,28 @@ ${entry}` : entry;
 
                     {/* Order financials — editable with margin slider */}
                     {(() => {
-                      const orderId = order.id;
-                      const editKey = `order_edit_${orderId}`;
-                      const [localCost, setLocalCost] = useState(String(order.unit_price || ""));
-                      const [localTariff, setLocalTariff] = useState(String(order.tariff || ""));
-                      const [localFreight, setLocalFreight] = useState(String(order.freight || ""));
-                      const [localDuty, setLocalDuty] = useState(String(order.duty || ""));
-                      const [localMargin, setLocalMargin] = useState(String(order.margin || "0"));
-                      const [savingFinancials, setSavingFinancials] = useState(false);
+                      const oid = order.id;
+                      const fin = orderFinancials[oid] || {};
+                      const getV = (key: string, fallback: any) => fin[key] !== undefined ? fin[key] : String(order[key] || fallback);
+                      const setV = (key: string, val: string) => setOrderFinancials((prev: any) => ({ ...prev, [oid]: { ...(prev[oid] || {}), [key]: val } }));
 
-                      const fc = parseFloat(localCost) || 0;
-                      const tr = parseFloat(localTariff) || 0;
-                      const fr = parseFloat(localFreight) || 0;
-                      const du = parseFloat(localDuty) || 0;
+                      const fc = parseFloat(getV("unit_price", "")) || 0;
+                      const tr = parseFloat(getV("tariff", "")) || 0;
+                      const fr = parseFloat(getV("freight", "")) || 0;
+                      const du = parseFloat(getV("duty", "")) || 0;
                       const liveElc = fc + tr + fr + du;
-                      const liveMpct = parseFloat(localMargin) || 0;
+                      const liveMpct = parseFloat(getV("margin", "0")) || 0;
                       const liveSell = liveElc > 0 && liveMpct > 0 ? liveElc / (1 - liveMpct / 100) : 0;
                       const qty = order.order_quantity || order.quantity;
 
                       const saveFinancials = async () => {
-                        setSavingFinancials(true);
+                        setSavingFinancials(oid);
                         await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ action: "update_batch", id: orderId,
+                          body: JSON.stringify({ action: "update_batch", id: oid,
                             unit_price: fc || null, tariff: tr || null, freight: fr || null, duty: du || null,
                             elc: liveElc || null, sell_price: liveSell || null, margin: liveMpct || null,
                           }) });
-                        setSavingFinancials(false);
+                        setSavingFinancials(null);
                         load();
                       };
 
@@ -1861,17 +1859,17 @@ ${entry}` : entry;
                           {/* Cost inputs */}
                           <div className="grid grid-cols-4 gap-2">
                             {[
-                              { label: "First Cost", val: localCost, set: setLocalCost },
-                              { label: "Tariff", val: localTariff, set: setLocalTariff },
-                              { label: "Freight", val: localFreight, set: setLocalFreight },
-                              { label: "Duty", val: localDuty, set: setLocalDuty },
+                              { label: "First Cost", key: "unit_price", val: getV("unit_price","") },
+                              { label: "Tariff", key: "tariff", val: getV("tariff","") },
+                              { label: "Freight", key: "freight", val: getV("freight","") },
+                              { label: "Duty", key: "duty", val: getV("duty","") },
                             ].map(f => (
                               <div key={f.label}>
                                 <p className="text-[9px] text-white/25 mb-1">{f.label}</p>
                                 <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2 py-1.5">
                                   <span className="text-[10px] text-white/30">$</span>
                                   <input type="number" step="0.01" value={f.val}
-                                    onChange={e => f.set(e.target.value)}
+                                    onChange={e => setV((f as any).key, e.target.value)}
                                     className="flex-1 bg-transparent text-xs text-white/70 focus:outline-none w-full"
                                     placeholder="0.00" />
                                 </div>
@@ -1908,8 +1906,8 @@ ${entry}` : entry;
                                 <p className="text-[9px] text-white/25">Margin</p>
                                 <span className="text-xs font-bold text-emerald-400">{liveMpct}%</span>
                               </div>
-                              <input type="range" min="0" max="80" step="1" value={localMargin}
-                                onChange={e => setLocalMargin(e.target.value)}
+                              <input type="range" min="0" max="80" step="1" value={getV("margin","0")}
+                                onChange={e => setV("margin", e.target.value)}
                                 className="w-full accent-emerald-500 cursor-pointer" />
                               <div className="flex justify-between text-[9px] text-white/15 mt-0.5">
                                 <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
@@ -1925,9 +1923,9 @@ ${entry}` : entry;
                               </div>}
                               {order.payment_terms && <p className="text-[10px] text-white/25">{order.payment_terms}</p>}
                             </div>
-                            <button onClick={saveFinancials} disabled={savingFinancials}
+                            <button onClick={saveFinancials} disabled={savingFinancials === oid}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-white/50 text-xs hover:text-white/80 transition disabled:opacity-40">
-                              {savingFinancials ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                              {savingFinancials === oid ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
                               Save
                             </button>
                           </div>
@@ -1935,9 +1933,7 @@ ${entry}` : entry;
                       );
                     })()}
 
-                    {/* Sell price legacy display hidden — replaced above */}
-                    {false && (() => { const qty = null; return (
-                      <div className="flex items-center gap-4">
+                    {false && <div className="flex items-center gap-4">
                             {order.linked_po_number && <div>
                               <p className="text-[10px] text-white/25 mb-0.5">PO</p>
                               <p className="text-xs font-mono text-white/50">{order.linked_po_number}</p>
