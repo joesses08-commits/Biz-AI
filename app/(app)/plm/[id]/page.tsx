@@ -1826,9 +1826,9 @@ ${entry}` : entry;
                       const setV = (key: string, val: string) => setOrderFinancials((prev: any) => ({ ...prev, [oid]: { ...(prev[oid] || {}), [key]: val } }));
 
                       const fc = parseFloat(getV("unit_price", "")) || 0;
-                      const trPct = parseFloat(getV("tariff", "")) || 0;
+                      const trPct = parseFloat(getV("tariff_pct", "")) || 0;
                       const fr = parseFloat(getV("freight", "")) || 0;
-                      const duPct = parseFloat(getV("duty", "")) || 0;
+                      const duPct = parseFloat(getV("duty_pct", "")) || 0;
                       const tr = fc * trPct / 100;
                       const du = fc * duPct / 100;
                       const liveElc = fc + tr + du + fr; // ELC = first cost + tariff% + duty% + freight$
@@ -1843,7 +1843,7 @@ ${entry}` : entry;
                         setSavingFinancials(oid);
                         await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ action: "update_batch", id: oid,
-                            unit_price: fc || null, tariff: tr || null, freight: fr || null, duty: du || null,
+                            unit_price: fc || null, tariff_pct: trPct || null, freight: fr || null, duty_pct: duPct || null,
                             elc: liveElc || null, sell_price: liveSell || null, margin: liveMpct || null,
                           }) });
                         setSavingFinancials(null);
@@ -1858,9 +1858,9 @@ ${entry}` : entry;
                           <div className="grid grid-cols-4 gap-2">
                             {[
                               { label: "First Cost", key: "unit_price", val: getV("unit_price",""), prefix: "$", step: "0.01", ph: "0.00" },
-                              { label: "Tariff %", key: "tariff", val: getV("tariff",""), prefix: "%", step: "0.1", ph: "0" },
+                              { label: "Tariff %", key: "tariff_pct", val: getV("tariff_pct",""), prefix: "%", step: "0.1", ph: "0" },
                               { label: "Freight $", key: "freight", val: getV("freight",""), prefix: "$", step: "0.01", ph: "0.00" },
-                              { label: "Duty %", key: "duty", val: getV("duty",""), prefix: "%", step: "0.1", ph: "0" },
+                              { label: "Duty %", key: "duty_pct", val: getV("duty_pct",""), prefix: "%", step: "0.1", ph: "0" },
                             ].map((f: any) => (
                               <div key={f.label}>
                                 <p className="text-[9px] text-white/25 mb-1">{f.label}</p>

@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
 
   if (body.action === "update_batch") {
-    const { id, factory_id, target_elc, actual_elc, target_sell_price, order_quantity, moq, linked_po_number, tracking_number, batch_notes, unit_price, tariff, freight, duty, elc, sell_price, margin } = body;
+    const { id, factory_id, target_elc, actual_elc, target_sell_price, order_quantity, moq, linked_po_number, tracking_number, batch_notes, unit_price, tariff, freight, duty, tariff_pct, duty_pct, elc, sell_price, margin } = body;
     const { error } = await supabaseAdmin.from("plm_batches").update({
       factory_id: factory_id !== undefined ? factory_id : undefined,
       target_elc: target_elc !== undefined ? target_elc : undefined,
@@ -31,6 +31,8 @@ export async function POST(req: NextRequest) {
       batch_notes: batch_notes !== undefined ? batch_notes : undefined,
       unit_price: unit_price !== undefined ? unit_price : undefined,
       tariff: tariff !== undefined ? tariff : undefined,
+      tariff_pct: tariff_pct !== undefined ? tariff_pct : undefined,
+      duty_pct: duty_pct !== undefined ? duty_pct : undefined,
       freight: freight !== undefined ? freight : undefined,
       duty: duty !== undefined ? duty : undefined,
       elc: elc !== undefined ? elc : undefined,
