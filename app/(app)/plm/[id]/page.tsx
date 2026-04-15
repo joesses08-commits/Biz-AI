@@ -1444,8 +1444,6 @@ Jimmy AI`}
                 </div>
               </div>
             </div>
-          
-            </div>
           )}
 
           {/* ── SAMPLE REQUESTS SECTION ── */}
