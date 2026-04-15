@@ -128,6 +128,29 @@ export default function PortalProductPage() {
   const sampleRequests = allSampleRequests;
   const orders = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
   const isOnHold = product?.status === "hold";
+  const isDisqualified = product?.is_disqualified;
+  const disqualifyReason = product?.disqualify_reason;
+
+  if (isDisqualified) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-8">
+        <div className="text-center space-y-4 max-w-sm">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
+            <span className="text-2xl">✕</span>
+          </div>
+          <p className="text-white font-semibold">Sample Disqualified</p>
+          <p className="text-white/40 text-sm">
+            {disqualifyReason === "price" ? "This factory was not selected due to pricing for this order."
+              : disqualifyReason === "speed" ? "This factory was not selected due to lead time requirements."
+              : disqualifyReason === "quality" ? "This factory was not selected due to quality requirements."
+              : "This factory was not selected for this product."}
+          </p>
+          <p className="text-white/25 text-xs">Please disregard any further sample production for this item. You will be considered for future opportunities.</p>
+          <button onClick={() => router.back()} className="px-4 py-2 rounded-xl border border-white/10 text-white/40 text-sm">← Back</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">

@@ -49,6 +49,19 @@ export async function GET(req: NextRequest) {
     .eq("factory_id", portalUser.factory_id)
     .order("created_at", { ascending: true });
 
+  // Check if this factory's track is disqualified
+  const { data: factoryTrack } = await supabaseAdmin
+    .from("plm_factory_tracks")
+    .select("status, disqualify_reason, disqualified_at")
+    .eq("product_id", productId)
+    .eq("factory_id", portalUser.factory_id)
+    .single();
+
+  const isDisqualified = factoryTrack?.status === "killed" && factoryTrack?.disqualified_at;
+  // Hide from portal after 3 days
+  const disqualifiedAt = factoryTrack?.disqualified_at ? new Date(factoryTrack.disqualified_at) : null;
+  const hideFromPortal = disqualifiedAt && (Date.now() - disqualifiedAt.getTime()) > 3 * 24 * 60 * 60 * 1000;
+
   return NextResponse.json({ 
     product: { 
       ...product, 

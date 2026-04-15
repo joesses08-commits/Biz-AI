@@ -261,5 +261,44 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  // ── DISQUALIFY TRACK
+  if (action === "disqualify_track") {
+    const { track_id, reason, note, product_name, factory_name, factory_email } = body;
+    await supabaseAdmin.from("plm_factory_tracks").update({
+      status: "killed",
+      disqualify_reason: reason,
+      disqualify_note: note || null,
+      disqualified_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("id", track_id).eq("user_id", user.id);
+
+    if (factory_email) {
+      const reasonText = reason === "price" ? "pricing was not competitive for this order"
+        : reason === "speed" ? "lead times were not able to meet our timeline requirements"
+        : "quality of samples did not meet our specifications";
+      const emailBody = `Hi ${factory_name} team,
+
+Thank you for your time and effort on the ${product_name} sample. We truly appreciate the work you put in.
+
+After careful consideration, we have decided to move forward with another supplier for this particular product, as their ${reasonText}.${note ? `
+
+${note}` : ""}
+
+Please disregard any further sample production for this item. We hope to work together on future opportunities and will keep you in mind for upcoming projects.
+
+Thank you again for your partnership.
+
+Best regards,
+Jimmy AI`;
+      await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ from: "onboarding@resend.dev", to: factory_email, subject: `Update on ${product_name} Sample`, text: emailBody }),
+      });
+    }
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
+
