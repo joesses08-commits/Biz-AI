@@ -86,6 +86,7 @@ export default function DocumentDrop() {
         rfq_job_id: identified.rfq_job_id,
         extracted_data: identified.extracted_data,
         file_name: fileDataRef.current.name,
+        file_base64: fileDataRef.current.base64,
       }),
     });
     const data = await res.json();
