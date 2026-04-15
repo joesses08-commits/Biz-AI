@@ -119,6 +119,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}
         <NavItem href="/plm" icon={Package} label="Product Lifecycle" description="SKUs & collections" dot={plmActionCount > 0 ? "red" : plmUpdateCount > 0 ? "yellow" : null} />
         <NavItem href="/inventory" icon={Warehouse} label="Inventory" description="Stock & warehouses" />
         <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
+        <NavItem href="/plm/agent" icon={Sparkles} label="PLM Agent" description="Ask about your products" />
         <NavItem href="/coming-soon" icon={Sparkles} label="Coming Soon" description="What's next" />
 
         <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mt-4 mb-2">Integrations</div>
