@@ -7,10 +7,10 @@ import ReactMarkdown from "react-markdown";
 const SUGGESTED = [
   "What's my best factory right now?",
   "Which products still need samples?",
-  "How does Georges factory compare to Joeys?",
+  "Compare my factories by approval rate",
   "What's the average approved price per factory?",
   "Which products are approved and ready to order?",
-  "What's the status of the Christmas glass collection?",
+  "Which collections are furthest along?",
   "Which factories have the most revisions?",
   "What needs my attention right now?",
 ];
@@ -28,7 +28,19 @@ export default function PLMAgentPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Load history from localStorage
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("plm-agent-history");
+      if (saved) setMessages(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  // Save history to localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      try { localStorage.setItem("plm-agent-history", JSON.stringify(messages.slice(-30))); } catch {}
+    }
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -79,7 +91,7 @@ export default function PLMAgentPage() {
           </div>
         </div>
         {messages.length > 0 && (
-          <button onClick={() => setMessages([])} className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition">
+          <button onClick={() => { setMessages([]); try { localStorage.removeItem("plm-agent-history"); } catch {} }} className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition">
             <RotateCcw size={11} />New chat
           </button>
         )}
