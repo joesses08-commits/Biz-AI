@@ -150,25 +150,6 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         console.log(`Matching ep: ${ep.name} (${ep.sku}) -> matched: ${matched?.name}`);
         if (!matched) continue;
 
-        // Build factory note from all extracted data
-        const noteLines = [`Quote from ${factory_name || "factory"} (${new Date().toLocaleDateString()}):`];
-        if (ep.price) noteLines.push(`  Price: $${ep.price}`);
-        if (ep.moq) noteLines.push(`  MOQ: ${ep.moq}`);
-        if (ep.lead_time) noteLines.push(`  Lead time: ${ep.lead_time}`);
-        if (ep.sample_lead_time) noteLines.push(`  Sample lead: ${ep.sample_lead_time}`);
-        if (ep.payment_terms) noteLines.push(`  Payment: ${ep.payment_terms}`);
-        const factoryNote = noteLines.join("\n");
-
-        // Append to factory track notes
-        if (track) {
-          const existingNotes = (track as any).notes || "";
-          const updatedNotes = existingNotes ? `${existingNotes}
-${factoryNote}` : factoryNote;
-          await supabaseAdmin.from("plm_factory_tracks").update({
-            notes: updatedNotes, updated_at: new Date().toISOString()
-          }).eq("id", (track as any).id);
-        }
-
         // Find track for this factory
         let track = (allTracks || []).find((t: any) => t.product_id === matched.id);
 
@@ -181,6 +162,20 @@ ${factoryNote}` : factoryNote;
           if (newTrack) track = newTrack as any;
         }
         if (!track) continue;
+
+        // Build factory note from all extracted data and save to track
+        const noteLines = [`Quote from ${factory_name || "factory"} (${new Date().toLocaleDateString()}):`];
+        if (ep.price) noteLines.push(`  Price: $${ep.price}`);
+        if (ep.moq) noteLines.push(`  MOQ: ${ep.moq}`);
+        if (ep.lead_time) noteLines.push(`  Lead time: ${ep.lead_time}`);
+        if (ep.sample_lead_time) noteLines.push(`  Sample lead: ${ep.sample_lead_time}`);
+        if (ep.payment_terms) noteLines.push(`  Payment: ${ep.payment_terms}`);
+        const factoryNote = noteLines.join("\n");
+        const existingTrackNotes = (track as any).notes || "";
+        await supabaseAdmin.from("plm_factory_tracks").update({
+          notes: existingTrackNotes ? `${existingTrackNotes}\n${factoryNote}` : factoryNote,
+          updated_at: new Date().toISOString()
+        }).eq("id", (track as any).id);
 
         const stages = (track as any).plm_track_stages || [];
         const revNum = stages.filter((s: any) => s.stage === "revision_requested").length;
