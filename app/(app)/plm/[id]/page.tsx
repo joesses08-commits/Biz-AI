@@ -1699,7 +1699,7 @@ ${entry}` : entry;
                         onChange={e => setNewOrder({...newOrder, margin_pct: e.target.value})}
                         className="w-full accent-emerald-500 cursor-pointer" />
                       <div className="flex justify-between text-[9px] text-white/20 mt-1">
-                        <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
+                        <span>0%</span><span>50%</span><span>100%</span><span>150%</span><span>200%</span>
                       </div>
                     </div>
                   )}
@@ -1766,10 +1766,7 @@ ${entry}` : entry;
                     {(() => {
                       const devComplete = product.current_stage === "sample_approved";
                       if (!devComplete) return (
-                        <div className="border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-white/20" />
-                          <p className="text-xs text-white/30">Production unlocks once development reaches Sample Approved</p>
-                        </div>
+
                       );
                       const orderCurrentIdx = ORDER_STAGES.findIndex(s => s.key === order.current_stage);
                       const orderPrev = orderCurrentIdx > 0 ? ORDER_STAGES[orderCurrentIdx - 1] : null;
@@ -1926,11 +1923,11 @@ ${entry}` : entry;
                                 <p className="text-[9px] text-white/25">Margin</p>
                                 <span className="text-xs font-bold text-emerald-400">{liveMpct}%</span>
                               </div>
-                              <input type="range" min="0" max="80" step="1" value={getV("margin","0")}
+                              <input type="range" min="0" max="200" step="1" value={getV("margin","0")}
                                 onChange={e => setV("margin", e.target.value)}
                                 className="w-full accent-emerald-500 cursor-pointer" />
                               <div className="flex justify-between text-[9px] text-white/15 mt-0.5">
-                                <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
+                                <span>0%</span><span>50%</span><span>100%</span><span>150%</span><span>200%</span>
                               </div>
                             </div>
                           )}
@@ -1980,20 +1977,35 @@ ${entry}` : entry;
                       )}
 
                       {/* Order notes */}
-                      <div className="pt-1">
-                        <p className="text-[10px] text-white/25 mb-1.5">Order Notes</p>
-                        <textarea
-                          defaultValue={order.batch_notes || order.notes || ""}
-                          onBlur={async e => {
-                            await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ action: "update_batch", id: order.id, batch_notes: e.target.value }) });
-                            load();
-                          }}
-                          rows={2}
-                          placeholder="Add notes about this order..."
-                          className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2 text-white/50 placeholder-white/15 text-xs focus:outline-none focus:border-white/15 resize-none transition"
-                        />
-                      </div>
+                      {(() => {
+                        const noteKey = `note_${order.id}`;
+                        const noteVal = orderFinancials[noteKey]?.note !== undefined ? orderFinancials[noteKey].note : (order.batch_notes || order.notes || "");
+                        const noteDirty = orderFinancials[noteKey]?.dirty || false;
+                        return (
+                          <div className="pt-1">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <p className="text-[10px] text-white/25 uppercase tracking-widest">Order Notes</p>
+                              {noteDirty && (
+                                <button onClick={async () => {
+                                  await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ action: "update_batch", id: order.id, batch_notes: noteVal }) });
+                                  setOrderFinancials((prev: any) => ({ ...prev, [noteKey]: { note: noteVal, dirty: false } }));
+                                  load();
+                                }} className="text-[10px] px-2 py-0.5 rounded-lg bg-white text-black font-semibold">
+                                  Save
+                                </button>
+                              )}
+                            </div>
+                            <textarea
+                              value={noteVal}
+                              onChange={e => setOrderFinancials((prev: any) => ({ ...prev, [noteKey]: { note: e.target.value, dirty: true } }))}
+                              rows={2}
+                              placeholder="Add notes about this order..."
+                              className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2 text-white/50 placeholder-white/15 text-xs focus:outline-none focus:border-white/15 resize-none transition"
+                            />
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
