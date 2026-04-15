@@ -134,6 +134,10 @@ Respond ONLY with valid JSON (no markdown, no explanation):
       const today = new Date().toISOString().split("T")[0];
       let updated = 0;
 
+      console.log("factory_id resolved:", factory_id);
+      console.log("products_extracted:", JSON.stringify(products_extracted?.slice(0,3)));
+      console.log("allProducts:", JSON.stringify((allProducts || []).slice(0,3)));
+
       for (const ep of products_extracted) {
         // Match to known product — SKU first, then name
         const epSku = ep.sku?.trim().toLowerCase();
@@ -143,6 +147,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
           (epName && p.name?.trim().toLowerCase().includes(epName)) ||
           (epName && epName.includes(p.name?.trim().toLowerCase()))
         );
+        console.log(`Matching ep: ${ep.name} (${ep.sku}) -> matched: ${matched?.name}`);
         if (!matched) continue;
 
         // Find track for this factory

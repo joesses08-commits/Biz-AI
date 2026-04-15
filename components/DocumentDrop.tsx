@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { X, FileText, Loader2, CheckCircle, AlertCircle, Upload } from "lucide-react";
 
-type DropState = "idle" | "dragging" | "identifying" | "confirming" | "executing" | "done" | "error";
+type DropState = "idle" | "identifying" | "confirming" | "executing" | "done" | "error";
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   factory_quote: "Factory Quote",
@@ -222,19 +222,9 @@ export default function DocumentDrop() {
         </div>
       )}
 
-      {/* ── Modal overlay (drag/identifying/confirming/executing/done/error) ── */}
+      {/* ── Modal overlay ── */}
       {dropState !== "idle" && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center" style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}>
-
-          {dropState === "dragging" && (
-            <div className="flex flex-col items-center gap-4 pointer-events-none">
-              <div className="w-24 h-24 rounded-3xl bg-white/[0.06] border-2 border-dashed border-white/20 flex items-center justify-center">
-                <Upload size={32} className="text-white/40" />
-              </div>
-              <p className="text-white/60 text-lg font-semibold">Drop to analyze</p>
-              <p className="text-white/30 text-sm">Jimmy will identify and wire it in automatically</p>
-            </div>
-          )}
 
           {dropState === "identifying" && (
             <div className="flex flex-col items-center gap-4">
