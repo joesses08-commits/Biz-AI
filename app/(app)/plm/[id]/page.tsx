@@ -1913,14 +1913,24 @@ ${entry}` : entry;
                             </div>
                           )}
 
-                          {/* Margin slider */}
+                          {/* Markup slider + manual input */}
                           {liveElc > 0 && (
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
                                 <p className="text-[9px] text-white/25">Markup</p>
-                                <span className="text-xs font-bold text-emerald-400">{liveMpct}%</span>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    step="0.1"
+                                    value={liveMpct}
+                                    onChange={e => setV("margin", e.target.value)}
+                                    onKeyDown={e => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                                    className="w-16 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-0.5 text-xs text-emerald-400 font-bold text-right focus:outline-none focus:border-emerald-500/40"
+                                  />
+                                  <span className="text-xs text-emerald-400 font-bold">%</span>
+                                </div>
                               </div>
-                              <input type="range" min="0" max="200" step="1" value={getV("margin","0")}
+                              <input type="range" min="0" max="200" step="0.1" value={getV("margin","0")}
                                 onChange={e => setV("margin", e.target.value)}
                                 className="w-full accent-emerald-500 cursor-pointer" />
                               <div className="flex justify-between text-[9px] text-white/15 mt-0.5">
