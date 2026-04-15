@@ -129,7 +129,7 @@ export default function ProductPage() {
 
   // Orders
   const [showNewOrder, setShowNewOrder] = useState(false);
-  const [newOrder, setNewOrder] = useState({ factory_id: "", order_quantity: "", moq: "", target_elc: "", actual_elc: "", target_sell_price: "", linked_po_number: "", batch_notes: "" });
+  const [newOrder, setNewOrder] = useState({ factory_id: "", order_quantity: "", unit_price: "", tariff: "", freight: "", duty: "", margin_pct: "0", linked_po_number: "", payment_terms: "", batch_notes: "" });
   const [savingOrder, setSavingOrder] = useState(false);
   const [updatingOrderStage, setUpdatingOrderStage] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
