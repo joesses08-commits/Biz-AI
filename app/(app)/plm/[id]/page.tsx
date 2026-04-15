@@ -1933,10 +1933,6 @@ ${entry}` : entry;
                       );
                     })()}
 
-}
-
-                    {/* end order financials */}
-
                     {/* Stage history */}
                     {history.length > 0 && (
                       <div className="space-y-1 border-t border-white/[0.04] pt-2">
