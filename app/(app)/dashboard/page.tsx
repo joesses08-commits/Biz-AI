@@ -169,11 +169,11 @@ export default function DashboardPage() {
         {/* ── KPI row ── */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
-            { label: "Total Products", value: totalProducts, icon: Package, color: "#8b5cf6", sub: `${approvedProducts} approved` },
-            { label: "Factories", value: totalFactories, icon: Factory, color: "#3b82f6", sub: `${approvedTracks.length} approved tracks` },
-            { label: "Collections", value: collections.length, icon: Layers, color: "#ec4899", sub: `${collectionStats.length} active` },
-            { label: "Active Orders", value: activeOrders, icon: TrendingUp, color: "#f59e0b", sub: orders.length > 0 ? `${orders.length} total` : "No orders" },
-            { label: "Avg Approved ELC", value: avgApprovedPrice ? `$${avgApprovedPrice}` : "—", icon: BarChart3, color: "#10b981", sub: `${approvedTracks.filter((t: any) => t.approved_price).length} with price` },
+            { label: "Total Products", value: totalProducts, icon: Package, color: "#8b5cf6", sub: approvedProducts > 0 ? `${approvedProducts} fully approved` : "None approved yet" },
+            { label: "Factories", value: totalFactories, icon: Factory, color: "#3b82f6", sub: `${factoryStats.filter((f: any) => f.approved > 0).length} of ${totalFactories} have approvals` },
+            { label: "Collections", value: collections.length, icon: Layers, color: "#ec4899", sub: collectionStats.length > 0 ? `${collectionStats.length} with products` : "No collections yet" },
+            { label: "Active Orders", value: activeOrders, icon: TrendingUp, color: "#f59e0b", sub: activeOrders > 0 ? `${orders.length - activeOrders} completed` : orders.length > 0 ? "All completed" : "No orders yet" },
+            { label: "Avg Approved ELC", value: avgApprovedPrice ? `$${avgApprovedPrice}` : "—", icon: BarChart3, color: "#10b981", sub: approvedTracks.filter((t: any) => t.approved_price).length > 0 ? `across ${approvedTracks.filter((t: any) => t.approved_price).length} approved products` : "No prices set yet" },
           ].map(item => (
             <div key={item.label} className={`${ic} p-5`}>
               <div className="flex items-center justify-between mb-3">
