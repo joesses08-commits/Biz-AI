@@ -121,6 +121,7 @@ Today: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeri
   const outputTokens = response.usage.output_tokens;
   await trackUsage(user.id, "plm_agent", "claude-haiku-4-5-20251001", inputTokens, outputTokens);
 
-  const reply = response.content.find((c: any) => c.type === "text")?.text || "";
+  const replyBlock = response.content.find((c: any) => c.type === "text") as any;
+  const reply = replyBlock?.text || "";
   return NextResponse.json({ reply });
 }
