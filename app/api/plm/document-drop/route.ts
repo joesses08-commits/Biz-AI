@@ -72,6 +72,8 @@ ${user_hint ? `User hint: "${user_hint}"` : ""}
 Document content:
 ${fileContent}
 
+IMPORTANT: unit_price must always be price PER UNIT not the line total. If you see a total and a quantity, divide total by quantity.
+
 Respond ONLY with valid JSON (no markdown, no explanation):
 {
   "doc_type": "factory_quote" | "purchase_order" | "sample_feedback" | "product_import" | "unknown",
@@ -81,7 +83,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "summary": "one sentence describing what this document is",
   "confirmation_message": "friendly message asking user to confirm, e.g. 'This looks like a quote from Fred Factory for 5 products — add to quote comparison and mark quotes received?'",
   "extracted_data": {
-    "products": [{"name": "", "sku": "", "unit_price": null, "quantity": null, "moq": null, "lead_time": ""}], NOTE: unit_price must be price PER UNIT not total. If you see a total price and quantity, divide total by quantity to get unit price.
+    "products": [{"name": "", "sku": "", "unit_price": null, "quantity": null, "moq": null, "lead_time": ""}],
     "po_number": "PO number if found or null",
     "payment_terms": "payment terms if found or null",
     "order_qty": null,
