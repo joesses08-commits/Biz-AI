@@ -109,14 +109,26 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 
   // ── STEP 2: EXECUTE — wire it into PLM
   if (action === "execute") {
-    const { doc_type, factory_id, factory_name, rfq_job_id, extracted_data } = body;
+    const { doc_type, factory_name, rfq_job_id, extracted_data, file_name } = body;
+    let { factory_id } = body;
 
     // ── FACTORY QUOTE
     if (doc_type === "factory_quote") {
       const products_extracted = extracted_data?.products || [];
+
+      // Resolve factory_id by name if not provided
+      if (!factory_id && factory_name) {
+        const { data: fMatch } = await supabaseAdmin.from("factory_catalog")
+          .select("id").eq("user_id", user.id)
+          .ilike("name", `%${factory_name}%`).single();
+        if (fMatch) factory_id = fMatch.id;
+      }
+
       const [{ data: allProducts }, { data: allTracks }] = await Promise.all([
         supabaseAdmin.from("plm_products").select("id, name, sku").eq("user_id", user.id).eq("killed", false),
-        supabaseAdmin.from("plm_factory_tracks").select("id, product_id, factory_id, plm_track_stages(id, stage, status, revision_number)").eq("user_id", user.id).eq("factory_id", factory_id || ""),
+        factory_id
+          ? supabaseAdmin.from("plm_factory_tracks").select("id, product_id, factory_id, plm_track_stages(id, stage, status, revision_number)").eq("user_id", user.id).eq("factory_id", factory_id)
+          : Promise.resolve({ data: [] }),
       ]);
 
       const today = new Date().toISOString().split("T")[0];
@@ -182,14 +194,36 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         updated++;
       }
 
-      // Add to RFQ job if matched
-      if (rfq_job_id) {
-        await supabaseAdmin.from("factory_quotes").insert({
-          job_id: rfq_job_id, factory_name: factory_name || "Unknown",
-          factory_email: null, status: "processed",
-          processed_data: products_extracted,
-          raw_data: { source: "document_drop", file_name },
-        });
+      // Add to RFQ job if matched — find most recent job if not specified
+      let jobId = rfq_job_id;
+      if (!jobId) {
+        const { data: latestJob } = await supabaseAdmin.from("factory_quote_jobs")
+          .select("id").eq("user_id", user.id)
+          .order("created_at", { ascending: false }).limit(1).single();
+        if (latestJob) jobId = latestJob.id;
+      }
+      if (jobId) {
+        // Check if quote already exists for this factory
+        const { data: existingQuote } = await supabaseAdmin.from("factory_quotes")
+          .select("id").eq("job_id", jobId).eq("factory_name", factory_name || "Unknown").single();
+        if (existingQuote) {
+          await supabaseAdmin.from("factory_quotes").update({
+            status: "processed",
+            processed_data: products_extracted,
+            raw_data: { source: "document_drop", file_name },
+          }).eq("id", existingQuote.id);
+        } else {
+          await supabaseAdmin.from("factory_quotes").insert({
+            job_id: jobId, factory_name: factory_name || "Unknown",
+            factory_email: null, status: "processed",
+            processed_data: products_extracted,
+            raw_data: { source: "document_drop", file_name },
+          });
+        }
+        // Update job status
+        await supabaseAdmin.from("factory_quote_jobs").update({
+          updated_at: new Date().toISOString(),
+        }).eq("id", jobId);
       }
 
       return NextResponse.json({ success: true, message: `Updated ${updated} products with quote data from ${factory_name}` });
