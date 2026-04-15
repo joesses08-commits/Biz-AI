@@ -133,6 +133,18 @@ export default function ProductPage() {
   const [orderFinancials, setOrderFinancials] = useState<Record<string, any>>({});
   const [savingFinancials, setSavingFinancials] = useState<string | null>(null);
   const [savingOrder, setSavingOrder] = useState(false);
+
+  // Disqualify
+  const [disqualifyModal, setDisqualifyModal] = useState<{ track: any } | null>(null);
+  const [disqualifyReason, setDisqualifyReason] = useState("price");
+  const [disqualifyNote, setDisqualifyNote] = useState("");
+  const [disqualifying, setDisqualifying] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: any) => { setDisqualifyReason("price"); setDisqualifyNote(""); setDisqualifyModal({ track: e.detail }); };
+    window.addEventListener("disqualify-track", handler);
+    return () => window.removeEventListener("disqualify-track", handler);
+  }, []);
   const [updatingOrderStage, setUpdatingOrderStage] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
 
@@ -1086,7 +1098,7 @@ ${entry}` : entry;
                     {isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">Disqualified</span>}
                     {revision > 0 && !isApproved && !isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 flex-shrink-0">Rev {revision}</span>}
                     {!isApproved && !isKilledTrack && !isLocked && (
-                      <button onClick={e => { e.stopPropagation(); (window as any).__disqualifyTrack?.(track); }}
+                      <button onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("disqualify-track", { detail: track })); }}
                         className="text-[9px] px-1.5 py-0.5 rounded border border-red-500/20 text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition flex-shrink-0 ml-auto">
                         Disqualify
                       </button>
@@ -1366,6 +1378,73 @@ ${entry}` : entry;
                   <button onClick={() => setKillModal(null)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs text-center">Cancel</button>
                 </div>
               </div>
+          )}
+
+          {/* Disqualify Modal */}
+          {disqualifyModal && (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+              <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-white">Disqualify {disqualifyModal.track.factory_catalog?.name}</p>
+                    <p className="text-xs text-white/40 mt-0.5">They will be notified by email and their track will be greyed out</p>
+                  </div>
+                  <button onClick={() => setDisqualifyModal(null)} className="text-white/30 hover:text-white/60 text-lg">✕</button>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Reason</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[{ key: "price", label: "Price", icon: "💰" }, { key: "speed", label: "Speed", icon: "⏱" }, { key: "quality", label: "Quality", icon: "⚠️" }].map(r => (
+                      <button key={r.key} onClick={() => setDisqualifyReason(r.key)}
+                        className={`py-2.5 rounded-xl border text-xs font-semibold transition ${disqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[0.06] text-white/40 hover:border-white/20"}`}>
+                        {r.icon} {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Additional Note (optional)</p>
+                  <textarea value={disqualifyNote} onChange={e => setDisqualifyNote(e.target.value)} rows={2}
+                    placeholder="e.g. Lead time was 60 days vs our requirement of 45..."
+                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Email Preview</p>
+                  <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 text-xs text-white/40 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+                    {`Hi ${disqualifyModal.track.factory_catalog?.name} team,
+
+Thank you for your time and effort on the ${product.name} sample. We truly appreciate the work you put in.
+
+After careful consideration, we have decided to move forward with another supplier for this product, as their ${disqualifyReason === "price" ? "pricing was more competitive for this order" : disqualifyReason === "speed" ? "lead times better met our timeline requirements" : "quality better met our specifications"}.${disqualifyNote ? `
+
+${disqualifyNote}` : ""}
+
+Please disregard any further sample production for this item. We hope to work together on future opportunities.
+
+Best regards,
+Jimmy AI`}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={async () => {
+                    setDisqualifying(true);
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "disqualify_track", track_id: disqualifyModal.track.id, reason: disqualifyReason, note: disqualifyNote, product_name: product.name, factory_name: disqualifyModal.track.factory_catalog?.name, factory_email: disqualifyModal.track.factory_catalog?.email }) });
+                    setDisqualifying(false); setDisqualifyModal(null); load();
+                  }} disabled={disqualifying}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold disabled:opacity-40">
+                    {disqualifying ? <Loader2 size={13} className="animate-spin" /> : null}
+                    Disqualify & Send Email
+                  </button>
+                  <button onClick={() => setDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm">Cancel</button>
+                </div>
+              </div>
+            </div>
+          
             </div>
           )}
 
