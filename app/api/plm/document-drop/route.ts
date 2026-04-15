@@ -4,7 +4,24 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import * as XLSX from "xlsx";
+import JSZip from "jszip";
 import { trackUsage } from "@/lib/track-usage";
+
+async function extractExcelImages(base64: string): Promise<Buffer[]> {
+  try {
+    const buffer = Buffer.from(base64, "base64");
+    const zip = await JSZip.loadAsync(buffer);
+    const mediaFiles = Object.keys(zip.files)
+      .filter(f => f.startsWith("xl/media/") && !zip.files[f].dir)
+      .sort();
+    const images: Buffer[] = [];
+    for (const f of mediaFiles) {
+      const data = await zip.files[f].async("nodebuffer");
+      images.push(data);
+    }
+    return images;
+  } catch { return []; }
+}
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
@@ -400,7 +417,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
     if (doc_type === "product_import") {
       const { products: importProducts, collection_name } = extracted_data || {};
 
-      // Create collection if named
+      // Create or find collection
       let collectionId = null;
       if (collection_name) {
         const { data: existing } = await supabaseAdmin.from("plm_collections")
@@ -414,10 +431,18 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         }
       }
 
+      // Extract images from Excel zip
+      const images = file_base64 ? await extractExcelImages(file_base64) : [];
+      console.log(`Extracted ${images.length} images from Excel`);
+
       let created = 0;
-      for (const ep of (importProducts || [])) {
-        if (!ep.name) continue;
-        await supabaseAdmin.from("plm_products").insert({
+      const validProducts = (importProducts || []).filter((ep: any) => ep.name);
+
+      for (let i = 0; i < validProducts.length; i++) {
+        const ep = validProducts[i];
+
+        // Insert product
+        const { data: newProduct } = await supabaseAdmin.from("plm_products").insert({
           user_id: user.id,
           name: ep.name,
           sku: ep.sku || null,
@@ -427,11 +452,31 @@ Respond ONLY with valid JSON (no markdown, no explanation):
           collection_id: collectionId,
           status: "concept",
           killed: false,
-        });
+        }).select("id").single();
+
+        // Upload image if available for this product row
+        if (newProduct && images[i]) {
+          try {
+            const imgBuffer = images[i];
+            const ext = "jpg";
+            const imgPath = `${user.id}/${newProduct.id}/imported_${Date.now()}.${ext}`;
+            const { error: uploadError } = await supabaseAdmin.storage
+              .from("plm-images")
+              .upload(imgPath, imgBuffer, { contentType: "image/jpeg", upsert: true });
+            if (!uploadError) {
+              const { data: urlData } = supabaseAdmin.storage.from("plm-images").getPublicUrl(imgPath);
+              await supabaseAdmin.from("plm_products").update({
+                image_url: urlData.publicUrl, updated_at: new Date().toISOString()
+              }).eq("id", newProduct.id);
+            }
+          } catch (imgErr) {
+            console.log("Image upload failed for product", ep.name, imgErr);
+          }
+        }
         created++;
       }
 
-      return NextResponse.json({ success: true, message: `Created ${created} products${collection_name ? ` in "${collection_name}"` : ""}` });
+      return NextResponse.json({ success: true, message: `Created ${created} products${collection_name ? ` in "${collection_name}"` : ""}${images.length > 0 ? ` with ${Math.min(images.length, created)} images` : ""}` });
     }
 
     return NextResponse.json({ error: "Unknown document type" }, { status: 400 });
