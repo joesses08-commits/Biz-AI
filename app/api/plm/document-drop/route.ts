@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { file_base64, file_name, file_type, action } = body;
+  const { file_base64, file_name, file_type, action, user_hint } = body;
 
   // ── STEP 1: IDENTIFY — what is this document?
   if (action === "identify") {
@@ -68,6 +68,7 @@ Known factories: ${factoryList}
 Recent RFQ jobs: ${rfqList}
 
 Document filename: ${file_name}
+${user_hint ? `User hint: "${user_hint}"` : ""}
 Document content:
 ${fileContent}
 
