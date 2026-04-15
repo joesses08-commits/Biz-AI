@@ -1823,60 +1823,121 @@ ${entry}` : entry;
                       );
                     })()}
 
-                    {/* Order financials */}
+                    {/* Order financials — editable with margin slider */}
                     {(() => {
-                      const firstCost = order.unit_price || order.target_elc;
-                      const tariff = order.tariff || 0;
-                      const freight = order.freight || 0;
-                      const duty = order.duty || 0;
-                      const elc = order.elc || (firstCost ? parseFloat(firstCost) + tariff + freight + duty : null);
-                      const sellPrice = order.sell_price || order.target_sell_price;
-                      const orderMargin = order.margin || (elc && sellPrice ? Math.round(((sellPrice - elc) / sellPrice) * 100) : null);
+                      const orderId = order.id;
+                      const editKey = `order_edit_${orderId}`;
+                      const [localCost, setLocalCost] = useState(String(order.unit_price || ""));
+                      const [localTariff, setLocalTariff] = useState(String(order.tariff || ""));
+                      const [localFreight, setLocalFreight] = useState(String(order.freight || ""));
+                      const [localDuty, setLocalDuty] = useState(String(order.duty || ""));
+                      const [localMargin, setLocalMargin] = useState(String(order.margin || "0"));
+                      const [savingFinancials, setSavingFinancials] = useState(false);
+
+                      const fc = parseFloat(localCost) || 0;
+                      const tr = parseFloat(localTariff) || 0;
+                      const fr = parseFloat(localFreight) || 0;
+                      const du = parseFloat(localDuty) || 0;
+                      const liveElc = fc + tr + fr + du;
+                      const liveMpct = parseFloat(localMargin) || 0;
+                      const liveSell = liveElc > 0 && liveMpct > 0 ? liveElc / (1 - liveMpct / 100) : 0;
                       const qty = order.order_quantity || order.quantity;
 
+                      const saveFinancials = async () => {
+                        setSavingFinancials(true);
+                        await fetch("/api/plm/batch", { method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ action: "update_batch", id: orderId,
+                            unit_price: fc || null, tariff: tr || null, freight: fr || null, duty: du || null,
+                            elc: liveElc || null, sell_price: liveSell || null, margin: liveMpct || null,
+                          }) });
+                        setSavingFinancials(false);
+                        load();
+                      };
+
                       return (
-                        <div className="space-y-3">
-                          {/* Cost breakdown */}
-                          {firstCost && (
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                                <span className="text-[10px] text-white/30">First cost</span>
-                                <span className="text-[11px] font-semibold text-white/70">${parseFloat(firstCost).toFixed(2)}</span>
+                        <div className="space-y-3 border border-white/[0.04] rounded-xl p-4 bg-white/[0.01]">
+                          <p className="text-[10px] text-white/25 uppercase tracking-widest">Pricing</p>
+
+                          {/* Cost inputs */}
+                          <div className="grid grid-cols-4 gap-2">
+                            {[
+                              { label: "First Cost", val: localCost, set: setLocalCost },
+                              { label: "Tariff", val: localTariff, set: setLocalTariff },
+                              { label: "Freight", val: localFreight, set: setLocalFreight },
+                              { label: "Duty", val: localDuty, set: setLocalDuty },
+                            ].map(f => (
+                              <div key={f.label}>
+                                <p className="text-[9px] text-white/25 mb-1">{f.label}</p>
+                                <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2 py-1.5">
+                                  <span className="text-[10px] text-white/30">$</span>
+                                  <input type="number" step="0.01" value={f.val}
+                                    onChange={e => f.set(e.target.value)}
+                                    className="flex-1 bg-transparent text-xs text-white/70 focus:outline-none w-full"
+                                    placeholder="0.00" />
+                                </div>
                               </div>
-                              {tariff > 0 && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                                <span className="text-[10px] text-white/30">Tariff</span>
-                                <span className="text-[11px] font-semibold text-white/70">${tariff.toFixed(2)}</span>
-                              </div>}
-                              {freight > 0 && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                                <span className="text-[10px] text-white/30">Freight</span>
-                                <span className="text-[11px] font-semibold text-white/70">${freight.toFixed(2)}</span>
-                              </div>}
-                              {duty > 0 && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                                <span className="text-[10px] text-white/30">Duty</span>
-                                <span className="text-[11px] font-semibold text-white/70">${duty.toFixed(2)}</span>
-                              </div>}
-                              <span className="text-white/20 text-xs">=</span>
-                              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                            ))}
+                          </div>
+
+                          {/* ELC result */}
+                          {liveElc > 0 && (
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 flex-1">
                                 <span className="text-[10px] text-blue-400/70">ELC</span>
-                                <span className="text-[11px] font-bold text-blue-400">${elc ? elc.toFixed(2) : "—"}</span>
+                                <span className="text-sm font-bold text-blue-400">${liveElc.toFixed(2)}</span>
+                              </div>
+                              {liveSell > 0 && (
+                                <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex-1">
+                                  <span className="text-[10px] text-emerald-400/70">Sell</span>
+                                  <span className="text-sm font-bold text-emerald-400">${liveSell.toFixed(2)}</span>
+                                </div>
+                              )}
+                              {qty && (
+                                <div className="text-right">
+                                  <p className="text-[9px] text-white/25">Qty</p>
+                                  <p className="text-sm font-bold text-white/60">{parseInt(qty).toLocaleString()}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Margin slider */}
+                          {liveElc > 0 && (
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <p className="text-[9px] text-white/25">Margin</p>
+                                <span className="text-xs font-bold text-emerald-400">{liveMpct}%</span>
+                              </div>
+                              <input type="range" min="0" max="80" step="1" value={localMargin}
+                                onChange={e => setLocalMargin(e.target.value)}
+                                className="w-full accent-emerald-500 cursor-pointer" />
+                              <div className="flex justify-between text-[9px] text-white/15 mt-0.5">
+                                <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
                               </div>
                             </div>
                           )}
 
-                          {/* Sell price + margin */}
-                          <div className="flex items-center gap-4">
-                            {sellPrice && <div>
-                              <p className="text-[10px] text-white/25 mb-0.5">Sell Price</p>
-                              <p className="text-sm font-bold text-emerald-400">${parseFloat(sellPrice).toFixed(2)}</p>
-                            </div>}
-                            {orderMargin !== null && <div>
-                              <p className="text-[10px] text-white/25 mb-0.5">Margin</p>
-                              <p className="text-sm font-bold text-white/70">{orderMargin}%</p>
-                            </div>}
-                            {qty && <div>
-                              <p className="text-[10px] text-white/25 mb-0.5">Qty</p>
-                              <p className="text-sm font-bold text-white/70">{parseInt(qty).toLocaleString()} units</p>
-                            </div>}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {order.linked_po_number && <div>
+                                <p className="text-[9px] text-white/25">PO</p>
+                                <p className="text-xs font-mono text-white/50">{order.linked_po_number}</p>
+                              </div>}
+                              {order.payment_terms && <p className="text-[10px] text-white/25">{order.payment_terms}</p>}
+                            </div>
+                            <button onClick={saveFinancials} disabled={savingFinancials}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-white/50 text-xs hover:text-white/80 transition disabled:opacity-40">
+                              {savingFinancials ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Sell price legacy display hidden — replaced above */}
+                    {false && (() => { const qty = null; return (
+                      <div className="flex items-center gap-4">
                             {order.linked_po_number && <div>
                               <p className="text-[10px] text-white/25 mb-0.5">PO</p>
                               <p className="text-xs font-mono text-white/50">{order.linked_po_number}</p>
