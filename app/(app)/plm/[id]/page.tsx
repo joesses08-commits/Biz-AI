@@ -1041,6 +1041,28 @@ ${entry}` : entry;
                 );
               };
 
+              // Get the latest quoted price from quote_received stage
+              const quotedPriceStage = (track.plm_track_stages || []).find((s: any) => s.stage === "quote_received" && s.status === "done" && s.quoted_price);
+              const quotedPrice = quotedPriceStage?.quoted_price || track.quoted_price || null;
+              const [editingQuotedPrice, setEditingQuotedPrice] = useState(false);
+              const [quotedPriceInput, setQuotedPriceInput] = useState(quotedPrice ? String(quotedPrice) : "");
+
+              const saveQuotedPrice = async () => {
+                const price = parseFloat(quotedPriceInput);
+                if (isNaN(price)) { setEditingQuotedPrice(false); return; }
+                // Find or create quote_received stage
+                const existing = (track.plm_track_stages || []).find((s: any) => s.stage === "quote_received");
+                if (existing) {
+                  await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "update_stage", track_id: track.id, product_id: product.id, factory_id: track.factory_id, stage: "quote_received", status: "done", quoted_price: price, actual_date: new Date().toISOString().split("T")[0], revision_number: 0 }) });
+                } else {
+                  await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "update_stage", track_id: track.id, product_id: product.id, factory_id: track.factory_id, stage: "quote_received", status: "done", quoted_price: price, actual_date: new Date().toISOString().split("T")[0], revision_number: 0, notes: "Manually entered" }) });
+                }
+                setEditingQuotedPrice(false);
+                load();
+              };
+
               return (
                 <div className={`flex-1 min-w-0 border border-white/[0.06] rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isKilledTrack ? "border-red-500/10 opacity-60" : "bg-white/[0.01]"}`}>
                   {/* Factory header */}
@@ -1051,6 +1073,31 @@ ${entry}` : entry;
                     {isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">Discontinued</span>}
                     {revision > 0 && !isApproved && !isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 flex-shrink-0">Rev {revision}</span>}
                   </div>
+
+                  {/* Quoted price strip */}
+                  <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-white/[0.01]">
+                    <span className="text-[10px] text-white/30 flex-shrink-0">Quoted price:</span>
+                    {editingQuotedPrice ? (
+                      <div className="flex items-center gap-1 flex-1">
+                        <span className="text-[10px] text-white/40">$</span>
+                        <input autoFocus value={quotedPriceInput} onChange={e => setQuotedPriceInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") saveQuotedPrice(); if (e.key === "Escape") setEditingQuotedPrice(false); }}
+                          className="flex-1 bg-transparent text-[11px] text-white/70 focus:outline-none w-16"
+                          placeholder="0.00" />
+                        <button onClick={saveQuotedPrice} className="text-[9px] text-emerald-400 hover:text-emerald-300">Save</button>
+                        <button onClick={() => setEditingQuotedPrice(false)} className="text-[9px] text-white/25 hover:text-white/50">✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setEditingQuotedPrice(true)}
+                        className="flex items-center gap-1 hover:bg-white/[0.04] px-1.5 py-0.5 rounded transition">
+                        {quotedPrice
+                          ? <span className="text-[11px] font-semibold text-blue-400">${quotedPrice}</span>
+                          : <span className="text-[10px] text-white/20 italic">+ add price</span>}
+                        <span className="text-[9px] text-white/15">✏</span>
+                      </button>
+                    )}
+                  </div>
+
                   {/* Stages */}
                   <div className="px-3 py-3 space-y-0.5">
                     {Array.from({ length: revision + 1 }, (_, i) => i).map(revNum => renderCycle(revNum, revNum === revision))}
