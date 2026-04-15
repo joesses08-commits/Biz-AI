@@ -1831,7 +1831,8 @@ ${entry}` : entry;
                       const du = parseFloat(getV("duty", "")) || 0;
                       const liveElc = fc + tr + fr + du; // per unit
                       const liveMpct = parseFloat(getV("margin", "0")) || 0;
-                      const liveSell = liveElc > 0 && liveMpct > 0 ? liveElc / (1 - liveMpct / 100) : 0; // per unit sell price
+                      const rawSell = liveElc > 0 && liveMpct > 0 ? liveElc * (1 + liveMpct / 100) : 0;
+                      const liveSell = isFinite(rawSell) ? rawSell : 0;
                       const qty = parseInt(order.order_quantity || order.quantity || "0") || 0;
                       const totalCost = liveElc > 0 && qty > 0 ? liveElc * qty : 0;
                       const totalRevenue = liveSell > 0 && qty > 0 ? liveSell * qty : 0;
