@@ -123,10 +123,13 @@ Respond ONLY with valid JSON (no markdown, no explanation):
       let updated = 0;
 
       for (const ep of products_extracted) {
-        // Match to known product
+        // Match to known product — SKU first, then name
+        const epSku = ep.sku?.trim().toLowerCase();
+        const epName = ep.name?.trim().toLowerCase();
         const matched = (allProducts || []).find((p: any) =>
-          p.name?.toLowerCase().includes(ep.name?.toLowerCase()) ||
-          p.sku?.toLowerCase() === ep.sku?.toLowerCase()
+          (epSku && p.sku?.trim().toLowerCase() === epSku) ||
+          (epName && p.name?.trim().toLowerCase().includes(epName)) ||
+          (epName && epName.includes(p.name?.trim().toLowerCase()))
         );
         if (!matched) continue;
 
