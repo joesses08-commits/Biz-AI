@@ -352,21 +352,48 @@ Respond ONLY with valid JSON (no markdown, no explanation):
       const { data: allProducts } = await supabaseAdmin.from("plm_products")
         .select("id, name, sku, notes").eq("user_id", user.id).eq("killed", false);
 
+      // Resolve factory_id by name
+      let fbFactoryId = factory_id;
+      if (!fbFactoryId && factory_name) {
+        const { data: allFacts } = await supabaseAdmin.from("factory_catalog").select("id, name").eq("user_id", user.id);
+        const fMatch = (allFacts || []).find((f: any) =>
+          f.name?.toLowerCase().includes(factory_name?.toLowerCase()) ||
+          factory_name?.toLowerCase().includes(f.name?.toLowerCase())
+        );
+        if (fMatch) fbFactoryId = fMatch.id;
+      }
+
       let updated = 0;
       for (const ep of (feedbackProducts || [])) {
+        const epSku = ep.sku?.trim().toLowerCase();
+        const epName = ep.name?.trim().toLowerCase();
         const matched = (allProducts || []).find((p: any) =>
-          p.name?.toLowerCase().includes(ep.name?.toLowerCase()) ||
-          p.sku?.toLowerCase() === ep.sku?.toLowerCase()
+          (epSku && p.sku?.trim().toLowerCase() === epSku) ||
+          (epName && p.name?.trim().toLowerCase().includes(epName)) ||
+          (epName && epName.includes(p.name?.trim().toLowerCase()))
         );
         if (!matched) continue;
 
-        const note = `Sample feedback from ${factory_name || "factory"} (${new Date().toLocaleDateString()}): ${ep.feedback_notes || feedback_notes || "See attached document"}`;
-        const updatedNotes = matched.notes ? `${matched.notes}\n${note}` : note;
+        const feedbackText = ep.feedback || ep.feedback_notes || ep.notes || feedback_notes || "";
+        const note = `[Sample Feedback - ${factory_name || "Factory"} - ${new Date().toLocaleDateString()}]\n${feedbackText}`;
+
+        // Save to product notes
+        const updatedNotes = matched.notes ? `${matched.notes}\n\n${note}` : note;
         await supabaseAdmin.from("plm_products").update({ notes: updatedNotes, updated_at: new Date().toISOString() }).eq("id", matched.id);
+
+        // Also save to factory track notes if factory known
+        if (fbFactoryId) {
+          const { data: track } = await supabaseAdmin.from("plm_factory_tracks")
+            .select("id, notes").eq("product_id", matched.id).eq("factory_id", fbFactoryId).single();
+          if (track) {
+            const trackNotes = track.notes ? `${track.notes}\n\n${note}` : note;
+            await supabaseAdmin.from("plm_factory_tracks").update({ notes: trackNotes, updated_at: new Date().toISOString() }).eq("id", track.id);
+          }
+        }
         updated++;
       }
 
-      return NextResponse.json({ success: true, message: `Added feedback notes to ${updated} products` });
+      return NextResponse.json({ success: true, message: `Added feedback to ${updated} products` });
     }
 
     // ── PRODUCT IMPORT
@@ -396,6 +423,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
           sku: ep.sku || null,
           description: ep.description || null,
           specs: ep.specs || null,
+          category: ep.category || null,
           collection_id: collectionId,
           status: "concept",
           killed: false,
