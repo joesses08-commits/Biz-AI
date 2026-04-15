@@ -100,16 +100,18 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "summary": "one sentence describing what this document is",
   "confirmation_message": "friendly message asking user to confirm, e.g. 'This looks like a quote from Fred Factory for 5 products — add to quote comparison and mark quotes received?'",
   "extracted_data": {
-    "products": [{"name": "", "sku": "", "unit_price": null, "quantity": null, "moq": null, "lead_time": ""}],
+    "products": [{"name": "", "sku": "", "unit_price": null, "quantity": null, "moq": null, "lead_time": "", "description": "", "specs": "", "category": "", "notes": "", "feedback": ""}],
     "po_number": "PO number if found or null",
     "payment_terms": "payment terms if found or null",
     "order_qty": null,
     "order_price": null,
-    "collection_name": null,
+    "collection_name": "collection name if product import sheet, or null",
     "feedback_notes": null
   },
   "rfq_job_id": "matching RFQ job ID if this is a quote response, or null"
-}`;
+}
+
+For product_import: extract ALL available fields per product including description, specs, category, notes. Extract collection name from sheet header or title row.`;
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -466,9 +468,12 @@ Respond ONLY with valid JSON (no markdown, no explanation):
               .upload(imgPath, imgBuffer, { contentType: "image/jpeg", upsert: true });
             if (!uploadError) {
               const { data: urlData } = supabaseAdmin.storage.from("plm-images").getPublicUrl(imgPath);
-              await supabaseAdmin.from("plm_products").update({
+              const { error: updateError } = await supabaseAdmin.from("plm_products").update({
                 image_url: urlData.publicUrl, updated_at: new Date().toISOString()
               }).eq("id", newProduct.id);
+              console.log(`Image uploaded for ${ep.name}: ${urlData.publicUrl} updateError: ${updateError?.message}`);
+            } else {
+              console.log(`Upload error for ${ep.name}:`, uploadError.message);
             }
           } catch (imgErr) {
             console.log("Image upload failed for product", ep.name, imgErr);
