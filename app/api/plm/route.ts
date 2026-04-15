@@ -160,16 +160,27 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "create_batch") {
-    const { product_id, quantity, notes, stage } = body;
+    const { product_id, quantity, notes, stage, factory_id, order_quantity, unit_price, tariff, freight, duty, elc, sell_price, margin, linked_po_number, payment_terms, batch_notes } = body;
     const { data: existing } = await supabaseAdmin.from("plm_batches").select("batch_number").eq("product_id", product_id).order("batch_number", { ascending: false }).limit(1);
     const nextBatch = (existing?.[0]?.batch_number || 0) + 1;
     const { data, error } = await supabaseAdmin.from("plm_batches").insert({
       product_id, user_id: user.id,
       batch_number: nextBatch,
-      quantity: quantity || null,
-      current_stage: stage || "rfq_sent",
+      quantity: quantity || order_quantity || null,
+      order_quantity: order_quantity || quantity || null,
+      factory_id: factory_id || null,
+      unit_price: unit_price || null,
+      tariff: tariff || null,
+      freight: freight || null,
+      duty: duty || null,
+      elc: elc || null,
+      sell_price: sell_price || null,
+      margin: margin || null,
+      linked_po_number: linked_po_number || null,
+      payment_terms: payment_terms || null,
+      current_stage: stage || "po_issued",
       stage_updated_at: new Date().toISOString(),
-      notes: notes || "",
+      notes: batch_notes || notes || "",
     }).select().single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     await supabaseAdmin.from("plm_batch_stages").insert({

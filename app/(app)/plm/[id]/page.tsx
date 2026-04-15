@@ -1616,33 +1616,93 @@ ${entry}` : entry;
               )}
             </div>
 
-            {showNewOrder && (
-              <div className="px-6 py-4 border-b border-white/[0.04] space-y-3">
-                <p className="text-xs font-semibold text-white/60">New Production Order</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={lc}>Factory</label>
-                    <select value={newOrder.factory_id} onChange={e => setNewOrder({...newOrder, factory_id: e.target.value})} className={ic}>
-                      <option value="">Select factory</option>
-                      {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                    </select>
+            {showNewOrder && (() => {
+              const unitPrice = parseFloat(newOrder.unit_price) || 0;
+              const tariff = parseFloat(newOrder.tariff) || 0;
+              const freight = parseFloat(newOrder.freight) || 0;
+              const duty = parseFloat(newOrder.duty) || 0;
+              const calcElc = unitPrice + tariff + freight + duty;
+              const marginPct = parseFloat(newOrder.margin_pct) || 0;
+              const calcSellPrice = calcElc > 0 && marginPct > 0 ? calcElc / (1 - marginPct / 100) : 0;
+
+              return (
+                <div className="px-6 py-5 border-b border-white/[0.04] space-y-4 bg-white/[0.01]">
+                  <p className="text-xs font-semibold text-white/60">New Production Order</p>
+
+                  {/* Row 1: Factory + PO + Qty */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className={lc}>Factory</label>
+                      <select value={newOrder.factory_id} onChange={e => setNewOrder({...newOrder, factory_id: e.target.value})} className={ic}>
+                        <option value="">Select factory</option>
+                        {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                      </select>
+                    </div>
+                    <div><label className={lc}>PO Number</label><input value={newOrder.linked_po_number} onChange={e => setNewOrder({...newOrder, linked_po_number: e.target.value})} placeholder="PO-2026-001" className={ic} /></div>
+                    <div><label className={lc}>Order Qty</label><input type="number" value={newOrder.order_quantity} onChange={e => setNewOrder({...newOrder, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
                   </div>
-                  <div><label className={lc}>PO Number</label><input value={newOrder.linked_po_number} onChange={e => setNewOrder({...newOrder, linked_po_number: e.target.value})} placeholder="PO-2026-001" className={ic} /></div>
+
+                  {/* Row 2: Cost breakdown */}
+                  <div>
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Cost Breakdown</p>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div><label className={lc}>First Cost ($)</label><input type="number" step="0.01" value={newOrder.unit_price} onChange={e => setNewOrder({...newOrder, unit_price: e.target.value})} placeholder="2.00" className={ic} /></div>
+                      <div><label className={lc}>Tariff ($)</label><input type="number" step="0.01" value={newOrder.tariff} onChange={e => setNewOrder({...newOrder, tariff: e.target.value})} placeholder="0.20" className={ic} /></div>
+                      <div><label className={lc}>Freight ($)</label><input type="number" step="0.01" value={newOrder.freight} onChange={e => setNewOrder({...newOrder, freight: e.target.value})} placeholder="0.15" className={ic} /></div>
+                      <div><label className={lc}>Duty ($)</label><input type="number" step="0.01" value={newOrder.duty} onChange={e => setNewOrder({...newOrder, duty: e.target.value})} placeholder="0.10" className={ic} /></div>
+                    </div>
+                  </div>
+
+                  {/* ELC display */}
+                  {calcElc > 0 && (
+                    <div className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                      <div className="flex-1">
+                        <p className="text-[10px] text-white/30 mb-0.5">Calculated ELC</p>
+                        <p className="text-lg font-bold text-white">${calcElc.toFixed(2)}</p>
+                        <p className="text-[10px] text-white/25">{unitPrice > 0 ? `$${unitPrice.toFixed(2)} first cost` : ""}
+                          {tariff > 0 ? ` + $${tariff.toFixed(2)} tariff` : ""}
+                          {freight > 0 ? ` + $${freight.toFixed(2)} freight` : ""}
+                          {duty > 0 ? ` + $${duty.toFixed(2)} duty` : ""}</p>
+                      </div>
+                      {calcSellPrice > 0 && (
+                        <div className="text-right">
+                          <p className="text-[10px] text-white/30 mb-0.5">Sell Price</p>
+                          <p className="text-lg font-bold text-emerald-400">${calcSellPrice.toFixed(2)}</p>
+                          <p className="text-[10px] text-white/25">{marginPct}% margin</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Margin slider */}
+                  {calcElc > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className={lc}>Target Margin</label>
+                        <span className="text-xs font-bold text-emerald-400">{marginPct}%</span>
+                      </div>
+                      <input type="range" min="0" max="80" step="1"
+                        value={marginPct}
+                        onChange={e => setNewOrder({...newOrder, margin_pct: e.target.value})}
+                        className="w-full accent-emerald-500 cursor-pointer" />
+                      <div className="flex justify-between text-[9px] text-white/20 mt-1">
+                        <span>0%</span><span>20%</span><span>40%</span><span>60%</span><span>80%</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div><label className={lc}>Payment Terms</label><input value={newOrder.payment_terms} onChange={e => setNewOrder({...newOrder, payment_terms: e.target.value})} placeholder="30% deposit, 70% before shipment" className={ic} /></div>
+                  <div><label className={lc}>Notes</label><textarea value={newOrder.batch_notes} onChange={e => setNewOrder({...newOrder, batch_notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
+
+                  <div className="flex gap-2">
+                    <button onClick={createOrder} disabled={savingOrder} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                      {savingOrder ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Order
+                    </button>
+                    <button onClick={() => setShowNewOrder(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><label className={lc}>Order Qty</label><input value={newOrder.order_quantity} onChange={e => setNewOrder({...newOrder, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
-                  <div><label className={lc}>Target ELC ($)</label><input value={newOrder.target_elc} onChange={e => setNewOrder({...newOrder, target_elc: e.target.value})} placeholder="2.50" className={ic} /></div>
-                  <div><label className={lc}>Sell Price ($)</label><input value={newOrder.target_sell_price} onChange={e => setNewOrder({...newOrder, target_sell_price: e.target.value})} placeholder="12.99" className={ic} /></div>
-                </div>
-                <div><label className={lc}>Notes</label><textarea value={newOrder.batch_notes} onChange={e => setNewOrder({...newOrder, batch_notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
-                <div className="flex gap-2">
-                  <button onClick={createOrder} disabled={savingOrder} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                    {savingOrder ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Order
-                  </button>
-                  <button onClick={() => setShowNewOrder(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="divide-y divide-white/[0.04]">
               {orders.length === 0 ? (
@@ -1752,20 +1812,70 @@ ${entry}` : entry;
                       );
                     })()}
 
-                    {/* Order financials — inline editable */}
-                    <div className="grid grid-cols-4 gap-3">
-                      {[
-                        { label: "ELC", field: "target_elc", value: order.target_elc ? `$${order.target_elc}` : "—" },
-                        { label: "Sell Price", field: "target_sell_price", value: order.target_sell_price ? `$${order.target_sell_price}` : "—" },
-                        { label: "Margin", field: null, value: margin !== null ? `${margin}%` : "—" },
-                        { label: "Qty", field: "order_quantity", value: order.order_quantity ? order.order_quantity.toLocaleString() : "—" },
-                      ].map(item => (
-                        <div key={item.label} className="group">
-                          <p className="text-[10px] text-white/25 mb-0.5">{item.label}</p>
-                          <p className="text-xs text-white/60 font-semibold">{item.value}</p>
+                    {/* Order financials */}
+                    {(() => {
+                      const firstCost = order.unit_price || order.target_elc;
+                      const tariff = order.tariff || 0;
+                      const freight = order.freight || 0;
+                      const duty = order.duty || 0;
+                      const elc = order.elc || (firstCost ? parseFloat(firstCost) + tariff + freight + duty : null);
+                      const sellPrice = order.sell_price || order.target_sell_price;
+                      const orderMargin = order.margin || (elc && sellPrice ? Math.round(((sellPrice - elc) / sellPrice) * 100) : null);
+                      const qty = order.order_quantity || order.quantity;
+
+                      return (
+                        <div className="space-y-3">
+                          {/* Cost breakdown */}
+                          {firstCost && (
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                                <span className="text-[10px] text-white/30">First cost</span>
+                                <span className="text-[11px] font-semibold text-white/70">${parseFloat(firstCost).toFixed(2)}</span>
+                              </div>
+                              {tariff > 0 && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                                <span className="text-[10px] text-white/30">Tariff</span>
+                                <span className="text-[11px] font-semibold text-white/70">${tariff.toFixed(2)}</span>
+                              </div>}
+                              {freight > 0 && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                                <span className="text-[10px] text-white/30">Freight</span>
+                                <span className="text-[11px] font-semibold text-white/70">${freight.toFixed(2)}</span>
+                              </div>}
+                              {duty > 0 && <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                                <span className="text-[10px] text-white/30">Duty</span>
+                                <span className="text-[11px] font-semibold text-white/70">${duty.toFixed(2)}</span>
+                              </div>}
+                              <span className="text-white/20 text-xs">=</span>
+                              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                                <span className="text-[10px] text-blue-400/70">ELC</span>
+                                <span className="text-[11px] font-bold text-blue-400">${elc ? elc.toFixed(2) : "—"}</span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Sell price + margin */}
+                          <div className="flex items-center gap-4">
+                            {sellPrice && <div>
+                              <p className="text-[10px] text-white/25 mb-0.5">Sell Price</p>
+                              <p className="text-sm font-bold text-emerald-400">${parseFloat(sellPrice).toFixed(2)}</p>
+                            </div>}
+                            {orderMargin !== null && <div>
+                              <p className="text-[10px] text-white/25 mb-0.5">Margin</p>
+                              <p className="text-sm font-bold text-white/70">{orderMargin}%</p>
+                            </div>}
+                            {qty && <div>
+                              <p className="text-[10px] text-white/25 mb-0.5">Qty</p>
+                              <p className="text-sm font-bold text-white/70">{parseInt(qty).toLocaleString()} units</p>
+                            </div>}
+                            {order.linked_po_number && <div>
+                              <p className="text-[10px] text-white/25 mb-0.5">PO</p>
+                              <p className="text-xs font-mono text-white/50">{order.linked_po_number}</p>
+                            </div>}
+                          </div>
+
+                          {order.payment_terms && <p className="text-[10px] text-white/25">{order.payment_terms}</p>}
                         </div>
-                      ))}
-                    </div>
+                      );
+                    })()}
 
                     {/* Stage history */}
                     {history.length > 0 && (
