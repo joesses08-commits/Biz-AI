@@ -243,10 +243,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "delete_product") {
-    await supabaseAdmin.from("plm_stages").delete().eq("product_id", body.id);
-    await supabaseAdmin.from("plm_batch_stages").delete().eq("product_id", body.id);
-    await supabaseAdmin.from("plm_batches").delete().eq("product_id", body.id);
-    await supabaseAdmin.from("plm_products").delete().eq("id", body.id).eq("user_id", user.id);
+    const pid = body.product_id || body.id;
+    await supabaseAdmin.from("plm_track_stages").delete().eq("product_id", pid);
+    await supabaseAdmin.from("plm_factory_tracks").delete().eq("product_id", pid);
+    await supabaseAdmin.from("plm_sample_requests").delete().eq("product_id", pid);
+    await supabaseAdmin.from("plm_batch_stages").delete().eq("product_id", pid);
+    await supabaseAdmin.from("plm_batches").delete().eq("product_id", pid);
+    await supabaseAdmin.from("plm_assignments").delete().eq("product_id", pid);
+    await supabaseAdmin.from("plm_products").delete().eq("id", pid).eq("user_id", user.id);
     return NextResponse.json({ success: true });
   }
 

@@ -75,6 +75,8 @@ export default function PLMPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [selectMode, setSelectMode] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingProducts, setDeletingProducts] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportColumns, setExportColumns] = useState(["name","sku","description","specs","category","collection","current_stage"]);
   const [exportPreset, setExportPreset] = useState("custom");
@@ -441,6 +443,45 @@ export default function PLMPage() {
                   <button onClick={() => setShowImportModal(false)} className="w-full py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Done</button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirm Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#111] border border-red-500/20 rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <Trash2 size={16} className="text-red-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">Delete {selectedProducts.length} product{selectedProducts.length > 1 ? "s" : ""}?</p>
+                  <p className="text-xs text-white/40 mt-0.5">This cannot be undone.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={async () => {
+                  setDeletingProducts(true);
+                  for (const pid of selectedProducts) {
+                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "delete_product", product_id: pid }) });
+                  }
+                  setDeletingProducts(false);
+                  setShowDeleteConfirm(false);
+                  setSelectedProducts([]);
+                  setSelectMode(false);
+                  load();
+                }} disabled={deletingProducts}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold disabled:opacity-40">
+                  {deletingProducts ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  Yes, delete
+                </button>
+                <button onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm font-semibold">
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1020,6 +1061,12 @@ export default function PLMPage() {
                   <button onClick={async () => { if (selectedProducts.length === 0) return; const res = await fetch("/api/plm?type=designers"); const data = await res.json(); setAssignDesigners(data.designers || []); setSelectedDesignerIds([]); setShowAssignModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
                     {selectedProducts.length > 0 ? `Assign ${selectedProducts.length}` : "Assign"}
                   </button>
+                  {selectMode && selectedProducts.length > 0 && (
+                    <button onClick={() => setShowDeleteConfirm(true)}
+                      className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-red-500/30 text-red-400 bg-red-500/10 hover:bg-red-500/20 font-semibold transition ml-auto">
+                      <Trash2 size={11} />Delete {selectedProducts.length}
+                    </button>
+                  )}
                 </div>
                 {sortedProducts.map(product => {
                   const statusKey = getProductStatus(product);
