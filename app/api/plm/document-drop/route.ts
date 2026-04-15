@@ -138,7 +138,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
             .insert({ user_id: user.id, product_id: matched.id, factory_id, status: "active" })
             .select("id, product_id, factory_id, plm_track_stages(id, stage, status, revision_number)")
             .single();
-          track = newTrack;
+          if (newTrack) track = newTrack as any;
         }
         if (!track) continue;
 
