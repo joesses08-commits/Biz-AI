@@ -1764,10 +1764,6 @@ ${entry}` : entry;
 
                     {/* Production stage — prev/next + timeline */}
                     {(() => {
-                      const devComplete = product.current_stage === "sample_approved";
-                      if (!devComplete) return (
-
-                      );
                       const orderCurrentIdx = ORDER_STAGES.findIndex(s => s.key === order.current_stage);
                       const orderPrev = orderCurrentIdx > 0 ? ORDER_STAGES[orderCurrentIdx - 1] : null;
                       const orderNext = orderCurrentIdx < ORDER_STAGES.length - 1 ? ORDER_STAGES[orderCurrentIdx + 1] : null;
