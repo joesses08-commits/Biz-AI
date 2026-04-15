@@ -157,8 +157,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         if (ep.lead_time) noteLines.push(`  Lead time: ${ep.lead_time}`);
         if (ep.sample_lead_time) noteLines.push(`  Sample lead: ${ep.sample_lead_time}`);
         if (ep.payment_terms) noteLines.push(`  Payment: ${ep.payment_terms}`);
-        const factoryNote = noteLines.join("
-");
+        const factoryNote = noteLines.join("\n");
 
         // Append to factory track notes
         if (track) {
