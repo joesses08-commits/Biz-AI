@@ -130,7 +130,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 
   // ── STEP 2: EXECUTE — wire it into PLM
   if (action === "execute") {
-    const { doc_type, factory_name, rfq_job_id, extracted_data, file_name } = body;
+    const { doc_type, factory_name, rfq_job_id, extracted_data, file_name, file_base64 } = body;
     let { factory_id } = body;
 
     // ── FACTORY QUOTE
@@ -415,6 +415,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 
     // ── PRODUCT IMPORT
     if (doc_type === "product_import") {
+      console.log("product_import extracted_data:", JSON.stringify(extracted_data));
       const { products: importProducts, collection_name } = extracted_data || {};
 
       // Create or find collection
