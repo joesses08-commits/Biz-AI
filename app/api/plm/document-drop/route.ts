@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     const productList = (products || []).map((p: any) => `${p.name} (${p.sku})`).join(", ");
-    const factoryList = (factories || []).map((f: any) => `${f.name} (${f.email || "no email"})`).join(", ");
+    const factoryList = (factories || []).map((f: any) => `${f.name} [id:${f.id}]`).join(", ");
     const rfqList = (rfqJobs || []).map((j: any) => `${j.job_name} [${j.id}]`).join(", ");
 
     const prompt = `You are analyzing a business document dropped into a wholesale PLM system. Identify what type of document this is and extract key information.
@@ -77,7 +77,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "doc_type": "factory_quote" | "purchase_order" | "sample_feedback" | "product_import" | "unknown",
   "confidence": "high" | "medium" | "low",
   "factory_name": "name if detected, or null",
-  "factory_id": "matched factory ID from known factories list if matched, or null",
+  "factory_id": "MUST be the exact id from the known factories list above (e.g. the part after id:). Match the closest factory name. Never return null if any factory is known.",
   "summary": "one sentence describing what this document is",
   "confirmation_message": "friendly message asking user to confirm, e.g. 'This looks like a quote from Fred Factory for 5 products — add to quote comparison and mark quotes received?'",
   "extracted_data": {
