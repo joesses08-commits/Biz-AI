@@ -1,4 +1,5 @@
 "use client";
+import DocumentDrop from "@/components/DocumentDrop";
 import Sidebar from "@/components/Sidebar";
 import { useState } from "react";
 
@@ -47,6 +48,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
-    </div>
+      <DocumentDrop />
+</div>
   );
 }
