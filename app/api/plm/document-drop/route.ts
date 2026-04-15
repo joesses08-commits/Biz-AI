@@ -150,6 +150,26 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         console.log(`Matching ep: ${ep.name} (${ep.sku}) -> matched: ${matched?.name}`);
         if (!matched) continue;
 
+        // Build factory note from all extracted data
+        const noteLines = [`Quote from ${factory_name || "factory"} (${new Date().toLocaleDateString()}):`];
+        if (ep.price) noteLines.push(`  Price: $${ep.price}`);
+        if (ep.moq) noteLines.push(`  MOQ: ${ep.moq}`);
+        if (ep.lead_time) noteLines.push(`  Lead time: ${ep.lead_time}`);
+        if (ep.sample_lead_time) noteLines.push(`  Sample lead: ${ep.sample_lead_time}`);
+        if (ep.payment_terms) noteLines.push(`  Payment: ${ep.payment_terms}`);
+        const factoryNote = noteLines.join("
+");
+
+        // Append to factory track notes
+        if (track) {
+          const existingNotes = (track as any).notes || "";
+          const updatedNotes = existingNotes ? `${existingNotes}
+${factoryNote}` : factoryNote;
+          await supabaseAdmin.from("plm_factory_tracks").update({
+            notes: updatedNotes, updated_at: new Date().toISOString()
+          }).eq("id", (track as any).id);
+        }
+
         // Find track for this factory
         let track = (allTracks || []).find((t: any) => t.product_id === matched.id);
 
@@ -199,13 +219,42 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         updated++;
       }
 
-      // Add to RFQ job if matched — find most recent job if not specified
+      // Match to RFQ job by comparing extracted SKUs against job product lists
       let jobId = rfq_job_id;
       if (!jobId) {
-        const { data: latestJob } = await supabaseAdmin.from("factory_quote_jobs")
-          .select("id").eq("user_id", user.id)
-          .order("created_at", { ascending: false }).limit(1).single();
-        if (latestJob) jobId = latestJob.id;
+        const { data: recentJobs } = await supabaseAdmin.from("factory_quote_jobs")
+          .select("id, order_details, factories")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (recentJobs?.length) {
+          // Get product SKUs from this quote
+          const quotedSkus = new Set(products_extracted.map((p: any) => p.sku?.trim().toLowerCase()).filter(Boolean));
+          
+          // Get all products to map IDs to SKUs
+          const { data: allProds } = await supabaseAdmin.from("plm_products")
+            .select("id, sku").eq("user_id", user.id);
+          const prodSkuMap = Object.fromEntries((allProds || []).map((p: any) => [p.id, p.sku?.trim().toLowerCase()]));
+
+          let bestMatch = null;
+          let bestScore = 0;
+
+          for (const job of recentJobs) {
+            const jobProductIds = (job.order_details as any)?.plm_product_ids || [];
+            const jobSkus = new Set(jobProductIds.map((id: string) => prodSkuMap[id]).filter(Boolean));
+            // Count overlap
+            let overlap = 0;
+            quotedSkus.forEach((sku: any) => { if (jobSkus.has(sku)) overlap++; });
+            const score = jobSkus.size > 0 ? overlap / jobSkus.size : 0;
+            if (score > bestScore) { bestScore = score; bestMatch = job; }
+          }
+
+          if (bestMatch && bestScore > 0.3) {
+            jobId = bestMatch.id;
+            console.log(`Matched to RFQ job ${jobId} with score ${bestScore}`);
+          }
+        }
       }
       if (jobId) {
         // Check if quote already exists for this factory

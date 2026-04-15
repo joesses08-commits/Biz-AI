@@ -110,6 +110,17 @@ export default function DocumentDrop() {
     dragCounterRef.current = 0;
   };
 
+  // Prevent browser default drag-over behavior (shows drop cursor everywhere)
+  useEffect(() => {
+    const prevent = (e: DragEvent) => { e.preventDefault(); e.stopPropagation(); };
+    window.addEventListener("dragover", prevent);
+    window.addEventListener("drop", prevent);
+    return () => {
+      window.removeEventListener("dragover", prevent);
+      window.removeEventListener("drop", prevent);
+    };
+  }, []);
+
   const color = identified ? (DOC_TYPE_COLORS[identified.doc_type] || "#6b7280") : "#6b7280";
 
   return (
