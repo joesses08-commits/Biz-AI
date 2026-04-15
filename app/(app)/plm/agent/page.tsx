@@ -20,27 +20,67 @@ interface Message {
   content: string;
 }
 
+interface Chat {
+  id: string;
+  title: string;
+  messages: Message[];
+  updatedAt: string;
+}
+
 export default function PLMAgentPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load history from localStorage
+  // Load chats from localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("plm-agent-history");
-      if (saved) setMessages(JSON.parse(saved));
+      const saved = localStorage.getItem("plm-agent-chats");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setChats(parsed);
+        if (parsed.length > 0) {
+          setCurrentChatId(parsed[0].id);
+          setMessages(parsed[0].messages);
+        }
+      }
     } catch {}
   }, []);
 
-  // Save history to localStorage
+  const saveChats = (updatedChats: Chat[]) => {
+    try { localStorage.setItem("plm-agent-chats", JSON.stringify(updatedChats)); } catch {}
+  };
+
+  const startNewChat = () => {
+    const id = Date.now().toString();
+    const newChat: Chat = { id, title: "New chat", messages: [], updatedAt: new Date().toISOString() };
+    const updated = [newChat, ...chats];
+    setChats(updated);
+    setCurrentChatId(id);
+    setMessages([]);
+    saveChats(updated);
+  };
+
+  const loadChat = (chat: Chat) => {
+    setCurrentChatId(chat.id);
+    setMessages(chat.messages);
+  };
+
+  const updateCurrentChat = (newMessages: Message[]) => {
+    const title = newMessages.find(m => m.role === "user")?.content.slice(0, 40) || "New chat";
+    const updated = chats.map(c => c.id === currentChatId ? { ...c, messages: newMessages, title, updatedAt: new Date().toISOString() } : c);
+    setChats(updated);
+    saveChats(updated);
+  };
+
+  // Save on message change
   useEffect(() => {
-    if (messages.length > 0) {
-      try { localStorage.setItem("plm-agent-history", JSON.stringify(messages.slice(-30))); } catch {}
-    }
+    if (currentChatId && messages.length > 0) updateCurrentChat(messages);
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -76,7 +116,28 @@ export default function PLMAgentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex">
+      {/* Sidebar */}
+      <div className="w-64 border-r border-white/[0.06] flex flex-col flex-shrink-0">
+        <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Chats</p>
+          <button onClick={startNewChat} className="w-6 h-6 rounded-lg border border-white/[0.08] flex items-center justify-center text-white/30 hover:text-white/60 hover:border-white/20 transition text-sm">+</button>
+        </div>
+        <div className="flex-1 overflow-y-auto py-2">
+          {chats.length === 0 ? (
+            <p className="text-[11px] text-white/20 px-4 py-3">No chats yet</p>
+          ) : chats.map(chat => (
+            <button key={chat.id} onClick={() => loadChat(chat)}
+              className={`w-full text-left px-4 py-2.5 hover:bg-white/[0.03] transition group \${currentChatId === chat.id ? "bg-white/[0.04]" : ""}`}>
+              <p className={`text-xs truncate \${currentChatId === chat.id ? "text-white/80" : "text-white/40"}`}>{chat.title}</p>
+              <p className="text-[10px] text-white/20 mt-0.5">{new Date(chat.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
       <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
           <button onClick={() => router.push("/plm")} className="text-white/30 hover:text-white/60 transition">
@@ -91,7 +152,7 @@ export default function PLMAgentPage() {
           </div>
         </div>
         {messages.length > 0 && (
-          <button onClick={() => { setMessages([]); try { localStorage.removeItem("plm-agent-history"); } catch {} }} className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition">
+          <button onClick={startNewChat} className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition">
             <RotateCcw size={11} />New chat
           </button>
         )}
@@ -181,6 +242,7 @@ export default function PLMAgentPage() {
           </div>
           <p className="text-center text-[10px] text-white/15 mt-2">Uses real data from your PLM — prices, stages, factories, revisions</p>
         </div>
+      </div>
       </div>
     </div>
   );
