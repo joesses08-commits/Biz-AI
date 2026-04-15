@@ -341,21 +341,32 @@ ${entry}` : entry;
 
   const createOrder = async () => {
     setSavingOrder(true);
+    const unitPrice = parseFloat((newOrder as any).unit_price) || 0;
+    const tariff = parseFloat((newOrder as any).tariff) || 0;
+    const freight = parseFloat((newOrder as any).freight) || 0;
+    const duty = parseFloat((newOrder as any).duty) || 0;
+    const calcElc = unitPrice + tariff + freight + duty;
+    const marginPct = parseFloat((newOrder as any).margin_pct) || 0;
+    const calcSellPrice = calcElc > 0 && marginPct > 0 ? calcElc / (1 - marginPct / 100) : null;
     await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "create_batch", product_id: id, stage: "po_issued",
         factory_id: newOrder.factory_id || null,
         order_quantity: newOrder.order_quantity ? parseInt(newOrder.order_quantity) : null,
-        moq: newOrder.moq ? parseInt(newOrder.moq) : null,
-        target_elc: newOrder.target_elc ? parseFloat(newOrder.target_elc) : null,
-        actual_elc: newOrder.actual_elc ? parseFloat(newOrder.actual_elc) : null,
-        target_sell_price: newOrder.target_sell_price ? parseFloat(newOrder.target_sell_price) : null,
+        unit_price: unitPrice || null,
+        tariff: tariff || null,
+        freight: freight || null,
+        duty: duty || null,
+        elc: calcElc || null,
+        sell_price: calcSellPrice || null,
+        margin: marginPct || null,
         linked_po_number: newOrder.linked_po_number || null,
+        payment_terms: (newOrder as any).payment_terms || null,
         batch_notes: newOrder.batch_notes || null,
       }) });
     setSavingOrder(false);
     setShowNewOrder(false);
-    setNewOrder({ factory_id: "", order_quantity: "", moq: "", target_elc: "", actual_elc: "", target_sell_price: "", linked_po_number: "", batch_notes: "" });
+    setNewOrder({ factory_id: "", order_quantity: "", unit_price: "", tariff: "", freight: "", duty: "", margin_pct: "0", linked_po_number: "", payment_terms: "", batch_notes: "" } as any);
     load();
   };
 
