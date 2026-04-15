@@ -81,7 +81,9 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "summary": "one sentence describing what this document is",
   "confirmation_message": "friendly message asking user to confirm, e.g. 'This looks like a quote from Fred Factory for 5 products — add to quote comparison and mark quotes received?'",
   "extracted_data": {
-    "products": [{"name": "", "sku": "", "price": null, "moq": null, "lead_time": ""}],
+    "products": [{"name": "", "sku": "", "price": null, "quantity": null, "unit_price": null, "moq": null, "lead_time": ""}],
+    "po_number": "PO number if found or null",
+    "payment_terms": "payment terms if found or null",
     "order_qty": null,
     "order_price": null,
     "collection_name": null,
@@ -285,28 +287,49 @@ Respond ONLY with valid JSON (no markdown, no explanation):
         supabaseAdmin.from("factory_catalog").select("id, name").eq("user_id", user.id),
       ]);
 
+      // Resolve factory_id by name
+      let resolvedFactoryId = factory_id;
+      if (!resolvedFactoryId && factory_name) {
+        const fMatch = (allFactories || []).find((f: any) =>
+          f.name?.toLowerCase().includes(factory_name?.toLowerCase()) ||
+          factory_name?.toLowerCase().includes(f.name?.toLowerCase())
+        );
+        if (fMatch) resolvedFactoryId = fMatch.id;
+      }
+
+      // Get PO number from extracted data
+      const poNumber = extracted_data?.po_number || null;
+      const paymentTerms = extracted_data?.payment_terms || null;
+
       let created = 0;
       for (const ep of (poProducts || [])) {
+        const epSku = ep.sku?.trim().toLowerCase();
+        const epName = ep.name?.trim().toLowerCase();
         const matched = (allProducts || []).find((p: any) =>
-          p.name?.toLowerCase().includes(ep.name?.toLowerCase()) ||
-          p.sku?.toLowerCase() === ep.sku?.toLowerCase()
+          (epSku && p.sku?.trim().toLowerCase() === epSku) ||
+          (epName && p.name?.trim().toLowerCase().includes(epName)) ||
+          (epName && epName.includes(p.name?.trim().toLowerCase()))
         );
         if (!matched) continue;
-
-        const fId = factory_id || (allFactories || []).find((f: any) =>
-          f.name?.toLowerCase().includes(factory_name?.toLowerCase())
-        )?.id;
 
         const { data: existing } = await supabaseAdmin.from("plm_batches")
           .select("batch_number").eq("product_id", matched.id)
           .order("batch_number", { ascending: false }).limit(1);
         const batchNum = ((existing?.[0] as any)?.batch_number || 0) + 1;
 
+        const unitPrice = ep.price || ep.unit_price || order_price || null;
+
         await supabaseAdmin.from("plm_batches").insert({
-          user_id: user.id, product_id: matched.id, factory_id: fId || null,
-          batch_number: batchNum, current_stage: "po_issued",
-          order_quantity: ep.moq || order_qty || null,
-          unit_price: ep.price || order_price || null,
+          user_id: user.id,
+          product_id: matched.id,
+          factory_id: resolvedFactoryId || null,
+          batch_number: batchNum,
+          current_stage: "po_issued",
+          order_quantity: ep.quantity || ep.qty || ep.moq || order_qty || null,
+          quantity: ep.quantity || ep.qty || ep.moq || order_qty || null,
+          unit_price: unitPrice ? parseFloat(unitPrice) : null,
+          linked_po_number: poNumber,
+          payment_terms: paymentTerms,
           notes: `PO created via document drop — ${file_name}`,
         });
         created++;
