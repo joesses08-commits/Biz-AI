@@ -1691,7 +1691,7 @@ ${entry}` : entry;
                   {calcElc > 0 && (
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <label className={lc}>Target Margin</label>
+                        <label className={lc}>Target Markup</label>
                         <span className="text-xs font-bold text-emerald-400">{marginPct}%</span>
                       </div>
                       <input type="range" min="0" max="80" step="1"
@@ -1916,7 +1916,7 @@ ${entry}` : entry;
                           {liveElc > 0 && (
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
-                                <p className="text-[9px] text-white/25">Margin</p>
+                                <p className="text-[9px] text-white/25">Markup</p>
                                 <span className="text-xs font-bold text-emerald-400">{liveMpct}%</span>
                               </div>
                               <input type="range" min="0" max="200" step="1" value={getV("margin","0")}
