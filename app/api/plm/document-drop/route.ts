@@ -81,7 +81,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "summary": "one sentence describing what this document is",
   "confirmation_message": "friendly message asking user to confirm, e.g. 'This looks like a quote from Fred Factory for 5 products — add to quote comparison and mark quotes received?'",
   "extracted_data": {
-    "products": [{"name": "", "sku": "", "price": null, "quantity": null, "unit_price": null, "moq": null, "lead_time": ""}],
+    "products": [{"name": "", "sku": "", "unit_price": null, "quantity": null, "moq": null, "lead_time": ""}], NOTE: unit_price must be price PER UNIT not total. If you see a total price and quantity, divide total by quantity to get unit price.
     "po_number": "PO number if found or null",
     "payment_terms": "payment terms if found or null",
     "order_qty": null,
@@ -317,7 +317,13 @@ Respond ONLY with valid JSON (no markdown, no explanation):
           .order("batch_number", { ascending: false }).limit(1);
         const batchNum = ((existing?.[0] as any)?.batch_number || 0) + 1;
 
-        const unitPrice = ep.price || ep.unit_price || order_price || null;
+        // Calculate unit price — divide total by qty if unit price looks like a total
+        let rawPrice = ep.unit_price || ep.price || order_price || null;
+        const epQty = ep.quantity || ep.qty || ep.moq || order_qty || null;
+        if (rawPrice && epQty && parseFloat(rawPrice) > 100 && parseFloat(epQty) > 1) {
+          rawPrice = (parseFloat(rawPrice) / parseFloat(epQty)).toFixed(2);
+        }
+        const unitPrice = rawPrice;
 
         await supabaseAdmin.from("plm_batches").insert({
           user_id: user.id,

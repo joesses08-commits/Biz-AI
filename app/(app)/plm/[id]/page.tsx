@@ -1836,10 +1836,12 @@ ${entry}` : entry;
                       const tr = parseFloat(getV("tariff", "")) || 0;
                       const fr = parseFloat(getV("freight", "")) || 0;
                       const du = parseFloat(getV("duty", "")) || 0;
-                      const liveElc = fc + tr + fr + du;
+                      const liveElc = fc + tr + fr + du; // per unit
                       const liveMpct = parseFloat(getV("margin", "0")) || 0;
-                      const liveSell = liveElc > 0 && liveMpct > 0 ? liveElc / (1 - liveMpct / 100) : 0;
-                      const qty = order.order_quantity || order.quantity;
+                      const liveSell = liveElc > 0 && liveMpct > 0 ? liveElc / (1 - liveMpct / 100) : 0; // per unit sell price
+                      const qty = parseInt(order.order_quantity || order.quantity || "0") || 0;
+                      const totalCost = liveElc > 0 && qty > 0 ? liveElc * qty : 0;
+                      const totalRevenue = liveSell > 0 && qty > 0 ? liveSell * qty : 0;
 
                       const saveFinancials = async () => {
                         setSavingFinancials(oid);
@@ -1877,23 +1879,41 @@ ${entry}` : entry;
                             ))}
                           </div>
 
-                          {/* ELC result */}
+                          {/* ELC result — per unit */}
                           {liveElc > 0 && (
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 flex-1">
-                                <span className="text-[10px] text-blue-400/70">ELC</span>
-                                <span className="text-sm font-bold text-blue-400">${liveElc.toFixed(2)}</span>
-                              </div>
-                              {liveSell > 0 && (
-                                <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex-1">
-                                  <span className="text-[10px] text-emerald-400/70">Sell</span>
-                                  <span className="text-sm font-bold text-emerald-400">${liveSell.toFixed(2)}</span>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 flex-1">
+                                  <div>
+                                    <p className="text-[9px] text-blue-400/60">ELC / unit</p>
+                                    <p className="text-base font-bold text-blue-400">${liveElc.toFixed(2)}</p>
+                                  </div>
                                 </div>
-                              )}
-                              {qty && (
-                                <div className="text-right">
-                                  <p className="text-[9px] text-white/25">Qty</p>
-                                  <p className="text-sm font-bold text-white/60">{parseInt(qty).toLocaleString()}</p>
+                                {liveSell > 0 && (
+                                  <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex-1">
+                                    <div>
+                                      <p className="text-[9px] text-emerald-400/60">Sell / unit</p>
+                                      <p className="text-base font-bold text-emerald-400">${liveSell.toFixed(2)}</p>
+                                    </div>
+                                  </div>
+                                )}
+                                {qty > 0 && (
+                                  <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                                    <p className="text-[9px] text-white/25">Qty</p>
+                                    <p className="text-base font-bold text-white/60">{qty.toLocaleString()}</p>
+                                  </div>
+                                )}
+                              </div>
+                              {qty > 0 && liveElc > 0 && (
+                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                                  <span className="text-[10px] text-white/25">Total cost:</span>
+                                  <span className="text-[11px] font-semibold text-white/50">${totalCost.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                  {liveSell > 0 && <>
+                                    <span className="text-white/15 mx-1">·</span>
+                                    <span className="text-[10px] text-white/25">Total revenue:</span>
+                                    <span className="text-[11px] font-semibold text-emerald-400/60">${totalRevenue.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                    <span className="text-[10px] text-white/25 ml-auto">Gross profit: ${(totalRevenue - totalCost).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                  </>}
                                 </div>
                               )}
                             </div>
