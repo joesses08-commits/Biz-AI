@@ -1,0 +1,175 @@
+"use client";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Send, ArrowLeft, Loader2, Sparkles, RotateCcw } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+
+const SUGGESTED = [
+  "What's my best factory right now?",
+  "Which products still need samples?",
+  "How does Georges factory compare to Joeys?",
+  "What's the average approved price per factory?",
+  "Which products are approved and ready to order?",
+  "What's the status of the Christmas glass collection?",
+  "Which factories have the most revisions?",
+  "What needs my attention right now?",
+];
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export default function PLMAgentPage() {
+  const router = useRouter();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const send = async (text?: string) => {
+    const msg = text || input.trim();
+    if (!msg || loading) return;
+    setInput("");
+
+    const userMsg: Message = { role: "user", content: msg };
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/plm/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: msg,
+          history: newMessages.slice(-8).slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+        }),
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Sorry, I couldn't get a response." }]);
+    } catch {
+      setMessages(prev => [...prev, { role: "assistant", content: "Something went wrong. Try again." }]);
+    }
+    setLoading(false);
+  };
+
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push("/plm")} className="text-white/30 hover:text-white/60 transition">
+            <ArrowLeft size={16} />
+          </button>
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500/30 to-pink-500/30 border border-violet-500/20 flex items-center justify-center">
+            <Sparkles size={12} className="text-violet-300" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">PLM Agent</p>
+            <p className="text-[10px] text-white/30">Ask anything about your products, factories & samples</p>
+          </div>
+        </div>
+        {messages.length > 0 && (
+          <button onClick={() => setMessages([])} className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition">
+            <RotateCcw size={11} />New chat
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 max-w-3xl mx-auto w-full">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[50vh] text-center space-y-6">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-500/20 to-pink-500/20 border border-violet-500/20 flex items-center justify-center">
+              <Sparkles size={22} className="text-violet-300" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold mb-1">PLM Agent</h2>
+              <p className="text-white/30 text-sm max-w-sm">Ask me anything about your products, factories, samples, prices, or what needs attention right now.</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
+              {SUGGESTED.map(s => (
+                <button key={s} onClick={() => send(s)}
+                  className="text-left text-xs px-4 py-3 rounded-xl border border-white/[0.06] text-white/40 hover:text-white/70 hover:border-white/15 hover:bg-white/[0.02] transition">
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                {m.role === "assistant" && (
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500/20 to-pink-500/20 border border-violet-500/20 flex items-center justify-center flex-shrink-0 mt-0.5 mr-2.5">
+                    <Sparkles size={10} className="text-violet-300" />
+                  </div>
+                )}
+                <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-white/[0.06] border border-white/[0.08] text-white/80 rounded-tr-sm"
+                    : "text-white/80 rounded-tl-sm"
+                }`}>
+                  {m.role === "assistant" ? (
+                    <ReactMarkdown components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                      li: ({ children }) => <li className="text-white/70">{children}</li>,
+                      code: ({ children }) => <code className="bg-white/[0.06] px-1.5 py-0.5 rounded text-xs text-violet-300 font-mono">{children}</code>,
+                    }}>
+                      {m.content}
+                    </ReactMarkdown>
+                  ) : m.content}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500/20 to-pink-500/20 border border-violet-500/20 flex items-center justify-center flex-shrink-0 mt-0.5 mr-2.5">
+                  <Sparkles size={10} className="text-violet-300" />
+                </div>
+                <div className="flex items-center gap-1.5 px-4 py-3">
+                  {[0,1,2].map(i => (
+                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-violet-400/50 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      <div className="border-t border-white/[0.06] px-6 py-4 flex-shrink-0">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-end gap-3 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 focus-within:border-white/15 transition">
+            <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
+              placeholder="Ask anything about your products, factories, or samples..."
+              rows={1} className="flex-1 bg-transparent text-white/80 placeholder-white/20 text-sm focus:outline-none resize-none leading-relaxed"
+              style={{ maxHeight: "120px" }}
+              onInput={e => {
+                const t = e.target as HTMLTextAreaElement;
+                t.style.height = "auto";
+                t.style.height = Math.min(t.scrollHeight, 120) + "px";
+              }} />
+            <button onClick={() => send()} disabled={!input.trim() || loading}
+              className="w-8 h-8 rounded-xl bg-violet-500 flex items-center justify-center flex-shrink-0 disabled:opacity-30 hover:bg-violet-400 transition">
+              {loading ? <Loader2 size={13} className="animate-spin text-white" /> : <Send size={13} className="text-white" />}
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-white/15 mt-2">Uses real data from your PLM — prices, stages, factories, revisions</p>
+        </div>
+      </div>
+    </div>
+  );
+}
