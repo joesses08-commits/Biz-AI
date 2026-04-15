@@ -469,9 +469,9 @@ For product_import: extract ALL available fields per product including descripti
             if (!uploadError) {
               const { data: urlData } = supabaseAdmin.storage.from("plm-images").getPublicUrl(imgPath);
               const { error: updateError } = await supabaseAdmin.from("plm_products").update({
-                image_url: urlData.publicUrl, updated_at: new Date().toISOString()
+                images: [urlData.publicUrl], updated_at: new Date().toISOString()
               }).eq("id", newProduct.id);
-              console.log(`Image uploaded for ${ep.name}: ${urlData.publicUrl} updateError: ${updateError?.message}`);
+              console.log(`Image saved for ${ep.name}: ${urlData.publicUrl} updateError: ${updateError?.message}`);
             } else {
               console.log(`Upload error for ${ep.name}:`, uploadError.message);
             }
