@@ -56,7 +56,7 @@ async function buildPLMContext(userId: string): Promise<string> {
       const active = ft.filter((t: any) => t.status === "active");
       const prices = approved.filter((t: any) => t.approved_price).map((t: any) => t.approved_price);
       const avgPrice = prices.length > 0 ? (prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2) : null;
-      lines.push(`  - ${f.name}: ${approved.length} approved, ${active.length} active${avgPrice ? `, avg $${avgPrice}` : ""}`);
+      lines.push(`  - ${(f as any).name}: ${approved.length} approved, ${active.length} active${avgPrice ? `, avg $${avgPrice}` : ""}`);
     });
     lines.push("");
   }
@@ -69,13 +69,13 @@ async function buildPLMContext(userId: string): Promise<string> {
       const activeTracks = pt.filter((t: any) => t.status === "active");
       lines.push(`\n  ${p.name}${p.sku ? ` (${p.sku})` : ""} — ${p.plm_collections?.name || "No collection"}`);
       if (p.action_status === "action_required") lines.push(`    ⚡ ACTION: ${p.action_note || "needs attention"}`);
-      if (approvedTrack) lines.push(`    ✓ APPROVED: ${approvedTrack.factory_catalog?.name}${approvedTrack.approved_price ? ` @ $${approvedTrack.approved_price}` : ""}`);
+      if (approvedTrack) { const aName = (approvedTrack as any).factory_catalog?.name || ""; const aPrice = (approvedTrack as any).approved_price; lines.push(`    ✓ APPROVED: ${aName}${aPrice ? ` @ $${aPrice}` : ""}`); }
       activeTracks.forEach((t: any) => {
         const done = (t.plm_track_stages || []).filter((s: any) => s.status === "done").map((s: any) => s.stage);
         const latest = ["sample_reviewed","sample_arrived","sample_shipped","sample_complete","sample_production","sample_requested","quote_received","quote_requested","artwork_sent"].find(s => done.includes(s));
         const quoted = (t.plm_track_stages || []).find((s: any) => s.stage === "quote_received" && s.quoted_price)?.quoted_price;
         const revs = (t.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
-        lines.push(`    ${t.factory_catalog?.name}: ${latest || "not started"}${quoted ? ` quoted $${quoted}` : ""}${revs > 0 ? ` (${revs} revision${revs > 1 ? "s" : ""})` : ""}`);
+        const tName = (t as any).factory_catalog?.name || "Unknown"; lines.push(`    ${tName}: ${latest || "not started"}${quoted ? ` quoted $${quoted}` : ""}${revs > 0 ? ` (${revs} revision${revs > 1 ? "s" : ""})` : ""}`);
       });
       if (pt.length === 0) lines.push(`    No factory tracks`);
     });
@@ -86,7 +86,7 @@ async function buildPLMContext(userId: string): Promise<string> {
     lines.push(`ORDERS (${orders.length}):`);
     orders.forEach((o: any) => {
       const p = (products || []).find((pr: any) => pr.id === o.product_id);
-      lines.push(`  - ${p?.name || "Unknown"} @ ${o.factory_catalog?.name}: ${o.order_quantity?.toLocaleString()} units, ${o.current_stage}`);
+      lines.push(`  - ${(p as any)?.name || "Unknown"} @ ${(o as any).factory_catalog?.name}: ${(o as any).order_quantity?.toLocaleString()} units, ${(o as any).current_stage}`);
     });
   }
 
