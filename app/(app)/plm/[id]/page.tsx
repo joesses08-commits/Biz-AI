@@ -1406,7 +1406,7 @@ ${entry}` : entry;
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Additional Note (optional)</p>
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Internal Note (saved to factory track, not sent in email)</p>
                   <textarea value={disqualifyNote} onChange={e => setDisqualifyNote(e.target.value)} rows={2}
                     placeholder="e.g. Lead time was 60 days vs our requirement of 45..."
                     className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
