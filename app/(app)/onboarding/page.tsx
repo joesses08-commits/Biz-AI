@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { Check, ArrowRight, Plug, Package, Brain, Rocket, Lock } from "lucide-react";
+import { Check, ArrowRight, Lock, Factory, Package, FileSpreadsheet, Zap } from "lucide-react";
 
 export default function OnboardingPage() {
   const [adminPin, setAdminPin] = useState("");
@@ -28,7 +27,7 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
     const { data: profile } = await supabase.from("profiles").select("onboarded, admin_pin_hash").eq("id", user.id).single();
-    if (profile?.onboarded) { router.push("/dashboard"); return; }
+    if (profile?.onboarded) { router.push("/plm"); return; }
     if (profile?.admin_pin_hash) setPinSaved(true);
     setChecking(false);
   }
@@ -43,12 +42,12 @@ export default function OnboardingPage() {
     setPinSaved(true);
   }
 
-  async function goToDashboard() {
+  async function goToPLM() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase.from("profiles").upsert({ id: user.id, onboarded: true });
     }
-    router.push("/dashboard");
+    router.push("/plm");
   }
 
   const steps = [
@@ -56,7 +55,7 @@ export default function OnboardingPage() {
       number: "01",
       icon: Lock,
       title: "Set Your Admin PIN",
-      description: "Your PIN protects sensitive actions — killing products, changing statuses, building your brain. Set it once, never forgotten.",
+      description: "Protects sensitive actions like killing products or approving samples. You'll use this PIN throughout Jimmy.",
       color: "text-purple-400",
       bg: "bg-purple-500/10",
       border: "border-purple-500/20",
@@ -65,48 +64,48 @@ export default function OnboardingPage() {
     },
     {
       number: "02",
-      icon: Plug,
-      title: "Connect Your Integrations",
-      description: "Go to Integrations in the sidebar. Connect Google Workspace or Microsoft 365 (required). Then connect Stripe and QuickBooks if you use them.",
+      icon: Factory,
+      title: "Add Your Factories",
+      description: "Go to Product Lifecycle → Factory Access tab. Add every factory you work with — name, email, contact person. These become your quoting and sample partners.",
       color: "text-blue-400",
       bg: "bg-blue-500/10",
       border: "border-blue-500/20",
       done: false,
       action: false,
-      link: "/integrations",
-      linkLabel: "Go to Integrations →",
+      link: "/plm?tab=factories",
+      linkLabel: "Add Factories →",
     },
     {
       number: "03",
       icon: Package,
-      title: "Set Up Your Product Lifecycle",
-      description: "Go to Product Lifecycle in the sidebar. Add all your products, collections, and factories. Move each product to its current stage. This is your sourcing command center.",
+      title: "Add Your Products",
+      description: "Create a collection (like \"Spring 2026\") and add your products. Include SKU, images, and specs. Or bulk import from Excel — Jimmy extracts everything including images.",
       color: "text-amber-400",
       bg: "bg-amber-500/10",
       border: "border-amber-500/20",
       done: false,
       action: false,
       link: "/plm",
-      linkLabel: "Go to Product Lifecycle →",
+      linkLabel: "Add Products →",
     },
     {
       number: "04",
-      icon: Brain,
-      title: "Build Your Company Brain",
-      description: "Go to Settings. Fill in your company brief (at least 400 characters). Then click Build Brain — Jimmy will read your last 1,000 emails, 15 files, all your invoices and payments, and your entire PLM to build your initial intelligence snapshot.",
+      icon: FileSpreadsheet,
+      title: "Connect Your Email",
+      description: "Connect Gmail or Outlook so Jimmy can send RFQs, sample requests, and POs directly to factories — and read their replies automatically.",
       color: "text-emerald-400",
       bg: "bg-emerald-500/10",
       border: "border-emerald-500/20",
       done: false,
       action: false,
-      link: "/settings",
-      linkLabel: "Go to Settings →",
+      link: "/integrations",
+      linkLabel: "Connect Email →",
     },
     {
       number: "05",
-      icon: Rocket,
-      title: "Launch",
-      description: "Once your brain is built, hit the dashboard. Jimmy will brief you daily, flag risks, surface opportunities, and answer anything about your business.",
+      icon: Zap,
+      title: "Start Sourcing",
+      description: "Select products, click Request Quotes, pick your factories — Jimmy emails them all. When quotes come back, drop the Excel in chat and Jimmy extracts pricing automatically.",
       color: "text-white",
       bg: "bg-white/5",
       border: "border-white/10",
@@ -134,7 +133,7 @@ export default function OnboardingPage() {
             </svg>
           </div>
           <h1 className="text-4xl font-bold tracking-tight mb-3">Welcome to Jimmy</h1>
-          <p className="text-white/40 text-lg leading-relaxed max-w-xl mx-auto">Follow these 5 steps to get your AI operating system running. Takes about 10 minutes.</p>
+          <p className="text-white/40 text-lg leading-relaxed max-w-xl mx-auto">Your sourcing command center. Get set up in 5 minutes.</p>
         </div>
 
         {/* Steps */}
@@ -200,11 +199,11 @@ export default function OnboardingPage() {
 
         {/* Continue button */}
         <div className="mt-10 text-center">
-          <button onClick={goToDashboard}
-            className="px-8 py-3 rounded-xl border border-white/10 text-white/40 hover:text-white hover:border-white/20 text-sm transition">
-            Skip setup — go to dashboard →
+          <button onClick={goToPLM}
+            className="px-8 py-3 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition">
+            Go to Product Lifecycle →
           </button>
-          <p className="text-white/20 text-xs mt-3">You can always find these instructions in Settings → Onboarding Guide</p>
+          <p className="text-white/20 text-xs mt-3">You can always come back to this guide in Settings</p>
         </div>
 
       </div>
