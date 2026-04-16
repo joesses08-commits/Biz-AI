@@ -291,16 +291,14 @@ export async function POST(req: NextRequest) {
     }).eq("id", track_id).eq("user_id", user.id);
 
     if (factory_email) {
-      const reasonText = reason === "price" ? "pricing was not competitive for this order"
+      const reasonText = reason === "price" ? "pricing was not competitive enough for this order"
         : reason === "speed" ? "lead times were not able to meet our timeline requirements"
-        : "quality of samples did not meet our specifications";
+        : "sample quality did not meet our specifications";
       const emailBody = `Hi ${contact_name || factory_name},
 
 Thank you for your time and effort on the ${product_name} sample. We truly appreciate the work you put in.
 
-After careful consideration, we have decided to move forward with another supplier for this particular product, as their ${reasonText}.${note ? `
-
-${note}` : ""}
+After careful consideration, we have decided to move forward with another supplier for this product. Unfortunately, your ${reasonText}.
 
 Please disregard any further sample production for this item. We hope to work together on future opportunities and will keep you in mind for upcoming projects.
 
