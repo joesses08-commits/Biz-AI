@@ -38,7 +38,7 @@ export default function SettingsPage() {
   const [pinResetSent, setPinResetSent] = useState(false);
   const [saved, setSaved] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"brain" | "company" | "feed" | "guide">("brain");
+  const [activeTab, setActiveTab] = useState<"guide" | "company">("guide");
   const [events, setEvents] = useState<any[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsLoaded, setEventsLoaded] = useState(false);
@@ -190,11 +190,9 @@ export default function SettingsPage() {
         <div className="flex gap-1 mb-8 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 w-fit">
           {[
             { id: "guide", label: "Quick Start" },
-            { id: "brain", label: "Company Brain" },
             { id: "company", label: "Company Info" },
-            { id: "feed", label: "Live Feed" },
           ].map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id as any); if (tab.id === "feed") loadEvents(); }}
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab.id ? "bg-white text-black" : "text-white/40 hover:text-white"}`}>
               {tab.label}
             </button>
