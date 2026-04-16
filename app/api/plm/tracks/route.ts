@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sendEmail } from "@/app/api/chat/tools/index";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -308,11 +309,8 @@ Thank you again for your partnership.
 Best regards,
 ${senderName}
 ${companyName}`;
-      await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ from: "onboarding@resend.dev", to: factory_email, subject: `Update on ${product_name} Sample`, text: emailBody }),
-      });
+      const emailResult = await sendEmail(user.id, factory_email, `Update on ${product_name} Sample`, emailBody, "auto");
+      console.log("Disqualify email result:", emailResult);
     }
     return NextResponse.json({ success: true });
   }
