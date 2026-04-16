@@ -183,7 +183,7 @@ export default function SettingsPage() {
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-          <p className="text-white/30 text-sm mt-1">Manage your AI COO's knowledge and preferences.</p>
+          <p className="text-white/30 text-sm mt-1">Manage your sourcing intelligence and company settings.</p>
         </div>
 
         {/* Tabs */}
@@ -230,7 +230,7 @@ export default function SettingsPage() {
                 <div>
                   <label className={labelClass}>Who you are & what you do</label>
                   <textarea value={brain.company_brief} onChange={e => { if (e.target.value.length <= 800) setBrain({...brain, company_brief: e.target.value}); }}
-                    rows={5} placeholder="Describe your business — what you sell, who you sell to, how you operate, key people, tools you use..."
+                    rows={5} placeholder="e.g. We source home goods and kitchenware from factories in China and sell to major US retailers like Target, Walmart, and TJ Maxx. Key categories: glassware, ceramics, holiday decor. 3-person buying team. Use WhatsApp and email to communicate with factories."
                     maxLength={800}
                     className={textareaClass} />
                   <p className="text-[10px] text-white/20 mt-1">{brain.company_brief?.length || 0}/800 characters</p>
@@ -256,25 +256,25 @@ export default function SettingsPage() {
                 <div>
                   <label className={labelClass}>What is real vs hypothetical</label>
                   <textarea value={brain.what_is_real} onChange={e => setBrain({...brain, what_is_real: e.target.value})}
-                    rows={3} placeholder="e.g. Any Stripe transaction is real revenue. Sheets named 'model' or 'template' are hypothetical — not real business data."
+                    rows={3} placeholder="e.g. Any quote from a factory email is real pricing. Sample requests in Jimmy are real orders. Spreadsheets named 'template' or 'example' are not real."
                     className={textareaClass} />
                 </div>
                 <div>
                   <label className={labelClass}>What to ignore</label>
                   <textarea value={brain.what_to_ignore} onChange={e => setBrain({...brain, what_to_ignore: e.target.value})}
-                    rows={3} placeholder="e.g. Ignore newsletters, noreply emails, promotional emails. Ignore spreadsheets not modified in 6 months."
+                    rows={3} placeholder="e.g. Ignore factory marketing emails, trade show invites, shipping carrier promos. Focus only on quote responses, sample updates, and production status."
                     className={textareaClass} />
                 </div>
                 <div>
                   <label className={labelClass}>What matters most</label>
                   <textarea value={brain.what_matters} onChange={e => setBrain({...brain, what_matters: e.target.value})}
-                    rows={3} placeholder="e.g. Cash position is most important. Any client email about payment needs immediate attention."
+                    rows={3} placeholder="e.g. Sample deadlines are critical — late samples mean missed retail windows. Any factory delay email needs immediate attention. Quote comparisons drive all sourcing decisions."
                     className={textareaClass} />
                 </div>
                 <div>
                   <label className={labelClass}>Where data lives</label>
                   <textarea value={brain.where_data_lives} onChange={e => setBrain({...brain, where_data_lives: e.target.value})}
-                    rows={3} placeholder="e.g. Gmail = client communication. QuickBooks = real invoices. Schwab spreadsheet = portfolio updated weekly."
+                    rows={3} placeholder="e.g. Gmail = factory communication. Jimmy PLM = product stages and sample tracking. QuickBooks = invoices to buyers. Google Drive = quote comparison sheets."
                     className={textareaClass} />
                 </div>
               </div>
