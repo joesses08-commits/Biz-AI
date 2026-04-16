@@ -29,12 +29,14 @@ async function buildPLMContext(userId: string): Promise<string> {
     { data: tracks },
     { data: collections },
     { data: orders },
+    { data: samples },
   ] = await Promise.all([
-    supabaseAdmin.from("plm_products").select("id, name, sku, killed, action_status, action_note, notes, factory_notes, collection_id, plm_collections(name, season, year)").eq("user_id", userId).eq("killed", false),
-    supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").eq("user_id", userId),
-    supabaseAdmin.from("plm_factory_tracks").select("id, product_id, factory_id, status, approved_price, factory_catalog(name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number, notes)").eq("user_id", userId),
+    supabaseAdmin.from("plm_products").select("id, name, sku, killed, status, action_status, action_note, notes, factory_notes, collection_id, specs, description, category, plm_collections(name, season, year)").eq("user_id", userId),
+    supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name, notes").eq("user_id", userId),
+    supabaseAdmin.from("plm_factory_tracks").select("id, product_id, factory_id, status, approved_price, disqualify_reason, disqualified_at, notes, factory_catalog(name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number, notes)").eq("user_id", userId),
     supabaseAdmin.from("plm_collections").select("id, name, season, year").eq("user_id", userId),
-    supabaseAdmin.from("plm_batches").select("id, product_id, factory_id, current_stage, order_quantity, factory_catalog(name)").eq("user_id", userId),
+    supabaseAdmin.from("plm_batches").select("id, product_id, factory_id, current_stage, order_quantity, unit_price, elc, sell_price, margin, linked_po_number, payment_terms, factory_catalog(name)").eq("user_id", userId),
+    supabaseAdmin.from("plm_sample_requests").select("id, product_id, factory_id, status, round_number, factory_catalog(name), plm_sample_stages(stage, status, actual_date, notes)").eq("user_id", userId),
   ]);
 
   const lines: string[] = ["=== PLM DATA ===\n"];
@@ -61,33 +63,78 @@ async function buildPLMContext(userId: string): Promise<string> {
     lines.push("");
   }
 
-  if (products?.length) {
-    lines.push(`PRODUCTS (${products.length}):`);
-    products.forEach((p: any) => {
+  const allProds = products || [];
+  const killed = allProds.filter((p: any) => p.killed || p.status === "killed");
+  const active = allProds.filter((p: any) => !p.killed && p.status !== "killed");
+
+  if (active?.length) {
+    lines.push(`PRODUCTS (${active.length} active${killed.length > 0 ? `, ${killed.length} killed` : ""}):`);
+    active.forEach((p: any) => {
       const pt = (tracks || []).filter((t: any) => t.product_id === p.id);
       const approvedTrack = pt.find((t: any) => t.status === "approved");
       const activeTracks = pt.filter((t: any) => t.status === "active");
-      lines.push(`\n  ${p.name}${p.sku ? ` (${p.sku})` : ""} — ${p.plm_collections?.name || "No collection"}`);
-      if (p.action_status === "action_required") lines.push(`    ⚡ ACTION: ${p.action_note || "needs attention"}`);
-      if (approvedTrack) { const aName = (approvedTrack as any).factory_catalog?.name || ""; const aPrice = (approvedTrack as any).approved_price; lines.push(`    ✓ APPROVED: ${aName}${aPrice ? ` @ $${aPrice}` : ""}`); }
+      const disqualTracks = pt.filter((t: any) => t.status === "killed");
+      const prodSamples = (samples || []).filter((s: any) => s.product_id === p.id);
+      const prodOrders = (orders || []).filter((o: any) => o.product_id === p.id);
+
+      lines.push(`\n  ${p.name}${p.sku ? ` (${p.sku})` : ""}${p.status === "hold" ? " [ON HOLD]" : ""} — ${p.plm_collections?.name || "No collection"}`);
+      if (p.specs) lines.push(`    Specs: ${p.specs}`);
+      if (p.action_status === "action_required") lines.push(`    ⚡ ACTION REQUIRED: ${p.action_note || "needs attention"}`);
+      if (p.notes) lines.push(`    Notes: ${p.notes.slice(0, 200)}`);
+
+      if (approvedTrack) {
+        const aName = (approvedTrack as any).factory_catalog?.name || "";
+        const aPrice = (approvedTrack as any).approved_price;
+        lines.push(`    ✓ APPROVED: ${aName}${aPrice ? ` @ $${aPrice}` : ""}`);
+      }
+
       activeTracks.forEach((t: any) => {
-        const done = (t.plm_track_stages || []).filter((s: any) => s.status === "done").map((s: any) => s.stage);
+        const stages = (t.plm_track_stages || []);
+        const done = stages.filter((s: any) => s.status === "done").map((s: any) => s.stage);
         const latest = ["sample_reviewed","sample_arrived","sample_shipped","sample_complete","sample_production","sample_requested","quote_received","quote_requested","artwork_sent"].find(s => done.includes(s));
-        const quoted = (t.plm_track_stages || []).find((s: any) => s.stage === "quote_received" && s.quoted_price)?.quoted_price;
-        const revs = (t.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
-        const tName = (t as any).factory_catalog?.name || "Unknown"; lines.push(`    ${tName}: ${latest || "not started"}${quoted ? ` quoted $${quoted}` : ""}${revs > 0 ? ` (${revs} revision${revs > 1 ? "s" : ""})` : ""}`);
+        const quoted = stages.find((s: any) => s.stage === "quote_received" && s.quoted_price)?.quoted_price;
+        const revs = stages.filter((s: any) => s.stage === "revision_requested").length;
+        const tNotes = t.notes ? ` | Notes: ${t.notes.slice(0, 100)}` : "";
+        // Calculate avg lead time from expected vs actual
+        const completedStages = stages.filter((s: any) => s.status === "done" && s.actual_date && s.expected_date);
+        const tName = (t as any).factory_catalog?.name || "Unknown";
+        lines.push(`    ${tName}: ${latest || "not started"}${quoted ? ` quoted $${quoted}` : ""}${revs > 0 ? ` (${revs} revision${revs > 1 ? "s" : ""})` : ""}${tNotes}`);
       });
-      if (pt.length === 0) lines.push(`    No factory tracks`);
+
+      disqualTracks.forEach((t: any) => {
+        const tName = (t as any).factory_catalog?.name || "Unknown";
+        lines.push(`    ${tName}: DISQUALIFIED (${t.disqualify_reason || "reason unknown"})`);
+      });
+
+      prodSamples.forEach((s: any) => {
+        const sName = (s as any).factory_catalog?.name || "Unknown";
+        const lastStage = (s.plm_sample_stages || []).filter((st: any) => st.status === "done").pop();
+        lines.push(`    Sample R${s.round_number} ${sName}: ${s.status}${lastStage ? ` (${lastStage.stage})` : ""}`);
+      });
+
+      prodOrders.forEach((o: any) => {
+        const oName = (o as any).factory_catalog?.name || "Unknown";
+        lines.push(`    Order @ ${oName}: ${o.order_quantity} units, ${o.current_stage}${o.elc ? ` ELC $${o.elc}` : ""}${o.sell_price ? ` sell $${o.sell_price}` : ""}${o.linked_po_number ? ` PO:${o.linked_po_number}` : ""}`);
+      });
+
+      if (pt.length === 0 && prodSamples.length === 0) lines.push(`    No factory tracks yet`);
     });
     lines.push("");
   }
 
-  if (orders?.length) {
-    lines.push(`ORDERS (${orders.length}):`);
-    orders.forEach((o: any) => {
-      const p = (products || []).find((pr: any) => pr.id === o.product_id);
-      lines.push(`  - ${(p as any)?.name || "Unknown"} @ ${(o as any).factory_catalog?.name}: ${(o as any).order_quantity?.toLocaleString()} units, ${(o as any).current_stage}`);
+  // Factory reliability analysis
+  if (factories?.length) {
+    lines.push("FACTORY ANALYSIS:");
+    (factories || []).forEach((f: any) => {
+      const ft = (tracks || []).filter((t: any) => (t as any).factory_catalog?.name === f.name);
+      const approved = ft.filter((t: any) => t.status === "approved").length;
+      const disqual = ft.filter((t: any) => t.status === "killed").length;
+      const quotes = ft.flatMap((t: any) => (t.plm_track_stages || []).filter((s: any) => s.stage === "quote_received" && s.quoted_price)).map((s: any) => s.quoted_price);
+      const avgQuote = quotes.length > 0 ? (quotes.reduce((a: number, b: number) => a + b, 0) / quotes.length).toFixed(2) : null;
+      const allRevisions = ft.flatMap((t: any) => (t.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested")).length;
+      lines.push(`  ${f.name}: ${approved} approved, ${disqual} disqualified${avgQuote ? `, avg quote $${avgQuote}` : ""}${allRevisions > 0 ? `, ${allRevisions} total revisions` : ""}${f.notes ? ` | ${f.notes.slice(0,100)}` : ""}`);
     });
+    lines.push("");
   }
 
   return lines.join("\n");
