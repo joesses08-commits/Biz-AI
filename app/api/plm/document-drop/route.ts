@@ -246,10 +246,10 @@ For product_import: extract ALL available fields per product including descripti
           .limit(5);
 
         if (recentJobs?.length) {
-          // Get product SKUs from this quote
+          // Get SKUs from this quote
           const quotedSkus = new Set(products_extracted.map((p: any) => p.sku?.trim().toLowerCase()).filter(Boolean));
-          
-          // Get all products to map IDs to SKUs
+
+          // Get all products to map IDs to SKUs (fallback if job doesn't have skus stored)
           const { data: allProds } = await supabaseAdmin.from("plm_products")
             .select("id, sku").eq("user_id", user.id);
           const prodSkuMap = Object.fromEntries((allProds || []).map((p: any) => [p.id, p.sku?.trim().toLowerCase()]));
@@ -258,16 +258,30 @@ For product_import: extract ALL available fields per product including descripti
           let bestScore = 0;
 
           for (const job of recentJobs) {
-            const jobProductIds = (job.order_details as any)?.plm_product_ids || [];
-            const jobSkus = new Set(jobProductIds.map((id: string) => prodSkuMap[id]).filter(Boolean));
-            // Count overlap
+            const orderDetails = job.order_details as any;
+            // Use stored SKUs if available, otherwise derive from product IDs
+            const jobSkuList = orderDetails?.product_skus?.length
+              ? orderDetails.product_skus.map((s: string) => s?.trim().toLowerCase())
+              : (orderDetails?.plm_product_ids || []).map((id: string) => prodSkuMap[id]).filter(Boolean);
+            const jobSkus = new Set(jobSkuList);
+
+            // Also check factory match bonus
+            const jobFactories = (job.factories || []).map((f: any) => f.name?.toLowerCase());
+            const factoryMatch = factory_name && jobFactories.some((fn: string) =>
+              fn.includes(factory_name.toLowerCase()) || factory_name.toLowerCase().includes(fn)
+            );
+
             let overlap = 0;
             quotedSkus.forEach((sku: any) => { if (jobSkus.has(sku)) overlap++; });
-            const score = jobSkus.size > 0 ? overlap / jobSkus.size : 0;
+            const skuScore = jobSkus.size > 0 ? overlap / jobSkus.size : 0;
+            // Boost score if factory also matches
+            const score = skuScore + (factoryMatch ? 0.2 : 0);
+
+            console.log(`Job ${job.id} SKU score: ${skuScore} factory match: ${factoryMatch} total: ${score}`);
             if (score > bestScore) { bestScore = score; bestMatch = job; }
           }
 
-          if (bestMatch && bestScore > 0.3) {
+          if (bestMatch && bestScore > 0.2) {
             jobId = bestMatch.id;
             console.log(`Matched to RFQ job ${jobId} with score ${bestScore}`);
           }

@@ -77,13 +77,23 @@ export async function POST(req: NextRequest) {
     // ── CREATE JOB ──────────────────────────────────────────────────────
     if (action === "create_job") {
       const { job_name, factories, order_details, product_file_base64, product_file_name, status: jobStatus } = body;
+
+      // Fetch SKUs for the products in this job
+      let productSkus: string[] = [];
+      const plmProductIds = (order_details as any)?.plm_product_ids || [];
+      if (plmProductIds.length > 0) {
+        const { data: prods } = await supabaseAdmin.from("plm_products")
+          .select("sku, name").in("id", plmProductIds);
+        productSkus = (prods || []).map((p: any) => p.sku).filter(Boolean);
+      }
+
       const { data: job } = await supabaseAdmin
         .from("factory_quote_jobs")
         .insert({
           user_id: user.id,
           job_name,
           factories,
-          order_details,
+          order_details: { ...(order_details as any), product_skus: productSkus },
           product_file_base64: product_file_base64 || null,
           product_file_name: product_file_name || null,
           status: jobStatus || "waiting",
