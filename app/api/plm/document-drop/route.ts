@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     let fileContent = "";
     if (file_type?.includes("sheet") || file_name?.match(/\.xlsx?$/i)) {
-      fileContent = extractExcelText(file_base64);
+      fileContent = extractExcelText(file_base64).slice(0, 5000);
     } else {
       fileContent = Buffer.from(file_base64, "base64").toString("utf-8").slice(0, 6000);
     }
@@ -115,7 +115,7 @@ For product_import: extract ALL available fields per product including descripti
 
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1000,
+      max_tokens: 1500,
       messages: [{ role: "user", content: prompt }],
     });
 
