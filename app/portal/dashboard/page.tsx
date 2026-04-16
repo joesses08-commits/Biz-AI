@@ -136,7 +136,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     shipped: "Shipped",
   };
 
-  const renderSampleProduct = (product: any, isUpcoming: boolean, collapsed: Record<string,boolean>, setCollapsed: (fn: (prev: Record<string,boolean>) => Record<string,boolean>) => void) => {
+  const renderSampleProduct = (product: any, isUpcoming: boolean, collapsed: Record<string,boolean>, setCollapsed: (fn: (prev: Record<string,boolean>) => Record<string,boolean>) => void, displayIndex?: number) => {
     const allSampleRequests = (product.plm_sample_requests || [])
       .filter((s: any) => s.factory_id === portalUser?.factory_id)
       .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -169,8 +169,8 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
             {isUpcoming && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Upcoming</span>}
-            {!isUpcoming && product._sample_priority != null && (
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">Priority #{product._sample_priority}</span>
+            {!isUpcoming && displayIndex != null && (
+              <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">Priority #{displayIndex}</span>
             )}
             {anyApproved && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Approved ✓</span>}
             {product._sample_label && (
@@ -367,7 +367,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                   <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Active Priority · {activeSamples.length}</p>
                 </div>
                 <div className="space-y-4">
-                {activeSamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
+                {activeSamples.map((product, idx) => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples, idx + 1))}
                 </div>
               </div>
             )}
