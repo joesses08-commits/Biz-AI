@@ -1419,9 +1419,7 @@ ${entry}` : entry;
 
 Thank you for your time and effort on the ${product.name} sample. We truly appreciate the work you put in.
 
-After careful consideration, we have decided to move forward with another supplier for this product, as their ${disqualifyReason === "price" ? "pricing was more competitive for this order" : disqualifyReason === "speed" ? "lead times better met our timeline requirements" : "quality better met our specifications"}.${disqualifyNote ? `
-
-${disqualifyNote}` : ""}
+After careful consideration, we have decided to move forward with another supplier for this product. Unfortunately, your ${disqualifyReason === "price" ? "pricing was not competitive enough for this order" : disqualifyReason === "speed" ? "lead times were not able to meet our timeline requirements" : "sample quality did not meet our specifications"}.
 
 Please disregard any further sample production for this item. We hope to work together on future opportunities.
 
