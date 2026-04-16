@@ -194,7 +194,7 @@ For product_import: extract ALL available fields per product including descripti
 
         // Build factory note from all extracted data and save to track
         const noteLines = [`Quote from ${factory_name || "factory"} (${new Date().toLocaleDateString()}):`];
-        if (ep.price) noteLines.push(`  Price: $${ep.price}`);
+        if (ep.unit_price || ep.price) noteLines.push(`  Price: $${ep.unit_price || ep.price}`);
         if (ep.moq) noteLines.push(`  MOQ: ${ep.moq}`);
         if (ep.lead_time) noteLines.push(`  Lead time: ${ep.lead_time}`);
         if (ep.sample_lead_time) noteLines.push(`  Sample lead: ${ep.sample_lead_time}`);
@@ -214,7 +214,7 @@ For product_import: extract ALL available fields per product including descripti
         if (existing) {
           await supabaseAdmin.from("plm_track_stages").update({
             status: "done", actual_date: today,
-            quoted_price: ep.price || null,
+            quoted_price: ep.unit_price || ep.price || null,
             notes: `Quote received from ${factory_name || "factory"} via document drop`,
             updated_at: new Date().toISOString(),
           }).eq("id", existing.id);
@@ -222,7 +222,7 @@ For product_import: extract ALL available fields per product including descripti
           await supabaseAdmin.from("plm_track_stages").insert({
             track_id: track.id, product_id: matched.id, factory_id,
             stage: "quote_received", status: "done", actual_date: today,
-            quoted_price: ep.price || null,
+            quoted_price: ep.unit_price || ep.price || null,
             notes: `Quote received from ${factory_name || "factory"} via document drop`,
             revision_number: revNum, updated_by: "jimmy_ai",
           });
