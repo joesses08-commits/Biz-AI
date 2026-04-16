@@ -273,11 +273,19 @@ export async function POST(req: NextRequest) {
     const senderName = profile?.full_name || user.email?.split("@")[0] || "The Team";
     const companyName = companyProfile?.company_name || profile?.company_name || "Our Company";
 
+    // Get existing track notes
+    const { data: existingTrack } = await supabaseAdmin.from("plm_factory_tracks")
+      .select("notes").eq("id", track_id).single();
+    const existingNotes = existingTrack?.notes || "";
+    const disqualifyEntry = `[Disqualified - ${new Date().toLocaleDateString()} - ${reason}]${note ? `\n${note}` : ""}`;
+    const updatedNotes = existingNotes ? `${existingNotes}\n\n${disqualifyEntry}` : disqualifyEntry;
+
     await supabaseAdmin.from("plm_factory_tracks").update({
       status: "killed",
       disqualify_reason: reason,
       disqualify_note: note || null,
       disqualified_at: new Date().toISOString(),
+      notes: updatedNotes,
       updated_at: new Date().toISOString(),
     }).eq("id", track_id).eq("user_id", user.id);
 
