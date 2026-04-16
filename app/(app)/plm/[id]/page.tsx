@@ -984,7 +984,13 @@ ${entry}` : entry;
                     <div className="mx-2 mb-2 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl rounded-tl-none space-y-2">
                       <p className="text-[9px] text-white/40 uppercase tracking-widest">Review outcome</p>
                       <div className="flex gap-1.5 flex-wrap">
-                        <button onClick={() => { setExpanded(false); setApproveModal({ track }); setApprovePrice(""); }}
+                        <button onClick={() => { 
+                            setExpanded(false); 
+                            setApproveModal({ track }); 
+                            const qpStage = (track.plm_track_stages || []).find((s: any) => s.stage === "quote_received" && s.status === "done" && s.quoted_price);
+                            const qp = qpStage?.quoted_price || track.quoted_price || "";
+                            setApprovePrice(qp ? String(qp) : ""); 
+                          }}
                           className="text-[10px] px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">✓ Approve</button>
                         <button onClick={() => { setExpanded(false); setRevisionModal({ track }); setRevisionNotes(""); }}
                           className="text-[10px] px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">↻ Revision</button>
