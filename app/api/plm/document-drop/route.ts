@@ -125,7 +125,18 @@ For product_import: extract ALL available fields per product including descripti
     const raw = (response.content[0] as any).text || "";
     const first = raw.indexOf("{");
     const last = raw.lastIndexOf("}");
-    const parsed = JSON.parse(raw.slice(first, last + 1));
+    let parsed;
+    try {
+      parsed = JSON.parse(raw.slice(first, last + 1));
+    } catch (e) {
+      try {
+        const sanitized = raw.slice(first, last + 1).replace(/[\x00-\x1F\x7F]/g, " ").replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
+        parsed = JSON.parse(sanitized);
+      } catch (e2) {
+        console.error("JSON parse failed:", String(e2).slice(0, 200));
+        return NextResponse.json({ error: "Could not read document — try again." }, { status: 400 });
+      }
+    }
 
     return NextResponse.json({ success: true, identified: parsed });
   }
