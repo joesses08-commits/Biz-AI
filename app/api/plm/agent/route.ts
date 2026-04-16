@@ -132,7 +132,15 @@ async function buildPLMContext(userId: string): Promise<string> {
       const quotes = ft.flatMap((t: any) => (t.plm_track_stages || []).filter((s: any) => s.stage === "quote_received" && s.quoted_price)).map((s: any) => s.quoted_price);
       const avgQuote = quotes.length > 0 ? (quotes.reduce((a: number, b: number) => a + b, 0) / quotes.length).toFixed(2) : null;
       const allRevisions = ft.flatMap((t: any) => (t.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested")).length;
-      lines.push(`  ${f.name}: ${approved} approved, ${disqual} disqualified${avgQuote ? `, avg quote $${avgQuote}` : ""}${allRevisions > 0 ? `, ${allRevisions} total revisions` : ""}${f.notes ? ` | ${f.notes.slice(0,100)}` : ""}`);
+      // Lead time analysis: compare actual vs expected dates
+      const completedWithDates = ft.flatMap((t: any) => (t.plm_track_stages || []).filter((s: any) => s.status === "done" && s.actual_date && s.expected_date));
+      const delays = completedWithDates.map((s: any) => {
+        const actual = new Date(s.actual_date).getTime();
+        const expected = new Date(s.expected_date).getTime();
+        return Math.round((actual - expected) / (1000 * 60 * 60 * 24));
+      });
+      const avgDelay = delays.length > 0 ? Math.round(delays.reduce((a: number, b: number) => a + b, 0) / delays.length) : null;
+      lines.push(`  ${f.name}: ${approved} approved, ${disqual} disqualified${avgQuote ? `, avg quote $${avgQuote}` : ""}${allRevisions > 0 ? `, ${allRevisions} total revisions` : ""}${avgDelay !== null ? `, avg lead time variance ${avgDelay > 0 ? "+" : ""}${avgDelay} days` : ""}${f.notes ? ` | ${f.notes.slice(0,100)}` : ""}`);
     });
     lines.push("");
   }
