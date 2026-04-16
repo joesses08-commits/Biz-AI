@@ -58,22 +58,6 @@ function StageCell({ products, factoryId, stageKey, color, onNoteProduct }: any)
   const allDone = count === total;
   const noneDone = count === 0;
 
-  const handleBulkDisqualify = async () => {
-    if (!bulkDisqualifyModal) return;
-    setBulkDisqualifying(true);
-    const f = bulkDisqualifyModal.factory;
-    for (const pid of bulkDisqualifyProducts) {
-      const product = products.find((p: any) => p.id === pid);
-      const track = (product?.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id);
-      if (!track) continue;
-      await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "disqualify_track", track_id: track.id, reason: bulkDisqualifyReason, note: bulkDisqualifyNote, product_name: product.name, factory_name: f.name, factory_email: f.email, contact_name: f.contact_name }) });
-    }
-    setBulkDisqualifying(false);
-    setBulkDisqualifyModal(null);
-    load();
-  };
-
   return (
     <div>
       <button onClick={() => setExpanded(!expanded)}
@@ -109,63 +93,6 @@ function StageCell({ products, factoryId, stageKey, color, onNoteProduct }: any)
         </div>
       )}
     </div>
-    {/* Bulk Disqualify Modal */}
-      {bulkDisqualifyModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-white">Disqualify {bulkDisqualifyModal.factory.name}</p>
-                <p className="text-xs text-white/40 mt-0.5">For {bulkDisqualifyProducts.length} products in this collection</p>
-              </div>
-              <button onClick={() => setBulkDisqualifyModal(null)} className="text-white/30 hover:text-white/60 text-lg">✕</button>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Reason</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[{ key: "price", label: "Price", icon: "💰" }, { key: "speed", label: "Speed", icon: "⏱" }, { key: "quality", label: "Quality", icon: "⚠️" }].map(r => (
-                  <button key={r.key} onClick={() => setBulkDisqualifyReason(r.key)}
-                    className={`py-2.5 rounded-xl border text-xs font-semibold transition ${bulkDisqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[0.06] text-white/40 hover:border-white/20"}`}>
-                    {r.icon} {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Select Products to Disqualify</p>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === bulkDisqualifyModal.factory.id && t.status === "active")).map((p: any) => (
-                  <label key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
-                    <input type="checkbox" checked={bulkDisqualifyProducts.includes(p.id)}
-                      onChange={e => setBulkDisqualifyProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
-                      className="accent-red-500" />
-                    <span className="text-xs text-white/60">{p.name}</span>
-                    {p.sku && <span className="text-[10px] text-white/25">{p.sku}</span>}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Internal Note (optional)</p>
-              <textarea value={bulkDisqualifyNote} onChange={e => setBulkDisqualifyNote(e.target.value)} rows={2}
-                placeholder="Internal note saved to factory tracks..."
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={handleBulkDisqualify} disabled={bulkDisqualifying || bulkDisqualifyProducts.length === 0}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold disabled:opacity-40">
-                {bulkDisqualifying ? "Sending..." : `Disqualify & Email ${bulkDisqualifyProducts.length} Products`}
-              </button>
-              <button onClick={() => setBulkDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
   );
 }
 
@@ -175,22 +102,18 @@ export default function CollectionPage() {
   const [collection, setCollection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [allFactories, setAllFactories] = useState<any[]>([]);
+  const [noteProduct, setNoteProduct] = useState<any>(null);
   const [bulkDisqualifyModal, setBulkDisqualifyModal] = useState<{ factory: any } | null>(null);
   const [bulkDisqualifyReason, setBulkDisqualifyReason] = useState("price");
   const [bulkDisqualifyNote, setBulkDisqualifyNote] = useState("");
   const [bulkDisqualifying, setBulkDisqualifying] = useState(false);
   const [bulkDisqualifyProducts, setBulkDisqualifyProducts] = useState<string[]>([]);
-  const [noteProduct, setNoteProduct] = useState<any>(null);
-
-  // RFQ modal
   const [showRfqModal, setShowRfqModal] = useState(false);
   const [rfqProductIds, setRfqProductIds] = useState<string[]>([]);
   const [rfqInclude, setRfqInclude] = useState<string[]>(["name","sku","description","specs","images"]);
   const [rfqAskFor, setRfqAskFor] = useState<string[]>(["price","moq","lead_time","sample_lead_time","payment_terms"]);
   const [creatingRfq, setCreatingRfq] = useState(false);
   const [rfqDone, setRfqDone] = useState(false);
-
-  // Sample modal
   const [showSampleModal, setShowSampleModal] = useState(false);
   const [sampleProductIds, setSampleProductIds] = useState<string[]>([]);
   const [sampleNote, setSampleNote] = useState("");
@@ -198,7 +121,7 @@ export default function CollectionPage() {
   const [sampleSelections, setSampleSelections] = useState<Record<string, string[]>>({});
   const [expandedSampleProducts, setExpandedSampleProducts] = useState<string[]>([]);
 
-  useEffect(() => {
+  const load = () => {
     Promise.all([
       fetch("/api/plm/collection/" + id).then(r => r.json()),
       fetch("/api/catalog?type=factories").then(r => r.json()),
@@ -207,32 +130,36 @@ export default function CollectionPage() {
       setAllFactories(catData.factories || []);
       setLoading(false);
     });
-  }, [id]);
+  };
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <Loader2 size={20} className="animate-spin text-white/20" />
-    </div>
-  );
-  if (!collection) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <p className="text-white/30">Collection not found</p>
-    </div>
-  );
+  useEffect(() => { load(); }, [id]);
+
+  const handleBulkDisqualify = async () => {
+    if (!bulkDisqualifyModal) return;
+    setBulkDisqualifying(true);
+    const f = bulkDisqualifyModal.factory;
+    const prods = collection?.plm_products || [];
+    for (const pid of bulkDisqualifyProducts) {
+      const product = prods.find((p: any) => p.id === pid);
+      const track = (product?.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id);
+      if (!track) continue;
+      await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "disqualify_track", track_id: track.id, reason: bulkDisqualifyReason, note: bulkDisqualifyNote, product_name: product.name, factory_name: f.name, factory_email: f.email, contact_name: f.contact_name }) });
+    }
+    setBulkDisqualifying(false);
+    setBulkDisqualifyModal(null);
+    load();
+  };
+
+  if (loading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 size={20} className="animate-spin text-white/20" /></div>;
+  if (!collection) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><p className="text-white/30">Collection not found</p></div>;
 
   const products = (collection.plm_products || []).filter((p: any) => !p.killed);
   const factories = getAllFactories(products);
-  const approvedCount = products.filter((p: any) =>
-    (p.plm_factory_tracks || []).some((t: any) => t.status === "approved")
-  ).length;
+  const approvedCount = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.status === "approved")).length;
   const actionCount = products.filter((p: any) => p.action_status === "action_required").length;
 
-  const openRfq = () => {
-    setRfqProductIds(products.map((p: any) => p.id));
-    setRfqDone(false);
-    setShowRfqModal(true);
-  };
-
+  const openRfq = () => { setRfqProductIds(products.map((p: any) => p.id)); setRfqDone(false); setShowRfqModal(true); };
   const openSamples = () => {
     const ids = products.map((p: any) => p.id);
     setSampleProductIds(ids);
@@ -245,12 +172,9 @@ export default function CollectionPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
 
-      {/* Note modal */}
       {noteProduct && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-          onClick={() => setNoteProduct(null)}>
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-5 space-y-3"
-            onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setNoteProduct(null)}>
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {noteProduct.images?.[0] && <img src={noteProduct.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover" />}
@@ -264,15 +188,64 @@ export default function CollectionPage() {
             {noteProduct.notes && <div><p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Notes</p><p className="text-xs text-white/60 leading-relaxed">{noteProduct.notes}</p></div>}
             {noteProduct.factory_notes && <div><p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Factory Notes</p><p className="text-xs text-white/60 leading-relaxed">{noteProduct.factory_notes}</p></div>}
             {!noteProduct.notes && !noteProduct.factory_notes && <p className="text-xs text-white/20 italic">No notes</p>}
-            <button onClick={() => { setNoteProduct(null); router.push(`/plm/${noteProduct.id}`); }}
-              className="w-full py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/60 text-xs hover:text-white/80 transition">
-              Open Product →
-            </button>
+            <button onClick={() => { setNoteProduct(null); router.push(`/plm/${noteProduct.id}`); }} className="w-full py-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-white/60 text-xs hover:text-white/80 transition">Open Product →</button>
           </div>
         </div>
       )}
 
-      {/* RFQ Modal */}
+      {bulkDisqualifyModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">Disqualify {bulkDisqualifyModal.factory.name}</p>
+                <p className="text-xs text-white/40 mt-0.5">Select products and send email notifications</p>
+              </div>
+              <button onClick={() => setBulkDisqualifyModal(null)} className="text-white/30 hover:text-white/60 text-lg">✕</button>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Reason</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[{ key: "price", label: "Price", icon: "💰" }, { key: "speed", label: "Speed", icon: "⏱" }, { key: "quality", label: "Quality", icon: "⚠️" }].map(r => (
+                  <button key={r.key} onClick={() => setBulkDisqualifyReason(r.key)}
+                    className={`py-2.5 rounded-xl border text-xs font-semibold transition ${bulkDisqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[0.06] text-white/40 hover:border-white/20"}`}>
+                    {r.icon} {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Select Products</p>
+              <div className="space-y-1 max-h-48 overflow-y-auto">
+                {products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === bulkDisqualifyModal.factory.id && t.status === "active")).map((p: any) => (
+                  <label key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
+                    <input type="checkbox" checked={bulkDisqualifyProducts.includes(p.id)}
+                      onChange={e => setBulkDisqualifyProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                      className="accent-red-500" />
+                    <span className="text-xs text-white/60">{p.name}</span>
+                    {p.sku && <span className="text-[10px] text-white/25 ml-1">{p.sku}</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Internal Note (optional)</p>
+              <textarea value={bulkDisqualifyNote} onChange={e => setBulkDisqualifyNote(e.target.value)} rows={2}
+                placeholder="Saved to factory tracks only, not sent in email..."
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={handleBulkDisqualify} disabled={bulkDisqualifying || bulkDisqualifyProducts.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold disabled:opacity-40">
+                {bulkDisqualifying ? <Loader2 size={13} className="animate-spin" /> : null}
+                {bulkDisqualifying ? "Sending..." : `Disqualify & Email ${bulkDisqualifyProducts.length} Products`}
+              </button>
+              <button onClick={() => setBulkDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showRfqModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
@@ -286,8 +259,7 @@ export default function CollectionPage() {
               <div className="grid grid-cols-2 gap-2">
                 {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["images","Image URLs"],["category","Category"],["notes","Notes"]].map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={rfqInclude.includes(key)}
-                      onChange={e => setRfqInclude((prev: string[]) => e.target.checked ? [...prev, key] : prev.filter((k: string) => k !== key))} />
+                    <input type="checkbox" checked={rfqInclude.includes(key)} onChange={e => setRfqInclude((prev: string[]) => e.target.checked ? [...prev, key] : prev.filter((k: string) => k !== key))} />
                     <span className="text-xs text-white/60">{label}</span>
                   </label>
                 ))}
@@ -298,23 +270,17 @@ export default function CollectionPage() {
               <div className="grid grid-cols-2 gap-2">
                 {[["price","Unit Price"],["moq","MOQ"],["lead_time","Lead Time"],["sample_lead_time","Sample Lead Time"],["payment_terms","Payment Terms"],["sample_price","Sample Price"],["packaging","Packaging"],["notes","Notes/Comments"]].map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={rfqAskFor.includes(key)}
-                      onChange={e => setRfqAskFor((prev: string[]) => e.target.checked ? [...prev, key] : prev.filter((k: string) => k !== key))} />
+                    <input type="checkbox" checked={rfqAskFor.includes(key)} onChange={e => setRfqAskFor((prev: string[]) => e.target.checked ? [...prev, key] : prev.filter((k: string) => k !== key))} />
                     <span className="text-xs text-white/60">{label}</span>
                   </label>
                 ))}
               </div>
             </div>
-            {rfqDone && (
-              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
-                <span className="text-xs text-emerald-300">✓ RFQ created! Check Workflows → Factory Quote.</span>
-              </div>
-            )}
+            {rfqDone && <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3"><span className="text-xs text-emerald-300">✓ RFQ created! Check Workflows → Factory Quote.</span></div>}
             <div className="flex gap-2">
               <button onClick={async () => {
                 setCreatingRfq(true);
-                const res = await fetch("/api/plm/rfq", { method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ product_ids: rfqProductIds, include: rfqInclude, ask_for: rfqAskFor }) });
+                const res = await fetch("/api/plm/rfq", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product_ids: rfqProductIds, include: rfqInclude, ask_for: rfqAskFor }) });
                 const data = await res.json();
                 if (data.file_base64) {
                   const bytes = Uint8Array.from(atob(data.file_base64), c => c.charCodeAt(0));
@@ -324,8 +290,7 @@ export default function CollectionPage() {
                   URL.revokeObjectURL(url);
                 }
                 setCreatingRfq(false); setRfqDone(true);
-              }} disabled={creatingRfq}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-pink-500 text-white text-xs font-semibold disabled:opacity-40">
+              }} disabled={creatingRfq} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-pink-500 text-white text-xs font-semibold disabled:opacity-40">
                 {creatingRfq ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
                 {creatingRfq ? "Creating..." : `Create RFQ for ${rfqProductIds.length} Products`}
               </button>
@@ -335,7 +300,6 @@ export default function CollectionPage() {
         </div>
       )}
 
-      {/* Sample Modal */}
       {showSampleModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-xl p-6 space-y-4 my-4">
@@ -343,7 +307,7 @@ export default function CollectionPage() {
               <p className="text-sm font-semibold text-white">Request Samples — {collection.name}</p>
               <button onClick={() => setShowSampleModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
             </div>
-            <p className="text-xs text-white/40">{sampleProductIds.length} products · all factories pre-selected. Click a product to adjust.</p>
+            <p className="text-xs text-white/40">{sampleProductIds.length} products · all factories pre-selected.</p>
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {sampleProductIds.map(pid => {
                 const p = products.find((pr: any) => pr.id === pid);
@@ -352,23 +316,16 @@ export default function CollectionPage() {
                 const isExpanded = expandedSampleProducts.includes(pid);
                 return (
                   <div key={pid} className="border border-white/[0.06] rounded-xl p-3 space-y-2">
-                    <div className="flex items-center gap-2 cursor-pointer"
-                      onClick={() => setExpandedSampleProducts(prev =>
-                        prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid])}>
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpandedSampleProducts(prev => prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid])}>
                       {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                       <span className="text-xs font-medium text-white/70 flex-1">{p.name}</span>
                       <span className="text-[9px] text-white/30">{sel.length}/{allFactories.length} factories</span>
-                      <button onClick={e => { e.stopPropagation(); setSampleProductIds(prev => prev.filter(id => id !== pid)); }}
-                        className="text-white/20 hover:text-red-400 text-xs ml-2">×</button>
+                      <button onClick={e => { e.stopPropagation(); setSampleProductIds(prev => prev.filter(id => id !== pid)); }} className="text-white/20 hover:text-red-400 text-xs ml-2">×</button>
                     </div>
                     {isExpanded && (
                       <div className="flex flex-wrap gap-1.5 pl-8">
                         {allFactories.map((f: any) => (
-                          <button key={f.id}
-                            onClick={() => setSampleSelections(prev => ({
-                              ...prev,
-                              [pid]: sel.includes(f.id) ? sel.filter((fid: string) => fid !== f.id) : [...sel, f.id]
-                            }))}
+                          <button key={f.id} onClick={() => setSampleSelections(prev => ({ ...prev, [pid]: sel.includes(f.id) ? sel.filter((fid: string) => fid !== f.id) : [...sel, f.id] }))}
                             className={`text-[10px] px-2 py-0.5 rounded border transition ${sel.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/25"}`}>
                             {f.name}
                           </button>
@@ -381,8 +338,7 @@ export default function CollectionPage() {
             </div>
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Note (optional)</p>
-              <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)} rows={2}
-                placeholder="e.g. Priority samples needed by May 1st"
+              <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)} rows={2} placeholder="e.g. Priority samples needed by May 1st"
                 className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
             </div>
             <div className="flex gap-2">
@@ -391,14 +347,10 @@ export default function CollectionPage() {
                 for (const pid of sampleProductIds) {
                   const factoryIds = sampleSelections[pid] || allFactories.map((f: any) => f.id);
                   if (!factoryIds.length) continue;
-                  await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "gmail" }) });
+                  await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "gmail" }) });
                 }
-                setRequestingSamples(false);
-                setShowSampleModal(false);
-                setSampleNote("");
-              }} disabled={requestingSamples || sampleProductIds.length === 0}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
+                setRequestingSamples(false); setShowSampleModal(false); setSampleNote("");
+              }} disabled={requestingSamples || sampleProductIds.length === 0} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
                 {requestingSamples ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
                 {requestingSamples ? "Requesting..." : `Request for ${sampleProductIds.length} Products`}
               </button>
@@ -408,7 +360,6 @@ export default function CollectionPage() {
         </div>
       )}
 
-      {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-full mx-auto">
           <button onClick={() => router.push("/plm")} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition mb-4">
@@ -428,12 +379,10 @@ export default function CollectionPage() {
               <p className="text-white/30 text-sm ml-11">{products.length} products · {factories.length} factories</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={openRfq}
-                className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
+              <button onClick={openRfq} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
                 <FileSpreadsheet size={11} />RFQ Collection
               </button>
-              <button onClick={openSamples}
-                className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
+              <button onClick={openSamples} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
                 <Plus size={11} />Request Samples
               </button>
             </div>
@@ -442,7 +391,6 @@ export default function CollectionPage() {
       </div>
 
       <div className="px-8 py-8 space-y-8 max-w-full overflow-x-auto">
-        {/* Factory grid */}
         {factories.length > 0 && (
           <div>
             <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Factory Progress</p>
@@ -451,9 +399,7 @@ export default function CollectionPage() {
                 <tr className="border-b border-white/[0.06] bg-white/[0.01]">
                   <th className="px-5 py-3 text-[10px] text-white/25 uppercase tracking-widest font-medium w-48">Stage</th>
                   {factories.map((f: any) => {
-                    const factoryProducts = products.filter((p: any) =>
-                      (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id && t.status === "active")
-                    );
+                    const factoryActiveProducts = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id && t.status === "active"));
                     return (
                       <th key={f.id} className="px-3 py-3 text-[10px] text-white/50 font-semibold text-center">
                         <div className="flex flex-col items-center gap-1.5">
@@ -461,13 +407,9 @@ export default function CollectionPage() {
                             <Factory size={9} className="text-white/30" />
                             <span className="truncate max-w-[120px]">{f.name}</span>
                           </div>
-                          {factoryProducts.length > 0 && (
-                            <button onClick={() => {
-                              setBulkDisqualifyProducts(factoryProducts.map((p: any) => p.id));
-                              setBulkDisqualifyReason("price");
-                              setBulkDisqualifyNote("");
-                              setBulkDisqualifyModal({ factory: f });
-                            }} className="text-[8px] px-1.5 py-0.5 rounded border border-red-500/20 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition">
+                          {factoryActiveProducts.length > 0 && (
+                            <button onClick={() => { setBulkDisqualifyProducts(factoryActiveProducts.map((p: any) => p.id)); setBulkDisqualifyReason("price"); setBulkDisqualifyNote(""); setBulkDisqualifyModal({ factory: f }); }}
+                              className="text-[8px] px-1.5 py-0.5 rounded border border-red-500/20 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition">
                               Disqualify
                             </button>
                           )}
@@ -488,8 +430,7 @@ export default function CollectionPage() {
                     </td>
                     {factories.map((f: any) => (
                       <td key={f.id} className="px-3 py-2 align-top">
-                        <StageCell products={products} factoryId={f.id} stageKey={stageDef.key}
-                          color={stageDef.color} onNoteProduct={setNoteProduct} />
+                        <StageCell products={products} factoryId={f.id} stageKey={stageDef.key} color={stageDef.color} onNoteProduct={setNoteProduct} />
                       </td>
                     ))}
                   </tr>
@@ -500,24 +441,11 @@ export default function CollectionPage() {
                 </tr>
                 {OUTCOMES.map(outcome => (
                   <tr key={outcome.key} className="border-b border-white/[0.03] hover:bg-white/[0.01] transition">
-                    <td className="px-5 py-2">
-                      <span className="text-[11px] font-medium" style={{ color: outcome.color }}>{outcome.label}</span>
-                    </td>
+                    <td className="px-5 py-2"><span className="text-[11px] font-medium" style={{ color: outcome.color }}>{outcome.label}</span></td>
                     {factories.map((f: any) => {
-                      const count = products.filter((p: any) => {
-                        const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id);
-                        return track && track.status === outcome.key;
-                      }).length;
-                      const total = products.filter((p: any) =>
-                        (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id)
-                      ).length;
-                      return (
-                        <td key={f.id} className="px-3 py-2 text-center">
-                          <span className="text-xs font-bold" style={{ color: count > 0 ? outcome.color : "rgba(255,255,255,0.15)" }}>
-                            {total > 0 ? `${count}/${total}` : "—"}
-                          </span>
-                        </td>
-                      );
+                      const count = products.filter((p: any) => { const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id); return track && track.status === outcome.key; }).length;
+                      const total = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id)).length;
+                      return <td key={f.id} className="px-3 py-2 text-center"><span className="text-xs font-bold" style={{ color: count > 0 ? outcome.color : "rgba(255,255,255,0.15)" }}>{total > 0 ? `${count}/${total}` : "—"}</span></td>;
                     })}
                   </tr>
                 ))}
@@ -526,7 +454,6 @@ export default function CollectionPage() {
           </div>
         )}
 
-        {/* All products */}
         <div>
           <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">All Products ({products.length})</p>
           <div className="grid grid-cols-1 gap-2">
@@ -536,18 +463,12 @@ export default function CollectionPage() {
               const killedFactories = (p.plm_factory_tracks || []).filter((t: any) => t.status === "killed").length;
               return (
                 <div key={p.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-4 py-3 bg-white/[0.01] hover:border-white/10 transition">
-                  {p.images?.[0]
-                    ? <img src={p.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-white/[0.06]" />
-                    : <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />}
+                  {p.images?.[0] ? <img src={p.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-white/[0.06]" /> : <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className="text-sm font-semibold text-white">{p.name}</span>
                       {p.sku && <span className="text-[10px] text-white/30 font-mono">{p.sku}</span>}
-                      {approvedTrack && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
-                          ✓ {approvedTrack.factory_catalog?.name}{approvedTrack.approved_price ? ` · $${approvedTrack.approved_price}` : ""}
-                        </span>
-                      )}
+                      {approvedTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">✓ {approvedTrack.factory_catalog?.name}{approvedTrack.approved_price ? ` · $${approvedTrack.approved_price}` : ""}</span>}
                       {p.action_status === "action_required" && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">⚡ Action</span>}
                     </div>
                     <div className="flex items-center gap-3">
@@ -557,14 +478,8 @@ export default function CollectionPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button onClick={() => setNoteProduct(p)}
-                      className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">
-                      Notes
-                    </button>
-                    <button onClick={() => router.push(`/plm/${p.id}`)}
-                      className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">
-                      Open →
-                    </button>
+                    <button onClick={() => setNoteProduct(p)} className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">Notes</button>
+                    <button onClick={() => router.push(`/plm/${p.id}`)} className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/25 hover:text-white/60 transition">Open →</button>
                   </div>
                 </div>
               );
@@ -573,62 +488,5 @@ export default function CollectionPage() {
         </div>
       </div>
     </div>
-    {/* Bulk Disqualify Modal */}
-      {bulkDisqualifyModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold text-white">Disqualify {bulkDisqualifyModal.factory.name}</p>
-                <p className="text-xs text-white/40 mt-0.5">For {bulkDisqualifyProducts.length} products in this collection</p>
-              </div>
-              <button onClick={() => setBulkDisqualifyModal(null)} className="text-white/30 hover:text-white/60 text-lg">✕</button>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Reason</p>
-              <div className="grid grid-cols-3 gap-2">
-                {[{ key: "price", label: "Price", icon: "💰" }, { key: "speed", label: "Speed", icon: "⏱" }, { key: "quality", label: "Quality", icon: "⚠️" }].map(r => (
-                  <button key={r.key} onClick={() => setBulkDisqualifyReason(r.key)}
-                    className={`py-2.5 rounded-xl border text-xs font-semibold transition ${bulkDisqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[0.06] text-white/40 hover:border-white/20"}`}>
-                    {r.icon} {r.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Select Products to Disqualify</p>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === bulkDisqualifyModal.factory.id && t.status === "active")).map((p: any) => (
-                  <label key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
-                    <input type="checkbox" checked={bulkDisqualifyProducts.includes(p.id)}
-                      onChange={e => setBulkDisqualifyProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
-                      className="accent-red-500" />
-                    <span className="text-xs text-white/60">{p.name}</span>
-                    {p.sku && <span className="text-[10px] text-white/25">{p.sku}</span>}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Internal Note (optional)</p>
-              <textarea value={bulkDisqualifyNote} onChange={e => setBulkDisqualifyNote(e.target.value)} rows={2}
-                placeholder="Internal note saved to factory tracks..."
-                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={handleBulkDisqualify} disabled={bulkDisqualifying || bulkDisqualifyProducts.length === 0}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold disabled:opacity-40">
-                {bulkDisqualifying ? "Sending..." : `Disqualify & Email ${bulkDisqualifyProducts.length} Products`}
-              </button>
-              <button onClick={() => setBulkDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
   );
 }
