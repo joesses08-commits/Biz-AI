@@ -399,7 +399,7 @@ export default function CollectionPage() {
                 <tr className="border-b border-white/[0.06] bg-white/[0.01]">
                   <th className="px-5 py-3 text-[10px] text-white/25 uppercase tracking-widest font-medium w-48">Stage</th>
                   {factories.map((f: any) => {
-                    const factoryActiveProducts = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id && t.status === "active"));
+                    const factoryActiveProducts = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id && t.status === "active" && (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done")));
                     return (
                       <th key={f.id} className="px-3 py-3 text-[10px] text-white/50 font-semibold text-center">
                         <div className="flex flex-col items-center gap-1.5">
