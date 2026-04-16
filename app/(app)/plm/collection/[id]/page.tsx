@@ -217,15 +217,21 @@ export default function CollectionPage() {
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Select Products</p>
               <div className="space-y-1 max-h-48 overflow-y-auto">
-                {products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === bulkDisqualifyModal.factory.id && t.status === "active")).map((p: any) => (
-                  <label key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
-                    <input type="checkbox" checked={bulkDisqualifyProducts.includes(p.id)}
-                      onChange={e => setBulkDisqualifyProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
-                      className="accent-red-500" />
-                    <span className="text-xs text-white/60">{p.name}</span>
-                    {p.sku && <span className="text-[10px] text-white/25 ml-1">{p.sku}</span>}
-                  </label>
-                ))}
+                {products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === bulkDisqualifyModal.factory.id && t.status === "active")).map((p: any) => {
+                  const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === bulkDisqualifyModal.factory.id);
+                  const hasSampleRequested = (track?.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done");
+                  return (
+                    <label key={p.id} className={`flex items-center gap-2 px-3 py-2 rounded-lg ${hasSampleRequested ? "hover:bg-white/[0.03] cursor-pointer" : "opacity-40 cursor-not-allowed"}`}>
+                      <input type="checkbox" checked={bulkDisqualifyProducts.includes(p.id)}
+                        onChange={e => setBulkDisqualifyProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                        disabled={!hasSampleRequested}
+                        className="accent-red-500" />
+                      <span className="text-xs text-white/60">{p.name}</span>
+                      {p.sku && <span className="text-[10px] text-white/25 ml-1">{p.sku}</span>}
+                      {!hasSampleRequested && <span className="text-[9px] text-white/20 ml-auto">No sample requested</span>}
+                    </label>
+                  );
+                })}
               </div>
             </div>
             <div>
