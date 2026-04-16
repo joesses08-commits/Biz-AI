@@ -58,6 +58,22 @@ function StageCell({ products, factoryId, stageKey, color, onNoteProduct }: any)
   const allDone = count === total;
   const noneDone = count === 0;
 
+  const handleBulkDisqualify = async () => {
+    if (!bulkDisqualifyModal) return;
+    setBulkDisqualifying(true);
+    const f = bulkDisqualifyModal.factory;
+    for (const pid of bulkDisqualifyProducts) {
+      const product = products.find((p: any) => p.id === pid);
+      const track = (product?.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id);
+      if (!track) continue;
+      await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "disqualify_track", track_id: track.id, reason: bulkDisqualifyReason, note: bulkDisqualifyNote, product_name: product.name, factory_name: f.name, factory_email: f.email, contact_name: f.contact_name }) });
+    }
+    setBulkDisqualifying(false);
+    setBulkDisqualifyModal(null);
+    load();
+  };
+
   return (
     <div>
       <button onClick={() => setExpanded(!expanded)}
@@ -93,6 +109,63 @@ function StageCell({ products, factoryId, stageKey, color, onNoteProduct }: any)
         </div>
       )}
     </div>
+    {/* Bulk Disqualify Modal */}
+      {bulkDisqualifyModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">Disqualify {bulkDisqualifyModal.factory.name}</p>
+                <p className="text-xs text-white/40 mt-0.5">For {bulkDisqualifyProducts.length} products in this collection</p>
+              </div>
+              <button onClick={() => setBulkDisqualifyModal(null)} className="text-white/30 hover:text-white/60 text-lg">✕</button>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Reason</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[{ key: "price", label: "Price", icon: "💰" }, { key: "speed", label: "Speed", icon: "⏱" }, { key: "quality", label: "Quality", icon: "⚠️" }].map(r => (
+                  <button key={r.key} onClick={() => setBulkDisqualifyReason(r.key)}
+                    className={`py-2.5 rounded-xl border text-xs font-semibold transition ${bulkDisqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[0.06] text-white/40 hover:border-white/20"}`}>
+                    {r.icon} {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Select Products to Disqualify</p>
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === bulkDisqualifyModal.factory.id && t.status === "active")).map((p: any) => (
+                  <label key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
+                    <input type="checkbox" checked={bulkDisqualifyProducts.includes(p.id)}
+                      onChange={e => setBulkDisqualifyProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                      className="accent-red-500" />
+                    <span className="text-xs text-white/60">{p.name}</span>
+                    {p.sku && <span className="text-[10px] text-white/25">{p.sku}</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Internal Note (optional)</p>
+              <textarea value={bulkDisqualifyNote} onChange={e => setBulkDisqualifyNote(e.target.value)} rows={2}
+                placeholder="Internal note saved to factory tracks..."
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={handleBulkDisqualify} disabled={bulkDisqualifying || bulkDisqualifyProducts.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold disabled:opacity-40">
+                {bulkDisqualifying ? "Sending..." : `Disqualify & Email ${bulkDisqualifyProducts.length} Products`}
+              </button>
+              <button onClick={() => setBulkDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -102,6 +175,11 @@ export default function CollectionPage() {
   const [collection, setCollection] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [allFactories, setAllFactories] = useState<any[]>([]);
+  const [bulkDisqualifyModal, setBulkDisqualifyModal] = useState<{ factory: any } | null>(null);
+  const [bulkDisqualifyReason, setBulkDisqualifyReason] = useState("price");
+  const [bulkDisqualifyNote, setBulkDisqualifyNote] = useState("");
+  const [bulkDisqualifying, setBulkDisqualifying] = useState(false);
+  const [bulkDisqualifyProducts, setBulkDisqualifyProducts] = useState<string[]>([]);
   const [noteProduct, setNoteProduct] = useState<any>(null);
 
   // RFQ modal
@@ -372,14 +450,31 @@ export default function CollectionPage() {
               <thead>
                 <tr className="border-b border-white/[0.06] bg-white/[0.01]">
                   <th className="px-5 py-3 text-[10px] text-white/25 uppercase tracking-widest font-medium w-48">Stage</th>
-                  {factories.map((f: any) => (
-                    <th key={f.id} className="px-3 py-3 text-[10px] text-white/50 font-semibold text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <Factory size={9} className="text-white/30" />
-                        <span className="truncate max-w-[120px]">{f.name}</span>
-                      </div>
-                    </th>
-                  ))}
+                  {factories.map((f: any) => {
+                    const factoryProducts = products.filter((p: any) =>
+                      (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id && t.status === "active")
+                    );
+                    return (
+                      <th key={f.id} className="px-3 py-3 text-[10px] text-white/50 font-semibold text-center">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <div className="flex items-center gap-1">
+                            <Factory size={9} className="text-white/30" />
+                            <span className="truncate max-w-[120px]">{f.name}</span>
+                          </div>
+                          {factoryProducts.length > 0 && (
+                            <button onClick={() => {
+                              setBulkDisqualifyProducts(factoryProducts.map((p: any) => p.id));
+                              setBulkDisqualifyReason("price");
+                              setBulkDisqualifyNote("");
+                              setBulkDisqualifyModal({ factory: f });
+                            }} className="text-[8px] px-1.5 py-0.5 rounded border border-red-500/20 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition">
+                              Disqualify
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -478,5 +573,62 @@ export default function CollectionPage() {
         </div>
       </div>
     </div>
+    {/* Bulk Disqualify Modal */}
+      {bulkDisqualifyModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-white">Disqualify {bulkDisqualifyModal.factory.name}</p>
+                <p className="text-xs text-white/40 mt-0.5">For {bulkDisqualifyProducts.length} products in this collection</p>
+              </div>
+              <button onClick={() => setBulkDisqualifyModal(null)} className="text-white/30 hover:text-white/60 text-lg">✕</button>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Reason</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[{ key: "price", label: "Price", icon: "💰" }, { key: "speed", label: "Speed", icon: "⏱" }, { key: "quality", label: "Quality", icon: "⚠️" }].map(r => (
+                  <button key={r.key} onClick={() => setBulkDisqualifyReason(r.key)}
+                    className={`py-2.5 rounded-xl border text-xs font-semibold transition ${bulkDisqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[0.06] text-white/40 hover:border-white/20"}`}>
+                    {r.icon} {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Select Products to Disqualify</p>
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === bulkDisqualifyModal.factory.id && t.status === "active")).map((p: any) => (
+                  <label key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
+                    <input type="checkbox" checked={bulkDisqualifyProducts.includes(p.id)}
+                      onChange={e => setBulkDisqualifyProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                      className="accent-red-500" />
+                    <span className="text-xs text-white/60">{p.name}</span>
+                    {p.sku && <span className="text-[10px] text-white/25">{p.sku}</span>}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Internal Note (optional)</p>
+              <textarea value={bulkDisqualifyNote} onChange={e => setBulkDisqualifyNote(e.target.value)} rows={2}
+                placeholder="Internal note saved to factory tracks..."
+                className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={handleBulkDisqualify} disabled={bulkDisqualifying || bulkDisqualifyProducts.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold disabled:opacity-40">
+                {bulkDisqualifying ? "Sending..." : `Disqualify & Email ${bulkDisqualifyProducts.length} Products`}
+              </button>
+              <button onClick={() => setBulkDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
