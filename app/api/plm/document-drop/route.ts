@@ -274,24 +274,44 @@ For product_import: extract ALL available fields per product including descripti
         }
       }
       if (jobId) {
+        // Get the job to find the exact factory name from the job's factory list
+        const { data: theJob } = await supabaseAdmin.from("factory_quote_jobs")
+          .select("factories").eq("id", jobId).single();
+        const jobFactories = (theJob as any)?.factories || [];
+        // Find best matching factory name from job
+        const matchedJobFactory = jobFactories.find((f: any) =>
+          f.name?.toLowerCase().includes((factory_name || "").toLowerCase()) ||
+          (factory_name || "").toLowerCase().includes(f.name?.toLowerCase())
+        );
+        const saveFactoryName = matchedJobFactory?.name || factory_name || "Unknown";
+        const saveFactoryEmail = matchedJobFactory?.email || null;
+
         // Check if quote already exists for this factory
-        const { data: existingQuote } = await supabaseAdmin.from("factory_quotes")
-          .select("id").eq("job_id", jobId).eq("factory_name", factory_name || "Unknown").single();
+        const { data: allJobQuotes } = await supabaseAdmin.from("factory_quotes")
+          .select("id, factory_name").eq("job_id", jobId);
+        const existingQuote = (allJobQuotes || []).find((q: any) =>
+          q.factory_name?.toLowerCase() === saveFactoryName.toLowerCase() ||
+          q.factory_name?.toLowerCase().includes((factory_name || "").toLowerCase()) ||
+          (factory_name || "").toLowerCase().includes(q.factory_name?.toLowerCase())
+        );
+
         if (existingQuote) {
           await supabaseAdmin.from("factory_quotes").update({
             status: "processed",
+            factory_name: saveFactoryName,
             processed_data: products_extracted,
             raw_data: { source: "document_drop", file_name },
           }).eq("id", existingQuote.id);
         } else {
           await supabaseAdmin.from("factory_quotes").insert({
-            job_id: jobId, factory_name: factory_name || "Unknown",
-            factory_email: null, status: "processed",
+            job_id: jobId,
+            factory_name: saveFactoryName,
+            factory_email: saveFactoryEmail,
+            status: "processed",
             processed_data: products_extracted,
             raw_data: { source: "document_drop", file_name },
           });
         }
-        // Update job status
         await supabaseAdmin.from("factory_quote_jobs").update({
           updated_at: new Date().toISOString(),
         }).eq("id", jobId);
