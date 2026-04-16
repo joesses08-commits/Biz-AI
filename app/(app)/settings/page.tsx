@@ -38,7 +38,7 @@ export default function SettingsPage() {
   const [pinResetSent, setPinResetSent] = useState(false);
   const [saved, setSaved] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"brain" | "company" | "feed">("brain");
+  const [activeTab, setActiveTab] = useState<"brain" | "company" | "feed" | "guide">("brain");
   const [events, setEvents] = useState<any[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsLoaded, setEventsLoaded] = useState(false);
@@ -189,6 +189,7 @@ export default function SettingsPage() {
         {/* Tabs */}
         <div className="flex gap-1 mb-8 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 w-fit">
           {[
+            { id: "guide", label: "Quick Start" },
             { id: "brain", label: "Company Brain" },
             { id: "company", label: "Company Info" },
             { id: "feed", label: "Live Feed" },
@@ -199,6 +200,85 @@ export default function SettingsPage() {
             </button>
           ))}
         </div>
+
+        {activeTab === "guide" && (
+          <div className="space-y-6">
+            <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+              <h2 className="text-lg font-bold text-white mb-2">Welcome to Jimmy</h2>
+              <p className="text-white/40 text-sm mb-6">Your sourcing command center. Here's what you can do:</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  {
+                    title: "Add Factories",
+                    description: "Add your factory contacts with name, email, and contact person. These become your quoting partners.",
+                    link: "/plm?tab=factories",
+                    color: "blue",
+                  },
+                  {
+                    title: "Create Products & Collections",
+                    description: "Add products with SKUs, images, and specs. Group them into collections like 'Spring 2026' or 'Target Holiday'.",
+                    link: "/plm",
+                    color: "amber",
+                  },
+                  {
+                    title: "Request Quotes (RFQ)",
+                    description: "Select products, pick factories, click send. Jimmy emails your RFQ to every factory with your product list attached.",
+                    link: "/plm",
+                    color: "purple",
+                  },
+                  {
+                    title: "Drop Factory Quotes",
+                    description: "When factories reply with Excel quotes, drop the file in chat. Jimmy extracts all pricing and wires it to the right products.",
+                    link: "/chat",
+                    color: "emerald",
+                  },
+                  {
+                    title: "Request Samples",
+                    description: "Select products and factories, click request. Jimmy emails each factory and tracks every sample through production → shipped → arrived.",
+                    link: "/plm",
+                    color: "amber",
+                  },
+                  {
+                    title: "Factory Portal",
+                    description: "Factories log into their own portal to update sample status. You see progress in real-time without chasing emails.",
+                    link: "/plm?tab=factories",
+                    color: "blue",
+                  },
+                  {
+                    title: "Approve & Generate PO",
+                    description: "When samples arrive, approve or request revision. Approved? Generate a PO with one click — Jimmy calculates landed cost and emails the factory.",
+                    link: "/plm",
+                    color: "emerald",
+                  },
+                  {
+                    title: "Compare Quotes",
+                    description: "Go to Workflows → Factory Quote to see all quotes side-by-side with landed cost calculated. Yellow = best price.",
+                    link: "/workflows/factory-quote",
+                    color: "purple",
+                  },
+                ].map((feature, i) => (
+                  <a key={i} href={feature.link} 
+                    className={`block p-4 rounded-xl border transition hover:border-${feature.color}-500/30 border-white/[0.06] bg-white/[0.01] hover:bg-${feature.color}-500/[0.03]`}>
+                    <h3 className={`text-sm font-semibold text-${feature.color}-400 mb-1`}>{feature.title}</h3>
+                    <p className="text-xs text-white/40 leading-relaxed">{feature.description}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+            
+            <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+              <h3 className="text-sm font-semibold text-white mb-3">Pro Tips</h3>
+              <ul className="space-y-2 text-xs text-white/40">
+                <li>• <strong className="text-white/60">Bulk import:</strong> Go to any collection → Import from Excel. Jimmy extracts product names, SKUs, specs, and even images.</li>
+                <li>• <strong className="text-white/60">AI Document Drop:</strong> Drop any factory email, quote, or PO into chat. Jimmy figures out what it is and files it automatically.</li>
+                <li>• <strong className="text-white/60">Collection view:</strong> Open a collection to see all factories as columns and all stages as rows — like your spreadsheet but live.</li>
+                <li>• <strong className="text-white/60">Disqualify factories:</strong> When a factory is too slow or expensive, click Disqualify. Jimmy sends them a professional email and removes them from the product.</li>
+                <li>• <strong className="text-white/60">PIN protection:</strong> Sensitive actions (kill product, approve sample, build brain) require your admin PIN.</li>
+              </ul>
+            </div>
+          </div>
+        )}
 
         {activeTab === "brain" && (
           <div className="space-y-4">
