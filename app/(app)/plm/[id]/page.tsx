@@ -1426,7 +1426,8 @@ ${disqualifyNote}` : ""}
 Please disregard any further sample production for this item. We hope to work together on future opportunities.
 
 Best regards,
-Jimmy AI`}
+[Your Name]
+[Company Name]`}
                   </div>
                 </div>
 
