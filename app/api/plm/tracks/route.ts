@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
 
   // ── DISQUALIFY TRACK
   if (action === "disqualify_track") {
-    const { track_id, reason, note, product_name, factory_name, factory_email } = body;
+    const { track_id, reason, note, product_name, factory_name, factory_email, contact_name } = body;
 
     // Get user profile for sign-off
     const { data: profile } = await supabaseAdmin.from("profiles")
@@ -285,7 +285,7 @@ export async function POST(req: NextRequest) {
       const reasonText = reason === "price" ? "pricing was not competitive for this order"
         : reason === "speed" ? "lead times were not able to meet our timeline requirements"
         : "quality of samples did not meet our specifications";
-      const emailBody = `Hi ${factory_name} team,
+      const emailBody = `Hi ${contact_name || factory_name},
 
 Thank you for your time and effort on the ${product_name} sample. We truly appreciate the work you put in.
 

@@ -1415,7 +1415,7 @@ ${entry}` : entry;
                 <div>
                   <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Email Preview</p>
                   <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 text-xs text-white/40 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
-                    {`Hi ${disqualifyModal.track.factory_catalog?.name} team,
+                    {`Hi ${disqualifyModal.track.factory_catalog?.contact_name || disqualifyModal.track.factory_catalog?.name},
 
 Thank you for your time and effort on the ${product.name} sample. We truly appreciate the work you put in.
 
@@ -1435,7 +1435,7 @@ Best regards,
                   <button onClick={async () => {
                     setDisqualifying(true);
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "disqualify_track", track_id: disqualifyModal.track.id, reason: disqualifyReason, note: disqualifyNote, product_name: product.name, factory_name: disqualifyModal.track.factory_catalog?.name, factory_email: disqualifyModal.track.factory_catalog?.email }) });
+                      body: JSON.stringify({ action: "disqualify_track", track_id: disqualifyModal.track.id, reason: disqualifyReason, note: disqualifyNote, product_name: product.name, factory_name: disqualifyModal.track.factory_catalog?.name, factory_email: disqualifyModal.track.factory_catalog?.email, contact_name: disqualifyModal.track.factory_catalog?.contact_name }) });
                     setDisqualifying(false); setDisqualifyModal(null); load();
                   }} disabled={disqualifying}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-semibold disabled:opacity-40">
