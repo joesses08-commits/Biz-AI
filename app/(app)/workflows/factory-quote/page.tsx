@@ -685,7 +685,14 @@ Best regards,
       </div>
 
       {activeTab === "factories" && (
-        <FactoryCatalog factories={factories} onRefresh={onCatalogRefresh} />
+        <div className="border border-white/[0.06] rounded-xl p-6 bg-white/[0.01] text-center">
+          <Building2 size={32} className="text-white/10 mx-auto mb-3" />
+          <p className="text-sm text-white/70 mb-2">Factories are now managed in Product Lifecycle</p>
+          <p className="text-xs text-white/30 mb-4">Add factories, create portal access, and manage contacts all in one place.</p>
+          <a href="/plm?tab=factories" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition">
+            Go to Factory Access <ArrowRight size={12} />
+          </a>
+        </div>
       )}
 
       {activeTab === "jobs" && (

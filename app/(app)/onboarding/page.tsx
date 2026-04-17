@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { Check, ArrowRight, ArrowLeft, Lock, Factory, Package, Mail, Zap, FileSpreadsheet, Users, Truck, BarChart3 } from "lucide-react";
+import { Check, ArrowRight, ArrowLeft, Lock, Factory, Package, Mail, Zap, FileSpreadsheet, Users, Truck, BarChart3, Loader2 } from "lucide-react";
 
 const STEPS = [
   {
@@ -15,19 +15,27 @@ const STEPS = [
     color: "white",
   },
   {
+    id: "pin",
+    title: "Set Your Admin PIN",
+    subtitle: "Step 1 of 6",
+    description: "Your PIN protects sensitive actions like approving samples, generating POs, and killing products. Keep it secret — it can never be recovered, only reset via email.",
+    visual: "pin",
+    color: "amber",
+  },
+  {
     id: "factories",
     title: "Add Your Factories",
-    subtitle: "Step 1 of 5",
+    subtitle: "Step 2 of 6",
     description: "Start by adding the factories you work with. Each factory gets their own portal where they can update sample and production status — no more chasing emails.",
     visual: "factories",
     color: "blue",
-    link: "/plm?tab=factories",
+    link: "/plm?tab=factory_access",
     linkLabel: "Add Factories",
   },
   {
     id: "products",
     title: "Add Your Products",
-    subtitle: "Step 2 of 5",
+    subtitle: "Step 3 of 6",
     description: "Create collections (like \"Target Spring 2026\") and add your products. Include SKUs, images, specs. Or bulk import from Excel — Jimmy extracts everything including images.",
     visual: "products",
     color: "amber",
@@ -37,7 +45,7 @@ const STEPS = [
   {
     id: "email",
     title: "Connect Your Email",
-    subtitle: "Step 3 of 5",
+    subtitle: "Step 4 of 6",
     description: "Connect Gmail or Outlook so Jimmy can send RFQs, sample requests, and POs directly to factories from your email address — and read their replies automatically.",
     visual: "email",
     color: "emerald",
@@ -47,7 +55,7 @@ const STEPS = [
   {
     id: "workflow",
     title: "The Sourcing Workflow",
-    subtitle: "Step 4 of 5",
+    subtitle: "Step 5 of 6",
     description: "Here's how Jimmy manages your entire sourcing cycle — from first quote to shipped goods.",
     visual: "workflow",
     color: "purple",
@@ -62,7 +70,7 @@ const STEPS = [
   {
     id: "ready",
     title: "You're Ready",
-    subtitle: "Step 5 of 5",
+    subtitle: "Step 6 of 6",
     description: "That's it. Start by adding a few factories and products, then request your first quote. Jimmy handles the rest.",
     visual: "ready",
     color: "emerald",
@@ -87,6 +95,52 @@ function WelcomeVisual() {
           <p className="text-2xl font-bold text-white">Jimmy AI</p>
           <p className="text-white/40 text-sm">Sourcing OS for Wholesale</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PinVisual({ pin, setPin, confirmPin, setConfirmPin, pinSet, error }: any) {
+  return (
+    <div className="relative w-full py-8 px-6">
+      <div className="max-w-xs mx-auto space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mx-auto mb-6">
+          <Lock size={28} className="text-amber-400" />
+        </div>
+        
+        {pinSet ? (
+          <div className="text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3">
+              <Check size={24} className="text-emerald-400" />
+            </div>
+            <p className="text-sm font-semibold text-emerald-400">PIN Set Successfully</p>
+            <p className="text-xs text-white/30 mt-1">Your admin PIN is now active</p>
+          </div>
+        ) : (
+          <>
+            <div>
+              <label className="block text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Create PIN (4-8 digits)</label>
+              <input 
+                type="password" 
+                value={pin} 
+                onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="••••"
+                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.3em] placeholder-white/20 focus:outline-none focus:border-amber-500/50 transition"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Confirm PIN</label>
+              <input 
+                type="password" 
+                value={confirmPin} 
+                onChange={e => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="••••"
+                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.3em] placeholder-white/20 focus:outline-none focus:border-amber-500/50 transition"
+              />
+            </div>
+            {error && <p className="text-xs text-red-400 text-center">{error}</p>}
+          </>
+        )}
       </div>
     </div>
   );
@@ -198,6 +252,11 @@ function ReadyVisual() {
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [checking, setChecking] = useState(true);
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinSet, setPinSet] = useState(false);
+  const [pinError, setPinError] = useState("");
+  const [settingPin, setSettingPin] = useState(false);
   const router = useRouter();
 
   const supabase = createBrowserClient(
@@ -209,6 +268,16 @@ export default function OnboardingPage() {
     async function check() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
+      
+      // Check if PIN is already set
+      const res = await fetch("/api/admin/pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "check_exists" }),
+      });
+      const data = await res.json();
+      if (data.exists) setPinSet(true);
+      
       setChecking(false);
     }
     check();
@@ -217,8 +286,40 @@ export default function OnboardingPage() {
   const step = STEPS[currentStep];
   const isFirst = currentStep === 0;
   const isLast = currentStep === STEPS.length - 1;
+  const isPinStep = step.id === "pin";
+
+  const savePin = async () => {
+    if (pin.length < 4) {
+      setPinError("PIN must be at least 4 digits");
+      return;
+    }
+    if (pin !== confirmPin) {
+      setPinError("PINs don't match");
+      return;
+    }
+    setSettingPin(true);
+    setPinError("");
+    
+    const res = await fetch("/api/admin/pin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "set_pin", pin }),
+    });
+    const data = await res.json();
+    
+    setSettingPin(false);
+    if (data.success) {
+      setPinSet(true);
+    } else {
+      setPinError(data.error || "Failed to set PIN");
+    }
+  };
 
   const next = () => {
+    if (isPinStep && !pinSet) {
+      savePin();
+      return;
+    }
     if (!isLast) setCurrentStep(currentStep + 1);
   };
 
@@ -279,6 +380,7 @@ export default function OnboardingPage() {
           {/* Visual */}
           <div className={`rounded-3xl bg-gradient-to-b ${colorMap[step.color]} border border-white/[0.06] mb-8 overflow-hidden`}>
             {step.visual === "welcome" && <WelcomeVisual />}
+            {step.visual === "pin" && <PinVisual pin={pin} setPin={setPin} confirmPin={confirmPin} setConfirmPin={setConfirmPin} pinSet={pinSet} error={pinError} />}
             {step.visual === "factories" && <FactoriesVisual />}
             {step.visual === "products" && <ProductsVisual />}
             {step.visual === "email" && <EmailVisual />}
@@ -295,7 +397,7 @@ export default function OnboardingPage() {
             <p className="text-white/40 text-sm leading-relaxed max-w-md mx-auto">{step.description}</p>
           </div>
 
-          {/* Action button */}
+          {/* Action button for non-PIN steps */}
           {step.link && (
             <div className="flex justify-center mb-8">
               <a href={step.link} className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition ${btnColorMap[step.color]}`}>
@@ -312,7 +414,11 @@ export default function OnboardingPage() {
               </button>
             )}
             
-            {!isLast ? (
+            {isPinStep && !pinSet ? (
+              <button onClick={savePin} disabled={settingPin || pin.length < 4} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 disabled:opacity-50 transition">
+                {settingPin ? <><Loader2 size={14} className="animate-spin" /> Setting PIN...</> : <>Set PIN & Continue <ArrowRight size={14} /></>}
+              </button>
+            ) : !isLast ? (
               <button onClick={next} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-white/10 border border-white/[0.08] text-white hover:bg-white/20 text-sm font-semibold transition">
                 Next <ArrowRight size={14} />
               </button>
