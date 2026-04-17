@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import CollectionsView from "@/components/CollectionsView";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Package, Plus, ChevronRight, Loader2, Layers, Factory, X, Check, Trash2, Users, Upload, Download, FileSpreadsheet, FileText, Building2 } from "lucide-react";
 
 const BATCH_STAGE_ORDER = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
@@ -51,6 +51,7 @@ function getCollectionHealth(products: any[]) {
 
 export default function PLMPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [collections, setCollections] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [productTracks, setProductTracks] = useState<Record<string, any[]>>({});

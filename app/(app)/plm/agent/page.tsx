@@ -118,7 +118,7 @@ export default function PLMAgentPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex">
       {/* Sidebar */}
-      <div className="w-64 border-r border-white/[0.06] flex flex-col flex-shrink-0">
+      <div className="w-64 border-r border-white/[0.06] flex flex-col flex-shrink-0 h-screen sticky top-0">
         <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between">
           <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Chats</p>
           <button onClick={startNewChat} className="w-6 h-6 rounded-lg border border-white/[0.08] flex items-center justify-center text-white/30 hover:text-white/60 hover:border-white/20 transition text-sm">+</button>
