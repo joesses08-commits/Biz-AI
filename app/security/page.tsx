@@ -32,7 +32,7 @@ export default function SecurityPage() {
             Built for businesses that<br /><span style={{ fontStyle: "italic", color: "#777" }}>can't afford a breach.</span>
           </h1>
           <p style={{ fontSize: "16px", color: "#666", marginTop: "24px", lineHeight: "1.7", fontWeight: "300", maxWidth: "560px" }}>
-            Jimmy reads your most sensitive business data — emails, invoices, financial records, factory communications. We take that responsibility seriously.
+            Jimmy manages your product data, factory relationships, pricing, and purchase orders. We take that responsibility seriously.
           </p>
         </div>
 
@@ -40,7 +40,7 @@ export default function SecurityPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1px", background: "#111", marginBottom: "80px" }}>
           {[
             { label: "US-only servers", desc: "All data stored on AWS us-east-1. No foreign government access." },
-            { label: "We don't store your files", desc: "We read your data to generate insights. We never copy or store your files." },
+            { label: "Factory isolation", desc: "Each factory sees only the products you share with them. Nothing else." },
             { label: "Invitation only", desc: "No self-signup. Every account is created by us personally." },
           ].map((item) => (
             <div key={item.label} style={{ padding: "36px", background: "#0a0a0a" }}>
@@ -78,38 +78,38 @@ export default function SecurityPage() {
             </div>
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
               <p style={{ marginBottom: "8px" }}>Row-level security means every database query is scoped to your account. It is technically impossible for one user to access another user's data.</p>
-              <p style={{ marginBottom: "8px" }}>No Jimmy employee can read your business data. Access to the database is logged and audited.</p>
-              <p>Accounts are invitation-only. There is no public signup.</p>
+              <p style={{ marginBottom: "8px" }}>Factory portal users have strictly limited access — they can only see and update products you've explicitly assigned to them.</p>
+              <p>No Jimmy employee can read your business data. Access to the database is logged and audited.</p>
             </div>
           </div>
 
-          {/* Authentication */}
+          {/* Admin PIN */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
               <div style={{ width: "32px", height: "32px", background: "#0f0f0f", border: "1px solid #1a1a1a", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
               </div>
-              <h2 style={{ fontSize: "15px", fontWeight: "500" }}>Authentication</h2>
+              <h2 style={{ fontSize: "15px", fontWeight: "500" }}>Admin PIN</h2>
             </div>
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
-              <p style={{ marginBottom: "8px" }}>Sessions automatically expire after 8 hours of inactivity.</p>
-              <p style={{ marginBottom: "8px" }}>Sensitive actions (changing product status, building the company brain) require a separate Admin PIN.</p>
-              <p>We never store passwords in plaintext. All passwords and PINs are hashed using SHA-256 with a unique salt before storage.</p>
+              <p style={{ marginBottom: "8px" }}>Sensitive actions require your Admin PIN: approving samples, killing products, generating POs.</p>
+              <p style={{ marginBottom: "8px" }}>Your PIN is hashed using SHA-256 — we cannot see or recover it. You can only reset via email.</p>
+              <p>Sessions automatically expire after 8 hours of inactivity.</p>
             </div>
           </div>
 
-          {/* Integrations */}
+          {/* Factory Portal */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
               <div style={{ width: "32px", height: "32px", background: "#0f0f0f", border: "1px solid #1a1a1a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </div>
-              <h2 style={{ fontSize: "15px", fontWeight: "500" }}>Integrations</h2>
+              <h2 style={{ fontSize: "15px", fontWeight: "500" }}>Factory Portal</h2>
             </div>
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
-              <p style={{ marginBottom: "8px" }}>All integrations use OAuth 2.0 — the industry standard. We never see or store your passwords.</p>
-              <p style={{ marginBottom: "8px" }}>OAuth tokens are encrypted and stored securely. You can revoke Jimmy's access to any integration at any time from your Google, Microsoft, Stripe, or QuickBooks account.</p>
-              <p>We request only the minimum permissions necessary for each integration.</p>
+              <p style={{ marginBottom: "8px" }}>Factories log into a separate portal at portal.myjimmy.ai with credentials you create for them.</p>
+              <p style={{ marginBottom: "8px" }}>They cannot see your pricing, margins, other factories, or any products not assigned to them.</p>
+              <p>You can revoke factory access instantly from Factory Access in Product Lifecycle.</p>
             </div>
           </div>
 
@@ -138,23 +138,23 @@ export default function SecurityPage() {
             </div>
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
               <p style={{ marginBottom: "8px" }}>Every sensitive action in Jimmy is logged — who did it, when, and from which IP address.</p>
-              <p style={{ marginBottom: "8px" }}>Logged actions include: product stage changes, purchase order generation, brain builds, integration connections, and PIN verifications.</p>
-              <p>Audit logs are stored securely and cannot be modified or deleted by users.</p>
+              <p style={{ marginBottom: "8px" }}>Logged actions include: sample stage updates, PO generation, sample approvals, factory portal logins, and PIN verifications.</p>
+              <p>Audit logs are stored securely and cannot be modified or deleted.</p>
             </div>
           </div>
 
-          {/* Data Retention */}
+          {/* Email Security */}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
               <div style={{ width: "32px", height: "32px", background: "#0f0f0f", border: "1px solid #1a1a1a", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
               </div>
-              <h2 style={{ fontSize: "15px", fontWeight: "500" }}>Data Retention</h2>
+              <h2 style={{ fontSize: "15px", fontWeight: "500" }}>Email Integrations</h2>
             </div>
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
-              <p style={{ marginBottom: "8px" }}>We store AI-generated summaries and insights — not copies of your emails or files.</p>
-              <p style={{ marginBottom: "8px" }}>When you disconnect an integration, we stop collecting data from it immediately.</p>
-              <p>When you close your account, all your data is permanently deleted within 30 days. You can request immediate deletion by emailing jo.esses08@gmail.com.</p>
+              <p style={{ marginBottom: "8px" }}>Gmail and Outlook integrations use OAuth 2.0 — the industry standard. We never see or store your email password.</p>
+              <p style={{ marginBottom: "8px" }}>OAuth tokens are encrypted. You can revoke Jimmy's access from your Google or Microsoft account at any time.</p>
+              <p>We request only the minimum permissions necessary to send emails on your behalf.</p>
             </div>
           </div>
 
@@ -169,7 +169,7 @@ export default function SecurityPage() {
             <div style={{ fontSize: "13px", color: "#666", lineHeight: "1.8", fontWeight: "300" }}>
               <p style={{ marginBottom: "8px" }}>In the event of a security incident, affected customers will be notified within 72 hours.</p>
               <p style={{ marginBottom: "8px" }}>Notifications will include what data was affected, what we are doing about it, and what you should do.</p>
-              <p>To report a security vulnerability, email jo.esses08@gmail.com with the subject "Security Vulnerability."</p>
+              <p>To report a security vulnerability, email joey@myjimmy.ai with the subject "Security Vulnerability."</p>
             </div>
           </div>
 
@@ -178,8 +178,8 @@ export default function SecurityPage() {
         {/* Footer CTA */}
         <div style={{ marginTop: "80px", padding: "48px", background: "#0a0a0a", border: "1px solid #161616", textAlign: "center" }}>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "28px", fontWeight: "400", marginBottom: "12px" }}>Questions about security?</h2>
-          <p style={{ fontSize: "14px", color: "#666", marginBottom: "24px", fontWeight: "300" }}>We're happy to answer any questions your IT department has.</p>
-          <a href="mailto:jo.esses08@gmail.com" style={{ display: "inline-block", background: "#f0ede8", color: "#080808", padding: "12px 28px", fontSize: "13px", fontWeight: "500", textDecoration: "none" }}>
+          <p style={{ fontSize: "14px", color: "#666", marginBottom: "24px", fontWeight: "300" }}>We're happy to answer any questions your team has.</p>
+          <a href="mailto:joey@myjimmy.ai" style={{ display: "inline-block", background: "#f0ede8", color: "#080808", padding: "12px 28px", fontSize: "13px", fontWeight: "500", textDecoration: "none" }}>
             Contact Us →
           </a>
         </div>

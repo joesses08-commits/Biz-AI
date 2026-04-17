@@ -15,16 +15,20 @@ interface UsageSummary {
 
 const FEATURE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
-  chat: "AI Chat",
+  chat: "PLM Agent",
   event_processor: "Event Processing",
-  snapshot: "Brain Snapshot",
-  briefing: "Daily Briefing",
+  snapshot: "Data Sync",
+  briefing: "Email Notifications",
   actions: "Action Items",
   meetings: "Meetings",
-  "brain-backfill": "Brain Backfill",
-  "factory-quote-extraction": "Factory Quote Extraction",
-  "factory-quote-recommendation": "Factory Quote Recommendation",
-  "factory-quote-rfq": "Factory Quote RFQ Draft",
+  "brain-backfill": "Initial Setup",
+  "factory-quote-extraction": "Quote Extraction",
+  "factory-quote-recommendation": "Quote Comparison",
+  "factory-quote-rfq": "RFQ Generation",
+  "document-drop": "Document Processing",
+  "excel-import": "Excel Import",
+  "sample-request": "Sample Requests",
+  "po-generation": "PO Generation",
 };
 
 const now = new Date();
@@ -76,7 +80,7 @@ export default function UsagePage() {
       <div className="mb-8">
         <p className="text-white/30 text-xs uppercase tracking-widest mb-2">Settings</p>
         <h1 className="text-3xl font-bold text-white tracking-tight">Usage & Costs</h1>
-        <p className="text-white/30 text-sm mt-1">AI usage and costs across all features</p>
+        <p className="text-white/30 text-sm mt-1">AI usage across quote extraction, PLM agent, and document processing</p>
       </div>
 
       {loading ? (

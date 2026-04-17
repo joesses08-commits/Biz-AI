@@ -4,36 +4,36 @@ import Link from "next/link";
 
 const FAQS = [
   {
-    q: "How does Jimmy AI learn about my business?",
-    a: "When you connect your tools, Jimmy reads your full history — emails, files, invoices, payments — and builds a permanent Company Brain. After that, it automatically picks up new data every hour so it's always current."
+    q: "How do I add a new factory?",
+    a: "Go to Product Lifecycle → Factory Access. Click 'Add Factory' and enter their name, email, and contact person. Once added, you can create portal access so they can update sample and production status themselves."
   },
   {
-    q: "How much does it cost to run?",
-    a: "Your AI usage is tracked in Usage & Costs under Settings. A typical day costs less than $1 in AI processing. The dashboard only rebuilds when something important changes, keeping costs low."
+    q: "How do I request quotes from factories?",
+    a: "Go to Workflows → Factory Quote Request. Create a new job, select your factories and upload your product list. Jimmy generates a professional RFQ email with all your product details attached."
   },
   {
-    q: "How do I update what Jimmy knows about me?",
-    a: "Go to Settings → Company Brain. You can edit any section directly. You can also just tell Jimmy something in the AI Analyst chat and it will automatically update its memory."
+    q: "What happens when a factory sends back their quote?",
+    a: "Drop the Excel file into the PLM Agent chat. Jimmy automatically extracts all pricing, calculates landed costs (with your tariff/duty/freight settings), and wires the quotes to the right products."
   },
   {
-    q: "Why is my dashboard not updating?",
-    a: "The dashboard only rebuilds when something important happens — a new critical email, a payment, or a significant change. If nothing important happened, it stays the same to save cost. Press Sync Brain to force a refresh."
+    q: "How do I track sample status?",
+    a: "Open any product in Product Lifecycle and expand a factory track. You'll see every stage from quote requested through sample arrived. Factories can update their own status via their portal."
   },
   {
-    q: "How do I connect more tools?",
-    a: "Go to Integrations from the sidebar. You can connect Gmail, Microsoft 365, Stripe, and QuickBooks. Each integration gives Jimmy more context about your business."
+    q: "What is the Factory Portal?",
+    a: "Each factory gets their own login at portal.myjimmy.ai. They can update sample progress (production, shipped, etc.), add tracking numbers, and see which products need their attention — without accessing your other data."
   },
   {
-    q: "What does Sync Brain do?",
-    a: "Sync Brain fetches the latest data from all your connected integrations and updates Jimmy's knowledge snapshot. Use it when you want to make sure Jimmy has the most current picture of your business."
+    q: "How do I compare quotes across factories?",
+    a: "Go to Workflows → Factory Quote Request and open a completed job. The comparison view shows all quotes side-by-side with landed costs calculated. Yellow rows = best price per product."
   },
   {
-    q: "Is my data secure?",
-    a: "Yes. Your data is stored securely in Supabase and never shared with third parties. Jimmy only reads your data to generate insights — it never writes to your email, files, or financial accounts."
+    q: "What does 'Disqualify' do?",
+    a: "When a factory is too slow, too expensive, or doesn't respond, click Disqualify. Jimmy sends them a professional email explaining they weren't selected and removes them from that product's active tracks."
   },
   {
-    q: "How do I get the most out of the AI Analyst?",
-    a: "Ask specific questions about your business. The more context you've added to your Company Brain and the more integrations you've connected, the more accurate and useful the answers will be."
+    q: "How do I generate a Purchase Order?",
+    a: "After approving a sample, click 'Generate PO' on the approved factory track. Jimmy creates a formatted PO with your negotiated price, terms, and product details, then emails it directly to the factory."
   },
 ];
 
@@ -43,15 +43,15 @@ export default function HelpPage() {
       <div className="max-w-3xl mx-auto">
         <div className="mb-10">
           <h1 className="text-2xl font-bold tracking-tight">Help</h1>
-          <p className="text-white/30 text-sm mt-1">Everything you need to get the most out of Jimmy AI.</p>
+          <p className="text-white/30 text-sm mt-1">Everything you need to get the most out of Jimmy.</p>
         </div>
 
         {/* Quick links */}
         <div className="grid grid-cols-3 gap-3 mb-10">
           {[
-            { label: "Connect Integrations", href: "/integrations", desc: "Add your business tools" },
-            { label: "Company Brain", href: "/settings", desc: "Update what Jimmy knows" },
-            { label: "AI Analyst", href: "/chat", desc: "Ask anything about your business" },
+            { label: "Add Factories", href: "/plm?tab=factory_access", desc: "Manage your factory contacts" },
+            { label: "Product Lifecycle", href: "/plm", desc: "Track products & samples" },
+            { label: "PLM Agent", href: "/plm/agent", desc: "Ask anything about your products" },
           ].map((link, i) => (
             <Link key={i} href={link.href}
               className="bg-white/[0.03] border border-white/[0.06] hover:border-white/20 rounded-2xl p-5 transition">

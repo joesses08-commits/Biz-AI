@@ -86,7 +86,7 @@ function QuotaContent() {
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight">AI Tokens</h1>
-          <p className="text-white/30 text-sm mt-1">Manage your monthly AI usage and purchase more tokens.</p>
+          <p className="text-white/30 text-sm mt-1">Manage your AI usage for quote extraction, PLM agent, and document processing.</p>
         </div>
 
         {success && (
@@ -129,7 +129,7 @@ function QuotaContent() {
               {isEmpty && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                   <p className="text-red-400 text-sm font-semibold">You're out of tokens</p>
-                  <p className="text-white/40 text-xs mt-1">Dashboard is frozen and chat is paused. Purchase more tokens below to continue.</p>
+                  <p className="text-white/40 text-xs mt-1">PLM Agent and quote extraction are paused. Purchase more tokens below to continue.</p>
                 </div>
               )}
 
@@ -143,7 +143,7 @@ function QuotaContent() {
 
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 mb-6">
               <h2 className="text-sm font-semibold text-white mb-1">Daily Spending Limit</h2>
-              <p className="text-white/30 text-xs mb-4">Set a daily token cap to control how fast you use your monthly balance. Optional — hitting the limit pauses refreshes and chat for that day only.</p>
+              <p className="text-white/30 text-xs mb-4">Set a daily token cap to control how fast you use your monthly balance. Optional — hitting the limit pauses AI features for that day only.</p>
               <div className="flex gap-3 items-end">
                 <div className="flex-1">
                   <label className="text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Daily limit (tokens)</label>
@@ -195,16 +195,18 @@ function QuotaContent() {
               <p className="text-white/30 text-xs uppercase tracking-widest mb-3">What costs tokens</p>
               <div className="space-y-2">
                 {[
-                  { label: "Dashboard refresh", cost: "150 tokens" },
-                  { label: "AI Chat message", cost: "30 tokens" },
-                  { label: "Sync Brain", cost: "100 tokens" },
-                  { label: "Daily briefing email", cost: "20 tokens" },
-                  { label: "Hourly data sync", cost: "3 tokens" },
-                  { label: "Company Brain build", cost: "FREE" },
+                  { label: "Factory quote extraction (per file)", cost: "50 tokens" },
+                  { label: "PLM Agent question", cost: "30 tokens" },
+                  { label: "Document drop processing", cost: "40 tokens" },
+                  { label: "Quote comparison build", cost: "100 tokens" },
+                  { label: "RFQ email generation", cost: "20 tokens" },
+                  { label: "Sample request email", cost: "15 tokens" },
+                  { label: "PO generation", cost: "25 tokens" },
+                  { label: "Excel bulk import (AI mapping)", cost: "30 tokens" },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <p className="text-white/50 text-xs">{item.label}</p>
-                    <p className={`text-xs font-semibold ${item.cost === "FREE" ? "text-emerald-400" : "text-white/50"}`}>{item.cost}</p>
+                    <p className="text-xs font-semibold text-white/50">{item.cost}</p>
                   </div>
                 ))}
               </div>
