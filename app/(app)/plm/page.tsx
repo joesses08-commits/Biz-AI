@@ -151,7 +151,7 @@ export default function PLMPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (typeof window !== "undefined") { const params = new URLSearchParams(window.location.search); const tabParam = params.get("tab"); if (tabParam && ["collections", "all_products", "factory_access", "designer_access", "prioritization"].includes(tabParam)) { setActiveTab(tabParam as any); } } load(); }, []);
   useEffect(() => { if (activeTab === "prioritization" && prioFactories.length === 0 && !prioLoading) loadPrioritization(); }, [activeTab]);
 
   const loadPrioritization = async () => {
