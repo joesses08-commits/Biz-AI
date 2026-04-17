@@ -102,12 +102,12 @@ export default function SettingsPage() {
               <p className="text-white/40 text-sm mb-6">Your sourcing command center. Here's what you can do:</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <a href="/plm?tab=factories" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-blue-500/30 hover:bg-blue-500/[0.03] transition">
+                <a href="/plm?tab=factory_access" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-blue-500/30 hover:bg-blue-500/[0.03] transition">
                   <div className="flex items-center gap-2 mb-2">
                     <Factory size={16} className="text-blue-400" />
                     <h3 className="text-sm font-semibold text-white">Add Factories</h3>
                   </div>
-                  <p className="text-xs text-white/40 leading-relaxed">Add your factory contacts with name, email, and contact person. These become your quoting partners.</p>
+                  <p className="text-xs text-white/40 leading-relaxed">Add your factory contacts with name, email, and contact person. Create portal access so they can update progress.</p>
                 </a>
                 
                 <a href="/plm" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-amber-500/30 hover:bg-amber-500/[0.03] transition">
@@ -118,36 +118,36 @@ export default function SettingsPage() {
                   <p className="text-xs text-white/40 leading-relaxed">Add products with SKUs, images, and specs. Group them into collections like "Spring 2026".</p>
                 </a>
                 
-                <a href="/plm" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-purple-500/30 hover:bg-purple-500/[0.03] transition">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileSpreadsheet size={16} className="text-purple-400" />
-                    <h3 className="text-sm font-semibold text-white">Request Quotes</h3>
-                  </div>
-                  <p className="text-xs text-white/40 leading-relaxed">Select products, pick factories, click send. Jimmy emails your RFQ to every factory.</p>
-                </a>
-                
-                <a href="/chat" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-emerald-500/30 hover:bg-emerald-500/[0.03] transition">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Mail size={16} className="text-emerald-400" />
-                    <h3 className="text-sm font-semibold text-white">Drop Factory Quotes</h3>
-                  </div>
-                  <p className="text-xs text-white/40 leading-relaxed">When factories reply with Excel quotes, drop the file in chat. Jimmy extracts all pricing.</p>
-                </a>
-                
-                <a href="/plm" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-amber-500/30 hover:bg-amber-500/[0.03] transition">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Truck size={16} className="text-amber-400" />
-                    <h3 className="text-sm font-semibold text-white">Track Samples</h3>
-                  </div>
-                  <p className="text-xs text-white/40 leading-relaxed">Track samples through production → shipped → arrived. Factories update their own portal.</p>
-                </a>
-                
                 <a href="/workflows/factory-quote" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-purple-500/30 hover:bg-purple-500/[0.03] transition">
                   <div className="flex items-center gap-2 mb-2">
-                    <BarChart3 size={16} className="text-purple-400" />
-                    <h3 className="text-sm font-semibold text-white">Compare Quotes</h3>
+                    <FileSpreadsheet size={16} className="text-purple-400" />
+                    <h3 className="text-sm font-semibold text-white">Request & Compare Quotes</h3>
                   </div>
-                  <p className="text-xs text-white/40 leading-relaxed">See all quotes side-by-side with landed cost calculated. Yellow = best price.</p>
+                  <p className="text-xs text-white/40 leading-relaxed">Send RFQs to multiple factories, upload their Excel quotes, compare landed costs side-by-side.</p>
+                </a>
+                
+                <a href="/plm" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-emerald-500/30 hover:bg-emerald-500/[0.03] transition">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Truck size={16} className="text-emerald-400" />
+                    <h3 className="text-sm font-semibold text-white">Track Samples</h3>
+                  </div>
+                  <p className="text-xs text-white/40 leading-relaxed">Track samples through production → shipped → arrived. Approve and generate POs with one click.</p>
+                </a>
+                
+                <a href="/chat" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-amber-500/30 hover:bg-amber-500/[0.03] transition">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Mail size={16} className="text-amber-400" />
+                    <h3 className="text-sm font-semibold text-white">Drop Documents</h3>
+                  </div>
+                  <p className="text-xs text-white/40 leading-relaxed">Drop any factory email, quote, or PO into chat. Jimmy extracts data and files it automatically.</p>
+                </a>
+                
+                <a href="/chat" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-blue-500/30 hover:bg-blue-500/[0.03] transition">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BarChart3 size={16} className="text-blue-400" />
+                    <h3 className="text-sm font-semibold text-white">PLM Agent</h3>
+                  </div>
+                  <p className="text-xs text-white/40 leading-relaxed">Ask Jimmy anything about your products, samples, or factories. Get instant answers from your data.</p>
                 </a>
               </div>
             </div>

@@ -294,7 +294,7 @@ function FactoryQuoteManager({ factories, onCatalogRefresh }: {
   const [sending, setSending] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
   const [building, setBuilding] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"jobs" | "factories">("jobs");
+  // Factories tab removed - now managed in PLM
   const [productFile, setProductFile] = useState<File | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
@@ -672,30 +672,8 @@ Best regards,
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-0.5 w-fit">
-        <button onClick={() => setActiveTab("jobs")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "jobs" ? "bg-white text-black" : "text-white/40"}`}>
-          Jobs
-        </button>
-        <button onClick={() => setActiveTab("factories")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factories" ? "bg-white text-black" : "text-white/40"}`}>
-          Factories
-        </button>
-      </div>
-
-      {activeTab === "factories" && (
-        <div className="border border-white/[0.06] rounded-xl p-6 bg-white/[0.01] text-center">
-          <Building2 size={32} className="text-white/10 mx-auto mb-3" />
-          <p className="text-sm text-white/70 mb-2">Factories are now managed in Product Lifecycle</p>
-          <p className="text-xs text-white/30 mb-4">Add factories, create portal access, and manage contacts all in one place.</p>
-          <a href="/plm?tab=factories" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 transition">
-            Go to Factory Access <ArrowRight size={12} />
-          </a>
-        </div>
-      )}
-
-      {activeTab === "jobs" && (
+      {/* Jobs Section */}
+      {true && (
         <>
           <div className="flex items-center gap-2">
             <button onClick={() => { setActiveDraftJob(null); setProductFile(null); setNewJob({ job_name: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" }); setShowNew(!showNew); }}
@@ -776,7 +754,7 @@ Best regards,
                 <label className="text-[11px] text-white/30 mb-1.5 block">Send To <span className="text-white/15">(select factories)</span></label>
                 {factories.length === 0 ? (
                   <div className="text-[11px] text-white/20 italic p-3 border border-white/[0.06] rounded-xl">
-                    No factories saved yet — go to the Factories tab to add them. They stay saved permanently.
+                    No factories saved yet — add them in Product Lifecycle → Factory Access.
                   </div>
                 ) : (
                   <div className="space-y-1.5">
