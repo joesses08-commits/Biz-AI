@@ -142,7 +142,7 @@ export default function SettingsPage() {
                   <p className="text-xs text-white/40 leading-relaxed">Drop any factory email, quote, or PO into chat. Jimmy extracts data and files it automatically.</p>
                 </a>
                 
-                <a href="/chat" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-blue-500/30 hover:bg-blue-500/[0.03] transition">
+                <a href="/plm/agent" className="block p-4 rounded-xl border border-white/[0.06] bg-white/[0.01] hover:border-blue-500/30 hover:bg-blue-500/[0.03] transition">
                   <div className="flex items-center gap-2 mb-2">
                     <BarChart3 size={16} className="text-blue-400" />
                     <h3 className="text-sm font-semibold text-white">PLM Agent</h3>
