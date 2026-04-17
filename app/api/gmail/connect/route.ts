@@ -11,10 +11,6 @@ export async function GET() {
     "https://www.googleapis.com/auth/drive",
     // Sheets — read + write
     "https://www.googleapis.com/auth/spreadsheets",
-    // Docs — read + write
-    "https://www.googleapis.com/auth/documents",
-    // Slides — read + write
-    "https://www.googleapis.com/auth/presentations",
     // User info
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
