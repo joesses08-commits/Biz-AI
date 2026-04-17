@@ -414,10 +414,16 @@ export default function OnboardingPage() {
               </button>
             )}
             
-            {isPinStep && !pinSet ? (
-              <button onClick={savePin} disabled={settingPin || pin.length < 4} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 disabled:opacity-50 transition">
-                {settingPin ? <><Loader2 size={14} className="animate-spin" /> Setting PIN...</> : <>Set PIN & Continue <ArrowRight size={14} /></>}
-              </button>
+            {isPinStep ? (
+              pinSet ? (
+                <button onClick={next} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition">
+                  Continue <ArrowRight size={14} />
+                </button>
+              ) : (
+                <button onClick={savePin} disabled={settingPin || pin.length < 4} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 disabled:opacity-50 transition">
+                  {settingPin ? <><Loader2 size={14} className="animate-spin" /> Setting PIN...</> : <>Set PIN & Continue <ArrowRight size={14} /></>}
+                </button>
+              )
             ) : !isLast ? (
               <button onClick={next} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-white/10 border border-white/[0.08] text-white hover:bg-white/20 text-sm font-semibold transition">
                 Next <ArrowRight size={14} />
