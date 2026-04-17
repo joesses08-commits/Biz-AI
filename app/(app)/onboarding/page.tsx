@@ -273,10 +273,10 @@ export default function OnboardingPage() {
       const res = await fetch("/api/admin/pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "check_exists" }),
+        body: JSON.stringify({ action: "has_pin" }),
       });
       const data = await res.json();
-      if (data.exists) setPinSet(true);
+      if (data.has_pin) setPinSet(true);
       
       setChecking(false);
     }
