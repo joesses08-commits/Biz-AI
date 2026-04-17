@@ -89,6 +89,15 @@ export default function PLMPage() {
   const [newCollection, setNewCollection] = useState({ name:"", season:"", year: new Date().getFullYear().toString(), notes:"" });
   const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
   const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"", role:"factory" });
+  
+  // Factory management
+  const [showAddFactory, setShowAddFactory] = useState(false);
+  const [savingFactory, setSavingFactory] = useState(false);
+  const [newFactory, setNewFactory] = useState({ name: "", email: "", contact_name: "", notes: "" });
+  const [deletingFactory, setDeletingFactory] = useState<string | null>(null);
+  const [showPortalModal, setShowPortalModal] = useState<{ factory: any } | null>(null);
+  const [portalPassword, setPortalPassword] = useState("");
+  const [creatingPortal, setCreatingPortal] = useState(false);
 
 
 
@@ -217,6 +226,55 @@ export default function PLMPage() {
     setSavingPortalUser(false); setShowNewPortalUser(false);
     setNewPortalUser({ name:"", email:"", password:"", factory_id:"", role:"factory" });
     load();
+  };
+
+  const createFactory = async () => {
+    if (!newFactory.name || !newFactory.email) return;
+    setSavingFactory(true);
+    await fetch("/api/catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "add_factory", ...newFactory }),
+    });
+    setSavingFactory(false);
+    setShowAddFactory(false);
+    setNewFactory({ name: "", email: "", contact_name: "", notes: "" });
+    loadData();
+  };
+
+  const deleteFactory = async (id: string) => {
+    if (!confirm("Delete this factory? This will also remove their portal access.")) return;
+    setDeletingFactory(id);
+    await fetch("/api/catalog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete_factory", id }),
+    });
+    setDeletingFactory(null);
+    loadData();
+  };
+
+  const createFactoryPortal = async () => {
+    if (!showPortalModal || !portalPassword) return;
+    setCreatingPortal(true);
+    const res = await fetch("/api/portal/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: showPortalModal.factory.contact_name || showPortalModal.factory.name,
+        email: showPortalModal.factory.email,
+        password: portalPassword,
+        factory_id: showPortalModal.factory.id,
+        role: "factory",
+        send_email: true,
+      }),
+    });
+    setCreatingPortal(false);
+    if (res.ok) {
+      setShowPortalModal(null);
+      setPortalPassword("");
+      loadData();
+    }
   };
 
   const deletePortalUser = async (id: string) => {
@@ -1204,68 +1262,144 @@ export default function PLMPage() {
             )}
           </div>
         ) : activeTab === "factory_access" ? (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
+          <div className="space-y-8">
+            {/* FACTORIES SECTION */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-white">Your Factories</p>
+                  <p className="text-xs text-white/30 mt-0.5">Add factories you work with — then create portal access for them</p>
+                </div>
+                <button onClick={() => setShowAddFactory(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+                  <Plus size={11} />Add Factory
+                </button>
+              </div>
+
+              {showAddFactory && (
+                <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
+                  <p className="text-xs font-semibold text-white/70">New Factory</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lc}>Factory Name *</label><input value={newFactory.name} onChange={e => setNewFactory({...newFactory, name: e.target.value})} placeholder="Yuecheng Glass" className={ic} /></div>
+                    <div><label className={lc}>Email *</label><input value={newFactory.email} onChange={e => setNewFactory({...newFactory, email: e.target.value})} placeholder="sales@factory.com" className={ic} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className={lc}>Contact Name</label><input value={newFactory.contact_name} onChange={e => setNewFactory({...newFactory, contact_name: e.target.value})} placeholder="Jenny Li" className={ic} /></div>
+                    <div><label className={lc}>Notes</label><input value={newFactory.notes} onChange={e => setNewFactory({...newFactory, notes: e.target.value})} placeholder="Specializes in glassware" className={ic} /></div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={createFactory} disabled={savingFactory || !newFactory.name || !newFactory.email} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                      {savingFactory ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Factory
+                    </button>
+                    <button onClick={() => setShowAddFactory(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {factories.length === 0 && !showAddFactory ? (
+                <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
+                  <Building2 size={28} className="text-white/10 mx-auto mb-3" />
+                  <p className="text-white/30 text-sm">No factories yet — add your first factory above</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {factories.map(f => {
+                    const hasPortal = portalUsers.some(u => u.factory_id === f.id);
+                    return (
+                      <div key={f.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-5 py-4 bg-white/[0.01]">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                          <Building2 size={16} className="text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white">{f.name}</p>
+                          <p className="text-xs text-white/30">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
+                          {f.notes && <p className="text-[10px] text-white/20 mt-0.5">{f.notes}</p>}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {hasPortal ? (
+                            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-full flex items-center gap-1">
+                              <Check size={10} />Portal Active
+                            </span>
+                          ) : (
+                            <button onClick={() => { setShowPortalModal({ factory: f }); setPortalPassword(""); }} className="text-[10px] text-blue-400 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full hover:bg-blue-500/20 transition">
+                              Create Portal Access
+                            </button>
+                          )}
+                          <button onClick={() => deleteFactory(f.id)} disabled={deletingFactory === f.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                            {deletingFactory === f.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* PORTAL USERS SECTION */}
+            <div className="space-y-4 pt-4 border-t border-white/[0.06]">
               <div>
                 <p className="text-sm font-semibold text-white">Factory Portal Users</p>
-                <p className="text-xs text-white/30 mt-0.5">Factories log into portal.myjimmy.ai to update production stages</p>
+                <p className="text-xs text-white/30 mt-0.5">Factories log into portal.myjimmy.ai to update sample and production stages</p>
               </div>
-              <button onClick={() => { setNewPortalUser({name:"", email:"", password:"", factory_id:"", role:"factory"}); setShowNewPortalUser(true); }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
-                <Plus size={11} />Add Factory User
-              </button>
-            </div>
-            {showNewPortalUser && newPortalUser.role === "factory" && (
-              <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
-                <p className="text-xs font-semibold text-white/70">New Factory Portal User</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className={lc}>Name</label><input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})} placeholder="Factory contact name" className={ic} /></div>
-                  <div><label className={lc}>Email</label><input value={newPortalUser.email} onChange={e => setNewPortalUser({...newPortalUser, email: e.target.value})} placeholder="factory@example.com" className={ic} /></div>
+
+              {portalUsers.filter(u => u.role !== "designer").length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-white/[0.06] rounded-2xl">
+                  <Users size={24} className="text-white/10 mx-auto mb-2" />
+                  <p className="text-white/30 text-sm">No factory portal users yet</p>
+                  <p className="text-white/20 text-xs mt-1">Create portal access from a factory above</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><label className={lc}>Password</label><input value={newPortalUser.password} onChange={e => setNewPortalUser({...newPortalUser, password: e.target.value})} placeholder="Password" className={ic} /></div>
-                  <div>
-                    <label className={lc}>Factory</label>
-                    <select value={newPortalUser.factory_id} onChange={e => setNewPortalUser({...newPortalUser, factory_id: e.target.value})} className={ic}>
-                      <option value="">Select factory</option>
-                      {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={createPortalUser} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password || !newPortalUser.factory_id} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                    {savingPortalUser ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Factory User
-                  </button>
-                  <button onClick={() => setShowNewPortalUser(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-                </div>
-              </div>
-            )}
-            {portalUsers.filter(u => u.role !== "designer").length === 0 && !showNewPortalUser ? (
-              <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
-                <Users size={28} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No factory portal users yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {portalUsers.filter(u => u.role !== "designer").map(u => (
-                  <div key={u.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-5 py-4 bg-white/[0.01]">
-                    <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                      <Users size={13} className="text-white/30" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white">{u.name || u.email}</p>
-                      <div className="flex items-center gap-3">
-                        <p className="text-xs text-white/30">{u.email}</p>
-                        {u.factory_catalog && <p className="text-xs text-white/20">{u.factory_catalog.name}</p>}
+              ) : (
+                <div className="space-y-2">
+                  {portalUsers.filter(u => u.role !== "designer").map(u => (
+                    <div key={u.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-5 py-4 bg-white/[0.01]">
+                      <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                        <Users size={13} className="text-white/30" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white">{u.name || u.email}</p>
+                        <div className="flex items-center gap-3">
+                          <p className="text-xs text-white/30">{u.email}</p>
+                          {u.factory_catalog && <p className="text-xs text-white/20">{u.factory_catalog.name}</p>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Active</span>
+                        <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                          {deletingPortalUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Factory</span>
-                      <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
-                        {deletingPortalUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                      </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Create Portal Modal */}
+            {showPortalModal && (
+              <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+                <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md">
+                  <h3 className="text-base font-bold text-white mb-1">Create Portal Access</h3>
+                  <p className="text-xs text-white/40 mb-4">Create login credentials for <span className="text-white">{showPortalModal.factory.name}</span> to access their portal</p>
+                  
+                  <div className="space-y-3 mb-5">
+                    <div>
+                      <label className={lc}>Email</label>
+                      <input value={showPortalModal.factory.email} disabled className={`${ic} opacity-50 cursor-not-allowed`} />
+                      <p className="text-[10px] text-white/20 mt-1">Uses the factory's email address</p>
+                    </div>
+                    <div>
+                      <label className={lc}>Password *</label>
+                      <input value={portalPassword} onChange={e => setPortalPassword(e.target.value)} placeholder="Create a password" className={ic} type="text" />
                     </div>
                   </div>
-                ))}
+
+                  <div className="flex gap-2">
+                    <button onClick={createFactoryPortal} disabled={creatingPortal || !portalPassword} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                      {creatingPortal ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create & Send Email
+                    </button>
+                    <button onClick={() => setShowPortalModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
