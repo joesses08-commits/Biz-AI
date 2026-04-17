@@ -239,7 +239,7 @@ export default function PLMPage() {
     setSavingFactory(false);
     setShowAddFactory(false);
     setNewFactory({ name: "", email: "", contact_name: "", notes: "" });
-    loadData();
+    load();
   };
 
   const deleteFactory = async (id: string) => {
@@ -251,7 +251,7 @@ export default function PLMPage() {
       body: JSON.stringify({ action: "delete_factory", id }),
     });
     setDeletingFactory(null);
-    loadData();
+    load();
   };
 
   const createFactoryPortal = async () => {
@@ -273,7 +273,7 @@ export default function PLMPage() {
     if (res.ok) {
       setShowPortalModal(null);
       setPortalPassword("");
-      loadData();
+      load();
     }
   };
 
