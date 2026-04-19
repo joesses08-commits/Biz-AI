@@ -1,46 +1,33 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Package, Plus, Loader2, Check, X, ChevronDown, LogOut, Layers } from "lucide-react";
+import { Package, Plus, Loader2, Check, X, ChevronDown, ChevronRight, LogOut, Layers, Users, Factory, Search } from "lucide-react";
 
-const DEV_STAGES = [
-  { key: "concept", label: "Concept", color: "#6b7280" },
-  { key: "ready_for_quote", label: "Ready for Quote", color: "#ec4899" },
-  { key: "artwork_sent", label: "Artwork Sent", color: "#8b5cf6" },
-  { key: "quotes_received", label: "Quotes Received", color: "#3b82f6" },
-  { key: "samples_requested", label: "Samples Requested", color: "#f59e0b" },
-  { key: "sample_approved", label: "Sample Approved", color: "#10b981" },
+const BATCH_STAGE_ORDER = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
+const BATCH_STAGE_LABELS: Record<string,string> = { po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", ready_to_ship:"Ready to Ship", shipped:"Shipped" };
+const BATCH_STAGE_COLORS: Record<string,string> = { po_issued:"#f59e0b", production_started:"#f59e0b", production_complete:"#10b981", qc_inspection:"#f59e0b", ready_to_ship:"#3b82f6", shipped:"#10b981" };
+
+const ORDERED_STAGES = [
+  { key: "artwork_sent",     label: "Artwork Sent",     color: "#8b5cf6", bg: "#8b5cf615", border: "#8b5cf630" },
+  { key: "quote_requested",  label: "Quote Requested",  color: "#ec4899", bg: "#ec489915", border: "#ec489930" },
+  { key: "quote_received",   label: "Quote Received",   color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630" },
+  { key: "sample_requested", label: "Sample Requested", color: "#f59e0b", bg: "#f59e0b15", border: "#f59e0b30" },
+  { key: "sample_reviewed",  label: "Sample Reviewed",  color: "#10b981", bg: "#10b98115", border: "#10b98130" },
 ];
-
-const STAGE_COLORS: Record<string, string> = {
-  concept: "#6b7280", ready_for_quote: "#ec4899", artwork_sent: "#8b5cf6",
-  quotes_received: "#3b82f6", samples_requested: "#f59e0b", sample_approved: "#10b981",
-  po_issued: "#f59e0b", production_started: "#f59e0b", production_complete: "#10b981",
-  qc_inspection: "#f59e0b", ready_to_ship: "#3b82f6", shipped: "#10b981",
-  status_hold: "#f59e0b", status_killed: "#ef4444", status_progression: "#10b981",
-  design_brief: "#6b7280",
-};
-
-const STAGE_LABELS: Record<string, string> = {
-  concept: "Concept", ready_for_quote: "Ready for Quote", artwork_sent: "Artwork Sent",
-  quotes_received: "Quotes Received", samples_requested: "Samples Requested",
-  sample_approved: "Sample Approved", po_issued: "PO Issued",
-  production_started: "Production Started", production_complete: "Production Complete",
-  qc_inspection: "QC Inspection", ready_to_ship: "Ready to Ship", shipped: "Shipped",
-  status_hold: "Put on Hold", status_killed: "Killed", status_progression: "Set to Progression",
-  sample_production: "Sample Production", sample_complete: "Sample Complete",
-  sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived",
-  revision_requested: "Revision Requested", killed: "Killed", design_brief: "Design Brief",
-};
-
-const SAMPLE_STAGE_COLORS: Record<string, string> = {
-  sample_production: "#f59e0b", sample_complete: "#10b981",
-  sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6",
-  revision_requested: "#f59e0b", killed: "#ef4444",
-};
 
 const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/80 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition";
 const lc = "text-[10px] text-white/30 mb-1.5 block uppercase tracking-widest";
+
+function getProductStatus(product: any) {
+  const batches = product.plm_batches || [];
+  let statusKey: string | null = null;
+  let statusIdx = -1;
+  for (const b of batches) {
+    const idx = BATCH_STAGE_ORDER.indexOf(b.current_stage);
+    if (idx > statusIdx) { statusIdx = idx; statusKey = b.current_stage; }
+  }
+  return statusKey;
+}
 
 function PinPrompt({ onConfirm, onCancel, error }: { onConfirm: (pin: string) => void; onCancel: () => void; error?: string }) {
   const [pin, setPin] = useState("");
@@ -98,87 +85,25 @@ function SetPinModal({ token, onDone }: { token: string; onDone: () => void }) {
   );
 }
 
-function SamplesTab({ products, factories, token, onRefresh }: { products: any[]; factories: any[]; token: string; onRefresh: () => void }) {
-  const [selections, setSelections] = useState<Record<string, string[]>>({});
-  const [notes, setNotes] = useState<Record<string, string>>({});
-  const [requesting, setRequesting] = useState<string | null>(null);
-  const eligible = products.filter(p => !p.killed && !(p.plm_sample_requests || []).some((r: any) => r.status === "requested"));
-  const requestSample = async (productId: string) => {
-    const factoryIds = selections[productId] || [];
-    if (!factoryIds.length) return;
-    setRequesting(productId);
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ action: "create_sample_requests", product_id: productId, factory_ids: factoryIds, note: notes[productId] || "" }) });
-    setRequesting(null);
-    setSelections(prev => { const n = { ...prev }; delete n[productId]; return n; });
-    onRefresh();
-  };
-  if (!eligible.length) return (
-    <div className="text-center py-20 border border-white/[0.06] rounded-2xl">
-      <Package size={28} className="text-white/10 mx-auto mb-3" />
-      <p className="text-white/20 text-sm">No products available for sampling</p>
-    </div>
-  );
-  return (
-    <div className="space-y-3">
-      {eligible.map(product => {
-        const selected = selections[product.id] || [];
-        return (
-          <div key={product.id} className="border border-white/[0.07] rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              {product.images?.[0] && <img src={product.images[0]} alt="" className="w-9 h-9 rounded-xl object-cover" />}
-              <div><p className="text-sm font-semibold">{product.name}</p>
-                {product.sku && <p className="text-[10px] font-mono text-white/25">{product.sku}</p>}</div>
-            </div>
-            <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Request from:</p>
-              <div className="flex flex-wrap gap-1.5">
-                {factories.map((f: any) => (
-                  <button key={f.id} onClick={() => setSelections(prev => ({
-                    ...prev, [product.id]: selected.includes(f.id) ? selected.filter((id: string) => id !== f.id) : [...selected, f.id]
-                  }))} className={`text-xs px-2.5 py-1 rounded-lg border transition ${selected.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/30 hover:text-white/60"}`}>
-                    {f.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <input value={notes[product.id] || ""} onChange={e => setNotes(prev => ({ ...prev, [product.id]: e.target.value }))}
-              placeholder="Note (optional)" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none" />
-            <button onClick={() => requestSample(product.id)} disabled={!selected.length || requesting === product.id}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
-              {requesting === product.id ? <Loader2 size={10} className="animate-spin" /> : <Plus size={10} />}
-              Request from {selected.length} {selected.length === 1 ? "factory" : "factories"}
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function DesignerView({ portalUser, router }: { portalUser: any; router: any }) {
   const [products, setProducts] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [factories, setFactories] = useState<any[]>([]);
-  const [samples, setSamples] = useState<any[]>([]);
+  const [productTracks, setProductTracks] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"products" | "prioritization">("products");
   const [hasPinSet, setHasPinSet] = useState(false);
   const [showSetPin, setShowSetPin] = useState(false);
   const [pinPrompt, setPinPrompt] = useState<null | { resolve: (pin: string) => void }>(null);
   const [pinError, setPinError] = useState("");
-  const [expandedProduct, setExpandedProduct] = useState<string | null>(null);
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: "", sku: "", description: "", specs: "", category: "", collection_id: "", notes: "" });
   const [newCollection, setNewCollection] = useState({ name: "", season: "", year: new Date().getFullYear().toString() });
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [prioOrder, setPrioOrder] = useState<Record<string, string[]>>({});
-  const [prioActiveFactory, setPrioActiveFactory] = useState<string | null>(null);
-  const [prioSaving, setPrioSaving] = useState(false);
-  const [prioSaved, setPrioSaved] = useState(false);
-  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [filterStage, setFilterStage] = useState("");
+  const [filterCollection, setFilterCollection] = useState("");
 
   const tok = () => localStorage.getItem("portal_token_designer") || localStorage.getItem("portal_token") || "";
 
@@ -192,17 +117,14 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
     setProducts(data.products || []);
     setCollections(data.collections || []);
     setFactories(data.factories || []);
-    setSamples(data.samples || []);
     setHasPinSet(data.has_pin || false);
-    const orderMap: Record<string, string[]> = {};
-    for (const f of (data.factories || [])) {
-      const fs = (data.samples || []).filter((s: any) => s.factory_id === f.id);
-      const pri = fs.filter((s: any) => s.priority_order != null).sort((a: any, b: any) => a.priority_order - b.priority_order);
-      const unp = fs.filter((s: any) => s.priority_order == null);
-      orderMap[f.id] = [...pri, ...unp].map((s: any) => s.id);
+    
+    // Build product tracks map
+    const trackMap: Record<string, any[]> = {};
+    for (const p of (data.products || [])) {
+      trackMap[p.id] = p.plm_factory_tracks || [];
     }
-    setPrioOrder(orderMap);
-    if (!prioActiveFactory && data.factories?.length > 0) setPrioActiveFactory(data.factories[0].id);
+    setProductTracks(trackMap);
     setLoading(false);
   };
 
@@ -211,15 +133,13 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
     return new Promise(resolve => { setPinError(""); setPinPrompt({ resolve }); });
   };
 
-  const doWithPin = async (action: (pin: string) => Promise<boolean>) => {
-    const pin = await getPin();
-    if (!pin) return;
-    const ok = await action(pin);
-    if (!ok) { setPinError("Invalid PIN"); setPinPrompt(null); }
-    else setPinPrompt(null);
+  const logout = () => { 
+    localStorage.removeItem("portal_token_designer"); 
+    localStorage.removeItem("portal_user_designer"); 
+    localStorage.removeItem("portal_token"); 
+    localStorage.removeItem("portal_user"); 
+    router.push("/portal"); 
   };
-
-  const logout = () => { localStorage.removeItem("portal_token_designer"); localStorage.removeItem("portal_user_designer"); localStorage.removeItem("portal_token"); localStorage.removeItem("portal_user"); router.push("/portal"); };
 
   const createProduct = async () => {
     if (!newProduct.name) return;
@@ -241,74 +161,89 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
     load();
   };
 
-  const setProductStatus = async (productId: string, status: string) => {
-    await doWithPin(async pin => {
-      const res = await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-        body: JSON.stringify({ action: "set_status", product_id: productId, status, pin }) });
-      if (res.ok) { load(); return true; }
-      return false;
+  // Filter and sort products exactly like main PLM
+  const filteredProducts = products.filter(p => {
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      if (!p.name?.toLowerCase().includes(q) && !p.sku?.toLowerCase().includes(q)) return false;
+    }
+    if (filterCollection && p.collection_id !== filterCollection) return false;
+    return true;
+  });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    // Killed to bottom
+    if (a.killed && !b.killed) return 1;
+    if (!a.killed && b.killed) return -1;
+    // Hold above killed but below active
+    if (a.status === "hold" && b.status !== "hold" && !b.killed) return 1;
+    if (a.status !== "hold" && !a.killed && b.status === "hold") return -1;
+    // Action Required to top
+    const aAction = a.action_status === "action_required" ? 0 : a.action_status === "updates_made" ? 1 : 2;
+    const bAction = b.action_status === "action_required" ? 0 : b.action_status === "updates_made" ? 1 : 2;
+    if (aAction !== bAction) return aAction - bAction;
+    return 0;
+  });
+
+  // Build badges for a product (matching main PLM logic)
+  const buildAwardBadges = (product: any) => {
+    const tracks = productTracks[product.id] || [];
+    const approvedTracks = tracks.filter((t: any) => t.status === "approved");
+    const activeTracks = tracks.filter((t: any) => t.status === "active");
+    const killedTracks = tracks.filter((t: any) => t.status === "killed");
+    const totalTracks = tracks.length;
+    const awardBadges: { label: string; color: string; bg: string; border: string }[] = [];
+
+    // Count done per stage across all tracks
+    ORDERED_STAGES.forEach(stageDef => {
+      const count = tracks.filter((t: any) =>
+        (t.plm_track_stages || []).some((s: any) => s.stage === stageDef.key && s.status === "done")
+      ).length;
+      if (count === 0) return;
+      const label = totalTracks > 1
+        ? `${stageDef.label} · ${count}/${totalTracks} factories`
+        : stageDef.label;
+      awardBadges.push({ label, color: stageDef.color, bg: stageDef.bg, border: stageDef.border });
     });
-  };
 
-  const updateSampleOutcome = async (srId: string, productId: string, factoryId: string, currentStage: string, outcome: string, notes?: string) => {
-    await doWithPin(async pin => {
-      const res = await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-        body: JSON.stringify({ action: "update_sample_stage", sample_request_id: srId, product_id: productId, factory_id: factoryId, stage: currentStage, outcome, notes: notes || "", pin }) });
-      if (res.ok) { load(); return true; }
-      return false;
-    });
-  };
+    // Approved factory (only 1)
+    if (approvedTracks.length > 0) {
+      const t = approvedTracks[0];
+      const price = t.approved_price ? ` · $${t.approved_price}` : "";
+      awardBadges.push({
+        label: `✓ Approved · ${t.factory_catalog?.name}${price}`,
+        color: "#10b981", bg: "#10b98115", border: "#10b98130",
+      });
+    }
 
-  const savePriorities = async (factoryId: string) => {
-    setPrioSaving(true);
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-      body: JSON.stringify({ action: "save_priorities", factory_id: factoryId, ordered_ids: prioOrder[factoryId] || [] }) });
-    setPrioSaving(false); setPrioSaved(true); setTimeout(() => setPrioSaved(false), 2000);
-  };
+    // Orders
+    const orderCount = (product.plm_batches || []).length;
+    if (orderCount > 0) {
+      const orderFactories = Array.from(new Set((product.plm_batches || []).map((b: any) => {
+        const f = factories.find((f: any) => f.id === b.factory_id);
+        return f?.name || "Factory";
+      }))).join(", ");
+      awardBadges.push({
+        label: `${orderCount} ${orderCount === 1 ? "Order" : "Orders"} · ${orderFactories}`,
+        color: "#3b82f6", bg: "#3b82f615", border: "#3b82f630",
+      });
+    } else if (approvedTracks.length > 0) {
+      awardBadges.push({
+        label: "No orders yet",
+        color: "#6b7280", bg: "#6b728015", border: "#6b728030",
+      });
+    }
 
-  const moveSample = (factoryId: string, fromIdx: number, toIdx: number) => {
-    const order = [...(prioOrder[factoryId] || [])];
-    const [moved] = order.splice(fromIdx, 1);
-    order.splice(toIdx, 0, moved);
-    setPrioOrder(prev => ({ ...prev, [factoryId]: order }));
-  };
+    if (killedTracks.length > 0 && activeTracks.length === 0 && approvedTracks.length === 0) {
+      awardBadges.push({ label: "All Factories Discontinued", color: "#ef4444", bg: "#ef444415", border: "#ef444430" });
+    }
 
-  const updateStage = async (productId: string, stage: string) => {
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-      body: JSON.stringify({ action: "update_stage", product_id: productId, stage }) });
-    load();
-  };
+    if (tracks.length === 0) {
+      awardBadges.push({ label: "Concept", color: "#6b7280", bg: "#6b728015", border: "#6b728030" });
+    }
 
-  const updateField = async (productId: string, field: string, value: string) => {
-    await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-      body: JSON.stringify({ action: "update_product", product_id: productId, [field]: value }) });
-    load();
+    return awardBadges;
   };
-
-  const DEV_STAGE_ORDER: Record<string, number> = {
-    concept: 0, ready_for_quote: 1, artwork_sent: 2, quotes_received: 3,
-    samples_requested: 4, sample_approved: 5,
-  };
-
-  const filtered = products.filter(p => !searchQuery ||
-    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(searchQuery.toLowerCase()))
-    .sort((a, b) => {
-      // Killed to bottom
-      if (a.killed && !b.killed) return 1;
-      if (!a.killed && b.killed) return -1;
-      // Hold above killed
-      if (a.status === "hold" && b.status !== "hold" && !b.killed) return 1;
-      if (a.status !== "hold" && !a.killed && b.status === "hold") return -1;
-      // Action Required to top
-      const aAction = a.action_status === "action_required" && (a.plm_assignments || []).some((x: any) => x.designer_id === portalUser.id) ? 0 : 1;
-      const bAction = b.action_status === "action_required" && (b.plm_assignments || []).some((x: any) => x.designer_id === portalUser.id) ? 0 : 1;
-      if (aAction !== bAction) return aAction - bAction;
-      // Sort by dev stage (earliest first)
-      const aStage = DEV_STAGE_ORDER[a.current_stage] ?? 0;
-      const bStage = DEV_STAGE_ORDER[b.current_stage] ?? 0;
-      return aStage - bStage;
-    });
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
@@ -326,7 +261,8 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
             <p className="text-[10px] text-white/30">{portalUser?.name || portalUser?.email}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] text-white/20 bg-white/[0.03] px-2 py-1 rounded-lg">{products.length} SKUs</span>
           {!hasPinSet && (
             <button onClick={() => setShowSetPin(true)} className="text-xs text-amber-400 border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 rounded-lg">Set PIN</button>
           )}
@@ -348,15 +284,26 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 py-6">
+      <div className="max-w-5xl mx-auto px-6 py-6">
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
         ) : activeTab === "products" ? (
           <div className="space-y-4">
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search products..." className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none w-52" />
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
+                  <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search products..." 
+                    className="bg-white/[0.03] border border-white/[0.08] rounded-xl pl-9 pr-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none w-52" />
+                </div>
+                <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)}
+                  className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none">
+                  <option value="">All Collections</option>
+                  {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowNewCollection(!showNewCollection)}
                   className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition">
@@ -413,150 +360,95 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
               </div>
             )}
 
-            {/* Product list */}
-            {filtered.length === 0 ? (
-              <div className="text-center py-20"><Package size={28} className="text-white/10 mx-auto mb-3" /><p className="text-white/30 text-sm">No products yet</p></div>
+            {/* Product list - matching main PLM layout */}
+            {sortedProducts.length === 0 ? (
+              <div className="text-center py-20">
+                <Package size={32} className="text-white/10 mx-auto mb-3" />
+                <p className="text-white/30 text-sm">No products yet</p>
+              </div>
             ) : (
-              <div className="space-y-2">
-                {filtered.map(product => {
-                  const isExpanded = expandedProduct === product.id;
-                  const status = product.status || "progression";
-                  const isKilled = status === "killed";
-                  const isHold = status === "hold";
-                  const stage = product.current_stage || "concept";
-                  const stageColor = STAGE_COLORS[stage] || "#6b7280";
-                  const stageLabel = STAGE_LABELS[stage] || stage;
-                  const activeSamples = (product.plm_sample_requests || []).filter((s: any) => s.status === "requested");
-                  const approvedSample = (product.plm_sample_requests || []).find((s: any) => s.status === "approved");
-                  const batches = product.plm_batches || [];
-                  const history = [
-                    ...(product.plm_stages || []),
-                    ...batches.flatMap((b: any) => (b.plm_batch_stages || []).map((s: any) => ({ ...s, _type: "order" }))),
-                    ...(product.plm_sample_requests || []).flatMap((sr: any) =>
-                      (sr.plm_sample_stages || []).map((s: any) => ({ ...s, _factory: sr.factory_catalog?.name }))
-                    ),
-                  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+              <div className="grid grid-cols-1 gap-3">
+                {sortedProducts.map(product => {
+                  const statusKey = getProductStatus(product);
+                  const productStatusMode = product.status || "progression";
+                  const awardBadges = buildAwardBadges(product);
+                  const addedBy = product.created_by_name || product.created_by_email || null;
+                  
+                  // Killed products
+                  if (product.killed || productStatusMode === "killed") return (
+                    <div key={product.id} onClick={() => router.push(`/portal/designer-product?id=${product.id}`)} 
+                      className="flex items-center gap-3 p-4 border border-red-500/10 rounded-xl bg-red-500/[0.01] opacity-50 cursor-pointer hover:opacity-70 transition">
+                      {product.images?.[0] && <img src={product.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 grayscale" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white/40 truncate line-through">{product.name}</p>
+                        {product.sku && <p className="text-[10px] text-white/20 font-mono">{product.sku}</p>}
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400/70 border border-red-500/15 flex-shrink-0">Product Discontinued</span>
+                    </div>
+                  );
 
                   return (
-                    <div key={product.id} className={`border rounded-2xl overflow-hidden transition ${isKilled ? "border-red-500/20 opacity-60" : isHold ? "border-amber-500/20" : "border-white/[0.07]"}`}>
-                      <div className="p-4 flex items-center gap-3 cursor-pointer" onClick={() => router.push(`/portal/designer-product?id=${product.id}`)}>
+                    <div key={product.id} 
+                      className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer"
+                      onClick={() => router.push(`/portal/designer-product?id=${product.id}`)}>
+                      <div className="flex items-center gap-4">
                         {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+                          <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
                         ) : (
-                          <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0 flex items-center justify-center">
                             <Package size={14} className="text-white/20" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <p className="text-sm font-semibold">{product.name}</p>
-                            {product.sku && <span className="text-[10px] font-mono text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">{product.sku}</span>}
-                            {product.plm_collections && <span className="text-[10px] text-white/20">{product.plm_collections.name}</span>}
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <p className="text-sm font-semibold text-white">{product.name}</p>
+                            {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
+                            {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
+                            {product.action_status === "action_required" && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
+                            )}
+                            {product.action_status === "updates_made" && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 uppercase tracking-wide">● Updates Made</span>
+                            )}
+                            {productStatusMode === "hold" && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">⏸ Hold</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>{stageLabel}</span>
-                            {isKilled && <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/20">Killed</span>}
-                            {isHold && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/20">On Hold</span>}
-                            {product.action_status === "action_required" && (product.plm_assignments || []).some((a: any) => a.designer_id === portalUser.id) && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>}
-                            {product.action_status === "updates_made" && (product.plm_assignments || []).some((a: any) => a.designer_id === portalUser.id) && <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 uppercase tracking-wide">● Updates Made</span>}
-                            {approvedSample && <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/20">Sample ✓</span>}
-                            {batches.length > 0 && <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">{batches.length} order{batches.length !== 1 ? "s" : ""}</span>}
+                            {awardBadges.map((badge, i) => (
+                              <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                                style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
+                                {badge.label}
+                              </span>
+                            ))}
+                            {statusKey && (
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${BATCH_STAGE_COLORS[statusKey]}20`, color: BATCH_STAGE_COLORS[statusKey], border: `1px solid ${BATCH_STAGE_COLORS[statusKey]}30` }}>
+                                {BATCH_STAGE_LABELS[statusKey]}
+                              </span>
+                            )}
                           </div>
+                          {/* Added by attribution */}
+                          {addedBy && (
+                            <p className="text-[10px] text-white/20 mt-1.5">Added by {addedBy}</p>
+                          )}
                         </div>
-                        <ChevronDown size={14} className="text-white/30 flex-shrink-0" />
+                        <ChevronRight size={16} className="text-white/20 flex-shrink-0" />
                       </div>
-
-
                     </div>
                   );
                 })}
               </div>
             )}
           </div>
-
         ) : (
-          /* Prioritization */
-          <div className="space-y-4">
-            {factories.length === 0 ? <div className="text-center py-20"><p className="text-white/30 text-sm">No factories</p></div> : (
-              <>
-                <div className="flex gap-2 border-b border-white/[0.06] pb-3">
-                  {factories.map(f => (
-                    <button key={f.id} onClick={() => setPrioActiveFactory(f.id)}
-                      className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 ${prioActiveFactory === f.id ? "bg-white text-black" : "text-white/40 hover:text-white/70 border border-white/[0.06]"}`}>
-                      {f.name} <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${prioActiveFactory === f.id ? "bg-black/10" : "bg-white/[0.06]"}`}>{(prioOrder[f.id] || []).length}</span>
-                    </button>
-                  ))}
-                </div>
-                {prioActiveFactory && (() => {
-                  const orderedSamples = (prioOrder[prioActiveFactory] || []).map(id => samples.find((s: any) => s.id === id)).filter(Boolean);
-                  return (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-white/30">Drag to reorder. Top = highest priority.</p>
-                        <div className="flex items-center gap-2">
-                          {prioSaved && <span className="text-emerald-400 text-xs">Saved ✓</span>}
-                          <button onClick={() => savePriorities(prioActiveFactory)} disabled={prioSaving}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                            {prioSaving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Order
-                          </button>
-                        </div>
-                      </div>
-                      {orderedSamples.length === 0 ? (
-                        <div className="text-center py-16 border border-white/[0.06] rounded-2xl"><p className="text-white/20 text-sm">No pending samples</p></div>
-                      ) : orderedSamples.map((sample: any, idx: number) => {
-                        const product = sample.plm_products;
-                        return (
-                          <div key={sample.id} draggable
-                            onDragStart={e => e.dataTransfer.setData("text/plain", String(idx))}
-                            onDragOver={e => { e.preventDefault(); setDragOver(sample.id); }}
-                            onDragLeave={() => setDragOver(null)}
-                            onDrop={e => { e.preventDefault(); setDragOver(null); moveSample(prioActiveFactory, parseInt(e.dataTransfer.getData("text/plain")), idx); }}
-                            className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition cursor-grab ${dragOver === sample.id ? "border-blue-500/40 bg-blue-500/5" : "border-white/[0.08] bg-white/[0.02]"}`}>
-                            <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-xs font-bold text-blue-400">{idx + 1}</div>
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              {product?.images?.[0] && <img src={product.images[0]} alt="" className="w-7 h-7 rounded-lg object-cover" />}
-                              <div><p className="text-sm text-white/80 font-medium truncate">{product?.name}</p>
-                                {product?.sku && <p className="text-[10px] text-white/30 font-mono">{product.sku}</p>}</div>
-                            </div>
-                            <div className="flex flex-col gap-0.5 opacity-30">{[0, 1, 2].map(i => <div key={i} className="w-4 h-0.5 bg-white/40 rounded" />)}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </>
-            )}
+          /* Prioritization Tab - simplified for now */
+          <div className="text-center py-20">
+            <Factory size={32} className="text-white/10 mx-auto mb-3" />
+            <p className="text-white/30 text-sm">Prioritization coming soon</p>
+            <p className="text-white/20 text-xs mt-1">Drag to reorder sample priorities</p>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function EditableField({ label, value, onSave, multiline = false }: { label: string; value: string; onSave: (v: string) => Promise<void>; multiline?: boolean }) {
-  const [editing, setEditing] = useState(false);
-  const [val, setVal] = useState(value);
-  const [saving, setSaving] = useState(false);
-  const save = async () => { setSaving(true); await onSave(val); setSaving(false); setEditing(false); };
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] text-white/30 uppercase tracking-widest">{label}</p>
-        {!editing && <button onClick={() => { setVal(value); setEditing(true); }} className="text-[10px] text-white/20 hover:text-white/50 transition">edit</button>}
-      </div>
-      {editing ? (
-        <div className="space-y-1.5">
-          {multiline ? <textarea value={val} onChange={e => setVal(e.target.value)} rows={2} className="w-full bg-white/[0.03] border border-white/[0.15] rounded-xl px-3 py-2 text-white/80 text-xs focus:outline-none resize-none" />
-            : <input value={val} onChange={e => setVal(e.target.value)} className="w-full bg-white/[0.03] border border-white/[0.15] rounded-xl px-3 py-2 text-white/80 text-xs focus:outline-none" />}
-          <div className="flex gap-1.5">
-            <button onClick={save} disabled={saving} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
-              {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
-            </button>
-            <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-          </div>
-        </div>
-      ) : <p className="text-xs text-white/60">{value || <span className="text-white/20 italic">Not set</span>}</p>}
     </div>
   );
 }
