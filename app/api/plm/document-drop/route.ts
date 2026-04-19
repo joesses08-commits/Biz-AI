@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
 
   // ── STEP 1: IDENTIFY — what is this document?
   if (action === "identify") {
+    try {
     // Fetch context for identification
     const [{ data: products }, { data: factories }, { data: rfqJobs }] = await Promise.all([
       supabaseAdmin.from("plm_products").select("id, name, sku").eq("user_id", user.id).eq("killed", false),
@@ -134,6 +135,10 @@ For product_import: extract ALL available fields per product including descripti
     }
 
     return NextResponse.json({ success: true, identified: parsed });
+    } catch (err: any) {
+      console.error("Document drop identify error:", err?.message || err);
+      return NextResponse.json({ error: "Failed to process document: " + (err?.message || "Unknown error") }, { status: 500 });
+    }
   }
 
   // ── STEP 2: EXECUTE — wire it into PLM
