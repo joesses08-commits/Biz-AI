@@ -473,8 +473,8 @@ For product_import: extract ALL available fields per product including descripti
       for (const p of (importProducts || [])) {
         if (p.collection) uniqueCollections.add(p.collection);
       }
-      // Also add the sheet-level collection_name if provided
-      if (collection_name) uniqueCollections.add(collection_name);
+      // Only use sheet-level collection_name if no per-product collections found
+      if (collection_name && uniqueCollections.size === 0) uniqueCollections.add(collection_name);
       
       // Create or find each collection
       for (const colName of Array.from(uniqueCollections)) {
