@@ -241,7 +241,7 @@ export default function DocumentDrop() {
               <p className="text-sm text-white/70 leading-relaxed">{identified.confirmation_message}</p>
 
               {/* Editable factory override */}
-              {!identified.factory_name && (
+              {!identified.factory_name && identified.doc_type !== "product_import" && (
                 <div>
                   <p className="text-[10px] text-white/30 mb-1">Which factory is this from?</p>
                   <input

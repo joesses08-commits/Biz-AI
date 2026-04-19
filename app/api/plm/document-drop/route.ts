@@ -101,7 +101,7 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   "summary": "one sentence describing what this document is",
   "confirmation_message": "friendly message asking user to confirm, e.g. 'This looks like a quote from Fred Factory for 5 products — add to quote comparison and mark quotes received?'",
   "extracted_data": {
-    "products": [{"name": "", "sku": "", "unit_price": null, "quantity": null, "moq": null, "lead_time": "", "description": "", "specs": "", "category": "", "notes": "", "feedback": ""}],
+    "products": [{"name": "", "sku": "", "unit_price": null, "quantity": null, "moq": null, "lead_time": "", "description": "", "specs": "", "category": "", "collection": "", "notes": "", "feedback": ""}],
     "po_number": "PO number if found or null",
     "payment_terms": "payment terms if found or null",
     "order_qty": null,
@@ -465,19 +465,32 @@ For product_import: extract ALL available fields per product including descripti
       console.log("product_import extracted_data:", JSON.stringify(extracted_data));
       const { products: importProducts, collection_name } = extracted_data || {};
 
-      // Create or find collection
-      let collectionId = null;
-      if (collection_name) {
+      // Build a map of collection names to IDs (create if needed)
+      const collectionMap: Record<string, string> = {};
+      const uniqueCollections = new Set<string>();
+      
+      // Gather all unique collection names from products
+      for (const p of (importProducts || [])) {
+        if (p.collection) uniqueCollections.add(p.collection);
+      }
+      // Also add the sheet-level collection_name if provided
+      if (collection_name) uniqueCollections.add(collection_name);
+      
+      // Create or find each collection
+      for (const colName of uniqueCollections) {
         const { data: existing } = await supabaseAdmin.from("plm_collections")
-          .select("id").eq("user_id", user.id).ilike("name", collection_name).single();
+          .select("id").eq("user_id", user.id).ilike("name", colName).single();
         if (existing) {
-          collectionId = existing.id;
+          collectionMap[colName.toLowerCase()] = existing.id;
         } else {
           const { data: newCol } = await supabaseAdmin.from("plm_collections")
-            .insert({ user_id: user.id, name: collection_name }).select("id").single();
-          collectionId = newCol?.id;
+            .insert({ user_id: user.id, name: colName }).select("id").single();
+          if (newCol) collectionMap[colName.toLowerCase()] = newCol.id;
         }
       }
+      
+      // Legacy single collection fallback
+      let collectionId = collection_name ? collectionMap[collection_name.toLowerCase()] : null;
 
       // Extract images from Excel zip
       const images = file_base64 ? await extractExcelImages(file_base64) : [];
@@ -497,7 +510,7 @@ For product_import: extract ALL available fields per product including descripti
           description: ep.description || null,
           specs: ep.specs || null,
           category: ep.category || null,
-          collection_id: collectionId,
+          collection_id: p.collection ? (collectionMap[p.collection.toLowerCase()] || collectionId) : collectionId,
           status: "concept",
           killed: false,
         }).select("id").single();
