@@ -477,7 +477,7 @@ For product_import: extract ALL available fields per product including descripti
       if (collection_name) uniqueCollections.add(collection_name);
       
       // Create or find each collection
-      for (const colName of uniqueCollections) {
+      for (const colName of Array.from(uniqueCollections)) {
         const { data: existing } = await supabaseAdmin.from("plm_collections")
           .select("id").eq("user_id", user.id).ilike("name", colName).single();
         if (existing) {
