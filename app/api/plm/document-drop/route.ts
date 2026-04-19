@@ -510,7 +510,7 @@ For product_import: extract ALL available fields per product including descripti
           description: ep.description || null,
           specs: ep.specs || null,
           category: ep.category || null,
-          collection_id: p.collection ? (collectionMap[p.collection.toLowerCase()] || collectionId) : collectionId,
+          collection_id: ep.collection ? (collectionMap[ep.collection.toLowerCase()] || collectionId) : collectionId,
           status: "concept",
           killed: false,
         }).select("id").single();
