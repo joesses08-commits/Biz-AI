@@ -293,6 +293,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "add_factory_track") {
+    const { product_id, factory_id } = body;
+    // Check if track already exists
+    const { data: existing } = await supabaseAdmin.from("plm_factory_tracks")
+      .select("id").eq("product_id", product_id).eq("factory_id", factory_id).single();
+    if (existing) return NextResponse.json({ error: "Track already exists" }, { status: 400 });
+    
+    const { data, error } = await supabaseAdmin.from("plm_factory_tracks").insert({
+      product_id,
+      factory_id,
+      user_id: portalUser.user_id,
+      status: "active",
+    }).select().single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ success: true, track: data });
+  }
+
+  if (action === "update_track_price") {
+    const { track_id, quoted_price } = body;
+    await supabaseAdmin.from("plm_factory_tracks")
+      .update({ quoted_price, updated_at: new Date().toISOString() })
+      .eq("id", track_id).eq("user_id", portalUser.user_id);
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 

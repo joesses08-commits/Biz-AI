@@ -98,6 +98,11 @@ function ProductPageInner() {
   const [factories, setFactories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [tracks, setTracks] = useState<any[]>([]);
+  const [editingQuotedPrice, setEditingQuotedPrice] = useState<string | null>(null);
+  const [quotedPriceVal, setQuotedPriceVal] = useState("");
+  const [showAddFactoryModal, setShowAddFactoryModal] = useState(false);
+  const [newFactoryId, setNewFactoryId] = useState("");
+  const [addingFactory, setAddingFactory] = useState(false);
 
 
 
@@ -691,6 +696,79 @@ ${entry}` : entry;
         </div>
       )}
 
+      {/* Add Factory Modal */}
+      {showAddFactoryModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Add Factory Track</p>
+              <button onClick={() => setShowAddFactoryModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <p className="text-xs text-white/40">Select a factory to start tracking for this product.</p>
+            <select value={newFactoryId} onChange={e => setNewFactoryId(e.target.value)}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none">
+              <option value="">Select factory...</option>
+              {factories.filter(f => !tracks.some(t => t.factory_id === f.id)).map((f: any) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                if (!newFactoryId) return;
+                setAddingFactory(true);
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "add_factory_track", product_id: id, factory_id: newFactoryId }) 
+                });
+                setAddingFactory(false);
+                setShowAddFactoryModal(false);
+                setNewFactoryId("");
+                load();
+              }} disabled={!newFactoryId || addingFactory}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                {addingFactory ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />} Add Factory
+              </button>
+              <button onClick={() => setShowAddFactoryModal(false)}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quoted Price Edit Modal */}
+      {editingQuotedPrice && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Add Quoted Price</p>
+              <button onClick={() => { setEditingQuotedPrice(null); setQuotedPriceVal(""); }} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Price (ELC)</p>
+              <input type="number" step="0.01" value={quotedPriceVal} onChange={e => setQuotedPriceVal(e.target.value)}
+                placeholder="e.g. 2.45" autoFocus
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "update_track_price", track_id: editingQuotedPrice, quoted_price: parseFloat(quotedPriceVal) || null }) 
+                });
+                setEditingQuotedPrice(null);
+                setQuotedPriceVal("");
+                load();
+              }} disabled={!quotedPriceVal}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Save Price</button>
+              <button onClick={() => { setEditingQuotedPrice(null); setQuotedPriceVal(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-5xl mx-auto">
@@ -846,71 +924,114 @@ ${entry}` : entry;
               { key: "sample_requested", label: "Sample Requested", color: "#f59e0b" },
               { key: "sample_reviewed", label: "Sample Reviewed", color: "#10b981" },
             ];
-            const activeTracks = tracks.filter((t: any) => t.status !== "killed");
-            const killedTracks = tracks.filter((t: any) => t.status === "killed");
-            const approvedTrack = tracks.find((t: any) => t.status === "approved");
-            
-            if (tracks.length === 0) return null;
             
             return (
               <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
-                <div className="px-6 py-4 border-b border-white/[0.04]">
-                  <p className="text-sm font-semibold text-white">Factory Tracks</p>
-                  <p className="text-xs text-white/30 mt-0.5">Per-factory development pipeline</p>
-                </div>
-                <div className="p-4">
-                  <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tracks.length, 3)}, 1fr)` }}>
-                    {tracks.map((track: any) => {
-                      const stages = track.plm_track_stages || [];
-                      const isApproved = track.status === "approved";
-                      const isKilledTrack = track.status === "killed";
-                      
-                      return (
-                        <div key={track.id} className={`border rounded-xl p-4 space-y-3 ${isApproved ? "border-emerald-500/30 bg-emerald-500/[0.03]" : isKilledTrack ? "border-red-500/20 bg-red-500/[0.02] opacity-50" : "border-white/[0.06] bg-white/[0.01]"}`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Factory size={12} className="text-white/30" />
-                              <span className="text-xs font-semibold text-white">{track.factory_catalog?.name || "Factory"}</span>
-                            </div>
-                            {isApproved && (
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                ✓ Approved{track.approved_price ? ` · $${track.approved_price}` : ""}
-                              </span>
-                            )}
-                            {isKilledTrack && (
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">Discontinued</span>
-                            )}
-                          </div>
-                          {track.quoted_price && (
-                            <p className="text-[10px] text-white/40">Quoted: <span className="text-white/60">${track.quoted_price}</span></p>
-                          )}
-                          <div className="space-y-1.5">
-                            {TRACK_STAGES.map(stageDef => {
-                              const stageData = stages.find((s: any) => s.stage === stageDef.key);
-                              const isDone = stageData?.status === "done";
-                              const isSkipped = stageData?.status === "skipped";
-                              return (
-                                <div key={stageDef.key} className="flex items-center gap-2">
-                                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${isDone ? "border-emerald-500 bg-emerald-500/20" : isSkipped ? "border-white/20 bg-white/5" : "border-white/10"}`}>
-                                    {isDone && <Check size={8} className="text-emerald-400" />}
-                                    {isSkipped && <X size={8} className="text-white/30" />}
-                                  </div>
-                                  <span className={`text-[11px] ${isDone ? "text-white/70" : isSkipped ? "text-white/20 line-through" : "text-white/30"}`}>{stageDef.label}</span>
-                                  {stageData?.actual_date && (
-                                    <span className="text-[9px] text-white/20 ml-auto">{new Date(stageData.actual_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          {stages.filter((s: any) => s.notes).slice(-1).map((s: any) => (
-                            <p key={s.id} className="text-[10px] text-white/30 bg-white/[0.02] rounded-lg px-2 py-1.5 border border-white/[0.04]">{s.notes}</p>
-                          ))}
-                        </div>
-                      );
-                    })}
+                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-white">Factory Tracks</p>
+                    <p className="text-xs text-white/30 mt-0.5">Per-factory development pipeline</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!isKilled && !isHold && (
+                      <button onClick={() => setShowSampleModal(true)}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
+                        <Plus size={11} />Request Samples
+                      </button>
+                    )}
+                    {!isKilled && !isHold && (
+                      <button onClick={() => setShowAddFactoryModal(true)}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
+                        <Plus size={11} />Add Factory
+                      </button>
+                    )}
                   </div>
                 </div>
+                
+                {tracks.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <p className="text-xs text-white/20">No factories added yet</p>
+                    <p className="text-[11px] text-white/15 mt-1">Click "Add Factory" to start tracking</p>
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <div style={{ columns: `${Math.min(tracks.length, 3)}`, columnGap: "12px" }}>
+                      {tracks.map((track: any) => {
+                        const stages = track.plm_track_stages || [];
+                        const isApproved = track.status === "approved";
+                        const isKilledTrack = track.status === "killed";
+                        
+                        return (
+                          <div key={track.id} style={{ breakInside: "avoid", marginBottom: "12px" }}
+                            className={`border rounded-xl overflow-hidden ${isApproved ? "border-emerald-500/30 bg-emerald-500/[0.03]" : isKilledTrack ? "border-red-500/20 bg-red-500/[0.02] opacity-50" : "border-white/[0.06] bg-white/[0.01]"}`}>
+                            {/* Factory Header */}
+                            <div className="px-4 py-3 border-b border-white/[0.04] flex items-center gap-2">
+                              <Factory size={12} className="text-white/30" />
+                              <span className="text-xs font-semibold text-white">{track.factory_catalog?.name || "Factory"}</span>
+                              {isApproved && (
+                                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  ✓ Approved
+                                </span>
+                              )}
+                              {isKilledTrack && (
+                                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">Discontinued</span>
+                              )}
+                            </div>
+                            
+                            {/* Quoted Price */}
+                            <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2">
+                              <span className="text-[10px] text-white/30">Quoted price:</span>
+                              {track.quoted_price ? (
+                                <span className="text-[10px] text-white/60">${track.quoted_price}</span>
+                              ) : (
+                                <button onClick={() => setEditingQuotedPrice(track.id)} className="text-[10px] text-white/20 hover:text-white/40">+ add price</button>
+                              )}
+                            </div>
+                            
+                            {/* Stages */}
+                            <div className="px-4 py-3 space-y-2">
+                              {TRACK_STAGES.map(stageDef => {
+                                const stageData = stages.find((s: any) => s.stage === stageDef.key);
+                                const isDone = stageData?.status === "done";
+                                const isSkipped = stageData?.status === "skipped";
+                                return (
+                                  <div key={stageDef.key} className="flex items-center gap-2">
+                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${isDone ? "bg-emerald-500/20" : "border-white/10"}`}
+                                      style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}20` } : {}}>
+                                      {isDone && <Check size={8} style={{ color: stageDef.color }} />}
+                                      {isSkipped && <X size={8} className="text-white/30" />}
+                                    </div>
+                                    <span className={`text-[11px] flex-1 ${isDone ? "text-white/70" : isSkipped ? "text-white/20 line-through" : "text-white/30"}`}
+                                      style={isDone ? { color: stageDef.color } : {}}>
+                                      {stageDef.label}
+                                    </span>
+                                    {stageData?.actual_date && (
+                                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.03]" style={{ color: stageDef.color }}>
+                                        {new Date(stageData.actual_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                      </span>
+                                    )}
+                                    {stageData?.notes && (
+                                      <span className="text-[9px] text-white/30 truncate max-w-[120px]">{stageData.notes}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              <button className="text-[10px] text-white/15 hover:text-white/30 mt-2">+ expand</button>
+                            </div>
+                            
+                            {/* Factory Notes */}
+                            <div className="px-4 py-2 border-t border-white/[0.04]">
+                              {stages.filter((s: any) => s.notes).slice(-1).map((s: any) => (
+                                <p key={s.id} className="text-[10px] text-white/30 mb-2">{s.notes}</p>
+                              ))}
+                              <button className="text-[10px] text-white/15 hover:text-white/30">+ Add factory note</button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
