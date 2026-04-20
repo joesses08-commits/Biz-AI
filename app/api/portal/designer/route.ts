@@ -320,6 +320,12 @@ export async function POST(req: NextRequest) {
 
   if (action === "update_track_stage") {
     const { track_id, stage, status, actual_date, notes } = body;
+    
+    // Get the track to find product_id and factory_id
+    const { data: track } = await supabaseAdmin.from("plm_factory_tracks")
+      .select("product_id, factory_id").eq("id", track_id).single();
+    if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    
     // Check if stage exists
     const { data: existing } = await supabaseAdmin.from("plm_track_stages")
       .select("id").eq("track_id", track_id).eq("stage", stage).single();
@@ -331,11 +337,13 @@ export async function POST(req: NextRequest) {
     } else {
       await supabaseAdmin.from("plm_track_stages").insert({
         track_id,
+        product_id: track.product_id,
+        factory_id: track.factory_id,
         stage,
         status,
         actual_date: actual_date || null,
         notes: notes || null,
-        user_id: portalUser.user_id,
+        updated_by: portalUser.email || "designer",
       });
     }
     return NextResponse.json({ success: true });
@@ -343,14 +351,22 @@ export async function POST(req: NextRequest) {
 
   if (action === "add_factory_note") {
     const { track_id, note } = body;
-    // Add a note as a stage entry with the note
+    
+    // Get the track to find product_id and factory_id
+    const { data: track } = await supabaseAdmin.from("plm_factory_tracks")
+      .select("product_id, factory_id").eq("id", track_id).single();
+    if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    
+    // Add a note as a stage entry
     await supabaseAdmin.from("plm_track_stages").insert({
       track_id,
+      product_id: track.product_id,
+      factory_id: track.factory_id,
       stage: "note",
       status: "done",
       notes: note,
       actual_date: new Date().toISOString().split("T")[0],
-      user_id: portalUser.user_id,
+      updated_by: portalUser.email || "designer",
     });
     return NextResponse.json({ success: true });
   }
