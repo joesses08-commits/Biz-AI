@@ -35,14 +35,14 @@ export async function GET(req: NextRequest) {
   if (type === "product") {
     const id = req.nextUrl.searchParams.get("id");
     const { data } = await supabaseAdmin.from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*))")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*), factory_catalog(name)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_factory_tracks(*, factory_catalog(name), plm_track_stages(*))")
       .eq("id", id).eq("user_id", portalUser.user_id).single();
     return NextResponse.json({ product: data });
   }
 
   const [productsRes, collectionsRes, factoriesRes, samplesRes] = await Promise.all([
     supabaseAdmin.from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*), plm_assignments(designer_id)")
+      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*), factory_catalog(name)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*), plm_assignments(designer_id), plm_factory_tracks(*, factory_catalog(name), plm_track_stages(*))")
       .eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
     supabaseAdmin.from("plm_collections").select("*").eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
     supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").eq("user_id", portalUser.user_id).order("name"),
