@@ -97,6 +97,7 @@ function ProductPageInner() {
   const [loading, setLoading] = useState(true);
   const [factories, setFactories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
+  const [tracks, setTracks] = useState<any[]>([]);
 
 
 
@@ -153,6 +154,7 @@ function ProductPageInner() {
     setProduct(prodData.product);
     setFactories(mainData.factories || []);
     setCollections(mainData.collections || []);
+    setTracks(prodData.product?.plm_factory_tracks || []);
     setLoading(false);
   };
 
@@ -834,6 +836,84 @@ ${entry}` : entry;
               })()}
             </div>
           </div>
+
+          {/* ── FACTORY TRACKS SECTION ── */}
+          {(() => {
+            const TRACK_STAGES = [
+              { key: "artwork_sent", label: "Artwork Sent", color: "#8b5cf6" },
+              { key: "quote_requested", label: "Quote Requested", color: "#ec4899" },
+              { key: "quote_received", label: "Quote Received", color: "#3b82f6" },
+              { key: "sample_requested", label: "Sample Requested", color: "#f59e0b" },
+              { key: "sample_reviewed", label: "Sample Reviewed", color: "#10b981" },
+            ];
+            const activeTracks = tracks.filter((t: any) => t.status !== "killed");
+            const killedTracks = tracks.filter((t: any) => t.status === "killed");
+            const approvedTrack = tracks.find((t: any) => t.status === "approved");
+            
+            if (tracks.length === 0) return null;
+            
+            return (
+              <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
+                <div className="px-6 py-4 border-b border-white/[0.04]">
+                  <p className="text-sm font-semibold text-white">Factory Tracks</p>
+                  <p className="text-xs text-white/30 mt-0.5">Per-factory development pipeline</p>
+                </div>
+                <div className="p-4">
+                  <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(tracks.length, 3)}, 1fr)` }}>
+                    {tracks.map((track: any) => {
+                      const stages = track.plm_track_stages || [];
+                      const isApproved = track.status === "approved";
+                      const isKilledTrack = track.status === "killed";
+                      
+                      return (
+                        <div key={track.id} className={`border rounded-xl p-4 space-y-3 ${isApproved ? "border-emerald-500/30 bg-emerald-500/[0.03]" : isKilledTrack ? "border-red-500/20 bg-red-500/[0.02] opacity-50" : "border-white/[0.06] bg-white/[0.01]"}`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Factory size={12} className="text-white/30" />
+                              <span className="text-xs font-semibold text-white">{track.factory_catalog?.name || "Factory"}</span>
+                            </div>
+                            {isApproved && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                ✓ Approved{track.approved_price ? ` · $${track.approved_price}` : ""}
+                              </span>
+                            )}
+                            {isKilledTrack && (
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">Discontinued</span>
+                            )}
+                          </div>
+                          {track.quoted_price && (
+                            <p className="text-[10px] text-white/40">Quoted: <span className="text-white/60">${track.quoted_price}</span></p>
+                          )}
+                          <div className="space-y-1.5">
+                            {TRACK_STAGES.map(stageDef => {
+                              const stageData = stages.find((s: any) => s.stage === stageDef.key);
+                              const isDone = stageData?.status === "done";
+                              const isSkipped = stageData?.status === "skipped";
+                              return (
+                                <div key={stageDef.key} className="flex items-center gap-2">
+                                  <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${isDone ? "border-emerald-500 bg-emerald-500/20" : isSkipped ? "border-white/20 bg-white/5" : "border-white/10"}`}>
+                                    {isDone && <Check size={8} className="text-emerald-400" />}
+                                    {isSkipped && <X size={8} className="text-white/30" />}
+                                  </div>
+                                  <span className={`text-[11px] ${isDone ? "text-white/70" : isSkipped ? "text-white/20 line-through" : "text-white/30"}`}>{stageDef.label}</span>
+                                  {stageData?.actual_date && (
+                                    <span className="text-[9px] text-white/20 ml-auto">{new Date(stageData.actual_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {stages.filter((s: any) => s.notes).slice(-1).map((s: any) => (
+                            <p key={s.id} className="text-[10px] text-white/30 bg-white/[0.02] rounded-lg px-2 py-1.5 border border-white/[0.04]">{s.notes}</p>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── SAMPLE REQUESTS SECTION ── */}
           {(() => {

@@ -91,7 +91,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [factories, setFactories] = useState<any[]>([]);
   const [productTracks, setProductTracks] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"products" | "prioritization">("products");
+  const [activeTab, setActiveTab] = useState<"products" | "collections" | "prioritization">("products");
   const [hasPinSet, setHasPinSet] = useState(false);
   const [showSetPin, setShowSetPin] = useState(false);
   const [pinPrompt, setPinPrompt] = useState<null | { resolve: (pin: string) => void }>(null);
@@ -275,7 +275,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       {/* Tabs */}
       <div className="border-b border-white/[0.06] px-6 sticky top-[57px] bg-[#0a0a0a] z-10">
         <div className="flex gap-0">
-          {([["products", "Products"], ["prioritization", "Prioritization"]] as const).map(([key, label]) => (
+          {([["products", "Products"], ["collections", "Collections"], ["prioritization", "Prioritization"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${activeTab === key ? "border-white text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>
               {label}
@@ -433,6 +433,58 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                           )}
                         </div>
                         <ChevronRight size={16} className="text-white/20 flex-shrink-0" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : activeTab === "collections" ? (
+          /* Collections Tab */
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-white/40">{collections.length} collections</p>
+              <button onClick={() => setShowNewCollection(true)}
+                className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
+                <Plus size={11} />New Collection
+              </button>
+            </div>
+            {collections.length === 0 ? (
+              <div className="text-center py-20">
+                <Layers size={32} className="text-white/10 mx-auto mb-3" />
+                <p className="text-white/30 text-sm">No collections yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {collections.map((col: any) => {
+                  const colProducts = products.filter(p => p.collection_id === col.id);
+                  const actionRequired = colProducts.filter(p => p.action_status === "action_required").length;
+                  const updatesMade = colProducts.filter(p => p.action_status === "updates_made").length;
+                  return (
+                    <div key={col.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer"
+                      onClick={() => { setFilterCollection(col.id); setActiveTab("products"); }}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-semibold text-white">{col.name}</p>
+                            {col.season && <span className="text-[10px] text-white/30">{col.season} {col.year}</span>}
+                          </div>
+                          <p className="text-[11px] text-white/40">{colProducts.length} products</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {actionRequired > 0 && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">
+                              {actionRequired} action required
+                            </span>
+                          )}
+                          {updatesMade > 0 && (
+                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">
+                              {updatesMade} updates
+                            </span>
+                          )}
+                          <ChevronRight size={16} className="text-white/20" />
+                        </div>
                       </div>
                     </div>
                   );
