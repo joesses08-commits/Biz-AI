@@ -463,7 +463,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                   const updatesMade = colProducts.filter(p => p.action_status === "updates_made").length;
                   return (
                     <div key={col.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer"
-                      onClick={() => { setFilterCollection(col.id); setActiveTab("products"); }}>
+                      onClick={() => router.push(`/portal/designer-collection?id=${col.id}`)}>
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
