@@ -103,6 +103,9 @@ function ProductPageInner() {
   const [showAddFactoryModal, setShowAddFactoryModal] = useState(false);
   const [newFactoryId, setNewFactoryId] = useState("");
   const [addingFactory, setAddingFactory] = useState(false);
+  const [updatingTrackStage, setUpdatingTrackStage] = useState<string | null>(null);
+  const [factoryNoteModal, setFactoryNoteModal] = useState<{trackId: string, factoryName: string} | null>(null);
+  const [factoryNoteVal, setFactoryNoteVal] = useState("");
 
 
 
@@ -769,6 +772,37 @@ ${entry}` : entry;
         </div>
       )}
 
+      {/* Factory Note Modal */}
+      {factoryNoteModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Add Note — {factoryNoteModal.factoryName}</p>
+              <button onClick={() => { setFactoryNoteModal(null); setFactoryNoteVal(""); }} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+            </div>
+            <textarea value={factoryNoteVal} onChange={e => setFactoryNoteVal(e.target.value)}
+              placeholder="e.g. Waiting for revised quote, contact next week..."
+              rows={3} autoFocus
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "add_factory_note", track_id: factoryNoteModal.trackId, note: factoryNoteVal }) 
+                });
+                setFactoryNoteModal(null);
+                setFactoryNoteVal("");
+                load();
+              }} disabled={!factoryNoteVal}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Save Note</button>
+              <button onClick={() => { setFactoryNoteModal(null); setFactoryNoteVal(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-5xl mx-auto">
@@ -824,96 +858,6 @@ ${entry}` : entry;
 
       <div className="max-w-5xl mx-auto px-8 py-8 grid grid-cols-3 gap-8">
         <div className="col-span-2 space-y-6">
-
-          {/* ── DEVELOPMENT SECTION ── */}
-          <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
-            <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
-              <div>
-                <p className="text-sm font-semibold text-white">Development</p>
-                <p className="text-xs text-white/30 mt-0.5">Concept through sample approved</p>
-              </div>
-              <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color }}>
-                {currentDevStage.label}
-              </span>
-            </div>
-
-            {/* Dev stage — prev/next navigation */}
-            <div className="px-6 py-5">
-              {(() => {
-                const currentIdx = DEV_STAGES.findIndex(s => s.key === (product.current_stage || "concept"));
-                const prev = currentIdx > 0 ? DEV_STAGES[currentIdx - 1] : null;
-                const next = currentIdx < DEV_STAGES.length - 1 ? DEV_STAGES[currentIdx + 1] : null;
-                const current = DEV_STAGES[currentIdx] || DEV_STAGES[0];
-                return (
-                  <div className="space-y-4">
-                    {/* Progress bar */}
-                    <div className="w-full bg-white/[0.05] rounded-full h-1">
-                      <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / DEV_STAGES.length) * 100}%`, background: current.color }} />
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <button onClick={() => prev && updateDevStage(prev.key)} disabled={!prev || updatingDevStage || isKilled || isHold}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
-                        ← {prev ? prev.label : "Start"}
-                      </button>
-                      <div className="text-center">
-                        <div className="flex items-center gap-2 justify-center">
-                          <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
-                          <span className="text-sm font-semibold text-white">{current.label}</span>
-                        </div>
-                        <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {DEV_STAGES.length}</p>
-                      </div>
-                      <button onClick={() => next && setPendingDevStage(next.key)} disabled={!next || updatingDevStage || isKilled || isHold}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
-                        style={next ? { borderColor: `${next.color}40`, color: next.color, background: `${next.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
-                        {next ? next.label : "Complete"} →
-                      </button>
-                    </div>
-                    {/* Note + confirm when advancing */}
-                    {pendingDevStage && (
-                      <div className="border border-white/[0.08] rounded-xl p-3 space-y-2 bg-white/[0.01]">
-                        <p className="text-xs text-white/50">Advancing to <strong className="text-white/70">{DEV_STAGES.find(s => s.key === pendingDevStage)?.label}</strong></p>
-                        <input value={devStageNote} onChange={e => setDevStageNote(e.target.value)}
-                          placeholder="Add a note (e.g. sent to factories A, B, C)..."
-                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none" />
-                        <div className="flex gap-2">
-                          <button onClick={() => updateDevStage(pendingDevStage)} disabled={updatingDevStage}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
-                            {updatingDevStage ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />} Confirm
-                          </button>
-                          <button onClick={() => { setPendingDevStage(null); setDevStageNote(""); }} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
-                        </div>
-                      </div>
-                    )}
-                    {updatingDevStage && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
-
-                    {/* Full stage timeline */}
-                    <div className="border-t border-white/[0.04] pt-4 space-y-1">
-                      {DEV_STAGES.map((s, i) => {
-                        const isPast = i < currentIdx;
-                        const isCurrent = i === currentIdx;
-                        return (
-                          <button key={s.key} onClick={() => updateDevStage(s.key)} disabled={updatingDevStage || isLocked}
-                            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/[0.03] transition text-left">
-                            <div className="w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 transition"
-                              style={isCurrent ? { borderColor: s.color, background: `${s.color}20` } : isPast ? { borderColor: "#10b981", background: "#10b98120" } : { borderColor: "rgba(255,255,255,0.1)" }}>
-                              {isPast ? <Check size={10} className="text-emerald-400" /> :
-                               isCurrent ? <div className="w-2 h-2 rounded-full" style={{ background: s.color }} /> :
-                               <div className="w-1.5 h-1.5 rounded-full bg-white/10" />}
-                            </div>
-                            <span className="text-xs font-medium transition"
-                              style={isCurrent ? { color: s.color } : isPast ? { color: "rgba(255,255,255,0.4)" } : { color: "rgba(255,255,255,0.2)" }}>
-                              {s.label}
-                            </span>
-                            {isCurrent && <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${s.color}20`, color: s.color }}>Current</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
 
           {/* ── FACTORY TRACKS SECTION ── */}
           {(() => {
@@ -994,14 +938,34 @@ ${entry}` : entry;
                                 const stageData = stages.find((s: any) => s.stage === stageDef.key);
                                 const isDone = stageData?.status === "done";
                                 const isSkipped = stageData?.status === "skipped";
+                                const isUpdating = updatingTrackStage === `${track.id}-${stageDef.key}`;
                                 return (
-                                  <div key={stageDef.key} className="flex items-center gap-2">
-                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${isDone ? "bg-emerald-500/20" : "border-white/10"}`}
+                                  <button key={stageDef.key} 
+                                    onClick={async () => {
+                                      if (isKilledTrack || isApproved) return;
+                                      setUpdatingTrackStage(`${track.id}-${stageDef.key}`);
+                                      const newStatus = isDone ? "pending" : "done";
+                                      await fetch("/api/portal/designer", {
+                                        method: "POST",
+                                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                                        body: JSON.stringify({ 
+                                          action: "update_track_stage", 
+                                          track_id: track.id, 
+                                          stage: stageDef.key, 
+                                          status: newStatus,
+                                          actual_date: newStatus === "done" ? new Date().toISOString().split("T")[0] : null
+                                        })
+                                      });
+                                      setUpdatingTrackStage(null);
+                                      load();
+                                    }}
+                                    disabled={isKilledTrack || isApproved || isUpdating}
+                                    className="w-full flex items-center gap-2 hover:bg-white/[0.02] rounded-lg px-1 py-0.5 -mx-1 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition ${isDone ? "bg-emerald-500/20" : "border-white/10 hover:border-white/30"}`}
                                       style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}20` } : {}}>
-                                      {isDone && <Check size={8} style={{ color: stageDef.color }} />}
-                                      {isSkipped && <X size={8} className="text-white/30" />}
+                                      {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> : isDone ? <Check size={8} style={{ color: stageDef.color }} /> : isSkipped ? <X size={8} className="text-white/30" /> : null}
                                     </div>
-                                    <span className={`text-[11px] flex-1 ${isDone ? "text-white/70" : isSkipped ? "text-white/20 line-through" : "text-white/30"}`}
+                                    <span className={`text-[11px] flex-1 text-left ${isDone ? "text-white/70" : isSkipped ? "text-white/20 line-through" : "text-white/30"}`}
                                       style={isDone ? { color: stageDef.color } : {}}>
                                       {stageDef.label}
                                     </span>
@@ -1011,12 +975,11 @@ ${entry}` : entry;
                                       </span>
                                     )}
                                     {stageData?.notes && (
-                                      <span className="text-[9px] text-white/30 truncate max-w-[120px]">{stageData.notes}</span>
+                                      <span className="text-[9px] text-white/30 truncate max-w-[100px]">{stageData.notes}</span>
                                     )}
-                                  </div>
+                                  </button>
                                 );
                               })}
-                              <button className="text-[10px] text-white/15 hover:text-white/30 mt-2">+ expand</button>
                             </div>
                             
                             {/* Factory Notes */}
@@ -1024,7 +987,8 @@ ${entry}` : entry;
                               {stages.filter((s: any) => s.notes).slice(-1).map((s: any) => (
                                 <p key={s.id} className="text-[10px] text-white/30 mb-2">{s.notes}</p>
                               ))}
-                              <button className="text-[10px] text-white/15 hover:text-white/30">+ Add factory note</button>
+                              <button onClick={() => setFactoryNoteModal({ trackId: track.id, factoryName: track.factory_catalog?.name || "Factory" })}
+                                className="text-[10px] text-white/15 hover:text-white/30">+ Add factory note</button>
                             </div>
                           </div>
                         );

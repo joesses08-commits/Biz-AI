@@ -318,6 +318,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "update_track_stage") {
+    const { track_id, stage, status, actual_date, notes } = body;
+    // Check if stage exists
+    const { data: existing } = await supabaseAdmin.from("plm_track_stages")
+      .select("id").eq("track_id", track_id).eq("stage", stage).single();
+    
+    if (existing) {
+      await supabaseAdmin.from("plm_track_stages")
+        .update({ status, actual_date: actual_date || null, notes: notes || null, updated_at: new Date().toISOString() })
+        .eq("id", existing.id);
+    } else {
+      await supabaseAdmin.from("plm_track_stages").insert({
+        track_id,
+        stage,
+        status,
+        actual_date: actual_date || null,
+        notes: notes || null,
+        user_id: portalUser.user_id,
+      });
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "add_factory_note") {
+    const { track_id, note } = body;
+    // Add a note as a stage entry with the note
+    await supabaseAdmin.from("plm_track_stages").insert({
+      track_id,
+      stage: "note",
+      status: "done",
+      notes: note,
+      actual_date: new Date().toISOString().split("T")[0],
+      user_id: portalUser.user_id,
+    });
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 
