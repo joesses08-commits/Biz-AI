@@ -314,7 +314,7 @@ export async function POST(req: NextRequest) {
     const { track_id, quoted_price } = body;
     await supabaseAdmin.from("plm_factory_tracks")
       .update({ quoted_price, updated_at: new Date().toISOString() })
-      .eq("id", track_id).eq("user_id", portalUser.user_id);
+      .eq("id", track_id);
     return NextResponse.json({ success: true });
   }
 

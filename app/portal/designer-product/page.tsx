@@ -1466,9 +1466,18 @@ ${entry}` : entry;
                             
                             {/* Factory Notes */}
                             <div className="px-4 py-2 border-t border-white/[0.04] space-y-1">
-                              {stages.filter((s: any) => s.notes && !s.notes.startsWith("RFQ sent") && !s.notes.startsWith("Sample requested") && s.notes !== "Quote Received" && s.notes !== "Skipped").map((s: any) => (
-                                <p key={s.id} className="text-[10px] text-white/30">{s.notes}</p>
-                              ))}
+                              {(() => {
+                                const seen = new Set<string>();
+                                return stages.filter((s: any) => {
+                                  if (!s.notes) return false;
+                                  if (s.notes === "Quote Received" || s.notes === "Skipped") return false;
+                                  if (seen.has(s.notes)) return false;
+                                  seen.add(s.notes);
+                                  return true;
+                                }).map((s: any) => (
+                                  <p key={s.id} className="text-[10px] text-white/30">{s.notes}</p>
+                                ));
+                              })()}
                               <button onClick={() => setFactoryNoteModal({ trackId: track.id, factoryName: track.factory_catalog?.name || "Factory" })}
                                 className="text-[10px] text-white/15 hover:text-white/30 pt-1 block">+ Add factory note</button>
                             </div>
