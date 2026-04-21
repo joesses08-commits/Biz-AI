@@ -71,16 +71,24 @@ export default function PLMAgentPage() {
     setMessages(chat.messages);
   };
 
+  const chatsRef = useRef<Chat[]>([]);
+  const currentChatIdRef = useRef<string | null>(null);
+  
+  useEffect(() => { chatsRef.current = chats; }, [chats]);
+  useEffect(() => { currentChatIdRef.current = currentChatId; }, [currentChatId]);
+
   const updateCurrentChat = (newMessages: Message[]) => {
+    const id = currentChatIdRef.current;
+    if (!id) return;
     const title = newMessages.find(m => m.role === "user")?.content.slice(0, 40) || "New chat";
-    const updated = chats.map(c => c.id === currentChatId ? { ...c, messages: newMessages, title, updatedAt: new Date().toISOString() } : c);
+    const updated = chatsRef.current.map(c => c.id === id ? { ...c, messages: newMessages, title, updatedAt: new Date().toISOString() } : c);
     setChats(updated);
     saveChats(updated);
   };
 
   // Save on message change
   useEffect(() => {
-    if (currentChatId && messages.length > 0) updateCurrentChat(messages);
+    if (currentChatIdRef.current && messages.length > 0) updateCurrentChat(messages);
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -88,6 +96,19 @@ export default function PLMAgentPage() {
     const msg = text || input.trim();
     if (!msg || loading) return;
     setInput("");
+
+    // Auto-create a chat if none exists
+    let activeChatId = currentChatId;
+    let activeChats = chats;
+    if (!activeChatId) {
+      const id = Date.now().toString();
+      const newChat: Chat = { id, title: msg.slice(0, 40), messages: [], updatedAt: new Date().toISOString() };
+      activeChats = [newChat, ...chats];
+      setChats(activeChats);
+      setCurrentChatId(id);
+      activeChatId = id;
+      saveChats(activeChats);
+    }
 
     const userMsg: Message = { role: "user", content: msg };
     const newMessages = [...messages, userMsg];
