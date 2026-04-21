@@ -115,6 +115,7 @@ function ProductPageInner() {
   const [priceModal, setPriceModal] = useState<{trackId: string, factoryName: string} | null>(null);
   const [priceVal, setPriceVal] = useState("");
   const [stageEditModal, setStageEditModal] = useState<{track: any, stageDef: any, stageData: any, revNum: number} | null>(null);
+  const [collapsedCycles, setCollapsedCycles] = useState<Record<string, boolean>>({});
   const [stageEditDate, setStageEditDate] = useState("");
   const [stageEditNote, setStageEditNote] = useState("");
   const [stageEditPrice, setStageEditPrice] = useState("");
@@ -1367,10 +1368,8 @@ ${entry}` : entry;
                                   );
                                 };
                                 
-                                const [collapsedCycles, setCollapsedCycles] = useState<Record<string, boolean>>({});
-                                const toggleCollapse = (key: string) => setCollapsedCycles(prev => ({ ...prev, [key]: !prev[key] }));
-                                
                                 // Collapsible stages (between sample_requested and sample_reviewed)
+                                const toggleCollapse = (key: string) => setCollapsedCycles(prev => ({ ...prev, [key]: !prev[key] }));
                                 const COLLAPSIBLE_KEYS = ["sample_production", "sample_complete", "sample_shipped", "sample_arrived"];
                                 
                                 const renderCycle = (revNum: number, isLatest: boolean) => {
