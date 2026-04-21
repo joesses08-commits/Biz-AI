@@ -1123,7 +1123,7 @@ ${entry}` : entry;
                   actual_date: stageEditDate || new Date().toISOString().split("T")[0],
                   revision_number: stageEditModal.revNum
                 };
-                if (stageEditNote) payload.notes = stageEditNote;
+                if (stageEditNote) payload.notes = stageEditModal.stageDef.label + ": " + stageEditNote;
                 if (stageEditPrice && stageEditModal.stageDef.key === "quote_received") {
                   payload.quoted_price = parseFloat(stageEditPrice);
                 }
@@ -1133,6 +1133,15 @@ ${entry}` : entry;
                   headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
                   body: JSON.stringify(payload) 
                 });
+                
+                // Save price to track level so it shows at top
+                if (stageEditPrice && stageEditModal.stageDef.key === "quote_received") {
+                  await fetch("/api/portal/designer", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                    body: JSON.stringify({ action: "update_track_price", track_id: stageEditModal.track.id, quoted_price: parseFloat(stageEditPrice) })
+                  });
+                }
                 
                 // If there's an expected date, save it to the next stage
                 if (stageEditExpectedDate) {
@@ -1457,7 +1466,7 @@ ${entry}` : entry;
                             
                             {/* Factory Notes */}
                             <div className="px-4 py-2 border-t border-white/[0.04] space-y-1">
-                              {stages.filter((s: any) => s.notes).map((s: any) => (
+                              {stages.filter((s: any) => s.notes && !s.notes.startsWith("RFQ sent") && !s.notes.startsWith("Sample requested") && s.notes !== "Quote Received" && s.notes !== "Skipped").map((s: any) => (
                                 <p key={s.id} className="text-[10px] text-white/30">{s.notes}</p>
                               ))}
                               <button onClick={() => setFactoryNoteModal({ trackId: track.id, factoryName: track.factory_catalog?.name || "Factory" })}
