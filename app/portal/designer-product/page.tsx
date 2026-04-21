@@ -906,7 +906,7 @@ ${entry}` : entry;
                 await fetch("/api/portal/designer", { 
                   method: "POST", 
                   headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-                  body: JSON.stringify({ action: "update_track_stage", track_id: stageNoteModal.trackId, stage: stageNoteModal.stage, status: "done", notes: stageNoteVal, actual_date: new Date().toISOString().split("T")[0] }) 
+                  body: JSON.stringify({ action: "update_track_stage", track_id: stageNoteModal.trackId, stage: stageNoteModal.stage, status: "done", notes: stageNoteModal.stage.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") + ": " + stageNoteVal, actual_date: new Date().toISOString().split("T")[0] }) 
                 });
                 setStageNoteModal(null);
                 setStageNoteVal("");
@@ -1373,7 +1373,7 @@ ${entry}` : entry;
                                         </span>
                                       )}
                                       {stageData?.quoted_price && <span className="text-[9px] text-emerald-400 font-bold">${stageData.quoted_price}</span>}
-                                      {stageData?.notes && <span className="text-[9px] text-white/30 truncate max-w-[60px]" title={stageData.notes}>{stageData.notes}</span>}
+                                      
                                       {canEditThis && !isDone && !isSkipped && (
                                         <button onClick={(e) => { e.stopPropagation(); setSkipModal({ trackId: track.id, stage: stageDef.key, factoryName: track.factory_catalog?.name || "Factory" }); }}
                                           className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 opacity-0 group-hover:opacity-100 transition">skip</button>
@@ -1456,12 +1456,12 @@ ${entry}` : entry;
                             </div>
                             
                             {/* Factory Notes */}
-                            <div className="px-4 py-2 border-t border-white/[0.04]">
-                              {stages.filter((s: any) => s.notes).slice(-1).map((s: any) => (
-                                <p key={s.id} className="text-[10px] text-white/30 mb-2">{s.notes}</p>
+                            <div className="px-4 py-2 border-t border-white/[0.04] space-y-1">
+                              {stages.filter((s: any) => s.notes).map((s: any) => (
+                                <p key={s.id} className="text-[10px] text-white/30">{s.notes}</p>
                               ))}
                               <button onClick={() => setFactoryNoteModal({ trackId: track.id, factoryName: track.factory_catalog?.name || "Factory" })}
-                                className="text-[10px] text-white/15 hover:text-white/30">+ Add factory note</button>
+                                className="text-[10px] text-white/15 hover:text-white/30 pt-1 block">+ Add factory note</button>
                             </div>
                           </div>
                         );
