@@ -114,6 +114,7 @@ function ProductPageInner() {
   const [stageNoteVal, setStageNoteVal] = useState("");
   const [priceModal, setPriceModal] = useState<{trackId: string, factoryName: string} | null>(null);
   const [priceVal, setPriceVal] = useState("");
+  const [priceVal2, setPriceVal2] = useState("");
   const [stageEditModal, setStageEditModal] = useState<{track: any, stageDef: any, stageData: any, revNum: number} | null>(null);
   const [collapsedCycles, setCollapsedCycles] = useState<Record<string, boolean>>({});
   const [stageEditDate, setStageEditDate] = useState("");
@@ -774,6 +775,13 @@ ${entry}` : entry;
                 placeholder="e.g. 2.45" autoFocus
                 className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
             </div>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Notes (optional)</p>
+              <textarea value={priceVal2} onChange={e => setPriceVal2(e.target.value)}
+                placeholder="e.g. Includes freight, MOQ 500 units..."
+                rows={3}
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none resize-none" />
+            </div>
             <div className="flex gap-2">
               <button onClick={async () => {
                 await fetch("/api/portal/designer", { 
@@ -916,7 +924,7 @@ ${entry}` : entry;
       {priceModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <p className="text-sm font-semibold">Set Quoted Price — {priceModal.factoryName}</p>
+            <p className="text-sm font-semibold">Quote Received — {priceModal.factoryName}</p>
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Price (ELC)</p>
               <input type="number" step="0.01" value={priceVal} onChange={e => setPriceVal(e.target.value)}
@@ -928,14 +936,20 @@ ${entry}` : entry;
                 await fetch("/api/portal/designer", { 
                   method: "POST", 
                   headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-                  body: JSON.stringify({ action: "update_track_stage", track_id: priceModal.trackId, stage: "quote_received", status: "done", quoted_price: parseFloat(priceVal), actual_date: new Date().toISOString().split("T")[0] }) 
+                  body: JSON.stringify({ action: "update_track_stage", track_id: priceModal.trackId, stage: "quote_received", status: "done", quoted_price: parseFloat(priceVal), notes: priceVal2.trim() ? "Quote Received: " + priceVal2.trim() : "Quote Received", actual_date: new Date().toISOString().split("T")[0] })
+                });
+                await fetch("/api/portal/designer", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: "Bearer " + getToken() },
+                  body: JSON.stringify({ action: "update_track_price", track_id: priceModal.trackId, quoted_price: parseFloat(priceVal) })
                 });
                 setPriceModal(null);
                 setPriceVal("");
+                setPriceVal2("");
                 load();
               }} disabled={!priceVal}
-                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Save Price</button>
-              <button onClick={() => { setPriceModal(null); setPriceVal(""); }}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Save</button>
+              <button onClick={() => { setPriceModal(null); setPriceVal(""); setPriceVal2(""); }}
                 className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
             </div>
           </div>

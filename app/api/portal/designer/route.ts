@@ -319,20 +319,29 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "update_track_stage") {
-    const { track_id, stage, status, actual_date, notes } = body;
+    const { track_id, stage, status, actual_date, expected_date, notes, quoted_price, revision_number } = body;
     
     // Get the track to find product_id and factory_id
     const { data: track } = await supabaseAdmin.from("plm_factory_tracks")
       .select("product_id, factory_id").eq("id", track_id).single();
     if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
     
-    // Check if stage exists
+    const revNum = revision_number || 0;
+
+    // Check if stage exists for this revision
     const { data: existing } = await supabaseAdmin.from("plm_track_stages")
-      .select("id").eq("track_id", track_id).eq("stage", stage).single();
+      .select("id").eq("track_id", track_id).eq("stage", stage).eq("revision_number", revNum).maybeSingle();
     
+    const updateData: any = { updated_at: new Date().toISOString() };
+    if (status !== undefined) updateData.status = status;
+    if (actual_date !== undefined) updateData.actual_date = actual_date || null;
+    if (expected_date !== undefined) updateData.expected_date = expected_date || null;
+    if (notes !== undefined) updateData.notes = notes || null;
+    if (quoted_price !== undefined) updateData.quoted_price = quoted_price || null;
+
     if (existing) {
       await supabaseAdmin.from("plm_track_stages")
-        .update({ status, actual_date: actual_date || null, notes: notes || null, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq("id", existing.id);
     } else {
       await supabaseAdmin.from("plm_track_stages").insert({
@@ -340,9 +349,12 @@ export async function POST(req: NextRequest) {
         product_id: track.product_id,
         factory_id: track.factory_id,
         stage,
-        status,
+        status: status || "pending",
         actual_date: actual_date || null,
+        expected_date: expected_date || null,
         notes: notes || null,
+        quoted_price: quoted_price || null,
+        revision_number: revNum,
         updated_by: portalUser.email || "designer",
       });
     }
