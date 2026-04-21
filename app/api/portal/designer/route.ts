@@ -407,13 +407,6 @@ export async function POST(req: NextRequest) {
       .update({ status: "approved", approved_price: approved_price || null, updated_at: new Date().toISOString() })
       .eq("id", track_id);
     
-    // Kill all other active tracks for this product
-    await supabaseAdmin.from("plm_factory_tracks")
-      .update({ status: "killed", updated_at: new Date().toISOString() })
-      .eq("product_id", track.product_id)
-      .eq("status", "active")
-      .neq("id", track_id);
-    
     return NextResponse.json({ success: true });
   }
 
