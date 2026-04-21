@@ -48,6 +48,13 @@ export default function PLMAgentPage() {
           setCurrentChatId(parsed[0].id);
           setMessages(parsed[0].messages);
         }
+      } else {
+        // Auto-create first chat on fresh load
+        const id = Date.now().toString();
+        const newChat: Chat = { id, title: "New chat", messages: [], updatedAt: new Date().toISOString() };
+        setChats([newChat]);
+        setCurrentChatId(id);
+        saveChats([newChat]);
       }
     } catch {}
   }, []);
