@@ -1367,10 +1367,18 @@ ${entry}` : entry;
                                   );
                                 };
                                 
+                                const [collapsedCycles, setCollapsedCycles] = useState<Record<string, boolean>>({});
+                                const toggleCollapse = (key: string) => setCollapsedCycles(prev => ({ ...prev, [key]: !prev[key] }));
+                                
+                                // Collapsible stages (between sample_requested and sample_reviewed)
+                                const COLLAPSIBLE_KEYS = ["sample_production", "sample_complete", "sample_shipped", "sample_arrived"];
+                                
                                 const renderCycle = (revNum: number, isLatest: boolean) => {
                                   const stagesToShow = revNum === 0 ? [...FIRST_CYCLE_STAGES, ...SAMPLE_CYCLE_STAGES] : SAMPLE_CYCLE_STAGES;
                                   const sampleArrived = hasSampleArrived(track, revNum);
                                   const revisionStage = stages.find((s: any) => s.stage === "revision_requested" && (s.revision_number || 0) === revNum + 1);
+                                  const collapseKey = `${track.id}-${revNum}`;
+                                  const isCollapsed = collapsedCycles[collapseKey] !== false; // Default collapsed
                                   
                                   return (
                                     <div key={revNum}>
@@ -1381,7 +1389,29 @@ ${entry}` : entry;
                                           <div className="h-px flex-1 bg-amber-500/20" />
                                         </div>
                                       )}
-                                      {stagesToShow.map(stageDef => renderStageRow(stageDef, revNum, isLatest))}
+                                      {stagesToShow.map(stageDef => {
+                                        const isCollapsibleStage = COLLAPSIBLE_KEYS.includes(stageDef.key);
+                                        
+                                        // Show expand/collapse button before sample_production
+                                        if (stageDef.key === "sample_production") {
+                                          return (
+                                            <div key={`collapse-${revNum}`}>
+                                              <div className="flex justify-end mb-1">
+                                                <button onClick={() => toggleCollapse(collapseKey)}
+                                                  className="text-[9px] px-2 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">
+                                                  {isCollapsed ? "▸ expand" : "▾ collapse"}
+                                                </button>
+                                              </div>
+                                              {!isCollapsed && renderStageRow(stageDef, revNum, isLatest)}
+                                            </div>
+                                          );
+                                        }
+                                        
+                                        // Hide collapsible stages when collapsed
+                                        if (isCollapsibleStage && isCollapsed) return null;
+                                        
+                                        return renderStageRow(stageDef, revNum, isLatest);
+                                      })}
                                       
                                       {/* Review buttons */}
                                       {sampleArrived && isLatest && !isApproved && !isKilledTrack && !revisionStage && (
@@ -1409,25 +1439,7 @@ ${entry}` : entry;
                                 
                                 return Array.from({ length: revision + 1 }, (_, i) => i).map(revNum => renderCycle(revNum, revNum === revision));
                               })()}
-                              
-                              {/* Review buttons after sample_reviewed */}
-                              {(() => {
-                                const sampleArrived = stages.some((s: any) => s.stage === "sample_requested" && s.status === "done");
-                                if (sampleArrived && !isApproved && !isKilledTrack) {
-                                  return (
-                                    <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-white/[0.04] flex-wrap">
-                                      <p className="text-[9px] text-white/25 mr-1">Review:</p>
-                                      <button onClick={() => { setApproveTrackModal({ track }); setApproveTrackPrice(track.quoted_price ? String(track.quoted_price) : ""); }}
-                                        className="text-[9px] px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">✓ Approve</button>
-                                      <button onClick={() => { setRevisionTrackModal({ track }); setRevisionTrackNote(""); }}
-                                        className="text-[9px] px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">↻ Revision</button>
-                                      <button onClick={() => { setKillTrackModal({ track }); setKillTrackNote(""); }}
-                                        className="text-[9px] px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">✕ Kill</button>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
+
                             </div>
                             
                             {/* Factory Notes */}
