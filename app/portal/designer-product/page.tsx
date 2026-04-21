@@ -106,6 +106,21 @@ function ProductPageInner() {
   const [updatingTrackStage, setUpdatingTrackStage] = useState<string | null>(null);
   const [factoryNoteModal, setFactoryNoteModal] = useState<{trackId: string, factoryName: string} | null>(null);
   const [factoryNoteVal, setFactoryNoteVal] = useState("");
+  const [skipModal, setSkipModal] = useState<{trackId: string, stage: string, factoryName: string} | null>(null);
+  const [skipReason, setSkipReason] = useState("");
+  const [dateModal, setDateModal] = useState<{trackId: string, stage: string, factoryName: string, type: "expected" | "actual"} | null>(null);
+  const [dateVal, setDateVal] = useState("");
+  const [stageNoteModal, setStageNoteModal] = useState<{trackId: string, stage: string, factoryName: string} | null>(null);
+  const [stageNoteVal, setStageNoteVal] = useState("");
+  const [priceModal, setPriceModal] = useState<{trackId: string, factoryName: string} | null>(null);
+  const [priceVal, setPriceVal] = useState("");
+  const [approveTrackModal, setApproveTrackModal] = useState<{track: any} | null>(null);
+  const [approveTrackPrice, setApproveTrackPrice] = useState("");
+  const [revisionTrackModal, setRevisionTrackModal] = useState<{track: any} | null>(null);
+  const [revisionTrackNote, setRevisionTrackNote] = useState("");
+  const [killTrackModal, setKillTrackModal] = useState<{track: any} | null>(null);
+  const [killTrackNote, setKillTrackNote] = useState("");
+  const [savingTrackAction, setSavingTrackAction] = useState(false);
 
 
 
@@ -803,6 +818,227 @@ ${entry}` : entry;
         </div>
       )}
 
+      {/* Skip Stage Modal */}
+      {skipModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Skip Stage — {skipModal.factoryName}</p>
+            <p className="text-xs text-white/40">Enter a reason so you remember why this was skipped.</p>
+            <input value={skipReason} onChange={e => setSkipReason(e.target.value)}
+              placeholder="e.g. Not needed for this product"
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none" autoFocus />
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "update_track_stage", track_id: skipModal.trackId, stage: skipModal.stage, status: "skipped", notes: skipReason || "Skipped" }) 
+                });
+                setSkipModal(null);
+                setSkipReason("");
+                load();
+              }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Skip Stage</button>
+              <button onClick={() => { setSkipModal(null); setSkipReason(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Date Modal (Expected or Actual) */}
+      {dateModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">{dateModal.type === "expected" ? "Set Expected Date" : "Set Completion Date"}</p>
+            <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none" autoFocus />
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                const payload: any = { action: "update_track_stage", track_id: dateModal.trackId, stage: dateModal.stage };
+                if (dateModal.type === "expected") {
+                  payload.status = "pending";
+                  payload.expected_date = dateVal;
+                } else {
+                  payload.status = "done";
+                  payload.actual_date = dateVal;
+                }
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify(payload) 
+                });
+                setDateModal(null);
+                setDateVal("");
+                load();
+              }} disabled={!dateVal} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Save</button>
+              <button onClick={() => { setDateModal(null); setDateVal(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stage Note Modal */}
+      {stageNoteModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Add Note — {stageNoteModal.factoryName}</p>
+            <textarea value={stageNoteVal} onChange={e => setStageNoteVal(e.target.value)}
+              placeholder="Add a note for this stage..."
+              rows={3} autoFocus
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "update_track_stage", track_id: stageNoteModal.trackId, stage: stageNoteModal.stage, status: "done", notes: stageNoteVal, actual_date: new Date().toISOString().split("T")[0] }) 
+                });
+                setStageNoteModal(null);
+                setStageNoteVal("");
+                load();
+              }} disabled={!stageNoteVal}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Save</button>
+              <button onClick={() => { setStageNoteModal(null); setStageNoteVal(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Price Modal */}
+      {priceModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Set Quoted Price — {priceModal.factoryName}</p>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Price (ELC)</p>
+              <input type="number" step="0.01" value={priceVal} onChange={e => setPriceVal(e.target.value)}
+                placeholder="e.g. 2.45" autoFocus
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "update_track_stage", track_id: priceModal.trackId, stage: "quote_received", status: "done", quoted_price: parseFloat(priceVal), actual_date: new Date().toISOString().split("T")[0] }) 
+                });
+                setPriceModal(null);
+                setPriceVal("");
+                load();
+              }} disabled={!priceVal}
+                className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Save Price</button>
+              <button onClick={() => { setPriceModal(null); setPriceVal(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Track Modal */}
+      {approveTrackModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Approve — {approveTrackModal.track.factory_catalog?.name}</p>
+            <p className="text-xs text-white/40">Lock in this factory. Enter the agreed price.</p>
+            <div>
+              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Agreed Price (ELC)</p>
+              <input type="number" step="0.01" value={approveTrackPrice} onChange={e => setApproveTrackPrice(e.target.value)}
+                placeholder="e.g. 2.45" autoFocus
+                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setSavingTrackAction(true);
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "approve_track", track_id: approveTrackModal.track.id, approved_price: approveTrackPrice ? parseFloat(approveTrackPrice) : null }) 
+                });
+                setSavingTrackAction(false);
+                setApproveTrackModal(null);
+                setApproveTrackPrice("");
+                load();
+              }} disabled={savingTrackAction}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-semibold disabled:opacity-40">
+                {savingTrackAction ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                Approve Factory
+              </button>
+              <button onClick={() => { setApproveTrackModal(null); setApproveTrackPrice(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revision Track Modal */}
+      {revisionTrackModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Request Revision — {revisionTrackModal.track.factory_catalog?.name}</p>
+            <p className="text-xs text-white/40">Describe what needs to change.</p>
+            <textarea value={revisionTrackNote} onChange={e => setRevisionTrackNote(e.target.value)}
+              placeholder="e.g. Color needs to be darker, handle needs reinforcing..."
+              rows={3} autoFocus
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setSavingTrackAction(true);
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "request_revision", track_id: revisionTrackModal.track.id, notes: revisionTrackNote }) 
+                });
+                setSavingTrackAction(false);
+                setRevisionTrackModal(null);
+                setRevisionTrackNote("");
+                load();
+              }} disabled={savingTrackAction || !revisionTrackNote}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
+                {savingTrackAction ? <Loader2 size={11} className="animate-spin" /> : null}
+                Send Revision Request
+              </button>
+              <button onClick={() => { setRevisionTrackModal(null); setRevisionTrackNote(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Kill Track Modal */}
+      {killTrackModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="text-sm font-semibold">Disqualify — {killTrackModal.track.factory_catalog?.name}</p>
+            <p className="text-xs text-white/40">This factory will be removed from consideration.</p>
+            <textarea value={killTrackNote} onChange={e => setKillTrackNote(e.target.value)}
+              placeholder="Reason for disqualification (optional)..."
+              rows={2}
+              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                setSavingTrackAction(true);
+                await fetch("/api/portal/designer", { 
+                  method: "POST", 
+                  headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                  body: JSON.stringify({ action: "kill_track", track_id: killTrackModal.track.id, notes: killTrackNote }) 
+                });
+                setSavingTrackAction(false);
+                setKillTrackModal(null);
+                setKillTrackNote("");
+                load();
+              }} disabled={savingTrackAction}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-xs font-semibold disabled:opacity-40">
+                Disqualify Factory
+              </button>
+              <button onClick={() => { setKillTrackModal(null); setKillTrackNote(""); }}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-white/[0.06] px-8 py-6">
         <div className="max-w-5xl mx-auto">
@@ -933,39 +1169,40 @@ ${entry}` : entry;
                             </div>
                             
                             {/* Stages */}
-                            <div className="px-4 py-3 space-y-2">
+                            <div className="px-4 py-3 space-y-1">
                               {TRACK_STAGES.map(stageDef => {
                                 const stageData = stages.find((s: any) => s.stage === stageDef.key);
                                 const isDone = stageData?.status === "done";
                                 const isSkipped = stageData?.status === "skipped";
                                 const isUpdating = updatingTrackStage === `${track.id}-${stageDef.key}`;
+                                const canEdit = !isKilledTrack && !isApproved;
                                 return (
-                                  <button key={stageDef.key} 
-                                    onClick={async () => {
-                                      if (isKilledTrack || isApproved) return;
-                                      setUpdatingTrackStage(`${track.id}-${stageDef.key}`);
-                                      const newStatus = isDone ? "pending" : "done";
-                                      await fetch("/api/portal/designer", {
-                                        method: "POST",
-                                        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-                                        body: JSON.stringify({ 
-                                          action: "update_track_stage", 
-                                          track_id: track.id, 
-                                          stage: stageDef.key, 
-                                          status: newStatus,
-                                          actual_date: newStatus === "done" ? new Date().toISOString().split("T")[0] : null
-                                        })
-                                      });
-                                      setUpdatingTrackStage(null);
-                                      load();
-                                    }}
-                                    disabled={isKilledTrack || isApproved || isUpdating}
-                                    className="w-full flex items-center gap-2 hover:bg-white/[0.02] rounded-lg px-1 py-0.5 -mx-1 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition ${isDone ? "bg-emerald-500/20" : "border-white/10 hover:border-white/30"}`}
+                                  <div key={stageDef.key} className="group flex items-center gap-2 py-1">
+                                    <button 
+                                      onClick={async () => {
+                                        if (!canEdit) return;
+                                        setUpdatingTrackStage(`${track.id}-${stageDef.key}`);
+                                        const newStatus = isDone ? "pending" : "done";
+                                        await fetch("/api/portal/designer", {
+                                          method: "POST",
+                                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                                          body: JSON.stringify({ 
+                                            action: "update_track_stage", 
+                                            track_id: track.id, 
+                                            stage: stageDef.key, 
+                                            status: newStatus,
+                                            actual_date: newStatus === "done" ? new Date().toISOString().split("T")[0] : null
+                                          })
+                                        });
+                                        setUpdatingTrackStage(null);
+                                        load();
+                                      }}
+                                      disabled={!canEdit || isUpdating}
+                                      className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition ${isDone ? "bg-emerald-500/20" : "border-white/10 hover:border-white/30"} disabled:opacity-50`}
                                       style={isDone ? { borderColor: stageDef.color, background: `${stageDef.color}20` } : {}}>
                                       {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> : isDone ? <Check size={8} style={{ color: stageDef.color }} /> : isSkipped ? <X size={8} className="text-white/30" /> : null}
-                                    </div>
-                                    <span className={`text-[11px] flex-1 text-left ${isDone ? "text-white/70" : isSkipped ? "text-white/20 line-through" : "text-white/30"}`}
+                                    </button>
+                                    <span className={`text-[11px] flex-1 ${isDone ? "text-white/70" : isSkipped ? "text-white/20 line-through" : "text-white/30"}`}
                                       style={isDone ? { color: stageDef.color } : {}}>
                                       {stageDef.label}
                                     </span>
@@ -975,11 +1212,48 @@ ${entry}` : entry;
                                       </span>
                                     )}
                                     {stageData?.notes && (
-                                      <span className="text-[9px] text-white/30 truncate max-w-[100px]">{stageData.notes}</span>
+                                      <span className="text-[9px] text-white/30 truncate max-w-[80px]" title={stageData.notes}>{stageData.notes}</span>
                                     )}
-                                  </button>
+                                    {/* Action buttons on hover */}
+                                    {canEdit && !isDone && !isSkipped && (
+                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                        <button onClick={() => setSkipModal({ trackId: track.id, stage: stageDef.key, factoryName: track.factory_catalog?.name || "Factory" })}
+                                          className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50">skip</button>
+                                      </div>
+                                    )}
+                                    {canEdit && isSkipped && (
+                                      <button onClick={async () => {
+                                        await fetch("/api/portal/designer", {
+                                          method: "POST",
+                                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                                          body: JSON.stringify({ action: "update_track_stage", track_id: track.id, stage: stageDef.key, status: "pending" })
+                                        });
+                                        load();
+                                      }}
+                                        className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 opacity-0 group-hover:opacity-100 transition">unskip</button>
+                                    )}
+                                  </div>
                                 );
                               })}
+                              
+                              {/* Review buttons after sample_reviewed */}
+                              {(() => {
+                                const sampleArrived = stages.some((s: any) => s.stage === "sample_requested" && s.status === "done");
+                                if (sampleArrived && !isApproved && !isKilledTrack) {
+                                  return (
+                                    <div className="flex items-center gap-1.5 pt-2 mt-2 border-t border-white/[0.04] flex-wrap">
+                                      <p className="text-[9px] text-white/25 mr-1">Review:</p>
+                                      <button onClick={() => { setApproveTrackModal({ track }); setApproveTrackPrice(track.quoted_price ? String(track.quoted_price) : ""); }}
+                                        className="text-[9px] px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">✓ Approve</button>
+                                      <button onClick={() => { setRevisionTrackModal({ track }); setRevisionTrackNote(""); }}
+                                        className="text-[9px] px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">↻ Revision</button>
+                                      <button onClick={() => { setKillTrackModal({ track }); setKillTrackNote(""); }}
+                                        className="text-[9px] px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">✕ Kill</button>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </div>
                             
                             {/* Factory Notes */}

@@ -35,14 +35,14 @@ export async function GET(req: NextRequest) {
   if (type === "product") {
     const id = req.nextUrl.searchParams.get("id");
     const { data } = await supabaseAdmin.from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*), factory_catalog(name)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_factory_tracks(*, factory_catalog(name), plm_track_stages(*))")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*), factory_catalog(name)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_factory_tracks(*, factory_catalog(id, name), plm_track_stages(*))")
       .eq("id", id).eq("user_id", portalUser.user_id).single();
     return NextResponse.json({ product: data });
   }
 
   const [productsRes, collectionsRes, factoriesRes, samplesRes] = await Promise.all([
     supabaseAdmin.from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*), factory_catalog(name)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*), plm_assignments(designer_id), plm_factory_tracks(*, factory_catalog(name), plm_track_stages(*))")
+      .select("*, plm_collections(name, season, year), factory_catalog(name), plm_batches(*, plm_batch_stages(*), factory_catalog(name)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_stages(*), plm_assignments(designer_id), plm_factory_tracks(*, factory_catalog(id, name), plm_track_stages(*))")
       .eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
     supabaseAdmin.from("plm_collections").select("*").eq("user_id", portalUser.user_id).order("created_at", { ascending: false }),
     supabaseAdmin.from("factory_catalog").select("id, name, email, contact_name").eq("user_id", portalUser.user_id).order("name"),
@@ -368,6 +368,123 @@ export async function POST(req: NextRequest) {
       actual_date: new Date().toISOString().split("T")[0],
       updated_by: portalUser.email || "designer",
     });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "approve_track") {
+    const { track_id, approved_price } = body;
+    
+    const { data: track } = await supabaseAdmin.from("plm_factory_tracks")
+      .select("product_id, factory_id").eq("id", track_id).single();
+    if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    
+    // Mark sample_reviewed as done
+    await supabaseAdmin.from("plm_track_stages").insert({
+      track_id,
+      product_id: track.product_id,
+      factory_id: track.factory_id,
+      stage: "sample_reviewed",
+      status: "done",
+      notes: `Approved${approved_price ? ` at $${approved_price}` : ""}`,
+      actual_date: new Date().toISOString().split("T")[0],
+      updated_by: portalUser.email || "designer",
+    });
+    
+    // Update the track status to approved
+    await supabaseAdmin.from("plm_factory_tracks")
+      .update({ status: "approved", approved_price: approved_price || null, updated_at: new Date().toISOString() })
+      .eq("id", track_id);
+    
+    // Kill all other active tracks for this product
+    await supabaseAdmin.from("plm_factory_tracks")
+      .update({ status: "killed", updated_at: new Date().toISOString() })
+      .eq("product_id", track.product_id)
+      .eq("status", "active")
+      .neq("id", track_id);
+    
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "request_revision") {
+    const { track_id, notes } = body;
+    
+    const { data: track } = await supabaseAdmin.from("plm_factory_tracks")
+      .select("product_id, factory_id").eq("id", track_id).single();
+    if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    
+    // Count existing revisions to determine revision_number
+    const { data: existingRevisions } = await supabaseAdmin.from("plm_track_stages")
+      .select("id").eq("track_id", track_id).eq("stage", "revision_requested");
+    const revNum = (existingRevisions?.length || 0) + 1;
+    
+    // Mark sample_reviewed as done with revision note
+    await supabaseAdmin.from("plm_track_stages").insert({
+      track_id,
+      product_id: track.product_id,
+      factory_id: track.factory_id,
+      stage: "sample_reviewed",
+      status: "done",
+      notes: "Revision requested",
+      actual_date: new Date().toISOString().split("T")[0],
+      revision_number: revNum - 1,
+      updated_by: portalUser.email || "designer",
+    });
+    
+    // Add revision_requested stage
+    await supabaseAdmin.from("plm_track_stages").insert({
+      track_id,
+      product_id: track.product_id,
+      factory_id: track.factory_id,
+      stage: "revision_requested",
+      status: "done",
+      notes: notes,
+      actual_date: new Date().toISOString().split("T")[0],
+      revision_number: revNum,
+      updated_by: portalUser.email || "designer",
+    });
+    
+    // Auto-mark sample_requested for the new revision cycle
+    await supabaseAdmin.from("plm_track_stages").insert({
+      track_id,
+      product_id: track.product_id,
+      factory_id: track.factory_id,
+      stage: "sample_requested",
+      status: "done",
+      notes: notes || "Revision requested",
+      actual_date: new Date().toISOString().split("T")[0],
+      revision_number: revNum,
+      updated_by: portalUser.email || "designer",
+    });
+    
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "kill_track") {
+    const { track_id, notes } = body;
+    
+    const { data: track } = await supabaseAdmin.from("plm_factory_tracks")
+      .select("product_id, factory_id").eq("id", track_id).single();
+    if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
+    
+    // Update the track status to killed
+    await supabaseAdmin.from("plm_factory_tracks")
+      .update({ status: "killed", updated_at: new Date().toISOString() })
+      .eq("id", track_id);
+    
+    // Add a note stage
+    if (notes) {
+      await supabaseAdmin.from("plm_track_stages").insert({
+        track_id,
+        product_id: track.product_id,
+        factory_id: track.factory_id,
+        stage: "disqualified",
+        status: "done",
+        notes: notes,
+        actual_date: new Date().toISOString().split("T")[0],
+        updated_by: portalUser.email || "designer",
+      });
+    }
+    
     return NextResponse.json({ success: true });
   }
 
