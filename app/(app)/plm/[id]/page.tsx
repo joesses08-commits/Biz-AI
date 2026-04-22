@@ -256,6 +256,7 @@ ${entry}` : entry;
   const [loadingMessages, setLoadingMessages] = useState(false);
   const messagePollingRef = useRef<NodeJS.Timeout | null>(null);
   const messagesBottomRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const [firstUnreadIndex, setFirstUnreadIndex] = useState<number>(-1);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
@@ -1236,7 +1237,11 @@ ${entry}` : entry;
                           const firstUnread = msgs.findIndex((m: any) => m.sender_role === "factory" && !m.read_by_admin);
                           setFirstUnreadIndex(firstUnread);
                         }
-                        setTimeout(() => messagesBottomRef.current?.scrollIntoView({ behavior: isFirst ? "instant" : "smooth" }), 50);
+                        setTimeout(() => {
+                          if (messagesContainerRef.current) {
+                            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                          }
+                        }, 100);
                       };
                       await fetchMsgs(track.id, true);
                       setLoadingMessages(false);
@@ -1393,7 +1398,7 @@ ${entry}` : entry;
                     className="text-white/30 hover:text-white/60 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition">×</button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                   {loadingMessages ? (
                     <p className="text-xs text-white/30 text-center py-8">Loading...</p>
                   ) : trackMessages.length === 0 ? (
