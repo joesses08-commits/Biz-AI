@@ -255,6 +255,8 @@ ${entry}` : entry;
   const [sendingMessage, setSendingMessage] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const messagePollingRef = useRef<NodeJS.Timeout | null>(null);
+  const messagesBottomRef = useRef<HTMLDivElement | null>(null);
+  const [firstUnreadIndex, setFirstUnreadIndex] = useState<number>(-1);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"progression"|"hold"|"killed"|null>(null);
@@ -1224,16 +1226,22 @@ ${entry}` : entry;
                     <button onClick={async () => {
                       setMessagesModal({ track });
                       setLoadingMessages(true);
-                      const fetchMsgs = async (tid: string) => {
+                      const fetchMsgs = async (tid: string, isFirst?: boolean) => {
                         const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ action: "get_messages", track_id: tid }) });
                         const data = await res.json();
-                        setTrackMessages(data.messages || []);
+                        const msgs = data.messages || [];
+                        setTrackMessages(msgs);
+                        if (isFirst) {
+                          const firstUnread = msgs.findIndex((m: any) => m.sender_role === "factory" && !m.read_by_admin);
+                          setFirstUnreadIndex(firstUnread);
+                        }
+                        setTimeout(() => messagesBottomRef.current?.scrollIntoView({ behavior: isFirst ? "instant" : "smooth" }), 50);
                       };
-                      await fetchMsgs(track.id);
+                      await fetchMsgs(track.id, true);
                       setLoadingMessages(false);
                       if (messagePollingRef.current) clearInterval(messagePollingRef.current);
-                      messagePollingRef.current = setInterval(() => fetchMsgs(track.id), 3000);
+                      messagePollingRef.current = setInterval(() => fetchMsgs(track.id, false), 3000);
                     }} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/20 transition group">
                       <div className="flex items-center gap-2">
                         <span className="text-xs">💬</span>
@@ -1390,17 +1398,31 @@ ${entry}` : entry;
                     <p className="text-xs text-white/30 text-center py-8">Loading...</p>
                   ) : trackMessages.length === 0 ? (
                     <p className="text-xs text-white/20 text-center py-8">No messages yet.</p>
-                  ) : trackMessages.map((msg: any) => (
-                    <div key={msg.id} className={msg.sender_role === "admin" ? "flex justify-end" : "flex justify-start"}>
-                      <div className={msg.sender_role === "admin"
-                        ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
-                        : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
-                        <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
-                        <p className="text-xs text-white/80">{msg.message}</p>
-                        <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                  ) : (<>
+                    {trackMessages.map((msg: any, idx: number) => (
+                      <div key={msg.id}>
+                        {idx === firstUnreadIndex && firstUnreadIndex > 0 && (
+                          <div className="flex items-center gap-2 my-3">
+                            <div className="flex-1 h-px bg-blue-500/30" />
+                            <span className="text-[10px] text-blue-400 font-semibold whitespace-nowrap">
+                              {trackMessages.length - firstUnreadIndex} new message{trackMessages.length - firstUnreadIndex !== 1 ? "s" : ""}
+                            </span>
+                            <div className="flex-1 h-px bg-blue-500/30" />
+                          </div>
+                        )}
+                        <div className={msg.sender_role === "admin" ? "flex justify-end" : "flex justify-start"}>
+                          <div className={msg.sender_role === "admin"
+                            ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
+                            : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
+                            <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
+                            <p className="text-xs text-white/80">{msg.message}</p>
+                            <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                    <div ref={messagesBottomRef} />
+                  </>)}
                 </div>
                 <div className="px-4 py-3 border-t border-white/[0.06] flex gap-2 flex-shrink-0">
                   <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
