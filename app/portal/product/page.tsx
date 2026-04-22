@@ -91,6 +91,16 @@ export default function PortalProductPage() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
       body: JSON.stringify({ product_id: productId, sample_request_id: sampleRequestId, stage, notes: sampleNote }),
     });
+    // Send message to admin with stage update + note
+    if (product?.track_id) {
+      const stageLabel = stageInfo(stage).label;
+      const msg = sampleNote ? `${stageLabel}: ${sampleNote}` : stageLabel;
+      await fetch("/api/portal/product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ action: "send_message", track_id: product.track_id, message: msg }),
+      });
+    }
     setUpdatingSample(false);
     setSampleNote("");
     setSuccess(`Updated to ${stageInfo(stage).label}`);
@@ -108,6 +118,14 @@ export default function PortalProductPage() {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
       body: JSON.stringify({ product_id: productId, batch_id: batchId, stage, notes: formattedNote }),
     });
+    // Send message to admin with stage update + note
+    if (product?.track_id) {
+      await fetch("/api/portal/product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ action: "send_message", track_id: product.track_id, message: formattedNote }),
+      });
+    }
     setUpdatingOrder(null);
     setOrderNotes(prev => ({ ...prev, [batchId]: "" }));
     setSuccess(`Order updated to ${stageInfo(stage).label}`);
