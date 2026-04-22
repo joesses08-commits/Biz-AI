@@ -188,6 +188,18 @@ export default function ProductPage() {
     setProduct(prodData.product);
     setFactories(catData.factories || []);
     setCollections(colData.collections || []);
+
+    // Load message counts for all tracks
+    const tracks = prodData.product?.plm_factory_tracks || [];
+    if (tracks.length > 0) {
+      const msgCounts = await Promise.all(tracks.map(async (t: any) => {
+        const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "get_message_counts", track_id: t.id }) });
+        const data = await res.json();
+        return { track_id: t.id, total: data.total || 0, unread: data.unread || 0 };
+      }));
+      setTrackMessageCounts(msgCounts);
+    }
     setTracks(tracksData.tracks || []);
     setLoading(false);
   };
@@ -236,6 +248,7 @@ ${entry}` : entry;
 
   const [sampleProviderModal, setSampleProviderModal] = useState<{factory_ids: string[], note: string} | null>(null);
   const [messagesModal, setMessagesModal] = useState<{track: any} | null>(null);
+  const [trackMessageCounts, setTrackMessageCounts] = useState<{track_id: string, total: number, unread: number}[]>([]);
   const [trackMessages, setTrackMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -1203,9 +1216,9 @@ ${entry}` : entry;
                         <span className="text-xs">💬</span>
                         <span className="text-[11px] font-medium text-white/50 group-hover:text-white/70 transition">Messages</span>
                         {(() => {
-                          const msgs = track._messages || [];
-                          const total = msgs.length;
-                          const unread = msgs.filter((m: any) => !m.read_by_admin && m.sender_role === "factory").length;
+                          const counts = trackMessageCounts.find(m => m.track_id === track.id);
+                          const total = counts?.total || 0;
+                          const unread = counts?.unread || 0;
                           return total > 0 ? (
                             <span className="flex items-center gap-1">
                               <span className="text-[9px] text-white/30">{total}</span>
