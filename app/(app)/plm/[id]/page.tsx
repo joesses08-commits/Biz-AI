@@ -1466,7 +1466,12 @@ ${entry}` : entry;
                     // Auto-mark sample_requested on new revision cycle
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "update_stage", track_id: revisionModal.track.id, product_id: product.id, factory_id: revisionModal.track.factory_id, stage: "sample_requested", status: "done", revision_number: revNum + 1, actual_date: new Date().toISOString().split("T")[0], notes: revisionNotes || "Revision requested" }) });
-                    setRequestingRevision(false); setRevisionModal(null); load();
+                    // Auto-send revision notes as a message to the factory
+                    if (revisionNotes) {
+                      await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "send_message", track_id: revisionModal.track.id, product_id: product.id, message: "Revision requested: " + revisionNotes }) });
+                    }
+                    setRequestingRevision(false); setRevisionModal(null); setRevisionNotes(""); load();
                   }} disabled={requestingRevision || !revisionNotes}
                     className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
                     {requestingRevision ? <Loader2 size={11} className="animate-spin" /> : null}
