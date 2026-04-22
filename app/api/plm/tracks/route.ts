@@ -18,11 +18,12 @@ async function getUser() {
   );
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: profile } = await supabaseAdmin.from("profiles").select("is_designer, admin_user_id").eq("id", user.id).single();
+  const { data: profile } = await supabaseAdmin.from("profiles").select("is_designer, admin_user_id, full_name").eq("id", user.id).single();
   if (profile?.is_designer && profile?.admin_user_id) {
-    return { ...user, id: profile.admin_user_id, _is_designer: true, _designer_id: user.id };
+    const { data: adminProfile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", profile.admin_user_id).single();
+    return { ...user, id: profile.admin_user_id, _is_designer: true, _designer_id: user.id, _display_name: profile.full_name || user.email };
   }
-  return user;
+  return { ...user, _display_name: profile?.full_name || user.email };
 }
 
 const STAGE_ORDER = [
@@ -148,7 +149,7 @@ export async function POST(req: NextRequest) {
           actual_date: actual_date || null,
           quoted_price: quoted_price || null,
           revision_number: revision_number || 0,
-          updated_by: "admin",
+          updated_by: (user as any)._display_name || user?.email || "admin",
         })
         .select()
         .single();
@@ -170,7 +171,7 @@ export async function POST(req: NextRequest) {
       notes: `Approved${approved_price ? ` at $${approved_price}` : ""}`,
       actual_date: new Date().toISOString().split("T")[0],
       revision_number: revision_number || 0,
-      updated_by: "admin",
+      updated_by: (user as any)._display_name || user?.email || "admin",
     });
 
     await supabaseAdmin
@@ -205,7 +206,7 @@ export async function POST(req: NextRequest) {
       notes: notes || "Revision requested",
       actual_date: new Date().toISOString().split("T")[0],
       revision_number: revision_number || 0,
-      updated_by: "admin",
+      updated_by: (user as any)._display_name || user?.email || "admin",
     });
 
     await supabaseAdmin
@@ -229,7 +230,7 @@ export async function POST(req: NextRequest) {
       notes: notes || "Factory discontinued",
       actual_date: new Date().toISOString().split("T")[0],
       revision_number: revision_number || 0,
-      updated_by: "admin",
+      updated_by: (user as any)._display_name || user?.email || "admin",
     });
 
     await supabaseAdmin
