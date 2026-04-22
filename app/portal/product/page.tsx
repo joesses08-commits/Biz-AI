@@ -36,6 +36,8 @@ export default function PortalProductPage() {
   const [factoryTrackId, setFactoryTrackId] = useState<string | null>(null);
   const [showMessages, setShowMessages] = useState(false);
   const [trackMessages, setTrackMessages] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [totalMessages, setTotalMessages] = useState(0);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -80,6 +82,16 @@ export default function PortalProductPage() {
       if (res.status === 401) { router.push("/portal"); return; }
       const data = await res.json();
       setProduct(data.product);
+    }
+    // Load message counts
+    if (data.product?.track_id) {
+      const msgRes = await fetch("/api/portal/product", { method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok_ },
+        body: JSON.stringify({ action: "get_messages", track_id: data.product.track_id }) });
+      const msgData = await msgRes.json();
+      const msgs = msgData.messages || [];
+      setTotalMessages(msgs.length);
+      setUnreadCount(msgs.filter((m: any) => m.sender_role === "admin" && !m.read_by_factory).length);
     }
     setLoading(false);
   };
@@ -279,11 +291,17 @@ export default function PortalProductPage() {
                   headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
                   body: JSON.stringify({ action: "get_messages", track_id: product.track_id }) });
                 const data = await res.json();
-                setTrackMessages(data.messages || []);
+                const msgs = data.messages || [];
+                setTrackMessages(msgs);
+                setUnreadCount(0);
               }
               setShowMessages(!showMessages);
             }} className="w-full px-4 py-3 flex items-center justify-between">
-              <p className="text-xs font-semibold text-white/60">Messages</p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-white/60">Messages</p>
+                {totalMessages > 0 && <span className="text-[10px] text-white/30">{totalMessages}</span>}
+                {unreadCount > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">{unreadCount} new</span>}
+              </div>
               <span className="text-white/30 text-xs">{showMessages ? "▲" : "▼"}</span>
             </button>
             {showMessages && (

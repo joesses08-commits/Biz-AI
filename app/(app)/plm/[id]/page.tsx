@@ -189,10 +189,12 @@ export default function ProductPage() {
     setFactories(catData.factories || []);
     setCollections(colData.collections || []);
 
+    const allTracks = tracksData.tracks || [];
+    setTracks(allTracks);
+
     // Load message counts for all tracks
-    const tracks = prodData.product?.plm_factory_tracks || [];
-    if (tracks.length > 0) {
-      const msgCounts = await Promise.all(tracks.map(async (t: any) => {
+    if (allTracks.length > 0) {
+      const msgCounts = await Promise.all(allTracks.map(async (t: any) => {
         const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "get_message_counts", track_id: t.id }) });
         const data = await res.json();
@@ -200,7 +202,6 @@ export default function ProductPage() {
       }));
       setTrackMessageCounts(msgCounts);
     }
-    setTracks(tracksData.tracks || []);
     setLoading(false);
   };
 
