@@ -26,52 +26,92 @@ export async function GET(req: NextRequest) {
   const { data: factoryData } = await supabaseAdmin.from("factory_catalog").select("max_samples").eq("id", portalUser.factory_id).single();
   const maxSamples = factoryData?.max_samples || 50;
 
-  // ALL sample requests for this factory (all statuses for full history)
-  const { data: sampleRequests } = await supabaseAdmin
-    .from("plm_sample_requests")
-    .select("product_id, current_stage, status, id, created_at, priority_order, label")
+  // Get all factory tracks for this factory
+  const { data: tracks } = await supabaseAdmin
+    .from("plm_factory_tracks")
+    .select("*, plm_track_stages(*)")
     .eq("factory_id", portalUser.factory_id)
-    .order("priority_order", { ascending: true, nullsFirst: false });
+    .order("created_at", { ascending: true });
 
-  // Products with production orders for this factory (all statuses for history)
+  if (!tracks || tracks.length === 0) return NextResponse.json({ products: [], max_samples: maxSamples });
+
+  // Get production batches for this factory
   const { data: batches } = await supabaseAdmin
     .from("plm_batches")
     .select("product_id, current_stage, batch_number, order_quantity, updated_at")
     .eq("factory_id", portalUser.factory_id);
 
-  const sampleProductIds = Array.from(new Set((sampleRequests || []).map((s: any) => s.product_id)));
-  const batchProductIds = Array.from(new Set((batches || []).map((b: any) => b.product_id)));
-  const allProductIds = Array.from(new Set([...sampleProductIds, ...batchProductIds]));
+  const trackProductIds = tracks.map((t: any) => t.product_id);
+  const batchProductIds = (batches || []).map((b: any) => b.product_id);
+  const allProductIds = Array.from(new Set([...trackProductIds, ...batchProductIds]));
 
-  if (allProductIds.length === 0) return NextResponse.json({ products: [] });
+  if (allProductIds.length === 0) return NextResponse.json({ products: [], max_samples: maxSamples });
 
   const { data: products } = await supabaseAdmin
     .from("plm_products")
-    .select("*, plm_collections(name, season, year), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, plm_sample_stages(*))")
+    .select("*, plm_collections(name, season, year), plm_batches(*, plm_batch_stages(*))")
     .in("id", allProductIds)
     .order("created_at", { ascending: false });
 
-  // Tag each product with which sections are relevant for this factory
+  const SAMPLE_STAGE_KEYS = ["sample_requested", "sample_shipped", "sample_arrived", "sample_reviewed"];
+
   const tagged = (products || []).map((p: any) => {
-    const factorySampleRequests = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser.factory_id);
+    const track = tracks.find((t: any) => t.product_id === p.id);
     const factoryBatches = (p.plm_batches || []).filter((b: any) => b.factory_id === portalUser.factory_id);
-    const activeSample = factorySampleRequests.find((s: any) => s.status !== "killed" && s.status !== "approved");
-    const hasAnySample = factorySampleRequests.length > 0;
-    const hasAnyBatch = factoryBatches.length > 0;
-    const activeSampleReq = factorySampleRequests.find((s: any) => s.status !== "killed" && s.status !== "approved");
-    const matchedSr = activeSampleReq ? (sampleRequests || []).find((sr: any) => sr.id === activeSampleReq.id) : null;
-    const samplePriority = matchedSr?.priority_order ?? null;
-    const sampleLabel = matchedSr?.label ?? null;
+
+    if (!track) return { ...p, _has_sample: false, _has_production: factoryBatches.length > 0, plm_batches: factoryBatches, plm_sample_requests: [] };
+
+    const trackStages = (track.plm_track_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    
+    // Get all revision cycles
+    const maxRevision = trackStages.reduce((max: number, s: any) => Math.max(max, s.revision_number || 0), 0);
+    
+    // Build fake sample_requests from revision cycles (one per revision round)
+    const fakeRequests = Array.from({ length: maxRevision + 1 }, (_, revNum) => {
+      const revStages = trackStages.filter((s: any) => (s.revision_number || 0) === revNum);
+      const sampleStages = revStages.filter((s: any) => SAMPLE_STAGE_KEYS.includes(s.stage));
+      const latestStage = revStages[revStages.length - 1];
+      const isApproved = track.status === "approved" && revNum === maxRevision;
+      const isKilled = track.status === "killed" && revNum === maxRevision;
+      const isRevision = revNum < maxRevision;
+      const requestedStage = revStages.find((s: any) => s.stage === "sample_requested");
+      
+      return {
+        id: track.id + "-rev-" + revNum,
+        product_id: p.id,
+        factory_id: portalUser.factory_id,
+        status: isApproved ? "approved" : isKilled ? "killed" : isRevision ? "revision" : "requested",
+        current_stage: latestStage?.stage || "sample_requested",
+        created_at: requestedStage?.created_at || track.created_at,
+        priority_order: track.priority_order || null,
+        label: revNum === 0 ? "first" : "revision",
+        notes: revStages.find((s: any) => s.stage === "revision_requested")?.notes || null,
+        plm_sample_stages: sampleStages.map((s: any) => ({
+          id: s.id,
+          stage: s.stage,
+          notes: s.notes,
+          created_at: s.created_at,
+          updated_by_role: s.updated_by?.includes("@") ? "admin" : "factory",
+        })),
+      };
+    });
+
+    const hasActiveSample = track.status === "active";
+    const isApproved = track.status === "approved";
+    const isKilled = track.status === "killed";
+    const latestTrackStage = trackStages[trackStages.length - 1]?.stage;
+
     return {
       ...p,
-      _has_sample: hasAnySample,
-      _has_production: hasAnyBatch,
-      _sample_priority: samplePriority,
-      _sample_label: sampleLabel,
-      _sample_request: activeSample || factorySampleRequests[factorySampleRequests.length - 1],
-      _all_sample_requests: factorySampleRequests,
+      _has_sample: true,
+      _has_production: factoryBatches.length > 0,
+      _sample_priority: track.priority_order || null,
+      _sample_label: maxRevision > 0 ? "revision" : "first",
+      _sample_request: fakeRequests[fakeRequests.length - 1],
+      _all_sample_requests: fakeRequests,
       plm_batches: factoryBatches,
-      plm_sample_requests: factorySampleRequests,
+      plm_sample_requests: fakeRequests,
+      track_id: track.id,
     };
   });
 
