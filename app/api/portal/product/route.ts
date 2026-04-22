@@ -28,6 +28,12 @@ export async function POST(req: NextRequest) {
   if (action === "get_messages") {
     const { data } = await supabaseAdmin.from("track_messages")
       .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
+    // Mark all admin messages as read by factory
+    await supabaseAdmin.from("track_messages")
+      .update({ read_by_factory: true })
+      .eq("track_id", track_id)
+      .eq("sender_role", "admin")
+      .eq("read_by_factory", false);
     return NextResponse.json({ messages: data || [] });
   }
   if (action === "send_message") {

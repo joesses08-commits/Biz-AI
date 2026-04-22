@@ -1189,7 +1189,7 @@ ${entry}` : entry;
                     )}
                   </div>
                   {/* Messages button */}
-                  <div className="px-3 pb-3">
+                  <div className="px-3 pb-3 pt-1">
                     <button onClick={async () => {
                       setMessagesModal({ track });
                       setLoadingMessages(true);
@@ -1198,8 +1198,23 @@ ${entry}` : entry;
                       const data = await res.json();
                       setTrackMessages(data.messages || []);
                       setLoadingMessages(false);
-                    }} className="w-full text-left text-[10px] text-white/20 hover:text-white/40 transition flex items-center gap-1.5 pt-1">
-                      <span>Messages</span>
+                    }} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/20 transition group">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs">💬</span>
+                        <span className="text-[11px] font-medium text-white/50 group-hover:text-white/70 transition">Messages</span>
+                        {(() => {
+                          const msgs = track._messages || [];
+                          const total = msgs.length;
+                          const unread = msgs.filter((m: any) => !m.read_by_admin && m.sender_role === "factory").length;
+                          return total > 0 ? (
+                            <span className="flex items-center gap-1">
+                              <span className="text-[9px] text-white/30">{total}</span>
+                              {unread > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/30 text-blue-400 border border-blue-500/30">{unread} new</span>}
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
+                      <span className="text-white/20 text-[10px]">→</span>
                     </button>
                   </div>
                 </div>
@@ -1323,16 +1338,17 @@ ${entry}` : entry;
           {/* Approve track modal */}
           {/* Messages Modal */}
           {messagesModal && (
-            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md flex flex-col" style={{maxHeight: "80vh"}}>
-                <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#141414] border border-white/[0.12] rounded-2xl w-full max-w-lg flex flex-col shadow-2xl" style={{maxHeight: "85vh"}}>
+                <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
                   <div>
-                    <p className="text-sm font-semibold">Messages</p>
-                    <p className="text-[10px] text-white/30 mt-0.5">{messagesModal.track.factory_catalog?.name}</p>
+                    <p className="text-base font-semibold">Messages</p>
+                    <p className="text-xs text-white/40 mt-0.5">{messagesModal.track.factory_catalog?.name} · {trackMessages.length} message{trackMessages.length !== 1 ? "s" : ""}</p>
                   </div>
                   <button onClick={() => { setMessagesModal(null); setTrackMessages([]); setNewMessage(""); }}
-                    className="text-white/30 hover:text-white/60 text-lg leading-none">x</button>
+                    className="text-white/30 hover:text-white/60 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition">×</button>
                 </div>
+
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                   {loadingMessages ? (
                     <p className="text-xs text-white/30 text-center py-8">Loading...</p>
