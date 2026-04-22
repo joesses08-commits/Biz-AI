@@ -464,6 +464,17 @@ ${entry}` : entry;
         stage: s.stage,
       }));
     }),
+    ...(product.plm_factory_tracks || []).flatMap((track: any) => {
+      const factory = track.factory_catalog;
+      return (track.plm_track_stages || [])
+        .filter((s: any) => s.status === "done" || s.status === "skipped")
+        .map((s: any) => ({
+          ...s,
+          _factory_name: factory?.name,
+          _type: "track",
+          stage: s.stage,
+        }));
+    }),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const HISTORY_LABELS: Record<string, { label: string; color: string }> = {
@@ -489,6 +500,15 @@ ${entry}` : entry;
     qc_inspection: { label: "QC Inspection", color: "#f59e0b" },
     ready_to_ship: { label: "Ready to Ship", color: "#3b82f6" },
     shipped: { label: "Shipped", color: "#10b981" },
+    // Track stages
+    artwork_sent: { label: "Artwork Sent", color: "#8b5cf6" },
+    quote_requested: { label: "Quote Requested", color: "#ec4899" },
+    quote_received: { label: "Quote Received", color: "#3b82f6" },
+    sample_requested: { label: "Sample Requested", color: "#f59e0b" },
+    sample_shipped: { label: "Sample Shipped", color: "#3b82f6" },
+    sample_arrived: { label: "Sample Arrived", color: "#8b5cf6" },
+    sample_reviewed: { label: "Sample Reviewed", color: "#10b981" },
+    skipped: { label: "Skipped", color: "#6b7280" },
   };
 
   return (
