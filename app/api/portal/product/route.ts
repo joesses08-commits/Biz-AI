@@ -18,6 +18,28 @@ async function getPortalUser(req: NextRequest) {
   return data;
 }
 
+export async function POST(req: NextRequest) {
+  const portalUser = await getPortalUser(req);
+  if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const body = await req.json();
+  const { action, track_id, message } = body;
+  const url = new URL(req.url);
+  const productId = url.searchParams.get("id") || body.product_id;
+  if (action === "get_messages") {
+    const { data } = await supabaseAdmin.from("track_messages")
+      .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
+    return NextResponse.json({ messages: data || [] });
+  }
+  if (action === "send_message") {
+    await supabaseAdmin.from("track_messages").insert({
+      track_id, product_id: productId, user_id: portalUser.user_id,
+      sender_role: "factory", sender_name: portalUser.name || portalUser.email || "Factory", message,
+    });
+    return NextResponse.json({ success: true });
+  }
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}
+
 export async function GET(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -26,7 +48,6 @@ export async function GET(req: NextRequest) {
   const productId = url.searchParams.get("id");
   if (!productId) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-  // Get full product details
   const { data: product } = await supabaseAdmin
     .from("plm_products")
     .select("*, plm_collections(name, season, year), plm_batches(*, plm_batch_stages(*))")
@@ -36,57 +57,64 @@ export async function GET(req: NextRequest) {
 
   if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // Filter batches and sample requests to only this factory
-  const factoryBatches = (product.plm_batches || []).filter(
-    (b: any) => b.factory_id === portalUser.factory_id
-  );
+  const factoryBatches = (product.plm_batches || []).filter((b: any) => b.factory_id === portalUser.factory_id);
 
-  // Get sample requests for this factory
-  const { data: sampleRequests } = await supabaseAdmin
-    .from("plm_sample_requests")
-    .select("*, plm_sample_stages(*)")
-    .eq("product_id", productId)
-    .eq("factory_id", portalUser.factory_id)
-    .order("created_at", { ascending: true });
-
-  // Check if this factory's track is disqualified
-  const { data: factoryTrack } = await supabaseAdmin
+  // Get factory track with all stages
+  const { data: track } = await supabaseAdmin
     .from("plm_factory_tracks")
-    .select("id, status, disqualify_reason, disqualified_at")
+    .select("*, plm_track_stages(*)")
     .eq("product_id", productId)
     .eq("factory_id", portalUser.factory_id)
     .single();
 
-  const isDisqualified = factoryTrack?.status === "killed" && factoryTrack?.disqualified_at;
-  // Hide from portal after 3 days
-  const disqualifiedAt = factoryTrack?.disqualified_at ? new Date(factoryTrack.disqualified_at) : null;
-  const hideFromPortal = disqualifiedAt && (Date.now() - disqualifiedAt.getTime()) > 3 * 24 * 60 * 60 * 1000;
+  const isDisqualified = track?.status === "killed" && track?.disqualified_at;
+  const disqualifiedAt = track?.disqualified_at ? new Date(track.disqualified_at) : null;
 
-  // Handle POST actions for messages
-  if (req.method === "POST") {
-    const body = await req.json();
-    const { action, track_id, message } = body;
-    if (action === "get_messages") {
-      const { data } = await supabaseAdmin.from("track_messages")
-        .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
-      return NextResponse.json({ messages: data || [] });
-    }
-    if (action === "send_message") {
-      await supabaseAdmin.from("track_messages").insert({
-        track_id, product_id: productId, user_id: portalUser.user_id,
-        sender_role: "factory", sender_name: portalUser.name || portalUser.email || "Factory", message,
+  let fakeRequests: any[] = [];
+  if (track) {
+    const SAMPLE_STAGE_KEYS = ["sample_requested", "sample_shipped", "sample_arrived", "sample_reviewed"];
+    const trackStages = (track.plm_track_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const maxRevision = trackStages.reduce((max: number, s: any) => Math.max(max, s.revision_number || 0), 0);
+    const hasSampleRequested = trackStages.some((s: any) => s.stage === "sample_requested");
+
+    if (hasSampleRequested) {
+      fakeRequests = Array.from({ length: maxRevision + 1 }, (_, revNum) => {
+        const revStages = trackStages.filter((s: any) => (s.revision_number || 0) === revNum);
+        const sampleStages = revStages.filter((s: any) => SAMPLE_STAGE_KEYS.includes(s.stage));
+        const latestStage = revStages[revStages.length - 1];
+        const isApproved = track.status === "approved" && revNum === maxRevision;
+        const isKilled = track.status === "killed" && revNum === maxRevision;
+        const isRevision = revNum < maxRevision;
+        const requestedStage = revStages.find((s: any) => s.stage === "sample_requested");
+        return {
+          id: track.id + "-rev-" + revNum,
+          product_id: productId,
+          factory_id: portalUser.factory_id,
+          status: isApproved ? "approved" : isKilled ? "killed" : isRevision ? "revision" : "requested",
+          current_stage: latestStage?.stage || "sample_requested",
+          created_at: requestedStage?.created_at || track.created_at,
+          label: revNum === 0 ? "first" : "revision",
+          notes: revStages.find((s: any) => s.stage === "revision_requested")?.notes || null,
+          plm_sample_stages: sampleStages.map((s: any) => ({
+            id: s.id,
+            stage: s.stage,
+            notes: s.notes,
+            created_at: s.updated_at || s.created_at,
+            updated_by_role: s.updated_by?.includes("@") ? "admin" : "factory",
+          })),
+        };
       });
-      return NextResponse.json({ success: true });
     }
   }
 
-  return NextResponse.json({ 
-    product: { 
-      ...product, 
+  return NextResponse.json({
+    product: {
+      ...product,
       plm_batches: factoryBatches,
-      plm_sample_requests: sampleRequests || [],
-      track_id: factoryTrack?.id || null,
+      plm_sample_requests: fakeRequests,
+      track_id: track?.id || null,
       is_disqualified: isDisqualified,
-    } 
+      disqualify_reason: track?.disqualify_reason || null,
+    }
   });
 }

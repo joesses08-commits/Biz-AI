@@ -61,6 +61,10 @@ export async function GET(req: NextRequest) {
 
     if (!track) return { ...p, _has_sample: false, _has_production: factoryBatches.length > 0, plm_batches: factoryBatches, plm_sample_requests: [] };
 
+    // Only show if sample_requested stage exists
+    const hasSampleRequested = (track.plm_track_stages || []).some((s: any) => s.stage === "sample_requested");
+    if (!hasSampleRequested) return { ...p, _has_sample: false, _has_production: factoryBatches.length > 0, plm_batches: factoryBatches, plm_sample_requests: [] };
+
     const trackStages = (track.plm_track_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     
     // Get all revision cycles
