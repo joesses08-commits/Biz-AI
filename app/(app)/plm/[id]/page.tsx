@@ -254,6 +254,7 @@ ${entry}` : entry;
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const messagePollingRef = useRef<NodeJS.Timeout | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"progression"|"hold"|"killed"|null>(null);
@@ -1223,11 +1224,16 @@ ${entry}` : entry;
                     <button onClick={async () => {
                       setMessagesModal({ track });
                       setLoadingMessages(true);
-                      const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "get_messages", track_id: track.id }) });
-                      const data = await res.json();
-                      setTrackMessages(data.messages || []);
+                      const fetchMsgs = async (tid: string) => {
+                        const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ action: "get_messages", track_id: tid }) });
+                        const data = await res.json();
+                        setTrackMessages(data.messages || []);
+                      };
+                      await fetchMsgs(track.id);
                       setLoadingMessages(false);
+                      if (messagePollingRef.current) clearInterval(messagePollingRef.current);
+                      messagePollingRef.current = setInterval(() => fetchMsgs(track.id), 3000);
                     }} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/20 transition group">
                       <div className="flex items-center gap-2">
                         <span className="text-xs">💬</span>
@@ -1375,7 +1381,7 @@ ${entry}` : entry;
                     <p className="text-base font-semibold">Messages</p>
                     <p className="text-xs text-white/40 mt-0.5">{messagesModal.track.factory_catalog?.name} · {trackMessages.length} message{trackMessages.length !== 1 ? "s" : ""}</p>
                   </div>
-                  <button onClick={() => { setMessagesModal(null); setTrackMessages([]); setNewMessage(""); }}
+                  <button onClick={() => { setMessagesModal(null); setTrackMessages([]); setNewMessage(""); if (messagePollingRef.current) { clearInterval(messagePollingRef.current); messagePollingRef.current = null; } }}
                     className="text-white/30 hover:text-white/60 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition">×</button>
                 </div>
 

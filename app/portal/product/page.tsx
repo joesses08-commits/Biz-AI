@@ -37,6 +37,7 @@ export default function PortalProductPage() {
   const [showMessages, setShowMessages] = useState(false);
   const [trackMessages, setTrackMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const msgPollRef = useRef<NodeJS.Timeout | null>(null);
   const [totalMessages, setTotalMessages] = useState(0);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
@@ -286,14 +287,20 @@ export default function PortalProductPage() {
         {product.track_id && (
           <div className="border border-white/[0.06] rounded-2xl overflow-hidden">
             <button onClick={async () => {
-              if (!showMessages) {
+              const fetchMsgs = async () => {
                 const res = await fetch("/api/portal/product", { method: "POST",
                   headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
                   body: JSON.stringify({ action: "get_messages", track_id: product.track_id }) });
                 const data = await res.json();
-                const msgs = data.messages || [];
-                setTrackMessages(msgs);
+                setTrackMessages(data.messages || []);
                 setUnreadCount(0);
+              };
+              if (!showMessages) {
+                await fetchMsgs();
+                if (msgPollRef.current) clearInterval(msgPollRef.current);
+                msgPollRef.current = setInterval(fetchMsgs, 3000);
+              } else {
+                if (msgPollRef.current) { clearInterval(msgPollRef.current); msgPollRef.current = null; }
               }
               setShowMessages(!showMessages);
             }} className="w-full px-4 py-3 flex items-center justify-between">
