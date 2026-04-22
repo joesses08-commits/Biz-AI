@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
     const id = req.nextUrl.searchParams.get("id");
     const { data } = await supabaseAdmin
       .from("plm_products")
-      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_assignments(*, factory_portal_users(id, name, email, role))")
+      .select("*, plm_collections(name, season, year), factory_catalog(name, email), plm_stages(*), plm_batches(*, plm_batch_stages(*)), plm_sample_requests(*, factory_catalog(name, email), plm_sample_stages(*)), plm_assignments(*, factory_portal_users(id, name, email, role)), plm_factory_tracks(*, factory_catalog(id, name), plm_track_stages(*))")
       .eq("id", id)
       .single();
     return NextResponse.json({ product: data });
