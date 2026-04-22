@@ -2106,7 +2106,7 @@ Best regards,
               <img
                 src={enlargedImage}
                 alt=""
-                style={{ maxWidth: "92vw", maxHeight: "92vh", width: "auto", height: "auto", borderRadius: "16px", objectFit: "contain", boxShadow: "0 0 80px rgba(0,0,0,0.8)" }}
+                style={{ width: "92vw", height: "92vh", borderRadius: "16px", objectFit: "contain", boxShadow: "0 0 80px rgba(0,0,0,0.8)", imageRendering: "auto" }}
               />
               <button onClick={() => setEnlargedImage(null)}
                 style={{ position: "fixed", top: "16px", right: "16px" }}
