@@ -168,6 +168,11 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
             {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+            {product._unread_messages > 0 && (
+              <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                💬 {product._unread_messages} new
+              </span>
+            )}
             {isUpcoming && <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Upcoming</span>}
             {!isUpcoming && displayIndex != null && (
               <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/20">Priority #{displayIndex}</span>
@@ -267,6 +272,12 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                   <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
                     Update Sample Status →
+                  </button>
+                )}
+                {product._total_messages > 0 && !isCollapsed && (
+                  <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-blue-500/20 text-xs text-blue-400 hover:border-blue-500/40 transition">
+                    💬 {product._total_messages} message{product._total_messages !== 1 ? "s" : ""}{product._unread_messages > 0 ? ` · ${product._unread_messages} new` : ""}
                   </button>
                 )}
               </div>

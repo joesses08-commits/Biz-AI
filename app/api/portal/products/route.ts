@@ -119,5 +119,24 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ products: tagged, max_samples: maxSamples });
+  // Add message counts for each track
+  const trackIds = tracks.map((t: any) => t.id);
+  let messageCounts: any[] = [];
+  if (trackIds.length > 0) {
+    const { data: msgs } = await supabaseAdmin.from("track_messages")
+      .select("track_id, sender_role, read_by_factory")
+      .in("track_id", trackIds);
+    messageCounts = msgs || [];
+  }
+
+  const taggedWithMessages = tagged.map((p: any) => {
+    const track = tracks.find((t: any) => t.product_id === p.id);
+    if (!track) return p;
+    const trackMsgs = messageCounts.filter((m: any) => m.track_id === track.id);
+    const totalMessages = trackMsgs.length;
+    const unreadMessages = trackMsgs.filter((m: any) => m.sender_role === "admin" && !m.read_by_factory).length;
+    return { ...p, track_id: track.id, _total_messages: totalMessages, _unread_messages: unreadMessages };
+  });
+
+  return NextResponse.json({ products: taggedWithMessages, max_samples: maxSamples });
 }
