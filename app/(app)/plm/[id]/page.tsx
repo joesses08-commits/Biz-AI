@@ -289,6 +289,22 @@ ${entry}` : entry;
         });
       }
     }
+    // Auto-send message to each factory with sample request details
+    const arrivalDateEl = document.getElementById("sampleArrivalDate") as HTMLInputElement;
+    const arrivalDate = arrivalDateEl?.value;
+    for (const fid of sampleFactoryIds) {
+      const track = allTracks.find((t: any) => t.factory_id === fid);
+      if (track) {
+        let msg = "Sample requested.";
+        if (sampleNote) msg += " Note: " + sampleNote;
+        if (arrivalDate) msg += " Est. arrival by: " + new Date(arrivalDate + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        await fetch("/api/plm/tracks", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "send_message", track_id: track.id, product_id: id, message: msg }),
+        });
+      }
+    }
+
     setSampleFactoryIds([]);
     setSampleNote("");
     const requested = (data.factories || []).map((f: any) => f.name);
