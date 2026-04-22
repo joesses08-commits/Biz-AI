@@ -33,36 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (SAMPLE_STAGES.includes(stage)) {
-    // Sample stage — update the plm_sample_requests row for this factory
-    const { data: sampleReq } = await supabaseAdmin
-      .from("plm_sample_requests")
-      .select("id")
-      .eq("id", sample_request_id || "")
-      .single() || await supabaseAdmin
-      .from("plm_sample_requests")
-      .select("id")
-      .eq("product_id", product_id)
-      .eq("factory_id", portalUser.factory_id)
-      .single();
-
-    if (!sampleReq) return NextResponse.json({ error: "Sample request not found" }, { status: 404 });
-
-    await supabaseAdmin.from("plm_sample_requests").update({
-      current_stage: stage,
-      updated_at: new Date().toISOString(),
-    }).eq("id", sampleReq.id);
-
-    await supabaseAdmin.from("plm_sample_stages").insert({
-      sample_request_id: sampleReq.id,
-      product_id,
-      factory_id: portalUser.factory_id,
-      user_id: portalUser.user_id,
-      stage,
-      notes: notes || "",
-      updated_by: portalUser.email,
-      updated_by_role: "factory",
-    });
-
+    // Write directly to plm_factory_tracks + plm_track_stages (new system)
     // Set action_status based on stage
     const actionStatus = (stage === "sample_arrived" || stage === "sample_shipped") ? "action_required" : "updates_made";
     await supabaseAdmin.from("plm_products").update({
@@ -70,12 +41,7 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }).eq("id", product_id).eq("user_id", portalUser.user_id);
 
-    // Clear priority_order when shipped — removes from active priority list
-    if (stage === "sample_shipped") {
-      await supabaseAdmin.from("plm_sample_requests").update({ priority_order: null }).eq("id", sampleReq.id);
-    }
-
-    // Mirror update to plm_factory_tracks + plm_track_stages
+    // Write to plm_factory_tracks + plm_track_stages
     const { data: track } = await supabaseAdmin
       .from("plm_factory_tracks")
       .select("id")
