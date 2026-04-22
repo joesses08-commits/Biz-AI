@@ -501,12 +501,8 @@ ${entry}` : entry;
     ready_to_ship: { label: "Ready to Ship", color: "#3b82f6" },
     shipped: { label: "Shipped", color: "#10b981" },
     // Track stages
-    artwork_sent: { label: "Artwork Sent", color: "#8b5cf6" },
     quote_requested: { label: "Quote Requested", color: "#ec4899" },
     quote_received: { label: "Quote Received", color: "#3b82f6" },
-    sample_requested: { label: "Sample Requested", color: "#f59e0b" },
-    sample_shipped: { label: "Sample Shipped", color: "#3b82f6" },
-    sample_arrived: { label: "Sample Arrived", color: "#8b5cf6" },
     sample_reviewed: { label: "Sample Reviewed", color: "#10b981" },
     skipped: { label: "Skipped", color: "#6b7280" },
   };
