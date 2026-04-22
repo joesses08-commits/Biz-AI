@@ -239,6 +239,8 @@ Rules:
 }
 
 export async function POST(request: NextRequest) {
+  // DISABLED - old vision feature
+  return Response.json({ success: true, skipped: true });
   try {
     const userId = request.headers.get("x-user-id");
     const action = request.headers.get("x-action");

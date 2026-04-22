@@ -7,6 +7,8 @@ const supabaseAdmin = createClient(
 );
 
 export async function GET(request: NextRequest) {
+  // DISABLED - old vision feature
+  return Response.json({ success: true, skipped: true });
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

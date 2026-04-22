@@ -10,6 +10,8 @@ const supabase = createClient(
 );
 
 export async function POST(request: NextRequest) {
+  // DISABLED - old vision feature
+  return Response.json({ success: true, skipped: true });
   try {
     const { userId, source, eventType, rawData, companyContext } = await request.json();
     if (!userId || !source || !rawData) {

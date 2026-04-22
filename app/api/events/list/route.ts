@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
 export async function GET(req: NextRequest) {
+  // DISABLED - old vision feature
+  return Response.json({ success: true, skipped: true });
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

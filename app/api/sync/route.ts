@@ -3,6 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 export async function POST() {
+  // DISABLED - old vision feature
+  return Response.json({ success: true, skipped: true });
   try {
     const cookieStore = cookies();
     const supabase = createServerClient(

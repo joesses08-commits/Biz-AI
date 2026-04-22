@@ -33,6 +33,8 @@ async function refreshGoogleToken(conn: any): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
+  // DISABLED - old vision feature
+  return Response.json({ success: true, skipped: true });
   try {
     const cookieStore = cookies();
     const supabase = createServerClient(
