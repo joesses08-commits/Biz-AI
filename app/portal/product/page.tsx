@@ -287,18 +287,26 @@ export default function PortalProductPage() {
         {product.track_id && (
           <div className="border border-white/[0.06] rounded-2xl overflow-hidden">
             <button onClick={async () => {
-              const fetchMsgs = async () => {
+              const fetchMsgs = async (isFirst?: boolean) => {
                 const res = await fetch("/api/portal/product", { method: "POST",
                   headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
                   body: JSON.stringify({ action: "get_messages", track_id: product.track_id }) });
                 const data = await res.json();
-                setTrackMessages(data.messages || []);
+                const msgs = data.messages || [];
+                setTrackMessages(msgs);
                 setUnreadCount(0);
+                if (isFirst) {
+                  const firstUnread = msgs.findIndex((m: any) => m.sender_role === "admin" && !m.read_by_factory);
+                  setFirstUnreadIdx(firstUnread);
+                }
+                setTimeout(() => {
+                  if (msgContainerRef.current) msgContainerRef.current.scrollTop = msgContainerRef.current.scrollHeight;
+                }, 100);
               };
               if (!showMessages) {
-                await fetchMsgs();
+                await fetchMsgs(true);
                 if (msgPollRef.current) clearInterval(msgPollRef.current);
-                msgPollRef.current = setInterval(fetchMsgs, 3000);
+                msgPollRef.current = setInterval(() => fetchMsgs(false), 3000);
               } else {
                 if (msgPollRef.current) { clearInterval(msgPollRef.current); msgPollRef.current = null; }
               }
@@ -313,17 +321,28 @@ export default function PortalProductPage() {
             </button>
             {showMessages && (
               <div className="border-t border-white/[0.06]">
-                <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
+                <div ref={msgContainerRef} className="p-4 space-y-3 max-h-64 overflow-y-auto">
                   {trackMessages.length === 0 ? (
                     <p className="text-xs text-white/20 text-center py-4">No messages yet.</p>
-                  ) : trackMessages.map((msg: any) => (
-                    <div key={msg.id} className={msg.sender_role === "factory" ? "flex justify-end" : "flex justify-start"}>
-                      <div className={msg.sender_role === "factory"
-                        ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
-                        : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
-                        <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
-                        <p className="text-xs text-white/80">{msg.message}</p>
-                        <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                  ) : trackMessages.map((msg: any, idx: number) => (
+                    <div key={msg.id}>
+                      {idx === firstUnreadIdx && firstUnreadIdx > 0 && (
+                        <div className="flex items-center gap-2 my-3">
+                          <div className="flex-1 h-px bg-blue-500/30" />
+                          <span className="text-[10px] text-blue-400 font-semibold whitespace-nowrap">
+                            {trackMessages.length - firstUnreadIdx} new message{trackMessages.length - firstUnreadIdx !== 1 ? "s" : ""}
+                          </span>
+                          <div className="flex-1 h-px bg-blue-500/30" />
+                        </div>
+                      )}
+                      <div className={msg.sender_role === "factory" ? "flex justify-end" : "flex justify-start"}>
+                        <div className={msg.sender_role === "factory"
+                          ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
+                          : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
+                          <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
+                          <p className="text-xs text-white/80">{msg.message}</p>
+                          <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
