@@ -1877,32 +1877,64 @@ Best regards,
           </div>
 
           {/* ── PRODUCT DETAILS — INLINE EDITING ── */}
-          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01] space-y-5">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest">Product Details</p>
-            <InlineField label="Product Name" value={product.name || ""} onSave={v => saveField("name", v)} disabled={isKilled} />
-            <InlineField label="SKU" value={product.sku || ""} onSave={v => saveField("sku", v)} disabled={isKilled} />
-            <InlineField label="Description" value={product.description || ""} onSave={v => saveField("description", v)} multiline disabled={isKilled} />
-            <InlineField label="Specs" value={product.specs || ""} onSave={v => saveField("specs", v)} multiline disabled={isKilled} />
-            <InlineField label="Category" value={product.category || ""} onSave={v => saveField("category", v)} disabled={isKilled} />
-            <div className="group">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">Collection</p>
-              </div>
-              <select value={product.collection_id || ""} onChange={e => saveCollectionField(e.target.value)}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20 transition">
-                <option value="">No collection</option>
-                {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+          <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest font-medium">Product Details</p>
+              {isKilled && <span className="text-[9px] text-red-400/60 uppercase tracking-widest">Read only</span>}
             </div>
-            <InlineField label="Reference / Dropbox Link" value={product.reference_url || ""} onSave={v => saveField("reference_url", v)} disabled={isKilled} />
-            {product.reference_url && (
-              <a href={product.reference_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 transition underline underline-offset-2">
-                ↗ Open link
-              </a>
-            )}
-            <InlineField label="Admin Notes (private)" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline disabled={isKilled} />
-            <InlineField label="Factory Notes (visible to factory)" value={product.factory_notes || ""} onSave={v => saveField("factory_notes", v)} multiline disabled={isKilled} />
+
+            {/* Core fields — 2 column grid */}
+            <div className="p-6 grid grid-cols-2 gap-x-6 gap-y-5">
+              <div className="col-span-2">
+                <InlineField label="Product Name" value={product.name || ""} onSave={v => saveField("name", v)} disabled={isKilled} />
+              </div>
+              <InlineField label="SKU" value={product.sku || ""} onSave={v => saveField("sku", v)} disabled={isKilled} />
+              <InlineField label="Category" value={product.category || ""} onSave={v => saveField("category", v)} disabled={isKilled} />
+              <div className="col-span-2">
+                <InlineField label="Description" value={product.description || ""} onSave={v => saveField("description", v)} multiline disabled={isKilled} />
+              </div>
+              <div className="col-span-2">
+                <InlineField label="Specs" value={product.specs || ""} onSave={v => saveField("specs", v)} multiline disabled={isKilled} />
+              </div>
+              <div className="col-span-2 group">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Collection</p>
+                </div>
+                <select value={product.collection_id || ""} onChange={e => saveCollectionField(e.target.value)}
+                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20 transition">
+                  <option value="">No collection</option>
+                  {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="col-span-2">
+                <InlineField label="Reference / Dropbox Link" value={product.reference_url || ""} onSave={v => saveField("reference_url", v)} disabled={isKilled} />
+                {product.reference_url && (
+                  <a href={product.reference_url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-[11px] text-blue-400 hover:text-blue-300 transition mt-1.5">
+                    ↗ Open link
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Notes — distinct section */}
+            <div className="border-t border-white/[0.04]">
+              <div className="p-6 space-y-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-1 h-full rounded-full bg-white/10 self-stretch flex-shrink-0" />
+                  <div className="flex-1">
+                    <InlineField label="Admin Notes (private)" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline disabled={isKilled} />
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-1 h-full rounded-full bg-amber-500/30 self-stretch flex-shrink-0" />
+                  <div className="flex-1">
+                    <InlineField label="Factory Notes (visible to factory)" value={product.factory_notes || ""} onSave={v => saveField("factory_notes", v)} multiline disabled={isKilled} />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* ── IMAGES ── */}
