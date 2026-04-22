@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
   // Check if this factory's track is disqualified
   const { data: factoryTrack } = await supabaseAdmin
     .from("plm_factory_tracks")
-    .select("status, disqualify_reason, disqualified_at")
+    .select("id, status, disqualify_reason, disqualified_at")
     .eq("product_id", productId)
     .eq("factory_id", portalUser.factory_id)
     .single();
@@ -62,11 +62,31 @@ export async function GET(req: NextRequest) {
   const disqualifiedAt = factoryTrack?.disqualified_at ? new Date(factoryTrack.disqualified_at) : null;
   const hideFromPortal = disqualifiedAt && (Date.now() - disqualifiedAt.getTime()) > 3 * 24 * 60 * 60 * 1000;
 
+  // Handle POST actions for messages
+  if (req.method === "POST") {
+    const body = await req.json();
+    const { action, track_id, message } = body;
+    if (action === "get_messages") {
+      const { data } = await supabaseAdmin.from("track_messages")
+        .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
+      return NextResponse.json({ messages: data || [] });
+    }
+    if (action === "send_message") {
+      await supabaseAdmin.from("track_messages").insert({
+        track_id, product_id: productId, user_id: portalUser.user_id,
+        sender_role: "factory", sender_name: portalUser.name || portalUser.email || "Factory", message,
+      });
+      return NextResponse.json({ success: true });
+    }
+  }
+
   return NextResponse.json({ 
     product: { 
       ...product, 
       plm_batches: factoryBatches,
       plm_sample_requests: sampleRequests || [],
+      track_id: factoryTrack?.id || null,
+      is_disqualified: isDisqualified,
     } 
   });
 }

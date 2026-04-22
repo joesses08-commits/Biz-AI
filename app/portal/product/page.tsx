@@ -33,6 +33,11 @@ export default function PortalProductPage() {
   const [factories, setFactories] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [portalUser, setPortalUser] = useState<any>(null);
+  const [factoryTrackId, setFactoryTrackId] = useState<string | null>(null);
+  const [showMessages, setShowMessages] = useState(false);
+  const [trackMessages, setTrackMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMsg, setSendingMsg] = useState(false);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState("");
   const [updatingSample, setUpdatingSample] = useState(false);
@@ -246,6 +251,79 @@ export default function PortalProductPage() {
             ) : null;
           })()}
         </div>
+
+        {/* Messages Section */}
+        {product.track_id && (
+          <div className="border border-white/[0.06] rounded-2xl overflow-hidden">
+            <button onClick={async () => {
+              if (!showMessages) {
+                const res = await fetch("/api/portal/product", { method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                  body: JSON.stringify({ action: "get_messages", track_id: product.track_id }) });
+                const data = await res.json();
+                setTrackMessages(data.messages || []);
+              }
+              setShowMessages(!showMessages);
+            }} className="w-full px-4 py-3 flex items-center justify-between">
+              <p className="text-xs font-semibold text-white/60">Messages</p>
+              <span className="text-white/30 text-xs">{showMessages ? "▲" : "▼"}</span>
+            </button>
+            {showMessages && (
+              <div className="border-t border-white/[0.06]">
+                <div className="p-4 space-y-3 max-h-64 overflow-y-auto">
+                  {trackMessages.length === 0 ? (
+                    <p className="text-xs text-white/20 text-center py-4">No messages yet.</p>
+                  ) : trackMessages.map((msg: any) => (
+                    <div key={msg.id} className={msg.sender_role === "factory" ? "flex justify-end" : "flex justify-start"}>
+                      <div className={msg.sender_role === "factory"
+                        ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
+                        : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
+                        <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
+                        <p className="text-xs text-white/80">{msg.message}</p>
+                        <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-4 py-3 border-t border-white/[0.06] flex gap-2">
+                  <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key !== "Enter" || !newMessage.trim()) return;
+                      e.preventDefault();
+                      setSendingMsg(true);
+                      await fetch("/api/portal/product", { method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                        body: JSON.stringify({ action: "send_message", track_id: product.track_id, message: newMessage.trim() }) });
+                      const res = await fetch("/api/portal/product", { method: "POST",
+                        headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                        body: JSON.stringify({ action: "get_messages", track_id: product.track_id }) });
+                      const data = await res.json();
+                      setTrackMessages(data.messages || []);
+                      setNewMessage("");
+                      setSendingMsg(false);
+                    }}
+                    placeholder="Reply... (Enter to send)"
+                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-xs focus:outline-none" />
+                  <button onClick={async () => {
+                    if (!newMessage.trim()) return;
+                    setSendingMsg(true);
+                    await fetch("/api/portal/product", { method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                      body: JSON.stringify({ action: "send_message", track_id: product.track_id, message: newMessage.trim() }) });
+                    const res = await fetch("/api/portal/product", { method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                      body: JSON.stringify({ action: "get_messages", track_id: product.track_id }) });
+                    const data = await res.json();
+                    setTrackMessages(data.messages || []);
+                    setNewMessage("");
+                    setSendingMsg(false);
+                  }} disabled={!newMessage.trim() || sendingMsg}
+                    className="px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Send</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Sample Section — grouped by round, same as admin */}
         {sampleRequests.length > 0 && (() => {

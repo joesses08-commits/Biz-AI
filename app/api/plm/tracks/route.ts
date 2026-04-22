@@ -314,6 +314,24 @@ ${companyName}`;
     return NextResponse.json({ success: true });
   }
 
+  if (action === "get_messages") {
+    const { track_id } = body;
+    const { data } = await supabaseAdmin.from("track_messages")
+      .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
+    return NextResponse.json({ messages: data || [] });
+  }
+
+  if (action === "send_message") {
+    const { track_id, product_id, message } = body;
+    const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", user.id).single();
+    const senderName = profile?.full_name || user.email || "Admin";
+    await supabaseAdmin.from("track_messages").insert({
+      track_id, product_id, user_id: user.id,
+      sender_role: "admin", sender_name: senderName, message,
+    });
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 

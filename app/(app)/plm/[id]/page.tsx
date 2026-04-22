@@ -235,6 +235,11 @@ ${entry}` : entry;
   };
 
   const [sampleProviderModal, setSampleProviderModal] = useState<{factory_ids: string[], note: string} | null>(null);
+  const [messagesModal, setMessagesModal] = useState<{track: any} | null>(null);
+  const [trackMessages, setTrackMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<"progression"|"hold"|"killed"|null>(null);
@@ -1183,6 +1188,20 @@ ${entry}` : entry;
                       </button>
                     )}
                   </div>
+                  {/* Messages button */}
+                  <div className="px-3 pb-3">
+                    <button onClick={async () => {
+                      setMessagesModal({ track });
+                      setLoadingMessages(true);
+                      const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "get_messages", track_id: track.id }) });
+                      const data = await res.json();
+                      setTrackMessages(data.messages || []);
+                      setLoadingMessages(false);
+                    }} className="w-full text-left text-[10px] text-white/20 hover:text-white/40 transition flex items-center gap-1.5 pt-1">
+                      <span>Messages</span>
+                    </button>
+                  </div>
                 </div>
               );
             };
@@ -1302,6 +1321,70 @@ ${entry}` : entry;
           )}
 
           {/* Approve track modal */}
+          {/* Messages Modal */}
+          {messagesModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md flex flex-col" style={{maxHeight: "80vh"}}>
+                <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+                  <div>
+                    <p className="text-sm font-semibold">Messages</p>
+                    <p className="text-[10px] text-white/30 mt-0.5">{messagesModal.track.factory_catalog?.name}</p>
+                  </div>
+                  <button onClick={() => { setMessagesModal(null); setTrackMessages([]); setNewMessage(""); }}
+                    className="text-white/30 hover:text-white/60 text-lg leading-none">x</button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                  {loadingMessages ? (
+                    <p className="text-xs text-white/30 text-center py-8">Loading...</p>
+                  ) : trackMessages.length === 0 ? (
+                    <p className="text-xs text-white/20 text-center py-8">No messages yet.</p>
+                  ) : trackMessages.map((msg: any) => (
+                    <div key={msg.id} className={msg.sender_role === "admin" ? "flex justify-end" : "flex justify-start"}>
+                      <div className={msg.sender_role === "admin"
+                        ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
+                        : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
+                        <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
+                        <p className="text-xs text-white/80">{msg.message}</p>
+                        <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="px-4 py-3 border-t border-white/[0.06] flex gap-2 flex-shrink-0">
+                  <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
+                    onKeyDown={async e => {
+                      if (e.key !== "Enter" || !newMessage.trim()) return;
+                      e.preventDefault();
+                      setSendingMessage(true);
+                      await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "send_message", track_id: messagesModal.track.id, product_id: id, message: newMessage.trim() }) });
+                      const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "get_messages", track_id: messagesModal.track.id }) });
+                      const data = await res.json();
+                      setTrackMessages(data.messages || []);
+                      setNewMessage("");
+                      setSendingMessage(false);
+                    }}
+                    placeholder="Type a message... (Enter to send)"
+                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-xs focus:outline-none" />
+                  <button onClick={async () => {
+                    if (!newMessage.trim()) return;
+                    setSendingMessage(true);
+                    await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "send_message", track_id: messagesModal.track.id, product_id: id, message: newMessage.trim() }) });
+                    const res = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "get_messages", track_id: messagesModal.track.id }) });
+                    const data = await res.json();
+                    setTrackMessages(data.messages || []);
+                    setNewMessage("");
+                    setSendingMessage(false);
+                  }} disabled={!newMessage.trim() || sendingMessage}
+                    className="px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Send</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {approveModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
               <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
