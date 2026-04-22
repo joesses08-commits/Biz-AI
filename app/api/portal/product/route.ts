@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
 
   let fakeRequests: any[] = [];
   if (track) {
-    const SAMPLE_STAGE_KEYS = ["sample_requested", "sample_shipped", "sample_arrived", "sample_reviewed"];
+    const SAMPLE_STAGE_KEYS = ["sample_production", "sample_complete", "sample_shipped", "sample_arrived", "sample_reviewed"];
     const trackStages = (track.plm_track_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     const maxRevision = trackStages.reduce((max: number, s: any) => Math.max(max, s.revision_number || 0), 0);
     const hasSampleRequested = trackStages.some((s: any) => s.stage === "sample_requested");
@@ -87,7 +87,8 @@ export async function GET(req: NextRequest) {
       fakeRequests = Array.from({ length: maxRevision + 1 }, (_, revNum) => {
         const revStages = trackStages.filter((s: any) => (s.revision_number || 0) === revNum);
         const sampleStages = revStages.filter((s: any) => SAMPLE_STAGE_KEYS.includes(s.stage));
-        const latestStage = revStages[revStages.length - 1];
+        const latestSampleStage = sampleStages[sampleStages.length - 1];
+        const latestStage = latestSampleStage || revStages[revStages.length - 1];
         const isApproved = track.status === "approved" && revNum === maxRevision;
         const isKilled = track.status === "killed" && revNum === maxRevision;
         const isRevision = revNum < maxRevision;
