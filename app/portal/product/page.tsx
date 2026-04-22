@@ -83,16 +83,16 @@ export default function PortalProductPage() {
       if (res.status === 401) { router.push("/portal"); return; }
       const data = await res.json();
       setProduct(data.product);
-    }
-    // Load message counts
-    if (data.product?.track_id) {
-      const msgRes = await fetch("/api/portal/product", { method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok_ },
-        body: JSON.stringify({ action: "get_messages", track_id: data.product.track_id }) });
-      const msgData = await msgRes.json();
-      const msgs = msgData.messages || [];
-      setTotalMessages(msgs.length);
-      setUnreadCount(msgs.filter((m: any) => m.sender_role === "admin" && !m.read_by_factory).length);
+      // Load message counts for factory
+      if (data.product?.track_id) {
+        const msgRes = await fetch("/api/portal/product", { method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok_ },
+          body: JSON.stringify({ action: "get_messages", track_id: data.product.track_id }) });
+        const msgData = await msgRes.json();
+        const msgs = msgData.messages || [];
+        setTotalMessages(msgs.length);
+        setUnreadCount(msgs.filter((m: any) => m.sender_role === "admin" && !m.read_by_factory).length);
+      }
     }
     setLoading(false);
   };
