@@ -301,9 +301,15 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
             <p className="text-[10px] text-white/30">{portalUser?.name || portalUser?.email}</p>
           </div>
         </div>
-        <button onClick={logout} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition">
-          <LogOut size={12} />Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push("/portal/messages")}
+            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-xl transition">
+            💬 Messages
+          </button>
+          <button onClick={logout} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition">
+            <LogOut size={12} />Sign out
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
