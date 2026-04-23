@@ -19,6 +19,7 @@ export default function MessagesPage() {
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [attachmentPreview, setAttachmentPreview] = useState<{file: File, url: string, type: string} | null>(null);
 
   useEffect(() => { loadChats(); }, []);
 
@@ -48,8 +49,8 @@ export default function MessagesPage() {
     };
     await fetchMsgs(true);
     pollRef.current = setInterval(() => fetchMsgs(false), 3000);
-    // Load team members
-    const teamRes = await fetch("/api/plm?type=team_members");
+    // Load team members from profiles
+    const teamRes = await fetch("/api/messages/team");
     const teamData = await teamRes.json();
     setTeamMembers(teamData.members || []);
   };
@@ -70,13 +71,22 @@ export default function MessagesPage() {
     loadChats();
   };
 
-  const handleFile = async (file: File) => {
+  const handleFile = (file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    setAttachmentPreview({ file, url: previewUrl, type: file.type.startsWith("image/") ? "image" : "file" });
+  };
+
+  const uploadAndSend = async () => {
+    if (!attachmentPreview) return;
+    setSending(true);
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", attachmentPreview.file);
     formData.append("track_id", activeChat.track_id);
     const res = await fetch("/api/messages/upload", { method: "POST", body: formData });
     const data = await res.json();
-    if (data.url) await sendMessage("", data.url, file.type.startsWith("image/") ? "image" : "file", file.name);
+    if (data.url) await sendMessage(newMessage, data.url, attachmentPreview.type, attachmentPreview.file.name);
+    setAttachmentPreview(null);
+    setSending(false);
   };
 
   const togglePin = async (chat: any, e: React.MouseEvent) => {
@@ -192,6 +202,24 @@ export default function MessagesPage() {
           </div>
 
           {/* Input */}
+          {attachmentPreview && (
+              <div className="px-6 py-3 border-t border-white/[0.06] flex items-center gap-3 bg-white/[0.02]">
+                {attachmentPreview.type === "image" ? (
+                  <img src={attachmentPreview.url} className="h-16 w-16 rounded-xl object-cover border border-white/10" />
+                ) : (
+                  <div className="h-16 w-16 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
+                    <Paperclip size={20} className="text-white/30" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-white/60 truncate">{attachmentPreview.file.name}</p>
+                  <p className="text-[10px] text-white/30">{(attachmentPreview.file.size / 1024).toFixed(0)} KB · Ready to send</p>
+                </div>
+                <button onClick={() => setAttachmentPreview(null)} className="text-white/30 hover:text-white/60">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
           <div className={`px-6 py-4 border-t border-white/[0.06] flex-shrink-0 ${dragging ? "bg-blue-500/5 border-blue-500/20" : ""}`}
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
@@ -208,7 +236,7 @@ export default function MessagesPage() {
                 placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
                 rows={1} style={{ resize: "none" }}
                 className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition" />
-              <button onClick={() => sendMessage()} disabled={!newMessage.trim() || sending}
+              <button onClick={() => attachmentPreview ? uploadAndSend() : sendMessage()} disabled={(!newMessage.trim() && !attachmentPreview) || sending}
                 className="flex-shrink-0 w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center disabled:opacity-40 transition">
                 <Send size={14} />
               </button>
