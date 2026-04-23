@@ -195,6 +195,10 @@ export default function MessagesPage() {
                       </a>
                     )}
                     <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                    {(() => {
+                      const lastReadAdminIdx = messages.map((m: any, i: number) => m.sender_role === "admin" && m.read_by_factory ? i : -1).filter((i: number) => i !== -1).pop();
+                      return idx === lastReadAdminIdx ? <p className="text-[9px] text-blue-400/60 mt-0.5 text-right">✓ Seen</p> : null;
+                    })()}
                   </div>
                 </div>
               </div>
@@ -230,7 +234,7 @@ export default function MessagesPage() {
                 className="text-white/30 hover:text-white/60 transition flex-shrink-0 pb-2">
                 <Paperclip size={16} />
               </button>
-              <input ref={fileInputRef} type="file" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+              <input ref={fileInputRef} type="file" accept="image/*,.pdf,.xlsx,.xls,.doc,.docx,.csv,.txt" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
               <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
