@@ -37,6 +37,7 @@ export default function PortalProductPage() {
   const [showMessages, setShowMessages] = useState(false);
   const [trackMessages, setTrackMessages] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [firstUnreadIdx, setFirstUnreadIdx] = useState<number>(-1);
   const msgPollRef = useRef<NodeJS.Timeout | null>(null);
   const [totalMessages, setTotalMessages] = useState(0);
   const [newMessage, setNewMessage] = useState("");
