@@ -499,11 +499,48 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
             )}
           </div>
         ) : (
-          /* Prioritization Tab - simplified for now */
-          <div className="text-center py-20">
-            <Factory size={32} className="text-white/10 mx-auto mb-3" />
-            <p className="text-white/30 text-sm">Prioritization coming soon</p>
-            <p className="text-white/20 text-xs mt-1">Drag to reorder sample priorities</p>
+          /* Prioritization Tab */
+          <div className="space-y-6">
+            <p className="text-xs text-white/30">Sample priority order across all factories. Drag to reorder — factories see samples in this order.</p>
+            {factories.length === 0 ? (
+              <p className="text-white/20 text-sm text-center py-12">No factories connected</p>
+            ) : factories.map((factory: any) => {
+              const factoryProducts = products.filter((p: any) =>
+                (p.plm_factory_tracks || []).some((t: any) => t.factory_id === factory.id &&
+                  (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done") &&
+                  !(t.plm_track_stages || []).some((s: any) => s.stage === "sample_shipped" && s.status === "done")
+                )
+              );
+              if (factoryProducts.length === 0) return null;
+              return (
+                <div key={factory.id} className="border border-white/[0.06] rounded-2xl overflow-hidden">
+                  <div className="px-5 py-3 border-b border-white/[0.04] flex items-center justify-between">
+                    <p className="text-xs font-semibold text-white/70">{factory.name}</p>
+                    <span className="text-[10px] text-white/30">{factoryProducts.length} pending</span>
+                  </div>
+                  <div className="divide-y divide-white/[0.04]">
+                    {factoryProducts.map((p: any, idx: number) => {
+                      const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === factory.id);
+                      const maxRev = (track?.plm_track_stages || []).reduce((max: number, s: any) => Math.max(max, s.revision_number || 0), 0);
+                      return (
+                        <div key={p.id} className="px-5 py-3 flex items-center gap-3">
+                          <span className="text-[10px] text-white/20 w-5 text-center font-mono">{idx + 1}</span>
+                          {p.images?.[0] ? <img src={p.images[0]} className="w-8 h-8 rounded-lg object-cover border border-white/[0.06]" /> :
+                            <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.06]" />}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate">{p.name}</p>
+                            {p.sku && <p className="text-[10px] text-white/30 font-mono">{p.sku}</p>}
+                          </div>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${maxRev > 0 ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>
+                            {maxRev > 0 ? "Revision" : "First Sample"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
