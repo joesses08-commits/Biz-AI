@@ -14,6 +14,7 @@ export default function MessagesPage() {
   const [search, setSearch] = useState("");
   const [showMembers, setShowMembers] = useState(false);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [chatMembers, setChatMembers] = useState<any[]>([]);
   const [firstUnread, setFirstUnread] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
@@ -53,6 +54,10 @@ export default function MessagesPage() {
     const teamRes = await fetch("/api/messages/team");
     const teamData = await teamRes.json();
     setTeamMembers(teamData.members || []);
+    // Load current chat members
+    const membersRes = await fetch("/api/messages/members?track_id=" + chat.track_id);
+    const membersData = await membersRes.json();
+    setChatMembers(membersData.members || []);
   };
 
   const sendMessage = async (text?: string, attachmentUrl?: string, attachmentType?: string, attachmentName?: string) => {
@@ -279,7 +284,7 @@ export default function MessagesPage() {
               <div className="space-y-2">
                 <p className="text-[10px] text-white/30 uppercase tracking-widest">Team Members</p>
                 {teamMembers.map((m: any) => {
-                  const isIn = (activeChat.members || []).some((cm: any) => cm.user_id === m.id);
+                  const isIn = chatMembers.some((cm: any) => cm.user_id === m.id);
                   return (
                     <div key={m.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03]">
                       <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">{(m.full_name || m.email || "?")[0].toUpperCase()}</div>
@@ -287,7 +292,10 @@ export default function MessagesPage() {
                       <button onClick={async () => {
                         await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ action: isIn ? "remove_member" : "add_member", track_id: activeChat.track_id, member_user_id: m.id }) });
-                        openChat(activeChat);
+                        // Refresh chat members
+                        const membersRes = await fetch("/api/messages/members?track_id=" + activeChat.track_id);
+                        const membersData = await membersRes.json();
+                        setChatMembers(membersData.members || []);
                       }} className={`text-[10px] px-2 py-1 rounded-lg ${isIn ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-white/[0.04] text-white/40 border border-white/[0.08]"}`}>
                         {isIn ? "Remove" : "Add"}
                       </button>
