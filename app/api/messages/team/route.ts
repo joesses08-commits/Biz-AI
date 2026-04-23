@@ -23,14 +23,17 @@ export async function GET(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: profile } = await supabaseAdmin.from("profiles").select("admin_user_id").eq("id", user.id).single();
-  const adminId = profile?.admin_user_id || user.id;
-
   const { data: members } = await supabaseAdmin
     .from("profiles")
-    .select("id, full_name, email")
-    .eq("admin_user_id", adminId)
-    .neq("id", user.id);
+    .select("id, full_name")
+    .eq("admin_user_id", user.id)
+    .eq("is_designer", true);
 
-  return NextResponse.json({ members: members || [] });
+  // Get auth emails for each member
+  const membersWithEmail = await Promise.all((members || []).map(async (m: any) => {
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(m.id);
+    return { ...m, email: authUser?.user?.email || "" };
+  }));
+
+  return NextResponse.json({ members: membersWithEmail });
 }
