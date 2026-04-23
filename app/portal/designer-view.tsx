@@ -366,15 +366,20 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
               </div>
             )}
 
-            {/* Product list - matching main PLM layout */}
-            {sortedProducts.length === 0 ? (
-              <div className="text-center py-20">
-                <Package size={32} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No products yet</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                {sortedProducts.map(product => {
+            {/* Product list - split by assignment */}
+            {(() => {
+              const assignedProducts = sortedProducts.filter(p => (p.plm_assignments || []).some((a: any) => a.designer_id === portalUser?.id));
+              const unassignedProducts = sortedProducts.filter(p => !(p.plm_assignments || []).some((a: any) => a.designer_id === portalUser?.id));
+              return (
+                <>
+                  {assignedProducts.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                        <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Assigned to Me · {assignedProducts.length}</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3">
+                        {assignedProducts.map(product => {
                   const statusKey = getProductStatus(product);
                   const productStatusMode = product.status || "progression";
                   const awardBadges = buildAwardBadges(product);
@@ -443,8 +448,47 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                     </div>
                   );
                 })}
-              </div>
-            )}
+                      </div>
+                    </div>
+                  )}
+                  {unassignedProducts.length > 0 && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3 mt-6">
+                        <div className="w-2 h-2 rounded-full bg-white/20" />
+                        <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Not Assigned · {unassignedProducts.length}</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3">
+                        {unassignedProducts.map(product => (
+                          <div key={product.id} className="border border-white/[0.04] rounded-xl p-4 bg-white/[0.005] flex items-center gap-4 opacity-60">
+                            {product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" /> :
+                              <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-white/50 truncate">{product.name}</p>
+                              {product.sku && <p className="text-[10px] text-white/25 font-mono">{product.sku}</p>}
+                              {product.plm_collections && <p className="text-[10px] text-white/20">{product.plm_collections.name}</p>}
+                            </div>
+                            <button onClick={async () => {
+                              await fetch("/api/portal/designer", { method: "POST",
+                                headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                                body: JSON.stringify({ action: "request_assignment", product_id: product.id }) });
+                              alert("Assignment requested! Admin will be notified.");
+                            }} className="text-[10px] px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition flex-shrink-0">
+                              Request Assignment
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {sortedProducts.length === 0 && (
+                    <div className="text-center py-20">
+                      <Package size={32} className="text-white/10 mx-auto mb-3" />
+                      <p className="text-white/30 text-sm">No products yet</p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         ) : activeTab === "collections" ? (
           /* Collections Tab */

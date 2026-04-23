@@ -493,6 +493,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "request_assignment") {
+    const { product_id } = body;
+    // Log to company_events so admin sees it
+    await supabaseAdmin.from("company_events").insert({
+      user_id: portalUser.user_id,
+      source: "Designer Portal",
+      event_type: "assignment_request",
+      raw_data: JSON.stringify({ product_id, designer_name: portalUser.name || portalUser.email }),
+      analysis: portalUser.name + " requested assignment to product " + product_id,
+      importance: "normal",
+      action_required: true,
+      recommended_action: "Assign " + (portalUser.name || portalUser.email) + " to this product in PLM",
+    }).catch(() => {});
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
 
