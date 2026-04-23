@@ -23,13 +23,18 @@ export async function GET(req: NextRequest) {
     .not("status", "eq", "killed")
     .not("status", "eq", "approved");
 
-  // Filter to only tracks where sample was requested but not yet shipped
+  // Filter to only tracks where sample was requested but not yet shipped IN THE LATEST REVISION
   const filteredTracks = (tracks || []).filter((t: any) => {
     const stages = t.plm_track_stages || [];
-    const hasSampleRequested = stages.some((s: any) => s.stage === "sample_requested" && s.status === "done");
-    const hasSampleShipped = stages.some((s: any) => s.stage === "sample_shipped" && s.status === "done");
     const productOk = !t.plm_products?.killed && t.plm_products?.status !== "hold";
-    return hasSampleRequested && !hasSampleShipped && productOk;
+    if (!productOk) return false;
+    // Find the latest revision number
+    const maxRev = stages.reduce((max: number, s: any) => Math.max(max, s.revision_number || 0), 0);
+    // Check latest revision cycle
+    const latestRevStages = stages.filter((s: any) => (s.revision_number || 0) === maxRev);
+    const hasSampleRequested = latestRevStages.some((s: any) => s.stage === "sample_requested" && s.status === "done");
+    const hasSampleShipped = latestRevStages.some((s: any) => s.stage === "sample_shipped" && s.status === "done");
+    return hasSampleRequested && !hasSampleShipped;
   });
 
   // Map to expected shape
