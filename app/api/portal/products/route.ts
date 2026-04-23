@@ -79,13 +79,14 @@ export async function GET(req: NextRequest) {
       const isKilled = track.status === "killed" && revNum === maxRevision;
       const isRevision = revNum < maxRevision;
       const requestedStage = revStages.find((s: any) => s.stage === "sample_requested");
+      const latestSampleStage = sampleStages[sampleStages.length - 1];
       
       return {
         id: track.id + "-rev-" + revNum,
         product_id: p.id,
         factory_id: portalUser.factory_id,
         status: isApproved ? "approved" : isKilled ? "killed" : isRevision ? "revision" : "requested",
-        current_stage: latestStage?.stage || "sample_requested",
+        current_stage: latestSampleStage?.stage || "sample_requested",
         created_at: requestedStage?.created_at || track.created_at,
         priority_order: track.priority_order || null,
         label: revNum === 0 ? "first" : "revision",

@@ -90,10 +90,15 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     const active = reqs.find((s: any) => s.status === "requested");
     return active?.current_stage === "sample_shipped";
   }).filter(filterBySearch);
+  const awaitingReviewSamples = pendingSamples.filter(p => {
+    const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
+    const active = reqs.find((s: any) => s.status === "requested");
+    return active?.current_stage === "sample_arrived";
+  }).filter(filterBySearch);
   const nonTransitPending = pendingSamples.filter(p => {
     const reqs = (p.plm_sample_requests || []).filter((s: any) => s.factory_id === portalUser?.factory_id);
     const active = reqs.find((s: any) => s.status === "requested");
-    return active?.current_stage !== "sample_shipped";
+    return active?.current_stage !== "sample_shipped" && active?.current_stage !== "sample_arrived";
   }).sort((a: any, b: any) => (a._sample_priority ?? 99999) - (b._sample_priority ?? 99999));
   // Active = first maxSamples items (by priority order), Upcoming = rest
   const activeSamples = nonTransitPending.filter((p: any) => p.status !== "hold").slice(0, maxSamples).filter(filterBySearch);
@@ -411,6 +416,19 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                 </div>
                 <div className="space-y-4">
                 {transitSamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
+                </div>
+              </div>
+            )}
+
+            {/* Awaiting Review Section */}
+            {awaitingReviewSamples.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full bg-purple-400" />
+                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Awaiting Review · {awaitingReviewSamples.length}</p>
+                </div>
+                <div className="space-y-4">
+                  {awaitingReviewSamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
                 </div>
               </div>
             )}
