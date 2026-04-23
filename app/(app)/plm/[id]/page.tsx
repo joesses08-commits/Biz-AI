@@ -1394,7 +1394,7 @@ ${entry}` : entry;
                     <p className="text-base font-semibold">Messages</p>
                     <p className="text-xs text-white/40 mt-0.5">{messagesModal.track.factory_catalog?.name} · {trackMessages.length} message{trackMessages.length !== 1 ? "s" : ""}</p>
                   </div>
-                  <button onClick={() => { setMessagesModal(null); setTrackMessages([]); setNewMessage(""); if (messagePollingRef.current) { clearInterval(messagePollingRef.current); messagePollingRef.current = null; } }}
+                  <button onClick={async () => { setMessagesModal(null); setTrackMessages([]); setNewMessage(""); if (messagePollingRef.current) { clearInterval(messagePollingRef.current); messagePollingRef.current = null; } const allTracks2 = tracks; if (allTracks2.length > 0) { const counts = await Promise.all(allTracks2.map(async (t: any) => { const r = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_message_counts", track_id: t.id }) }); const d = await r.json(); return { track_id: t.id, total: d.total || 0, unread: d.unread || 0 }; })); setTrackMessageCounts(counts); } }}
                     className="text-white/30 hover:text-white/60 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition">×</button>
                 </div>
 

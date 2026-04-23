@@ -309,6 +309,9 @@ export default function PortalProductPage() {
                 msgPollRef.current = setInterval(() => fetchMsgs(false), 3000);
               } else {
                 if (msgPollRef.current) { clearInterval(msgPollRef.current); msgPollRef.current = null; }
+                // Refresh unread count after closing
+                setUnreadCount(0);
+                setTotalMessages(trackMessages.length);
               }
               setShowMessages(!showMessages);
             }} className="w-full px-4 py-3 flex items-center justify-between">
