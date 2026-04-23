@@ -7,6 +7,7 @@ import { Package, Warehouse,
   LayoutDashboard,
   MessageSquare,
   CheckSquare,
+  MessageSquare,
   Video,
   Settings,
   BarChart2,
@@ -115,6 +116,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}
         <NavItem href="/inventory" icon={Warehouse} label="Inventory" description="Stock & warehouses" />
         <NavItem href="/workflows" icon={Zap} label="Workflows" description="AI automations" />
         <NavItem href="/plm/agent" icon={Sparkles} label="PLM Agent" description="Ask about your products" />
+        <NavItem href="/messages" icon={MessageSquare} label="Messages" description="Factory & team chats" />
         <NavItem href="/coming-soon" icon={Sparkles} label="Coming Soon" description="What's next" />
 
         <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mt-4 mb-2">Integrations</div>
