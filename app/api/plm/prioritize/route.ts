@@ -38,16 +38,25 @@ export async function GET(req: NextRequest) {
   });
 
   // Map to expected shape
-  const samples = filteredTracks.map((t: any) => ({
-    id: t.id,
-    factory_id: t.factory_id,
-    product_id: t.product_id,
-    priority_order: t.priority_order,
-    current_stage: "sample_requested",
-    status: "requested",
-    plm_products: t.plm_products,
-    factory_catalog: t.factory_catalog,
-  })).sort((a: any, b: any) => (a.priority_order ?? 99999) - (b.priority_order ?? 99999));
+  const samples = filteredTracks.map((t: any) => {
+    const stages = t.plm_track_stages || [];
+    const maxRev = stages.reduce((max: number, s: any) => Math.max(max, s.revision_number || 0), 0);
+    const latestRevStages = stages.filter((s: any) => (s.revision_number || 0) === maxRev);
+    const latestSampleStage = [...latestRevStages].reverse().find((s: any) => 
+      ["sample_production","sample_complete","sample_shipped","sample_arrived","sample_requested"].includes(s.stage)
+    );
+    return {
+      id: t.id,
+      factory_id: t.factory_id,
+      product_id: t.product_id,
+      priority_order: t.priority_order,
+      current_stage: latestSampleStage?.stage || "sample_requested",
+      status: "requested",
+      label: maxRev > 0 ? "revision" : "first",
+      plm_products: t.plm_products,
+      factory_catalog: t.factory_catalog,
+    };
+  }).sort((a: any, b: any) => (a.priority_order ?? 99999) - (b.priority_order ?? 99999));
 
   return NextResponse.json({ factories: factories || [], samples });
 }
