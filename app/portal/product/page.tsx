@@ -39,6 +39,7 @@ export default function PortalProductPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [firstUnreadIdx, setFirstUnreadIdx] = useState<number>(-1);
   const msgPollRef = useRef<NodeJS.Timeout | null>(null);
+  const msgContainerRef = useRef<HTMLDivElement | null>(null);
   const [totalMessages, setTotalMessages] = useState(0);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
