@@ -1222,7 +1222,8 @@ ${entry}` : entry;
                       </button>
                     )}
                   </div>
-                  {/* Messages button */}
+                  {/* Messages button - only show if sample was requested */}
+                  {(track.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done") && (
                   <div className="px-3 pb-3 pt-1">
                     <button onClick={async () => {
                       setMessagesModal({ track });
@@ -1266,6 +1267,7 @@ ${entry}` : entry;
                       <span className="text-white/20 text-[10px]">→</span>
                     </button>
                   </div>
+                  )}
                 </div>
               );
             };
