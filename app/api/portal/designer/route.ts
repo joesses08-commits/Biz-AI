@@ -505,7 +505,7 @@ export async function POST(req: NextRequest) {
       importance: "normal",
       action_required: true,
       recommended_action: "Assign " + (portalUser.name || portalUser.email) + " to this product in PLM",
-    }).catch(() => {});
+    });
     return NextResponse.json({ success: true });
   }
 
