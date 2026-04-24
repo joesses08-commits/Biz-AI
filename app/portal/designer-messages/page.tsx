@@ -45,14 +45,17 @@ export default function DesignerMessagesPage() {
         body: JSON.stringify({ action: "get_messages", track_id: chat.track_id }) });
       const data = await res.json();
       const msgs = data.messages || [];
-      setMessages(msgs);
+      setMessages(prev => {
+        // Only scroll to bottom on first load, not on polls
+        if (isFirst) {
+          setTimeout(() => { if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, 150);
+          setTimeout(() => { if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, 600);
+        }
+        return msgs;
+      });
       if (isFirst) {
         const idx = msgs.findIndex((m: any) => m.sender_role !== "designer" && !m.read_by_designer);
         setFirstUnread(idx);
-      }
-      if (isFirst) {
-        setTimeout(() => { if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, 100);
-        setTimeout(() => { if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, 500);
       }
       setChats(prev => prev.map(c => c.track_id === chat.track_id ? { ...c, unread_count: 0 } : c));
     };
