@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     .eq("user_id", portalUser.user_id);
 
   const chats = tracks
-    .filter((t: any) => memberTrackIds.has(t.id) && (messages || []).some((m: any) => m.track_id === t.id))
+    .filter((t: any) => memberTrackIds.has(t.id))
     .map((t: any) => {
       const trackMsgs = (messages || []).filter((m: any) => m.track_id === t.id);
       const latest = trackMsgs[0];
