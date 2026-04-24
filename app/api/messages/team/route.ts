@@ -24,16 +24,10 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: members } = await supabaseAdmin
-    .from("profiles")
-    .select("id, full_name")
-    .eq("admin_user_id", user.id)
-    .eq("is_designer", true);
+    .from("factory_portal_users")
+    .select("id, name, email, role")
+    .eq("user_id", user.id)
+    .eq("role", "designer");
 
-  // Get auth emails for each member
-  const membersWithEmail = await Promise.all((members || []).map(async (m: any) => {
-    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(m.id);
-    return { ...m, email: authUser?.user?.email || "" };
-  }));
-
-  return NextResponse.json({ members: membersWithEmail });
+  return NextResponse.json({ members: (members || []).map((m: any) => ({ id: m.id, full_name: m.name, email: m.email })) });
 }

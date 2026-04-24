@@ -1310,7 +1310,14 @@ ${entry}` : entry;
                         setAssignMsgTeamMembers(data.members || []);
                         const assignedIds = (product.plm_assignments || []).map((a: any) => a.designer_id);
                         setAssignMsgSelectedMembers(assignedIds);
-                        setAssignMsgSelectedTracks(tracks.map((t: any) => t.id));
+                        // Only show tracks that have messages (active chats) or have sample_requested
+                        const activeTracks = tracks.filter((t: any) => {
+                          const count = trackMessageCounts.find((m: any) => m.track_id === t.id);
+                          const hasMessages = count && count.total > 0;
+                          const hasSample = (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done");
+                          return hasMessages || hasSample;
+                        });
+                        setAssignMsgSelectedTracks(activeTracks.map((t: any) => t.id));
                         setAssignMessagesModal(true);
                       }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
                         <Users size={11} />Assign Messages
@@ -1348,7 +1355,7 @@ ${entry}` : entry;
                 ) : (
                   <div className="space-y-4">
                     <div style={{ columns: `${maxCols}`, columnGap: "12px" }}>
-                      {tracks.map((track: any) => (
+                      {tracks.filter((t: any) => { const count = trackMessageCounts.find((m: any) => m.track_id === t.id); return (count && count.total > 0) || (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done"); }).map((track: any) => (
                         <div key={track.id} style={{ breakInside: "avoid", marginBottom: "12px" }}>
                           <FactoryColumn track={track} />
                         </div>

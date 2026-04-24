@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
   const { data: members } = await supabaseAdmin
     .from("track_chat_members")
     .select("track_id")
-    .eq("user_id", portalUser.user_id)
+    .eq("user_id", portalUser.id)
     .in("track_id", trackIds);
 
   const memberTrackIds = new Set((members || []).map((m: any) => m.track_id));
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   if (action === "send_message") {
     const { message, product_id, attachment_url, attachment_type, attachment_name } = body;
     await supabaseAdmin.from("track_messages").insert({
-      track_id, product_id, user_id: portalUser.user_id,
+      track_id, product_id, user_id: portalUser.id,
       sender_role: "designer",
       sender_name: portalUser.name || portalUser.email || "Designer",
       message: message || "",
@@ -111,12 +111,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "pin") {
-    await supabaseAdmin.from("pinned_chats").upsert({ user_id: portalUser.user_id, track_id });
+    await supabaseAdmin.from("pinned_chats").upsert({ user_id: portalUser.id, track_id });
     return NextResponse.json({ success: true });
   }
 
   if (action === "unpin") {
-    await supabaseAdmin.from("pinned_chats").delete().eq("user_id", portalUser.user_id).eq("track_id", track_id);
+    await supabaseAdmin.from("pinned_chats").delete().eq("user_id", portalUser.id).eq("track_id", track_id);
     return NextResponse.json({ success: true });
   }
 
