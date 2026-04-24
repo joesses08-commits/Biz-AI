@@ -327,11 +327,11 @@ ${companyName}`;
     const { track_id } = body;
     const { data } = await supabaseAdmin.from("track_messages")
       .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
-    // Mark all factory messages as read by admin
+    // Mark all non-admin messages as read by admin
     await supabaseAdmin.from("track_messages")
       .update({ read_by_admin: true })
       .eq("track_id", track_id)
-      .eq("sender_role", "factory")
+      .neq("sender_role", "admin")
       .eq("read_by_admin", false);
     return NextResponse.json({ messages: data || [] });
   }

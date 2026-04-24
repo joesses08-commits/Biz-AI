@@ -1474,14 +1474,27 @@ ${entry}` : entry;
                             <div className="flex-1 h-px bg-blue-500/30" />
                           </div>
                         )}
-                        <div className={msg.sender_role === "admin" ? "flex justify-end" : "flex justify-start"}>
+                        <div className={msg.sender_role === "admin" ? "flex flex-col items-end gap-0.5" : "flex flex-col items-start gap-0.5"}>
                           <div className={msg.sender_role === "admin"
                             ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
+                            : msg.sender_role === "designer"
+                            ? "bg-blue-500/10 border border-blue-500/20 rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"
                             : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
-                            <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
+                            <p className={`text-[10px] font-semibold mb-0.5 ${msg.sender_role === "designer" ? "text-blue-400/70" : "text-white/50"}`}>{msg.sender_name}</p>
                             <p className="text-xs text-white/80">{msg.message}</p>
                             <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                           </div>
+                          {msg.sender_role === "admin" && (
+                            <p className="text-[9px] text-white/20 px-1">
+                              {msg.read_by_factory ? "✓✓ Seen by factory" : "✓ Sent"}
+                            </p>
+                          )}
+                          {msg.sender_role === "factory" && msg.read_by_admin && (
+                            <p className="text-[9px] text-white/20 px-1">✓ Read</p>
+                          )}
+                          {msg.sender_role === "designer" && msg.read_by_admin && (
+                            <p className="text-[9px] text-blue-400/30 px-1">✓ Read by admin</p>
+                          )}
                         </div>
                       </div>
                     ))}
