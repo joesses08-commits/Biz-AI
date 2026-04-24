@@ -860,6 +860,27 @@ ${entry}` : entry;
                 {product.category && <span>{product.category}</span>}
               </div>
             </div>
+            {/* Assigned Team - top right */}
+            <div className="flex-shrink-0 flex flex-col items-end gap-2">
+              <p className="text-[10px] text-white/25 uppercase tracking-widest">Assigned Team</p>
+              <div className="flex flex-col items-end gap-1.5">
+                {(product.plm_assignments || []).map((a: any) => (
+                  <div key={a.id} className="flex items-center gap-2">
+                    <span className="text-[11px] text-white/50">{a.factory_portal_users?.name || a.factory_portal_users?.email}</span>
+                    <div className="w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[9px] text-white/50 font-bold">
+                      {(a.factory_portal_users?.name || a.factory_portal_users?.email || "?")[0].toUpperCase()}
+                    </div>
+                    <button onClick={async () => {
+                      const currentIds = (product.plm_assignments || []).map((x: any) => x.designer_id).filter((x: string) => x !== a.designer_id);
+                      await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "assign_product", product_id: product.id, designer_ids: currentIds }) });
+                      load();
+                    }} className="text-white/20 hover:text-red-400 transition text-xs">×</button>
+                  </div>
+                ))}
+                {(product.plm_assignments || []).length === 0 && <p className="text-[11px] text-white/20">No one assigned</p>}
+                <AssignTeamMember productId={product.id} currentAssignments={product.plm_assignments || []} onAssign={() => load()} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2374,28 +2395,7 @@ Best regards,
                 })}
               </div>
             </div>
-            <div className="flex-1 min-w-[200px] border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-              <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Assigned Team</p>
-              <div className="space-y-2">
-                {(product.plm_assignments || []).map((a: any) => (
-                  <div key={a.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[9px] text-white/50 font-bold">
-                        {(a.factory_portal_users?.name || a.factory_portal_users?.email || "?")[0].toUpperCase()}
-                      </div>
-                      <span className="text-[11px] text-white/50 truncate">{a.factory_portal_users?.name || a.factory_portal_users?.email}</span>
-                    </div>
-                    <button onClick={async () => {
-                      const currentIds = (product.plm_assignments || []).map((x: any) => x.designer_id).filter((x: string) => x !== a.designer_id);
-                      await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "assign_product", product_id: product.id, designer_ids: currentIds }) });
-                      load();
-                    }} className="text-white/20 hover:text-red-400 transition text-xs">×</button>
-                  </div>
-                ))}
-                {(product.plm_assignments || []).length === 0 && <p className="text-[11px] text-white/20">No one assigned</p>}
-                <AssignTeamMember productId={product.id} currentAssignments={product.plm_assignments || []} onAssign={() => load()} />
-              </div>
-            </div>
+
             {product.action_status && product.action_status !== "up_to_date" && (
               <div className={`flex-1 min-w-[200px] border rounded-2xl p-4 ${product.action_status === "action_required" ? "border-red-500/20 bg-red-500/[0.03]" : "border-blue-500/20 bg-blue-500/[0.03]"}`}>
                 <div className="flex items-center justify-between mb-2">
