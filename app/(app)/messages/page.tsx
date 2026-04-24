@@ -289,14 +289,14 @@ export default function MessagesPage() {
                   const isIn = chatMembers.some((cm: any) => cm.user_id === m.id);
                   const isPending = pendingMemberIds.includes(m.id);
                   return (
-                    <div key={m.id} onClick={() => setPendingMemberIds((prev: string[]) => prev.includes(m.id) ? prev.filter((id: string) => id !== m.id) : [...prev, m.id])}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer border transition ${isPending ? "border-white/20 bg-white/[0.06]" : "border-white/[0.04] bg-white/[0.02]"}`}>
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isPending ? "bg-white border-white" : "border-white/20"}`}>
-                        {isPending && <Check size={9} className="text-black" />}
+                    <div key={m.id} onClick={() => { if (isIn) return; setPendingMemberIds((prev: string[]) => prev.includes(m.id) ? prev.filter((id: string) => id !== m.id) : [...prev, m.id]); }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${isIn ? "opacity-40 cursor-default border-white/[0.04] bg-white/[0.01]" : isPending ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-white/[0.04] bg-white/[0.02]"}`}>
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isIn ? "border-emerald-500/30 bg-emerald-500/10" : isPending ? "bg-white border-white" : "border-white/20"}`}>
+                        {isIn ? <Check size={9} className="text-emerald-400" /> : isPending ? <Check size={9} className="text-black" /> : null}
                       </div>
                       <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">{(m.full_name || m.email || "?")[0].toUpperCase()}</div>
-                      <p className="text-xs text-white/60 flex-1">{m.full_name || m.email}</p>
-                      {isIn && <span className="text-[9px] text-white/30">In chat</span>}
+                      <p className={`text-xs flex-1 ${isIn ? "text-white/30" : "text-white/60"}`}>{m.full_name || m.email}</p>
+                      {isIn && <span className="text-[9px] text-emerald-400/50">In chat</span>}
                     </div>
                   );
                 })}
