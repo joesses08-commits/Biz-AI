@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     .map((t: any) => {
       const trackMsgs = (messages || []).filter((m: any) => m.track_id === t.id);
       const latest = trackMsgs[0];
-      const unread = trackMsgs.filter((m: any) => m.sender_role === "factory" && !m.read_by_admin).length;
+      const unread = trackMsgs.filter((m: any) => (m.sender_role === "factory" || m.sender_role === "designer") && !m.read_by_admin).length;
       const trackMembers = (members || []).filter((m: any) => m.track_id === t.id);
       return {
         track_id: t.id,
@@ -145,7 +145,7 @@ export async function POST(req: NextRequest) {
     const { data } = await supabaseAdmin.from("track_messages")
       .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
     await supabaseAdmin.from("track_messages").update({ read_by_admin: true })
-      .eq("track_id", track_id).eq("sender_role", "factory").eq("read_by_admin", false);
+      .eq("track_id", track_id).neq("sender_role", "admin").eq("read_by_admin", false);
     return NextResponse.json({ messages: data || [] });
   }
 
