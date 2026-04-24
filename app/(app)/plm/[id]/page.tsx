@@ -1355,7 +1355,7 @@ ${entry}` : entry;
                 ) : (
                   <div className="space-y-4">
                     <div style={{ columns: `${maxCols}`, columnGap: "12px" }}>
-                      {tracks.filter((t: any) => { const count = trackMessageCounts.find((m: any) => m.track_id === t.id); return (count && count.total > 0) || (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done"); }).map((track: any) => (
+                      {tracks.map((track: any) => (
                         <div key={track.id} style={{ breakInside: "avoid", marginBottom: "12px" }}>
                           <FactoryColumn track={track} />
                         </div>
