@@ -45,7 +45,51 @@ function PinPrompt({ onConfirm, onCancel, error }: { onConfirm: (pin: string) =>
             className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Confirm</button>
           <button onClick={onCancel} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
         </div>
-      </div>
+      {/* Request Assignment Modal */}
+      {requestAssignmentProduct && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              {requestAssignmentProduct.images?.[0] ? (
+                <img src={requestAssignmentProduct.images[0]} className="w-12 h-12 rounded-xl object-cover border border-white/[0.06]" />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+              )}
+              <div>
+                <p className="text-sm font-semibold">{requestAssignmentProduct.name}</p>
+                {requestAssignmentProduct.sku && <p className="text-[10px] text-white/30 font-mono">{requestAssignmentProduct.sku}</p>}
+              </div>
+            </div>
+            {assignmentRequested.has(requestAssignmentProduct.id) ? (
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+                <span className="text-emerald-400 text-sm">✓</span>
+                <p className="text-xs text-emerald-400">Assignment requested! Admin will be notified.</p>
+              </div>
+            ) : (
+              <p className="text-xs text-white/50">Request to be assigned to this product. Admin will review and assign you.</p>
+            )}
+            <div className="flex gap-2">
+              {!assignmentRequested.has(requestAssignmentProduct.id) && (
+                <button onClick={async () => {
+                  setRequestingAssignment(true);
+                  await fetch("/api/portal/designer", { method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                    body: JSON.stringify({ action: "request_assignment", product_id: requestAssignmentProduct.id }) });
+                  setAssignmentRequested(prev => new Set([...prev, requestAssignmentProduct.id]));
+                  setRequestingAssignment(false);
+                }} disabled={requestingAssignment}
+                  className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                  {requestingAssignment ? "Sending..." : "Send Request"}
+                </button>
+              )}
+              <button onClick={() => setRequestAssignmentProduct(null)}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">
+                {assignmentRequested.has(requestAssignmentProduct.id) ? "Close" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -92,6 +136,9 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [productTracks, setProductTracks] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"products" | "collections" | "prioritization">("products");
+  const [requestAssignmentProduct, setRequestAssignmentProduct] = useState<any>(null);
+  const [requestingAssignment, setRequestingAssignment] = useState(false);
+  const [assignmentRequested, setAssignmentRequested] = useState<Set<string>>(new Set());
   const [hasPinSet, setHasPinSet] = useState(false);
   const [showSetPin, setShowSetPin] = useState(false);
   const [pinPrompt, setPinPrompt] = useState<null | { resolve: (pin: string) => void }>(null);
@@ -459,20 +506,17 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                       </div>
                       <div className="grid grid-cols-1 gap-3">
                         {unassignedProducts.map(product => (
-                          <div key={product.id} className="border border-white/[0.04] rounded-xl p-4 bg-white/[0.005] flex items-center gap-4 opacity-60">
-                            {product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" /> :
-                              <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />}
+                          <div key={product.id} className="border border-white/[0.04] rounded-xl p-4 bg-white/[0.005] flex items-center gap-4 cursor-pointer hover:border-white/[0.08] transition"
+                            onClick={() => router.push("/portal/designer-product?id=" + product.id)}>
+                            {product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0 opacity-60" /> :
+                              <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0 opacity-60" />}
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-semibold text-white/50 truncate">{product.name}</p>
                               {product.sku && <p className="text-[10px] text-white/25 font-mono">{product.sku}</p>}
                               {product.plm_collections && <p className="text-[10px] text-white/20">{product.plm_collections.name}</p>}
                             </div>
-                            <button onClick={async () => {
-                              await fetch("/api/portal/designer", { method: "POST",
-                                headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
-                                body: JSON.stringify({ action: "request_assignment", product_id: product.id }) });
-                              alert("Assignment requested! Admin will be notified.");
-                            }} className="text-[10px] px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition flex-shrink-0">
+                            <button onClick={e => { e.stopPropagation(); setRequestAssignmentProduct(product); }}
+                              className="text-[10px] px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition flex-shrink-0">
                               Request Assignment
                             </button>
                           </div>
