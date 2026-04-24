@@ -105,6 +105,7 @@ export default function ProductPage() {
   const [showSampleModal, setShowSampleModal] = useState(false);
   const [sampleFactoryIds, setSampleFactoryIds] = useState<string[]>([]);
   const [sampleNote, setSampleNote] = useState("");
+  const [sampleArrivalDate, setSampleArrivalDate] = useState("");
   const [requestingSamples, setRequestingSamples] = useState(false);
   const [sampleSuccess, setSampleSuccess] = useState("");
   const [updatingSampleStage, setUpdatingSampleStage] = useState<string | null>(null);
@@ -301,8 +302,7 @@ ${entry}` : entry;
       }
     }
     // Auto-send message to each factory with sample request details
-    const arrivalDateEl = document.getElementById("sampleArrivalDate") as HTMLInputElement;
-    const arrivalDate = arrivalDateEl?.value;
+    const arrivalDate = sampleArrivalDate;
     for (const fid of sampleFactoryIds) {
       const track = allTracks.find((t: any) => t.factory_id === fid);
       if (track) {
@@ -318,6 +318,7 @@ ${entry}` : entry;
 
     setSampleFactoryIds([]);
     setSampleNote("");
+    setSampleArrivalDate("");
     const requested = (data.factories || []).map((f: any) => f.name);
     const skipped = data.skipped || [];
     let msg = requested.length > 0 ? `Sample requested from ${requested.join(", ")}` : "";
@@ -610,7 +611,7 @@ ${entry}` : entry;
               </div>
               <div>
                 <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Est. arrival date</p>
-                <input type="date" id="sampleArrivalDate"
+                <input type="date" value={sampleArrivalDate} onChange={e => setSampleArrivalDate(e.target.value)}
                   className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
               </div>
             </div>
