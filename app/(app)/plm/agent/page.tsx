@@ -5,19 +5,20 @@ import { Send, ArrowLeft, Loader2, Sparkles, RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 const SUGGESTED = [
-  "What's my best factory right now?",
-  "Which products still need samples?",
-  "Compare my factories by approval rate",
-  "What's the average approved price per factory?",
-  "Which products are approved and ready to order?",
-  "Which collections are furthest along?",
-  "Which factories have the most revisions?",
   "What needs my attention right now?",
+  "Which products still need samples?",
+  "Message joeys factory about bread box asking for an update",
+  "What's the status of all my factory tracks?",
+  "Create a PO for spice rack and email to joeys factory",
+  "Which factories have the most revisions?",
+  "Update bread box at georges factory to sample shipped",
+  "Which products are approved and ready to order?",
 ];
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  actions?: string[];
 }
 
 interface Chat {
@@ -132,7 +133,7 @@ export default function PLMAgentPage() {
         }),
       });
       const data = await res.json();
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Sorry, I couldn't get a response." }]);
+      setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Sorry, I couldn't get a response.", actions: data.actions || [] }]);
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Something went wrong. Try again." }]);
     }
@@ -220,16 +221,28 @@ export default function PLMAgentPage() {
                     : "text-white/80 rounded-tl-sm"
                 }`}>
                   {m.role === "assistant" ? (
-                    <ReactMarkdown components={{
-                      p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
-                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
-                      li: ({ children }) => <li className="text-white/70">{children}</li>,
-                      code: ({ children }) => <code className="bg-white/[0.06] px-1.5 py-0.5 rounded text-xs text-violet-300 font-mono">{children}</code>,
-                    }}>
-                      {m.content}
-                    </ReactMarkdown>
+                    <div>
+                      <ReactMarkdown components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                        ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                        li: ({ children }) => <li className="text-white/70">{children}</li>,
+                        code: ({ children }) => <code className="bg-white/[0.06] px-1.5 py-0.5 rounded text-xs text-violet-300 font-mono">{children}</code>,
+                      }}>
+                        {m.content}
+                      </ReactMarkdown>
+                      {m.actions && m.actions.length > 0 && (
+                        <div className="mt-3 space-y-1.5 border-t border-white/[0.06] pt-3">
+                          {m.actions.map((action: string, i: number) => (
+                            <div key={i} className="flex items-start gap-2 text-[11px]">
+                              <span className="text-emerald-400 flex-shrink-0">✓</span>
+                              <span className="text-white/40">{action}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   ) : m.content}
                 </div>
               </div>
