@@ -589,7 +589,6 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
         )}
       </div>
     </div>
-  );
       {/* Request Assignment Modal */}
       {requestAssignmentProduct && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -635,4 +634,5 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
           </div>
         </div>
       )}
+  );
 }
