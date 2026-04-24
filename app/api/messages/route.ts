@@ -103,7 +103,6 @@ export async function POST(req: NextRequest) {
 
   if (action === "add_member") {
     const { member_user_id } = body;
-    // Check if already exists first
     const { data: existing } = await supabaseAdmin
       .from("track_chat_members")
       .select("id")
@@ -111,9 +110,10 @@ export async function POST(req: NextRequest) {
       .eq("user_id", member_user_id)
       .maybeSingle();
     if (!existing) {
-      await supabaseAdmin.from("track_chat_members").insert({ track_id, user_id: member_user_id, added_by: user.id });
+      const { error } = await supabaseAdmin.from("track_chat_members").insert({ track_id, user_id: member_user_id, added_by: user.id });
+      if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, already_existed: !!existing });
   }
 
   if (action === "add_members_bulk") {
