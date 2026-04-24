@@ -1611,16 +1611,19 @@ ${entry}` : entry;
 
                 <div className="space-y-2">
                   <p className="text-[10px] text-white/30 uppercase tracking-widest">Factory Chats</p>
-                  {tracks.map((track: any) => (
-                    <div key={track.id} onClick={() => setAssignMsgSelectedTracks(prev =>
-                      prev.includes(track.id) ? prev.filter(id => id !== track.id) : [...prev, track.id]
-                    )} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition ${assignMsgSelectedTracks.includes(track.id) ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] bg-white/[0.02]"}`}>
-                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${assignMsgSelectedTracks.includes(track.id) ? "bg-white border-white" : "border-white/20"}`}>
-                        {assignMsgSelectedTracks.includes(track.id) && <Check size={10} className="text-black" />}
+                  {tracks.map((track: any) => {
+                    const hasSample = (track.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done");
+                    const isSelected = assignMsgSelectedTracks.includes(track.id);
+                    return (
+                    <div key={track.id} onClick={() => { if (!hasSample) return; setAssignMsgSelectedTracks(prev => prev.includes(track.id) ? prev.filter(id => id !== track.id) : [...prev, track.id]); }}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${!hasSample ? "opacity-30 cursor-default border-white/[0.04] bg-white/[0.01]" : isSelected ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-white/[0.06] bg-white/[0.02]"}`}>
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${isSelected ? "bg-white border-white" : "border-white/20"}`}>
+                        {isSelected && <Check size={10} className="text-black" />}
                       </div>
-                      <p className="text-xs text-white/70">{track.factory_catalog?.name}</p>
+                      <p className={`text-xs ${hasSample ? "text-white/70" : "text-white/30"}`}>{track.factory_catalog?.name}</p>
+                      {!hasSample && <span className="text-[9px] text-white/20 ml-auto">No sample</span>}
                     </div>
-                  ))}
+                  );})}
                 </div>
 
                 <div className="space-y-2">
