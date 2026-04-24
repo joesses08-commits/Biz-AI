@@ -172,6 +172,7 @@ export default function ProductPage() {
   const [assignMsgSelectedMembers, setAssignMsgSelectedMembers] = useState<string[]>([]);
   const [assignMsgSelectedTracks, setAssignMsgSelectedTracks] = useState<string[]>([]);
   const [assignMsgLoading, setAssignMsgLoading] = useState(false);
+  const [assignMsgExistingMembers, setAssignMsgExistingMembers] = useState<Record<string, string[]>>({});
 
   // Images
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -1317,7 +1318,16 @@ ${entry}` : entry;
                           const hasSample = (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done");
                           return hasMessages || hasSample;
                         });
-                        setAssignMsgSelectedTracks(activeTracks.map((t: any) => t.id));
+                        const activeTrackIds = activeTracks.map((t: any) => t.id);
+                        setAssignMsgSelectedTracks(activeTrackIds);
+                        // Fetch existing members for each active track
+                        const existingMap: Record<string, string[]> = {};
+                        for (const tid of activeTrackIds) {
+                          const r = await fetch("/api/messages/members?track_id=" + tid);
+                          const d = await r.json();
+                          existingMap[tid] = (d.members || []).map((m: any) => m.user_id);
+                        }
+                        setAssignMsgExistingMembers(existingMap);
                         setAssignMessagesModal(true);
                       }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
                         <Users size={11} />Assign Messages
@@ -1631,20 +1641,27 @@ ${entry}` : entry;
                   {assignMsgTeamMembers.length === 0 && <p className="text-[11px] text-white/20">No team members found</p>}
                   {assignMsgTeamMembers.map((m: any) => {
                     const isSelected = assignMsgSelectedMembers.includes(m.id);
+                    // Which selected tracks already have this member
+                    const alreadyInTracks = assignMsgSelectedTracks.filter(tid => (assignMsgExistingMembers[tid] || []).includes(m.id));
+                    // Which selected tracks still need this member
+                    const newTracks = assignMsgSelectedTracks.filter(tid => !(assignMsgExistingMembers[tid] || []).includes(m.id));
+                    const alreadyInAll = assignMsgSelectedTracks.length > 0 && newTracks.length === 0;
+                    const alreadyInSome = alreadyInTracks.length > 0 && newTracks.length > 0;
+                    // Get factory names for tracks they are already in
+                    const alreadyInNames = alreadyInTracks.map(tid => tracks.find((t: any) => t.id === tid)?.factory_catalog?.name).filter(Boolean);
                     return (
-                    <div key={m.id} onClick={() => setAssignMsgSelectedMembers(prev =>
-                      prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
-                    )} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition ${isSelected ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] bg-white/[0.02]"}`}>
-                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${isSelected ? "bg-white border-white" : "border-white/20"}`}>
-                        {isSelected && <Check size={10} className="text-black" />}
+                    <div key={m.id} onClick={() => { if (alreadyInAll) return; setAssignMsgSelectedMembers(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]); }}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${alreadyInAll ? "opacity-40 cursor-default border-white/[0.04] bg-white/[0.01]" : isSelected ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-white/[0.06] bg-white/[0.02]"}`}>
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${alreadyInAll ? "border-emerald-500/30 bg-emerald-500/10" : isSelected ? "bg-white border-white" : "border-white/20"}`}>
+                        {alreadyInAll ? <Check size={10} className="text-emerald-400" /> : isSelected ? <Check size={10} className="text-black" /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white/70">{m.full_name || m.email}</p>
-                        {(product.plm_assignments || []).some((a: any) => a.designer_id === m.id) && (
+                        <p className={`text-xs ${alreadyInAll ? "text-white/30" : "text-white/70"}`}>{m.full_name || m.email}</p>
+                        {alreadyInAll && <p className="text-[9px] text-emerald-400/50">Already in all selected chats</p>}
+                        {alreadyInSome && <p className="text-[9px] text-white/30">Already in: {alreadyInNames.join(", ")}</p>}
+                        {isSelected && newTracks.length > 0 && <p className="text-[9px] text-white/30">Will be added to {newTracks.length} chat{newTracks.length !== 1 ? "s" : ""}</p>}
+                        {(product.plm_assignments || []).some((a: any) => a.designer_id === m.id) && !alreadyInAll && !alreadyInSome && (
                           <p className="text-[9px] text-amber-400/60">Assigned to product</p>
-                        )}
-                        {isSelected && assignMsgSelectedTracks.length > 0 && (
-                          <p className="text-[9px] text-white/30">Will be added to {assignMsgSelectedTracks.length} chat{assignMsgSelectedTracks.length !== 1 ? "s" : ""}</p>
                         )}
                       </div>
                     </div>
