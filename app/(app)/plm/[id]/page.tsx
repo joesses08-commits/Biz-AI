@@ -1629,21 +1629,27 @@ ${entry}` : entry;
                 <div className="space-y-2">
                   <p className="text-[10px] text-white/30 uppercase tracking-widest">Team Members</p>
                   {assignMsgTeamMembers.length === 0 && <p className="text-[11px] text-white/20">No team members found</p>}
-                  {assignMsgTeamMembers.map((m: any) => (
+                  {assignMsgTeamMembers.map((m: any) => {
+                    const isSelected = assignMsgSelectedMembers.includes(m.id);
+                    return (
                     <div key={m.id} onClick={() => setAssignMsgSelectedMembers(prev =>
                       prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
-                    )} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition ${assignMsgSelectedMembers.includes(m.id) ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] bg-white/[0.02]"}`}>
-                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${assignMsgSelectedMembers.includes(m.id) ? "bg-white border-white" : "border-white/20"}`}>
-                        {assignMsgSelectedMembers.includes(m.id) && <Check size={10} className="text-black" />}
+                    )} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition ${isSelected ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] bg-white/[0.02]"}`}>
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${isSelected ? "bg-white border-white" : "border-white/20"}`}>
+                        {isSelected && <Check size={10} className="text-black" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-white/70">{m.full_name || m.email}</p>
                         {(product.plm_assignments || []).some((a: any) => a.designer_id === m.id) && (
                           <p className="text-[9px] text-amber-400/60">Assigned to product</p>
                         )}
+                        {isSelected && assignMsgSelectedTracks.length > 0 && (
+                          <p className="text-[9px] text-white/30">Will be added to {assignMsgSelectedTracks.length} chat{assignMsgSelectedTracks.length !== 1 ? "s" : ""}</p>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
 
                 <div className="flex gap-2 pt-1">

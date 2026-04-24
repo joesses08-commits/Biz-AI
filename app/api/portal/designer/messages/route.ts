@@ -61,8 +61,18 @@ export async function GET(req: NextRequest) {
     .select("track_id")
     .eq("user_id", portalUser.user_id);
 
+  // Get track stages to check which have sample requested
+  const { data: trackStages } = await supabaseAdmin
+    .from("plm_track_stages")
+    .select("track_id, stage, status")
+    .in("track_id", trackIds)
+    .eq("stage", "sample_requested")
+    .eq("status", "done");
+
+  const sampleRequestedTrackIds = new Set((trackStages || []).map((s: any) => s.track_id));
+
   const chats = tracks
-    .filter((t: any) => memberTrackIds.has(t.id))
+    .filter((t: any) => memberTrackIds.has(t.id) && sampleRequestedTrackIds.has(t.id))
     .map((t: any) => {
       const trackMsgs = (messages || []).filter((m: any) => m.track_id === t.id);
       const latest = trackMsgs[0];
