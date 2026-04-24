@@ -620,7 +620,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                   await fetch("/api/portal/designer", { method: "POST",
                     headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
                     body: JSON.stringify({ action: "request_assignment", product_id: requestAssignmentProduct.id }) });
-                  setAssignmentRequested(prev => new Set([...prev, requestAssignmentProduct.id]));
+                  setAssignmentRequested(prev => { const next = new Set(prev); next.add(requestAssignmentProduct.id); return next; });
                   setRequestingAssignment(false);
                 }} disabled={requestingAssignment}
                   className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
