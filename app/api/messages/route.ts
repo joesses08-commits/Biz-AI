@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { createNotification } from "@/lib/notify";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -158,6 +159,15 @@ export async function POST(req: NextRequest) {
       sender_role: "admin", sender_name: senderName, message: message || "",
       attachment_url: attachment_url || null, attachment_type: attachment_type || null, attachment_name: attachment_name || null,
     });
+    // Notify team members in this chat
+    const { data: members } = await supabaseAdmin.from("track_chat_members").select("user_id").eq("track_id", track_id);
+    const { data: trackInfo } = await supabaseAdmin.from("plm_factory_tracks").select("plm_products(name)").eq("id", track_id).single();
+    const productName = (trackInfo as any)?.plm_products?.name || "Product";
+    for (const m of (members || [])) {
+      if (m.user_id !== user.id) {
+        await createNotification({ user_id: m.user_id, type: "message", title: `New message — ${productName}`, body: message || "Attachment", link: `/messages` });
+      }
+    }
     return NextResponse.json({ success: true });
   }
 

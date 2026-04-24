@@ -26,6 +26,7 @@ import { Package, Warehouse,
   Sparkles,
 } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
+import NotificationBell from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}) {
@@ -99,10 +100,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}
               <path d="M24 26 Q24 34 18 35 Q11 36 10 30" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-text-primary leading-none" style={{ fontFamily: "var(--font-display)" }}>Jimmy</div>
             <div className="text-[10px] text-text-muted mt-0.5 leading-none">AI Operating System</div>
           </div>
+          <NotificationBell />
         </div>
       </div>
 

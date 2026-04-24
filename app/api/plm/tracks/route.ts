@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 import { sendEmail } from "@/app/api/chat/tools/index";
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
@@ -156,6 +157,25 @@ export async function POST(req: NextRequest) {
       stageData = data;
     }
 
+    // Notify admin about stage update from factory/designer
+    try {
+      if (body.updated_by_role === "factory" || body.updated_by_role === "designer") {
+        const { data: trackInfo } = await supabaseAdmin.from("plm_factory_tracks")
+          .select("user_id, plm_products(name), factory_catalog(name)").eq("id", track_id).single();
+        if (trackInfo) {
+          const productName = (trackInfo as any).plm_products?.name || "Product";
+          const factoryName = (trackInfo as any).factory_catalog?.name || "Factory";
+          const stageLabel = stage.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          await createNotification({
+            user_id: (trackInfo as any).user_id,
+            type: "stage_update",
+            title: stageLabel + " — " + productName,
+            body: factoryName + " marked " + stageLabel.toLowerCase(),
+            link: "/plm/" + body.product_id
+          });
+        }
+      }
+    } catch {}
     return NextResponse.json({ success: true, stage: stageData });
   }
 
@@ -338,6 +358,21 @@ ${companyName}`;
 
   if (action === "send_message") {
     const { track_id, product_id, message } = body;
+    // Notify admin when factory or designer sends message
+    if (body.sender_role === "factory" || body.sender_role === "designer") {
+      const { data: trackInfo } = await supabaseAdmin.from("plm_factory_tracks")
+        .select("user_id, plm_products(name), factory_catalog(name)").eq("id", track_id).single();
+      if (trackInfo) {
+        const productName = (trackInfo as any).plm_products?.name || "Product";
+        await createNotification({
+          user_id: (trackInfo as any).user_id,
+          type: "message",
+          title: `New message — ${productName}`,
+          body: message || "Attachment",
+          link: `/plm/${product_id}`
+        });
+      }
+    }
     const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", user.id).single();
     const senderName = profile?.full_name || user.email || "Admin";
     await supabaseAdmin.from("track_messages").insert({
