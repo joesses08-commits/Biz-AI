@@ -590,4 +590,49 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       </div>
     </div>
   );
+      {/* Request Assignment Modal */}
+      {requestAssignmentProduct && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              {requestAssignmentProduct.images?.[0] ? (
+                <img src={requestAssignmentProduct.images[0]} className="w-12 h-12 rounded-xl object-cover border border-white/[0.06]" />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+              )}
+              <div>
+                <p className="text-sm font-semibold">{requestAssignmentProduct.name}</p>
+                {requestAssignmentProduct.sku && <p className="text-[10px] text-white/30 font-mono">{requestAssignmentProduct.sku}</p>}
+              </div>
+            </div>
+            {assignmentRequested.has(requestAssignmentProduct.id) ? (
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+                <span className="text-emerald-400 text-sm">✓</span>
+                <p className="text-xs text-emerald-400">Assignment requested! Admin will be notified.</p>
+              </div>
+            ) : (
+              <p className="text-xs text-white/50">Request to be assigned to this product. Admin will review and assign you.</p>
+            )}
+            <div className="flex gap-2">
+              {!assignmentRequested.has(requestAssignmentProduct.id) && (
+                <button onClick={async () => {
+                  setRequestingAssignment(true);
+                  await fetch("/api/portal/designer", { method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (localStorage.getItem("portal_token") || "") },
+                    body: JSON.stringify({ action: "request_assignment", product_id: requestAssignmentProduct.id }) });
+                  setAssignmentRequested(prev => new Set([...prev, requestAssignmentProduct.id]));
+                  setRequestingAssignment(false);
+                }} disabled={requestingAssignment}
+                  className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                  {requestingAssignment ? "Sending..." : "Send Request"}
+                </button>
+              )}
+              <button onClick={() => setRequestAssignmentProduct(null)}
+                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">
+                {assignmentRequested.has(requestAssignmentProduct.id) ? "Close" : "Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 }
