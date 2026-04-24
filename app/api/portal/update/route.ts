@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
     // Notify admin
     try {
       const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", batch.product_id).single();
-      const stageLabel = stage.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      const stageLabel = stage.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
       await createNotification({
         user_id: batch.user_id,
         type: "stage_update",
