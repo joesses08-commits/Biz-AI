@@ -45,6 +45,7 @@ function PinPrompt({ onConfirm, onCancel, error }: { onConfirm: (pin: string) =>
             className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Confirm</button>
           <button onClick={onCancel} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
         </div>
+
       {/* Request Assignment Modal */}
       {requestAssignmentProduct && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
