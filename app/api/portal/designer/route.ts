@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 import { createClient } from "@supabase/supabase-js";
 import { createHash } from "crypto";
 
@@ -137,6 +138,17 @@ export async function POST(req: NextRequest) {
       product_id, user_id: portalUser.user_id, stage, notes: note || "",
       updated_by: portalUser.email, updated_by_role: "designer",
     });
+    try {
+      const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", product_id).single();
+      const stageLabel = stage.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      await createNotification({
+        user_id: portalUser.user_id,
+        type: "stage_update",
+        title: stageLabel + " — " + (product?.name || "Product"),
+        body: (portalUser.name || "Designer") + " updated stage to " + stageLabel.toLowerCase(),
+        link: "/plm/" + product_id
+      });
+    } catch {}
     return NextResponse.json({ success: true });
   }
 

@@ -89,6 +89,20 @@ export async function POST(req: NextRequest) {
           updated_by: "factory",
         });
       }
+      // Notify admin about track stage update
+      try {
+        const { data: product } = await supabaseAdmin.from("plm_products").select("name, user_id").eq("id", product_id).single();
+        const stageLabel = stage.split("_").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        if (product?.user_id) {
+          await createNotification({
+            user_id: product.user_id,
+            type: "stage_update",
+            title: stageLabel + " — " + (product.name || "Product"),
+            body: (portalUser.name || portalUser.email || "Factory") + " marked " + stageLabel.toLowerCase(),
+            link: "/plm/" + product_id
+          });
+        }
+      } catch {}
     }
 
   } else {

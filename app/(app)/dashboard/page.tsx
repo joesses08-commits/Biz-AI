@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
-import { Package, Factory, Layers, AlertTriangle, CheckCircle, Clock, RefreshCw, Loader2, ChevronRight, Zap, TrendingUp } from "lucide-react";
+import { Package, Factory, Layers, AlertTriangle, CheckCircle, Clock, RefreshCw, Loader2, ChevronRight, Zap, TrendingUp, Bell } from "lucide-react";
 
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,6 +21,68 @@ const STAGE_LABELS: Record<string, string> = {
   sample_requested: "Sample Requested", sample_production: "In Production", sample_complete: "Sample Complete",
   sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived", sample_reviewed: "Sample Reviewed"
 };
+
+function NotificationsWidget() {
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/notifications").then(r => r.json()).then(d => {
+      setNotifications((d.notifications || []).slice(0, 5));
+      setUnread(d.unread || 0);
+    });
+  }, []);
+
+  const typeIcon = (type: string) => {
+    if (type === "message") return "💬";
+    if (type === "stage_update") return "📦";
+    if (type === "action_required") return "⚡";
+    return "🔔";
+  };
+
+  const markRead = async (id: string, link?: string) => {
+    await fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "mark_read", id }) });
+    if (link) router.push(link);
+  };
+
+  if (notifications.length === 0) return null;
+
+  return (
+    <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Bell size={14} className="text-white/40" />
+          <p className="text-sm font-semibold">Notifications</p>
+          {unread > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">{unread} new</span>}
+        </div>
+        <button onClick={async () => {
+          await fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "mark_read", id: "all" }) });
+          setUnread(0);
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        }} className="text-[11px] text-white/25 hover:text-white/50 transition">Mark all read</button>
+      </div>
+      <div className="space-y-2">
+        {notifications.map((n: any) => (
+          <div key={n.id} onClick={() => markRead(n.id, n.link)}
+            className={`flex items-start gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/[0.03] transition ${!n.read ? "bg-white/[0.02]" : ""}`}>
+            <span className="text-sm flex-shrink-0">{typeIcon(n.type)}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className={`text-xs font-semibold truncate ${!n.read ? "text-white" : "text-white/50"}`}>{n.title}</p>
+                {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />}
+              </div>
+              <p className="text-[11px] text-white/30 truncate">{n.body}</p>
+            </div>
+            <p className="text-[9px] text-white/20 flex-shrink-0">{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -282,6 +344,9 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* ── Notifications widget ── */}
+        <NotificationsWidget />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
