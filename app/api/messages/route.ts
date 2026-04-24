@@ -23,7 +23,6 @@ export async function GET(req: NextRequest) {
   const user = await getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Get all factory tracks for this user with messages
   const { data: tracks } = await supabaseAdmin
     .from("plm_factory_tracks")
     .select("id, product_id, factory_id, status, factory_catalog(id, name), plm_products(id, name, sku, images)")
@@ -33,14 +32,12 @@ export async function GET(req: NextRequest) {
 
   const trackIds = tracks.map((t: any) => t.id);
 
-  // Get latest message + unread count per track
   const { data: messages } = await supabaseAdmin
     .from("track_messages")
     .select("*")
     .in("track_id", trackIds)
     .order("created_at", { ascending: false });
 
-  // Get pinned chats
   const { data: pinned } = await supabaseAdmin
     .from("pinned_chats")
     .select("track_id")
@@ -48,13 +45,11 @@ export async function GET(req: NextRequest) {
 
   const pinnedIds = new Set((pinned || []).map((p: any) => p.track_id));
 
-  // Get chat members
   const { data: members } = await supabaseAdmin
     .from("track_chat_members")
     .select("track_id, user_id, profiles(full_name, email)")
     .in("track_id", trackIds);
 
-  // Build chat list
   const chats = tracks
     .filter((t: any) => {
       const trackMsgs = (messages || []).filter((m: any) => m.track_id === t.id);
@@ -108,7 +103,35 @@ export async function POST(req: NextRequest) {
 
   if (action === "add_member") {
     const { member_user_id } = body;
-    await supabaseAdmin.from("track_chat_members").upsert({ track_id, user_id: member_user_id, added_by: user.id });
+    // Check if already exists first
+    const { data: existing } = await supabaseAdmin
+      .from("track_chat_members")
+      .select("id")
+      .eq("track_id", track_id)
+      .eq("user_id", member_user_id)
+      .maybeSingle();
+    if (!existing) {
+      await supabaseAdmin.from("track_chat_members").insert({ track_id, user_id: member_user_id, added_by: user.id });
+    }
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "add_members_bulk") {
+    // Add multiple members to multiple tracks at once
+    const { member_user_ids, track_ids } = body;
+    for (const tid of (track_ids || [track_id])) {
+      for (const uid of (member_user_ids || [])) {
+        const { data: existing } = await supabaseAdmin
+          .from("track_chat_members")
+          .select("id")
+          .eq("track_id", tid)
+          .eq("user_id", uid)
+          .maybeSingle();
+        if (!existing) {
+          await supabaseAdmin.from("track_chat_members").insert({ track_id: tid, user_id: uid, added_by: user.id });
+        }
+      }
+    }
     return NextResponse.json({ success: true });
   }
 

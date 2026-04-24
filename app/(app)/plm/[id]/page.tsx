@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Package, ArrowLeft, Factory, Layers, Check, Loader2,
+  Package, ArrowLeft, Factory, Layers, Check, Loader2, Users,
   X, Plus, ImagePlus, Trash2, Pencil
 } from "lucide-react";
 
@@ -167,6 +167,16 @@ export default function ProductPage() {
   const [revisionNotes, setRevisionNotes] = useState("");
   const [requestingRevision, setRequestingRevision] = useState(false);
   const [expandedTrack, setExpandedTrack] = useState<string | null>(null);
+  const [assignMessagesModal, setAssignMessagesModal] = useState(false);
+  const [assignMsgTeamMembers, setAssignMsgTeamMembers] = useState<any[]>([]);
+  const [assignMsgSelectedMembers, setAssignMsgSelectedMembers] = useState<string[]>([]);
+  const [assignMsgSelectedTracks, setAssignMsgSelectedTracks] = useState<string[]>([]);
+  const [assignMsgLoading, setAssignMsgLoading] = useState(false);
+  const [assignMessagesModal, setAssignMessagesModal] = useState(false);
+  const [assignMsgTeamMembers, setAssignMsgTeamMembers] = useState<any[]>([]);
+  const [assignMsgSelectedMembers, setAssignMsgSelectedMembers] = useState<string[]>([]);
+  const [assignMsgSelectedTracks, setAssignMsgSelectedTracks] = useState<string[]>([]);
+  const [assignMsgLoading, setAssignMsgLoading] = useState(false);
 
   // Images
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -1298,6 +1308,19 @@ ${entry}` : entry;
                         <Plus size={11} />Add Factory
                       </button>
                     )}
+                    {tracks.length > 0 && (
+                      <button onClick={async () => {
+                        const res = await fetch("/api/messages/team");
+                        const data = await res.json();
+                        setAssignMsgTeamMembers(data.members || []);
+                        const assignedIds = (product.plm_assignments || []).map((a: any) => a.designer_id);
+                        setAssignMsgSelectedMembers(assignedIds);
+                        setAssignMsgSelectedTracks(tracks.map((t: any) => t.id));
+                        setAssignMessagesModal(true);
+                      }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
+                        <Users size={11} />Assign Messages
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1573,6 +1596,70 @@ ${entry}` : entry;
           )}
 
           {/* Disqualify Modal */}
+          {assignMessagesModal && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Assign Messages</p>
+                    <p className="text-[11px] text-white/30 mt-0.5">Add team members to factory chats for this product</p>
+                  </div>
+                  <button onClick={() => setAssignMessagesModal(false)} className="text-white/30 hover:text-white/60"><X size={16} /></button>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Factory Chats</p>
+                  {tracks.map((track: any) => (
+                    <div key={track.id} onClick={() => setAssignMsgSelectedTracks(prev =>
+                      prev.includes(track.id) ? prev.filter(id => id !== track.id) : [...prev, track.id]
+                    )} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition ${assignMsgSelectedTracks.includes(track.id) ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] bg-white/[0.02]"}`}>
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${assignMsgSelectedTracks.includes(track.id) ? "bg-white border-white" : "border-white/20"}`}>
+                        {assignMsgSelectedTracks.includes(track.id) && <Check size={10} className="text-black" />}
+                      </div>
+                      <p className="text-xs text-white/70">{track.factory_catalog?.name}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Team Members</p>
+                  {assignMsgTeamMembers.length === 0 && <p className="text-[11px] text-white/20">No team members found</p>}
+                  {assignMsgTeamMembers.map((m: any) => (
+                    <div key={m.id} onClick={() => setAssignMsgSelectedMembers(prev =>
+                      prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]
+                    )} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition ${assignMsgSelectedMembers.includes(m.id) ? "border-white/20 bg-white/[0.06]" : "border-white/[0.06] bg-white/[0.02]"}`}>
+                      <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${assignMsgSelectedMembers.includes(m.id) ? "bg-white border-white" : "border-white/20"}`}>
+                        {assignMsgSelectedMembers.includes(m.id) && <Check size={10} className="text-black" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-white/70">{m.full_name || m.email}</p>
+                        {(product.plm_assignments || []).some((a: any) => a.designer_id === m.id) && (
+                          <p className="text-[9px] text-amber-400/60">Assigned to product</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setAssignMessagesModal(false)}
+                    className="flex-1 px-4 py-2 rounded-xl border border-white/[0.08] text-white/40 text-xs">Cancel</button>
+                  <button disabled={assignMsgLoading || assignMsgSelectedTracks.length === 0 || assignMsgSelectedMembers.length === 0}
+                    onClick={async () => {
+                      setAssignMsgLoading(true);
+                      await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "add_members_bulk", track_ids: assignMsgSelectedTracks, member_user_ids: assignMsgSelectedMembers }) });
+                      setAssignMsgLoading(false);
+                      setAssignMessagesModal(false);
+                    }}
+                    className="flex-1 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                    {assignMsgLoading ? "Adding..." : `Add to ${assignMsgSelectedTracks.length} chat${assignMsgSelectedTracks.length !== 1 ? "s" : ""}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {disqualifyModal && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
               <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
