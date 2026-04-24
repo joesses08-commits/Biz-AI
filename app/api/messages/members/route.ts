@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
   const { data } = await supabaseAdmin
     .from("track_chat_members")
-    .select("user_id, profiles(full_name)")
+    .select("user_id")
     .eq("track_id", trackId);
 
   return NextResponse.json({ members: data || [] });
