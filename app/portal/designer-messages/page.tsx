@@ -50,7 +50,10 @@ export default function DesignerMessagesPage() {
         const idx = msgs.findIndex((m: any) => m.sender_role !== "designer" && !m.read_by_designer);
         setFirstUnread(idx);
       }
-      if (isFirst) setTimeout(() => { if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, 100);
+      if (isFirst) {
+        setTimeout(() => { if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, 100);
+        setTimeout(() => { if (containerRef.current) containerRef.current.scrollTop = containerRef.current.scrollHeight; }, 500);
+      }
       setChats(prev => prev.map(c => c.track_id === chat.track_id ? { ...c, unread_count: 0 } : c));
     };
     await fetchMsgs(true);
