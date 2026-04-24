@@ -172,11 +172,6 @@ export default function ProductPage() {
   const [assignMsgSelectedMembers, setAssignMsgSelectedMembers] = useState<string[]>([]);
   const [assignMsgSelectedTracks, setAssignMsgSelectedTracks] = useState<string[]>([]);
   const [assignMsgLoading, setAssignMsgLoading] = useState(false);
-  const [assignMessagesModal, setAssignMessagesModal] = useState(false);
-  const [assignMsgTeamMembers, setAssignMsgTeamMembers] = useState<any[]>([]);
-  const [assignMsgSelectedMembers, setAssignMsgSelectedMembers] = useState<string[]>([]);
-  const [assignMsgSelectedTracks, setAssignMsgSelectedTracks] = useState<string[]>([]);
-  const [assignMsgLoading, setAssignMsgLoading] = useState(false);
 
   // Images
   const [uploadingImage, setUploadingImage] = useState(false);
