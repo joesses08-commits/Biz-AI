@@ -319,7 +319,7 @@ ${companyName}`;
     const { data } = await supabaseAdmin.from("track_messages")
       .select("id, sender_role, read_by_admin").eq("track_id", track_id);
     const total = data?.length || 0;
-    const unread = (data || []).filter((m: any) => m.sender_role === "factory" && !m.read_by_admin).length;
+    const unread = (data || []).filter((m: any) => (m.sender_role === "factory" || m.sender_role === "designer") && !m.read_by_admin).length;
     return NextResponse.json({ total, unread });
   }
 
