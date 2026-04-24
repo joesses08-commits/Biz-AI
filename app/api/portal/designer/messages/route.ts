@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
   if (action === "send_message") {
     const { message, product_id, attachment_url, attachment_type, attachment_name } = body;
     await supabaseAdmin.from("track_messages").insert({
-      track_id, product_id, user_id: portalUser.id,
+      track_id, product_id, user_id: null,
       sender_role: "designer",
       sender_name: portalUser.name || portalUser.email || "Designer",
       message: message || "",
