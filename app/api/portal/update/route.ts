@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -133,6 +134,18 @@ export async function POST(req: NextRequest) {
       updated_by: portalUser.email,
       updated_by_role: "factory",
     });
+    // Notify admin
+    try {
+      const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", batch.product_id).single();
+      const stageLabel = stage.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+      await createNotification({
+        user_id: batch.user_id,
+        type: "stage_update",
+        title: stageLabel + " — " + (product?.name || "Product"),
+        body: (portalUser.name || portalUser.email || "Factory") + " marked " + stageLabel.toLowerCase(),
+        link: "/plm/" + batch.product_id
+      });
+    } catch {}
   }
 
   return NextResponse.json({ success: true });

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createNotification } from "@/lib/notify";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
@@ -87,6 +88,22 @@ export async function POST(req: NextRequest) {
       attachment_type: attachment_type || null,
       attachment_name: attachment_name || null,
     });
+    // Notify admin
+    try {
+      const { data: trackInfo } = await supabaseAdmin.from("plm_factory_tracks")
+        .select("user_id, plm_products(name), factory_catalog(name)").eq("id", track_id).single();
+      if (trackInfo) {
+        const productName = (trackInfo as any).plm_products?.name || "Product";
+        const factoryName = (trackInfo as any).factory_catalog?.name || portalUser.name || "Factory";
+        await createNotification({
+          user_id: (trackInfo as any).user_id,
+          type: "message",
+          title: "New message — " + productName,
+          body: factoryName + ": " + (message || "Attachment"),
+          link: "/messages"
+        });
+      }
+    } catch {}
     return NextResponse.json({ success: true });
   }
 
