@@ -103,6 +103,12 @@ export async function POST(req: NextRequest) {
   if (action === "get_messages") {
     const { data } = await supabaseAdmin.from("track_messages")
       .select("*").eq("track_id", track_id).order("created_at", { ascending: true });
+    // Mark all non-designer messages as read
+    await supabaseAdmin.from("track_messages")
+      .update({ read_by_designer: true })
+      .eq("track_id", track_id)
+      .neq("sender_role", "designer")
+      .eq("read_by_designer", false);
     return NextResponse.json({ messages: data || [] });
   }
 
