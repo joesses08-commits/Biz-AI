@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Pin, PinOff, Users, X, Check, Search, Send, Paperclip, Image as ImageIcon } from "lucide-react";
@@ -280,30 +281,55 @@ export default function MessagesPage() {
                 <p className="text-xs text-white/60">{activeChat.factory_name}</p>
               </div>
             </div>
-            {teamMembers.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">Team Members</p>
-                {teamMembers.map((m: any) => {
-                  const isIn = chatMembers.some((cm: any) => cm.user_id === m.id);
-                  return (
-                    <div key={m.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03]">
-                      <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">{(m.full_name || m.email || "?")[0].toUpperCase()}</div>
-                      <p className="text-xs text-white/60 flex-1">{m.full_name || m.email}</p>
-                      <button onClick={async () => {
+            {teamMembers.length > 0 && (() => {
+              const currentMemberIds = chatMembers.map((cm: any) => cm.user_id);
+              const [pendingIds, setPendingIds] = React.useState<string[]>([]);
+              const [saving, setSaving] = React.useState(false);
+              const toAdd = pendingIds.filter((id: string) => !currentMemberIds.includes(id));
+              const toRemove = currentMemberIds.filter((id: string) => pendingIds.includes(id) === false && teamMembers.some((m: any) => m.id === id));
+              // Initialize pendingIds from currentMemberIds when modal opens
+              React.useEffect(() => { setPendingIds(currentMemberIds); }, [chatMembers.length]);
+              return (
+                <div className="space-y-2">
+                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Team Members</p>
+                  {teamMembers.map((m: any) => {
+                    const selected = pendingIds.includes(m.id);
+                    return (
+                      <div key={m.id} onClick={() => setPendingIds((prev: string[]) => prev.includes(m.id) ? prev.filter((id: string) => id !== m.id) : [...prev, m.id])}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer border transition ${selected ? "border-white/20 bg-white/[0.06]" : "border-white/[0.04] bg-white/[0.02]"}`}>
+                        <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${selected ? "bg-white border-white" : "border-white/20"}`}>
+                          {selected && <Check size={9} className="text-black" />}
+                        </div>
+                        <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">{(m.full_name || m.email || "?")[0].toUpperCase()}</div>
+                        <p className="text-xs text-white/60 flex-1">{m.full_name || m.email}</p>
+                      </div>
+                    );
+                  })}
+                  <div className="flex gap-2 pt-2">
+                    <button onClick={() => setShowMembers(false)}
+                      className="flex-1 px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 text-xs">Cancel</button>
+                    <button disabled={saving} onClick={async () => {
+                      setSaving(true);
+                      for (const id of toAdd) {
                         await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ action: isIn ? "remove_member" : "add_member", track_id: activeChat.track_id, member_user_id: m.id }) });
-                        // Refresh chat members
-                        const membersRes = await fetch("/api/messages/members?track_id=" + activeChat.track_id);
-                        const membersData = await membersRes.json();
-                        setChatMembers(membersData.members || []);
-                      }} className={`text-[10px] px-2 py-1 rounded-lg ${isIn ? "bg-red-500/10 text-red-400 border border-red-500/20" : "bg-white/[0.04] text-white/40 border border-white/[0.08]"}`}>
-                        {isIn ? "Remove" : "Add"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                          body: JSON.stringify({ action: "add_member", track_id: activeChat.track_id, member_user_id: id }) });
+                      }
+                      for (const id of toRemove) {
+                        await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ action: "remove_member", track_id: activeChat.track_id, member_user_id: id }) });
+                      }
+                      const membersRes = await fetch("/api/messages/members?track_id=" + activeChat.track_id);
+                      const membersData = await membersRes.json();
+                      setChatMembers(membersData.members || []);
+                      setSaving(false);
+                      setShowMembers(false);
+                    }} className="flex-1 px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                      {saving ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
