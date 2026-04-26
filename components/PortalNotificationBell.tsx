@@ -63,7 +63,7 @@ export default function PortalNotificationBell({ token, onNavigate }: { token: s
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-[#111] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-[#111] border border-white/10 rounded-2xl shadow-2xl z-[9999] overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <p className="text-sm font-semibold">Notifications</p>
             <div className="flex items-center gap-2">
