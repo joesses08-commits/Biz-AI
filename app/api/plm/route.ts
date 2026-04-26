@@ -198,7 +198,7 @@ export async function POST(req: NextRequest) {
         const { data: factoryUsers } = await supabaseAdmin.from("factory_portal_users").select("id").eq("factory_id", body.factory_id);
         const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", product_id).single();
         for (const fu of (factoryUsers || [])) {
-          await createPortalNotification({ portal_user_id: fu.id, type: "order", title: "New Order — " + (product?.name || "Product"), body: (body.order_quantity || "?") + " units ordered" + (body.linked_po_number ? " (PO: " + body.linked_po_number + ")" : ""), link: "/portal/dashboard" });
+          await createPortalNotification({ portal_user_id: fu.id, type: "order", title: "New Order — " + (product?.name || "Product"), body: (body.order_quantity || "?") + " units ordered" + (body.linked_po_number ? " (PO: " + body.linked_po_number + ")" : ""), link: "/dashboard" });
         }
       }
     } catch {}
@@ -950,13 +950,13 @@ ${noteEntry}` : noteEntry;
       // Notify designer
       try {
         const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", req.product_id).single();
-        await createPortalNotification({ portal_user_id: req.designer_id, type: "assignment", title: "Assignment Approved", body: "You have been assigned to " + (product?.name || "a product"), link: "/portal/designer-product?id=" + req.product_id });
+        await createPortalNotification({ portal_user_id: req.designer_id, type: "assignment", title: "Assignment Approved", body: "You have been assigned to " + (product?.name || "a product"), link: "/designer-product?id=" + req.product_id });
       } catch {}
     } else {
       // Notify designer of rejection
       try {
         const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", req.product_id).single();
-        await createPortalNotification({ portal_user_id: req.designer_id, type: "assignment", title: "Assignment Not Approved", body: "Your request for " + (product?.name || "a product") + " was not approved", link: "/portal/dashboard?role=designer" });
+        await createPortalNotification({ portal_user_id: req.designer_id, type: "assignment", title: "Assignment Not Approved", body: "Your request for " + (product?.name || "a product") + " was not approved", link: "/dashboard?role=designer" });
       } catch {}
     }
     return NextResponse.json({ success: true });

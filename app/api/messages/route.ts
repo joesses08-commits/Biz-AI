@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         const { data: factoryUsers } = await supabaseAdmin.from("factory_portal_users").select("id").eq("factory_id", trackInfo.factory_id);
         const productName = (trackInfo as any).plm_products?.name || "Product";
         for (const fu of (factoryUsers || [])) {
-          await createPortalNotification({ portal_user_id: fu.id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/portal/messages" });
+          await createPortalNotification({ portal_user_id: fu.id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/messages" });
         }
       }
     } catch {}
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         // Try admin notification first
         await createNotification({ user_id: m.user_id, type: "message", title: "New message — " + productName, body: message || "Attachment", link: "/messages" }).catch(() => {});
         // Also try portal notification (for designers)
-        await createPortalNotification({ portal_user_id: m.user_id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/portal/designer-messages" }).catch(() => {});
+        await createPortalNotification({ portal_user_id: m.user_id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/designer-messages" }).catch(() => {});
       }
     }
     return NextResponse.json({ success: true });
