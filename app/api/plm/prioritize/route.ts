@@ -89,32 +89,42 @@ export async function POST(req: NextRequest) {
 
   if (action === "save_priorities") {
     const { factory_id, ordered_ids, changer_name } = body;
-    // Get previous priorities to log changes
+    // Get previous priorities before updating
     const { data: prevTracks } = await supabaseAdmin.from("plm_factory_tracks")
       .select("id, priority_order, product_id, factory_catalog(name), plm_products(id, name)")
       .in("id", ordered_ids);
     const prevMap: Record<string, any> = {};
     (prevTracks || []).forEach((t: any) => { prevMap[t.id] = t; });
+
+    // Update all priorities
     for (let i = 0; i < ordered_ids.length; i++) {
       await supabaseAdmin.from("plm_factory_tracks")
         .update({ priority_order: i + 1 })
         .eq("id", ordered_ids[i])
         .eq("user_id", user.id);
-      // Log if priority changed
-      const prev = prevMap[ordered_ids[i]];
-      const prevPrio = prev?.priority_order;
-      const newPrio = i + 1;
-      if (prev && prevPrio !== newPrio && changer_name) {
-        const productId = prev.product_id;
-        const factoryName = prev.factory_catalog?.name || "factory";
-        const note = `Priority updated: ${factoryName} moved from #${prevPrio || "unranked"} to #${newPrio} by ${changer_name}`;
-        try {
+    }
+
+    // Log changes to product history
+    const loggerName = changer_name || "Admin";
+    if (true) {
+      for (let i = 0; i < ordered_ids.length; i++) {
+        const prev = prevMap[ordered_ids[i]];
+        if (!prev) continue;
+        const prevPrio = prev.priority_order;
+        const newPrio = i + 1;
+        if (prevPrio !== newPrio) {
+          const factoryName = (prev as any).factory_catalog?.name || "factory";
+          const productName = (prev as any).plm_products?.name || "product";
+          const note = `Sample priority at ${factoryName}: #${prevPrio ?? "unranked"} → #${newPrio} by ${changer_name}`;
           await supabaseAdmin.from("plm_stages").insert({
-            product_id: productId, user_id: user.id,
-            stage: "priority_updated", notes: note,
-            updated_by: changer_name, updated_by_role: "designer",
+            product_id: prev.product_id,
+            user_id: user.id,
+            stage: "priority_updated",
+            notes: note,
+            updated_by: loggerName,
+            updated_by_role: "designer",
           });
-        } catch {}
+        }
       }
     }
     // Clear priority for tracks not in the list

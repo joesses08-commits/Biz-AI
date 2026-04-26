@@ -556,6 +556,7 @@ ${entry}` : entry;
     quote_received: { label: "Quote Received", color: "#3b82f6" },
     sample_reviewed: { label: "Sample Reviewed", color: "#10b981" },
     skipped: { label: "Skipped", color: "#6b7280" },
+    priority_updated: { label: "🔢 Priority Updated", color: "#60a5fa" },
   };
 
   return (
