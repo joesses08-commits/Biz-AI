@@ -143,7 +143,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
     setPrioSaving(true);
     const ids = prioOrder[factoryId] || [];
     await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-      body: JSON.stringify({ factory_id: factoryId, ordered_ids: ids }) });
+      body: JSON.stringify({ action: "save_priorities", factory_id: factoryId, ordered_ids: ids, changer_name: portalUser?.name || portalUser?.email || "Team" }) });
     setPrioSaving(false);
     setPrioSaved(true);
     setTimeout(() => setPrioSaved(false), 2000);
