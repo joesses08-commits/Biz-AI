@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Bell, X } from "lucide-react";
 
 export default function PortalNotificationBell({ token, onNavigate }: { token: string; onNavigate?: (link: string) => void }) {
@@ -62,7 +63,7 @@ export default function PortalNotificationBell({ token, onNavigate }: { token: s
         )}
       </button>
 
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div style={{position:"fixed", top:"60px", right:"16px", width:"320px", zIndex:999999}} className="bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <p className="text-sm font-semibold">Notifications</p>
@@ -92,7 +93,7 @@ export default function PortalNotificationBell({ token, onNavigate }: { token: s
             ))}
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
