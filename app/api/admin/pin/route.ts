@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "Jimmy AI <joey@myjimmy.ai>",
+        from: "Jimmy AI <noreply@myjimmy.ai>",
         to: user.email,
         subject: "Reset your Jimmy AI Admin PIN",
         html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
