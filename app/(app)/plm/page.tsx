@@ -64,6 +64,7 @@ export default function PLMPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [adminName, setAdminName] = useState("Admin");
   const [assignDesigners, setAssignDesigners] = useState<any[]>([]);
   const [existingAssignments, setExistingAssignments] = useState<Record<string, string[]>>({});
   const [selectedDesignerIds, setSelectedDesignerIds] = useState<string[]>([]);
@@ -152,6 +153,16 @@ export default function PLMPage() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        supabase.from("profiles").select("full_name").eq("id", data.user.id).single().then(({ data: p }) => {
+          if (p?.full_name) setAdminName(p.full_name);
+        });
+      }
+    });
+  }, []);
+
   useEffect(() => { if (typeof window !== "undefined") { const params = new URLSearchParams(window.location.search); const tabParam = params.get("tab"); if (tabParam && ["collections", "all_products", "factory_access", "designer_access", "prioritization"].includes(tabParam)) { setActiveTab(tabParam as any); } } load(); }, []);
   useEffect(() => { if (activeTab === "prioritization" && prioFactories.length === 0 && !prioLoading) loadPrioritization(); }, [activeTab]);
 
@@ -181,7 +192,7 @@ export default function PLMPage() {
   const savePriorities = async (factoryId: string) => {
     setPrioSaving(true);
     await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "save_priorities", factory_id: factoryId, ordered_ids: prioOrder[factoryId] || [], changer_name: "Admin" }) });
+      body: JSON.stringify({ action: "save_priorities", factory_id: factoryId, ordered_ids: prioOrder[factoryId] || [], changer_name: adminName }) });
     setPrioSaving(false);
     setPrioSaved(true);
     setTimeout(() => setPrioSaved(false), 2000);
