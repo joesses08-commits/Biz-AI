@@ -40,7 +40,10 @@ export default function PortalNotificationBell({ token, onNavigate }: { token: s
   const handleClick = async (n: any) => {
     await markRead(n.id);
     setOpen(false);
-    if (n.link && onNavigate) onNavigate(n.link);
+    if (n.link) {
+      if (onNavigate) onNavigate(n.link);
+      else window.location.href = n.link;
+    }
   };
 
   const typeIcon = (type: string) => {
