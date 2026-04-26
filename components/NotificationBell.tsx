@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Bell, X, Check } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Bell, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function NotificationBell() {
@@ -8,8 +9,9 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [assignmentRequests, setAssignmentRequests] = useState<any[]>([]);
+  const [bellPos, setBellPos] = useState({ top: 0, left: 0 });
+  const bellRef = useRef<HTMLButtonElement>(null);
 
   const load = async () => {
     const res = await fetch("/api/notifications");
@@ -18,14 +20,21 @@ export default function NotificationBell() {
     setUnread(data.unread || 0);
   };
 
+  const loadAssignments = async () => {
+    const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "get_assignment_requests" }) });
+    const data = await res.json();
+    setAssignmentRequests(data.requests || []);
+  };
+
   useEffect(() => {
     load();
-    const interval = setInterval(load, 15000);
+    loadAssignments();
+    const interval = setInterval(() => { load(); loadAssignments(); }, 15000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    // Register service worker and push subscription
     if ("serviceWorker" in navigator && "PushManager" in window) {
       navigator.serviceWorker.register("/sw.js").then(async reg => {
         const permission = await Notification.requestPermission();
@@ -33,10 +42,7 @@ export default function NotificationBell() {
         const existing = await reg.pushManager.getSubscription();
         const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
         const keyBytes = Uint8Array.from(atob(vapidKey.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
-        const sub = existing || await reg.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: keyBytes,
-        });
+        const sub = existing || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes });
         await fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "save_push_subscription", subscription: sub }) });
       }).catch(() => {});
@@ -45,11 +51,21 @@ export default function NotificationBell() {
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-notif-bell]")) setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
+    if (open) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [open]);
+
+  const toggleOpen = () => {
+    if (!open && bellRef.current) {
+      const rect = bellRef.current.getBoundingClientRect();
+      setBellPos({ top: rect.bottom + 8, left: rect.left });
+    }
+    setOpen(!open);
+    if (!open) { load(); loadAssignments(); }
+  };
 
   const markRead = async (id: string) => {
     await fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -57,48 +73,79 @@ export default function NotificationBell() {
     load();
   };
 
-  const markAllRead = async () => {
-    await fetch("/api/notifications", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "mark_read", id: "all" }) });
-    load();
-  };
-
-  const handleClick = async (n: any) => {
+  const handleClick = (n: any) => {
     markRead(n.id);
     setOpen(false);
     if (n.link) router.push(n.link);
   };
 
-  const handleAssignment = async (requestId: string, approve: boolean, notifId: string) => {
+  const handleAssignment = async (requestId: string, approve: boolean) => {
     await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "handle_assignment_request", request_id: requestId, approve }) });
-    if (notifId) await markRead(notifId);
-    // Refresh assignment requests
-    fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "get_assignment_requests" }) })
-      .then(r => r.json()).then(d => setAssignmentRequests(d.requests || []));
+    loadAssignments();
     load();
   };
-
-  const [assignmentRequests, setAssignmentRequests] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "get_assignment_requests" }) })
-      .then(r => r.json()).then(d => setAssignmentRequests(d.requests || []));
-  }, [open]);
 
   const typeIcon = (type: string) => {
     if (type === "message") return "💬";
     if (type === "stage_update") return "📦";
     if (type === "action_required") return "⚡";
-    if (type === "sample_update") return "🧪";
     return "🔔";
   };
 
+  const dropdown = open && typeof document !== "undefined" ? createPortal(
+    <div data-notif-bell style={{ position: "fixed", top: bellPos.top, left: bellPos.left, width: 320, background: "#0d0d0d", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, boxShadow: "0 25px 60px rgba(0,0,0,0.95)", zIndex: 999999, overflow: "hidden" }}>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "white" }}>Notifications</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {unread > 0 && <button onClick={() => markRead("all")} style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
+          <button onClick={() => setOpen(false)} style={{ color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer" }}><X size={14} /></button>
+        </div>
+      </div>
+      <div style={{ maxHeight: 380, overflowY: "auto" }}>
+        {assignmentRequests.length > 0 && (
+          <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", padding: "12px 16px 8px" }}>Assignment Requests</p>
+            {assignmentRequests.map((req: any) => (
+              <div key={req.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)", background: "rgba(245,158,11,0.02)" }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "white" }}>{req.factory_portal_users?.name} wants to join</p>
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>{req.plm_products?.name}</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={(e) => { e.stopPropagation(); handleAssignment(req.id, true); }}
+                    style={{ flex: 1, padding: "4px 0", borderRadius: 8, background: "rgba(16,185,129,0.2)", border: "1px solid rgba(16,185,129,0.3)", color: "#34d399", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>✓ Approve</button>
+                  <button onClick={(e) => { e.stopPropagation(); handleAssignment(req.id, false); }}
+                    style={{ flex: 1, padding: "4px 0", borderRadius: 8, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>✕ Reject</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {notifications.length === 0 && assignmentRequests.length === 0 ? (
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", textAlign: "center", padding: "32px 0" }}>No notifications yet</p>
+        ) : notifications.map((n: any) => (
+          <div key={n.id} onClick={() => handleClick(n)}
+            style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 12, background: n.read ? "transparent" : "rgba(255,255,255,0.02)" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+            onMouseLeave={e => (e.currentTarget.style.background = n.read ? "transparent" : "rgba(255,255,255,0.02)")}>
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 2 }}>{typeIcon(n.type)}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: n.read ? "rgba(255,255,255,0.6)" : "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</p>
+                {!n.read && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#60a5fa", flexShrink: 0 }} />}
+              </div>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{n.body}</p>
+              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button onClick={() => { setOpen(!open); if (!open) load(); }}
+    <div data-notif-bell style={{ position: "relative" }}>
+      <button ref={bellRef} onClick={toggleOpen}
         className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition text-white/40 hover:text-white/70">
         <Bell size={15} />
         {unread > 0 && (
@@ -107,63 +154,7 @@ export default function NotificationBell() {
           </span>
         )}
       </button>
-
-      {open && (
-        <div style={{position:"absolute", left:0, top:"100%", marginTop:"8px", width:"320px", background:"#0d0d0d", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"16px", boxShadow:"0 25px 50px rgba(0,0,0,0.9)", zIndex:9999, overflow:"hidden"}}>
-          <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
-            <p className="text-sm font-semibold">Notifications</p>
-            <div className="flex items-center gap-2">
-              {unread > 0 && (
-                <button onClick={markAllRead} className="text-[10px] text-white/30 hover:text-white/60 transition">
-                  Mark all read
-                </button>
-              )}
-              <button onClick={() => setOpen(false)} className="text-white/30 hover:text-white/60">
-                <X size={14} />
-              </button>
-            </div>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {assignmentRequests.length > 0 && (
-              <div className="border-b border-white/[0.06]">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest px-4 pt-3 pb-2">Assignment Requests</p>
-                {assignmentRequests.map((req: any) => (
-                  <div key={req.id} className="px-4 py-3 border-b border-white/[0.04] bg-amber-500/[0.02]">
-                    <p className="text-xs font-semibold text-white">{req.factory_portal_users?.name} wants to join</p>
-                    <p className="text-[11px] text-white/40 mb-2">{req.plm_products?.name}{req.plm_products?.sku ? ` (${req.plm_products.sku})` : ""}</p>
-                    <div className="flex gap-2">
-                      <button onClick={async (e) => { e.stopPropagation(); await handleAssignment(req.id, true, ""); }}
-                        className="flex-1 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold hover:bg-emerald-500/30 transition">
-                        ✓ Approve
-                      </button>
-                      <button onClick={async (e) => { e.stopPropagation(); await handleAssignment(req.id, false, ""); }}
-                        className="flex-1 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-semibold hover:bg-red-500/20 transition">
-                        ✕ Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            {notifications.length === 0 && assignmentRequests.length === 0 ? (
-              <p className="text-xs text-white/20 text-center py-8">No notifications yet</p>
-            ) : notifications.map((n: any) => (
-              <div key={n.id} onClick={() => handleClick(n)}
-                className={`px-4 py-3 border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.03] transition flex items-start gap-3 ${!n.read ? "bg-white/[0.02]" : ""}`}>
-                <span className="text-base flex-shrink-0 mt-0.5">{typeIcon(n.type)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className={`text-xs font-semibold truncate ${!n.read ? "text-white" : "text-white/60"}`}>{n.title}</p>
-                    {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />}
-                  </div>
-                  <p className="text-[11px] text-white/40 mt-0.5 leading-relaxed">{n.body}</p>
-                  <p className="text-[9px] text-white/20 mt-1">{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }
