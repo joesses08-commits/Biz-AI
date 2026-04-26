@@ -187,7 +187,7 @@ export default function ProductPage() {
     const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "get_assignment_requests" }) });
     const data = await res.json();
-    setAssignmentRequests(data.requests || []);
+    setAssignmentRequests((data.requests || []).filter((r: any) => r.product_id === id));
   };
 
   const load = async () => {
