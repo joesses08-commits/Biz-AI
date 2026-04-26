@@ -187,7 +187,7 @@ export default function MessagesPage() {
                     <div className="flex-1 h-px bg-blue-500/30" />
                   </div>
                 )}
-                <div className={msg.sender_role === "admin" || msg.sender_role === "designer" ? "flex justify-end" : "flex justify-start"}>
+                <div className={msg.sender_role === "admin" ? "flex justify-end" : "flex justify-start"}>
                   <div className={msg.sender_role === "factory"
                     ? "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[70%]"
                     : "bg-white/10 rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[70%]"}>
