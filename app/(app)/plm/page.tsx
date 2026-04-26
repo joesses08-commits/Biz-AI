@@ -65,6 +65,7 @@ export default function PLMPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignDesigners, setAssignDesigners] = useState<any[]>([]);
+  const [existingAssignments, setExistingAssignments] = useState<Record<string, string[]>>({});
   const [selectedDesignerIds, setSelectedDesignerIds] = useState<string[]>([]);
   const [assigning, setAssigning] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -552,19 +553,26 @@ export default function PLMPage() {
               <p className="text-xs text-white/40">Select team members to assign these products to.</p>
               <div className="space-y-2">
                 {assignDesigners.length === 0 && <p className="text-xs text-white/30">No designers found. Add designers in the Designer Access tab.</p>}
-                {assignDesigners.map((d: any) => (
-                  <button key={d.id} onClick={() => setSelectedDesignerIds(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id])}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${selectedDesignerIds.includes(d.id) ? "border-blue-500/40 bg-blue-500/10" : "border-white/[0.06] hover:border-white/15"}`}>
+                {assignDesigners.map((d: any) => {
+                  const assignedCount = selectedProducts.filter(pid => (existingAssignments[pid] || []).includes(d.id)).length;
+                  const alreadyInAll = assignedCount === selectedProducts.length;
+                  const alreadyInSome = assignedCount > 0 && !alreadyInAll;
+                  return (
+                  <button key={d.id} onClick={() => { if (alreadyInAll) return; setSelectedDesignerIds(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id]); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${alreadyInAll ? "border-white/[0.04] opacity-40 cursor-default" : selectedDesignerIds.includes(d.id) ? "border-blue-500/40 bg-blue-500/10" : "border-white/[0.06] hover:border-white/15"}`}>
                     <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/50">
                       {(d.name || d.email || "?")[0].toUpperCase()}
                     </div>
                     <div className="flex-1 text-left">
                       <p className="text-xs font-semibold text-white/80">{d.name || d.email}</p>
-                      {d.name && <p className="text-[10px] text-white/30">{d.email}</p>}
+                      {alreadyInAll && <p className="text-[10px] text-emerald-400/60">Already assigned to all</p>}
+                      {alreadyInSome && <p className="text-[10px] text-white/30">Assigned to {assignedCount}/{selectedProducts.length} products</p>}
+                      {!alreadyInAll && !alreadyInSome && d.name && <p className="text-[10px] text-white/30">{d.email}</p>}
                     </div>
                     {selectedDesignerIds.includes(d.id) && <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg></div>}
                   </button>
-                ))}
+                  );
+                })}
               </div>
               <div className="flex gap-2 pt-2">
                 <button onClick={async () => {
@@ -1116,7 +1124,20 @@ export default function PLMPage() {
                   <button onClick={() => { if (selectedProducts.length > 0) setShowExportModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-white/10 text-white/60 hover:bg-white/5" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
                     <Download size={11} />{selectedProducts.length > 0 ? `Export ${selectedProducts.length}` : "Export"}
                   </button>
-                  <button onClick={async () => { if (selectedProducts.length === 0) return; const res = await fetch("/api/plm?type=designers"); const data = await res.json(); setAssignDesigners(data.designers || []); setSelectedDesignerIds([]); setShowAssignModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
+                  <button onClick={async () => { if (selectedProducts.length === 0) return; 
+  const res = await fetch("/api/plm?type=designers"); 
+  const data = await res.json(); 
+  setAssignDesigners(data.designers || []); 
+  setSelectedDesignerIds([]);
+  // Load existing assignments for selected products
+  const assignMap: Record<string, string[]> = {};
+  for (const pid of selectedProducts) {
+    const r = await fetch("/api/plm?type=product&id=" + pid);
+    const d = await r.json();
+    assignMap[pid] = (d.product?.plm_assignments || []).map((a: any) => a.designer_id);
+  }
+  setExistingAssignments(assignMap);
+  setShowAssignModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
                     {selectedProducts.length > 0 ? `Assign ${selectedProducts.length}` : "Assign"}
                   </button>
                   {selectMode && selectedProducts.length > 0 && (
