@@ -568,7 +568,7 @@ ${entry}` : entry;
       {isKilled && (
         <div className="bg-red-500/10 border-b border-red-500/20 px-8 py-2.5 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
-          <p className="text-xs text-red-400 font-medium">This product has been killed — the page is read-only. Revive it from the status menu to make changes.</p>
+          <p className="text-xs text-red-400 font-medium">This product has been killed. Revive it from the status menu to make changes.</p>
         </div>
       )}
       {isHold && (
@@ -781,7 +781,7 @@ ${entry}` : entry;
                 </span>
                 {" "}— enter Admin PIN to confirm
               </p>
-              {pendingStatus === "killed" && <p className="text-[11px] text-red-400/60 mt-1.5">Product will be read-only. Can be revived with PIN.</p>}
+
               {pendingStatus === "hold" && <p className="text-[11px] text-amber-400/60 mt-1.5">Product info editable but no progression allowed.</p>}
             </div>
             <input type="password" value={statusPin} onChange={e => setStatusPin(e.target.value)}
