@@ -4,9 +4,24 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
+async function getPortalUserId(req: NextRequest): Promise<string | null> {
+  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+  if (!token) return null;
+  const { data } = await supabaseAdmin.from("factory_portal_users").select("user_id").eq("session_token", token).gt("session_expires_at", new Date().toISOString()).single();
+  return data?.user_id || null;
+}
+
 export async function GET(req: NextRequest) {
-  const user = await getEffectiveUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let userId: string | null = null;
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader) {
+    userId = await getPortalUserId(req);
+  } else {
+    const user = await getEffectiveUser();
+    userId = user?.id || null;
+  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = { id: userId };
 
   // Get all factories
   const { data: factories } = await supabaseAdmin
@@ -62,8 +77,16 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getEffectiveUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  let userId: string | null = null;
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader) {
+    userId = await getPortalUserId(req);
+  } else {
+    const user = await getEffectiveUser();
+    userId = user?.id || null;
+  }
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = { id: userId };
 
   const body = await req.json();
   const { action } = body;
