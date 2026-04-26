@@ -64,9 +64,9 @@ export default function NotificationBell() {
   };
 
   const handleClick = async (n: any) => {
-    await markRead(n.id);
+    markRead(n.id);
     setOpen(false);
-    if (n.link) setTimeout(() => router.push(n.link), 50);
+    if (n.link) router.push(n.link);
   };
 
   const handleAssignment = async (requestId: string, approve: boolean, notifId: string) => {
@@ -109,7 +109,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-80 bg-[#0d0d0d] border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden" style={{backdropFilter:"none", background:"#0d0d0d"}}>
+        <div style={{position:"absolute", left:0, top:"100%", marginTop:"8px", width:"320px", background:"#0d0d0d", border:"1px solid rgba(255,255,255,0.1)", borderRadius:"16px", boxShadow:"0 25px 50px rgba(0,0,0,0.9)", zIndex:9999, overflow:"hidden"}}>
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <p className="text-sm font-semibold">Notifications</p>
             <div className="flex items-center gap-2">
