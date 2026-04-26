@@ -181,7 +181,7 @@ export default function PLMPage() {
   const savePriorities = async (factoryId: string) => {
     setPrioSaving(true);
     await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "save_priorities", factory_id: factoryId, ordered_ids: prioOrder[factoryId] || [] }) });
+      body: JSON.stringify({ action: "save_priorities", factory_id: factoryId, ordered_ids: prioOrder[factoryId] || [], changer_name: "Admin" }) });
     setPrioSaving(false);
     setPrioSaved(true);
     setTimeout(() => setPrioSaved(false), 2000);
