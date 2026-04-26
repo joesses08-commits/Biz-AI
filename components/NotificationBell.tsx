@@ -72,7 +72,11 @@ export default function NotificationBell() {
   const handleAssignment = async (requestId: string, approve: boolean, notifId: string) => {
     await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "handle_assignment_request", request_id: requestId, approve }) });
-    await markRead(notifId);
+    if (notifId) await markRead(notifId);
+    // Refresh assignment requests
+    fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "get_assignment_requests" }) })
+      .then(r => r.json()).then(d => setAssignmentRequests(d.requests || []));
     load();
   };
 
@@ -128,11 +132,11 @@ export default function NotificationBell() {
                     <p className="text-xs font-semibold text-white">{req.factory_portal_users?.name} wants to join</p>
                     <p className="text-[11px] text-white/40 mb-2">{req.plm_products?.name}{req.plm_products?.sku ? ` (${req.plm_products.sku})` : ""}</p>
                     <div className="flex gap-2">
-                      <button onClick={() => handleAssignment(req.id, true, "")}
+                      <button onClick={async (e) => { e.stopPropagation(); await handleAssignment(req.id, true, ""); }}
                         className="flex-1 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold hover:bg-emerald-500/30 transition">
                         ✓ Approve
                       </button>
-                      <button onClick={() => handleAssignment(req.id, false, "")}
+                      <button onClick={async (e) => { e.stopPropagation(); await handleAssignment(req.id, false, ""); }}
                         className="flex-1 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-semibold hover:bg-red-500/20 transition">
                         ✕ Reject
                       </button>
