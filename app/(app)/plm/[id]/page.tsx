@@ -850,6 +850,22 @@ ${entry}` : entry;
                 <h1 className="text-2xl font-bold">{product.name}</h1>
                 {product.sku && <span className="text-xs text-white/30 font-mono bg-white/[0.04] px-2 py-0.5 rounded-lg">{product.sku}</span>}
 
+                {/* Action Status inline */}
+                {product.action_status && product.action_status !== "up_to_date" && (
+                  <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${product.action_status === "action_required" ? "bg-red-500/10 border-red-500/25" : "bg-blue-500/10 border-blue-500/25"}`}>
+                    <span className={`text-[10px] font-bold ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
+                      {product.action_status === "action_required" ? "⚡ Action Required" : "● Updates Made"}
+                    </span>
+                    <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/50" : "text-blue-400/50"}`}>—</span>
+                    <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/60" : "text-blue-400/60"}`}>
+                      {product.action_status === "action_required" ? "Needs attention" : "Factory updated"}
+                    </span>
+                    <button onClick={async () => {
+                      await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
+                      load();
+                    }} className="text-white/20 hover:text-white/50 transition ml-1 text-xs leading-none">×</button>
+                  </div>
+                )}
                 {/* Product Status Dropdown */}
                 <div className="relative">
                   <button onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -885,23 +901,8 @@ ${entry}` : entry;
                 {product.category && <span>{product.category}</span>}
               </div>
             </div>
-            {/* Assigned Team + Action Status - top right */}
-            <div className="flex-shrink-0 flex flex-col items-end gap-3">
-              {product.action_status && product.action_status !== "up_to_date" && (
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${product.action_status === "action_required" ? "bg-red-500/10 border-red-500/25" : "bg-blue-500/10 border-blue-500/25"}`}>
-                  <span className={`text-[10px] font-bold ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
-                    {product.action_status === "action_required" ? "⚡ Action Required" : "● Updates Made"}
-                  </span>
-                  <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/50" : "text-blue-400/50"}`}>—</span>
-                  <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/60" : "text-blue-400/60"}`}>
-                    {product.action_status === "action_required" ? "Needs attention" : "Factory updated"}
-                  </span>
-                  <button onClick={async () => {
-                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
-                    load();
-                  }} className="text-white/20 hover:text-white/50 transition ml-1 text-xs leading-none">×</button>
-                </div>
-              )}
+            {/* Assigned Team - top right */}
+            <div className="flex-shrink-0 flex flex-col items-end gap-2">
               <p className="text-[10px] text-white/25 uppercase tracking-widest">Assigned Team</p>
               <div className="flex flex-col items-end gap-1.5">
                 {(product.plm_assignments || []).map((a: any) => (
