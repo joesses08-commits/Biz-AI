@@ -933,7 +933,8 @@ ${noteEntry}` : noteEntry;
       const { data: existing } = await supabaseAdmin.from("plm_assignments").select("designer_id").eq("product_id", req.product_id);
       const currentIds = (existing || []).map((a: any) => a.designer_id);
       if (!currentIds.includes(req.designer_id)) {
-        await supabaseAdmin.from("plm_assignments").insert({ product_id: req.product_id, designer_id: req.designer_id, user_id: user.id });
+        const { error: assignError } = await supabaseAdmin.from("plm_assignments").insert({ product_id: req.product_id, designer_id: req.designer_id, assigned_by: user.id });
+        if (assignError) console.error("assign error:", assignError.message);
       }
     }
     return NextResponse.json({ success: true });
