@@ -199,8 +199,8 @@ export async function sendEmail(userId: string, to: string, subject: string, bod
   const msToken = await getMicrosoftToken(userId);
 
   // Always use Microsoft if connected, Gmail as fallback
-  const useGmail = !!googleToken && !microsoftToken;
-  const useOutlook = provider === "outlook" || (provider === "auto" && !googleToken && !!msToken);
+  const useGmail = !!googleToken && !msToken;
+  const useOutlook = !!msToken;
 
   if (useGmail && googleToken) {
     const mime = [`To: ${to}`, `Subject: ${subject}`, `Content-Type: text/plain; charset=utf-8`, ``, body].join("\r\n");
