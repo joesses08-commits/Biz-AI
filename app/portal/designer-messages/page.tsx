@@ -170,7 +170,12 @@ export default function DesignerMessagesPage() {
                   )}
                   <div className={isMe ? "flex justify-end" : "flex justify-start"}>
                     <div className={isMe ? "bg-white/10 rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[70%]" : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[70%]"}>
-                      <p className="text-[10px] font-semibold text-white/40 mb-1">{msg.sender_name}</p>
+                      <p className="text-[10px] font-semibold mb-1" style={{color: (() => {
+                const colors = ["#60a5fa","#34d399","#f472b6","#fb923c","#a78bfa","#facc15","#38bdf8","#f87171"];
+                let hash = 0;
+                for (let i = 0; i < (msg.sender_name||"").length; i++) hash = (msg.sender_name.charCodeAt(i) + ((hash << 5) - hash));
+                return colors[Math.abs(hash) % colors.length];
+              })()}}>{msg.sender_name}</p>
                       {msg.message && <p className="text-sm text-white/80">{msg.message}</p>}
                       {msg.attachment_url && msg.attachment_type === "image" && <img src={msg.attachment_url} className="mt-2 max-w-xs rounded-xl border border-white/10 cursor-pointer" onClick={() => window.open(msg.attachment_url, "_blank")} />}
                       {msg.attachment_url && msg.attachment_type === "file" && <a href={msg.attachment_url} target="_blank" className="mt-2 flex items-center gap-2 text-xs text-blue-400"><Paperclip size={11} />{msg.attachment_name || "File"}</a>}
