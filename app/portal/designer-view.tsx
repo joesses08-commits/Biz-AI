@@ -96,6 +96,14 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [requestAssignmentProduct, setRequestAssignmentProduct] = useState<any>(null);
   const [requestingAssignment, setRequestingAssignment] = useState(false);
   const [assignmentRequested, setAssignmentRequested] = useState<Set<string>>(new Set());
+  const [prioFactories, setPrioFactories] = useState<any[]>([]);
+  const [prioSamples, setPrioSamples] = useState<any[]>([]);
+  const [prioOrder, setPrioOrder] = useState<Record<string, string[]>>({});
+  const [prioActiveFactory, setPrioActiveFactory] = useState<string | null>(null);
+  const [prioLoading, setPrioLoading] = useState(false);
+  const [prioSaving, setPrioSaving] = useState(false);
+  const [prioSaved, setPrioSaved] = useState(false);
+  const [dragOver, setDragOver] = useState<string | null>(null);
   const [hasPinSet, setHasPinSet] = useState(false);
   const [showSetPin, setShowSetPin] = useState(false);
   const [pinPrompt, setPinPrompt] = useState<null | { resolve: (pin: string) => void }>(null);
@@ -110,6 +118,46 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [filterCollection, setFilterCollection] = useState("");
 
   const tok = () => localStorage.getItem("portal_token_designer") || localStorage.getItem("portal_token") || "";
+
+  const loadPrioritization = async () => {
+    setPrioLoading(true);
+    const res = await fetch("/api/plm/prioritize", { headers: { Authorization: `Bearer ${tok()}` } });
+    const data = await res.json();
+    const facs = data.factories || [];
+    const samps = data.samples || [];
+    setPrioFactories(facs);
+    setPrioSamples(samps);
+    const order: Record<string, string[]> = {};
+    facs.forEach((f: any) => {
+      const fs = samps.filter((s: any) => s.factory_id === f.id);
+      const pri = fs.filter((s: any) => s.priority_order != null).sort((a: any, b: any) => a.priority_order - b.priority_order);
+      const unpri = fs.filter((s: any) => s.priority_order == null);
+      order[f.id] = [...pri, ...unpri].map((s: any) => s.id);
+    });
+    setPrioOrder(order);
+    if (facs.length > 0) setPrioActiveFactory(facs[0].id);
+    setPrioLoading(false);
+  };
+
+  const savePriorities = async (factoryId: string) => {
+    setPrioSaving(true);
+    const ids = prioOrder[factoryId] || [];
+    await fetch("/api/plm/prioritize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ factory_id: factoryId, ordered_ids: ids }) });
+    setPrioSaving(false);
+    setPrioSaved(true);
+    setTimeout(() => setPrioSaved(false), 2000);
+  };
+
+  const moveSample = (factoryId: string, fromIdx: number, toIdx: number) => {
+    if (fromIdx === toIdx) return;
+    setPrioOrder(prev => {
+      const ids = [...(prev[factoryId] || [])];
+      const [moved] = ids.splice(fromIdx, 1);
+      ids.splice(toIdx, 0, moved);
+      return { ...prev, [factoryId]: ids };
+    });
+  };
 
   useEffect(() => { load(); }, []);
 
@@ -287,7 +335,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       <div className="border-b border-white/[0.06] px-6 sticky top-[57px] bg-[#0a0a0a] z-10">
         <div className="flex gap-0">
           {([["products", "Products"], ["collections", "Collections"], ["prioritization", "Prioritization"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => setActiveTab(key)}
+            <button key={key} onClick={() => { setActiveTab(key); if (key === "prioritization" && prioFactories.length === 0) loadPrioritization(); }}
               className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${activeTab === key ? "border-white text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>
               {label}
             </button>
@@ -547,46 +595,88 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
         ) : (
           /* Prioritization Tab */
           <div className="space-y-6">
-            <p className="text-xs text-white/30">Sample priority order across all factories. Drag to reorder — factories see samples in this order.</p>
-            {factories.length === 0 ? (
-              <p className="text-white/20 text-sm text-center py-12">No factories connected</p>
-            ) : factories.map((factory: any) => {
-              const factoryProducts = products.filter((p: any) =>
-                (p.plm_factory_tracks || []).some((t: any) => t.factory_id === factory.id &&
-                  (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done") &&
-                  !(t.plm_track_stages || []).some((s: any) => s.stage === "sample_shipped" && s.status === "done")
-                )
-              );
-              if (factoryProducts.length === 0) return null;
-              return (
-                <div key={factory.id} className="border border-white/[0.06] rounded-2xl overflow-hidden">
-                  <div className="px-5 py-3 border-b border-white/[0.04] flex items-center justify-between">
-                    <p className="text-xs font-semibold text-white/70">{factory.name}</p>
-                    <span className="text-[10px] text-white/30">{factoryProducts.length} pending</span>
-                  </div>
-                  <div className="divide-y divide-white/[0.04]">
-                    {factoryProducts.map((p: any, idx: number) => {
-                      const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === factory.id);
-                      const maxRev = (track?.plm_track_stages || []).reduce((max: number, s: any) => Math.max(max, s.revision_number || 0), 0);
-                      return (
-                        <div key={p.id} className="px-5 py-3 flex items-center gap-3">
-                          <span className="text-[10px] text-white/20 w-5 text-center font-mono">{idx + 1}</span>
-                          {p.images?.[0] ? <img src={p.images[0]} className="w-8 h-8 rounded-lg object-cover border border-white/[0.06]" /> :
-                            <div className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.06]" />}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold truncate">{p.name}</p>
-                            {p.sku && <p className="text-[10px] text-white/30 font-mono">{p.sku}</p>}
-                          </div>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full border ${maxRev > 0 ? "bg-amber-500/10 border-amber-500/20 text-amber-400" : "bg-blue-500/10 border-blue-500/20 text-blue-400"}`}>
-                            {maxRev > 0 ? "Revision" : "First Sample"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+            {prioFactories.length === 0 && !prioLoading ? (
+              <div className="text-center py-20"><p className="text-white/30 text-sm">No factories found.</p></div>
+            ) : prioLoading ? (
+              <div className="flex items-center justify-center py-20"><div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" /></div>
+            ) : (
+              <>
+                <div className="flex gap-2 border-b border-white/[0.06] pb-3 flex-wrap">
+                  {prioFactories.map((f: any) => {
+                    const factorySamples = prioSamples.filter((s: any) => s.factory_id === f.id);
+                    return (
+                      <button key={f.id} onClick={() => setPrioActiveFactory(f.id)}
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 ${prioActiveFactory === f.id ? "bg-white text-black" : "text-white/40 hover:text-white/70 border border-white/[0.06]"}`}>
+                        {f.name}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${prioActiveFactory === f.id ? "bg-black/10" : "bg-white/[0.06]"}`}>
+                          {factorySamples.length} pending
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })}
+                {prioActiveFactory && (() => {
+                  const factory = prioFactories.find((f: any) => f.id === prioActiveFactory);
+                  const max = factory?.max_samples || 50;
+                  const orderedIds = prioOrder[prioActiveFactory] || [];
+                  const orderedSamples = orderedIds.map((id: string) => prioSamples.find((s: any) => s.id === id)).filter(Boolean);
+                  const prioritizedCount = orderedSamples.length;
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${prioritizedCount >= max ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/[0.03] border-white/[0.08] text-white/60"}`}>
+                            {prioritizedCount} / {max} samples
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {prioSaved && <span className="text-emerald-400 text-xs">Saved ✓</span>}
+                          <button onClick={() => savePriorities(prioActiveFactory)} disabled={prioSaving}
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold hover:bg-white/90 disabled:opacity-40 transition">
+                            {prioSaving ? "Saving..." : "✓ Save Order"}
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-white/25">Drag samples to reorder priority. Top = highest priority.</p>
+                      {orderedSamples.length === 0 ? (
+                        <div className="text-center py-16 border border-white/[0.06] rounded-2xl">
+                          <p className="text-white/20 text-sm">No pending samples for this factory</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {orderedSamples.map((sample: any, idx: number) => {
+                            const product = sample.plm_products;
+                            const isPrioritized = idx < max;
+                            return (
+                              <div key={sample.id} draggable
+                                onDragStart={e => e.dataTransfer.setData("text/plain", String(idx))}
+                                onDragOver={e => { e.preventDefault(); setDragOver(sample.id); }}
+                                onDragLeave={() => setDragOver(null)}
+                                onDrop={e => { e.preventDefault(); setDragOver(null); const fromIdx = parseInt(e.dataTransfer.getData("text/plain")); moveSample(prioActiveFactory, fromIdx, idx); }}
+                                className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition cursor-grab active:cursor-grabbing ${dragOver === sample.id ? "border-blue-500/40 bg-blue-500/5" : isPrioritized ? "border-white/[0.08] bg-white/[0.02]" : "border-white/[0.04] opacity-50"}`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${isPrioritized ? "bg-blue-500/20 border border-blue-500/30 text-blue-400" : "bg-white/[0.04] border border-white/[0.06] text-white/20"}`}>
+                                  {isPrioritized ? idx + 1 : "—"}
+                                </div>
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  {product?.images?.[0] && <img src={product.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />}
+                                  <div className="min-w-0">
+                                    <p className="text-sm text-white/80 font-medium truncate">{product?.name}</p>
+                                    {product?.sku && <p className="text-[10px] text-white/30 font-mono">{product.sku}</p>}
+                                  </div>
+                                </div>
+                                <span className={`text-xs px-3 py-1 rounded-full border font-semibold ${sample.label === "revision" ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "bg-blue-500/20 border-blue-500/40 text-blue-300"}`}>
+                                  {sample.label === "revision" ? "Revision" : "First Sample"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </>
+            )}
           </div>
         )}
       {/* Request Assignment Modal */}
