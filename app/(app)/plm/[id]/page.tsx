@@ -282,11 +282,7 @@ ${entry}` : entry;
     });
     const data = await res.json();
     setRequestingSamples(false);
-    if (data.needs_provider) {
-      setSampleProviderModal({ factory_ids: sampleFactoryIds, note: sampleNote });
-      setShowSampleModal(false);
-      return;
-    }
+
     setShowSampleModal(false);
     // Also mark sample_requested on factory tracks for each factory
     const tracksData = await fetch(`/api/plm/tracks?product_id=${id}`).then(r => r.json());

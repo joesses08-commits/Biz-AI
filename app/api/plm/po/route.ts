@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token,refresh_token").eq("user_id", user.id).single();
     const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token").eq("user_id", user.id).single();
 
-    const useGmail = provider === "gmail" || (!provider && gmailConn);
-    const useOutlook = provider === "outlook" || (!provider && !gmailConn && msConn);
+    // Always use Microsoft if connected, Gmail as fallback
+    const useGmail = !!gmailConn && !msConn;
+    const useOutlook = !!msConn;
 
     if (useGmail && gmailConn) {
       const rawLines = [

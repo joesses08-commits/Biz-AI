@@ -234,7 +234,7 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
     if (name === "request_sample") {
       const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/plm`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "create_sample_requests", product_id: input.product_id, factory_ids: input.factory_ids, note: input.note || "", provider: "gmail" })
+        body: JSON.stringify({ action: "create_sample_requests", product_id: input.product_id, factory_ids: input.factory_ids, note: input.note || "", provider: "outlook" })
       });
       const data = await res.json();
       // Also update track stages

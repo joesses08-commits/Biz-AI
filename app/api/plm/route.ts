@@ -471,18 +471,8 @@ ${note}` : note)
       .eq("user_id", user.id)
       .single();
 
-    const bothConnected = !!gmailConn && !!msConn;
-
-    // If both connected, return provider_choice so frontend can ask
-    if (bothConnected && !provider && !force) {
-      return NextResponse.json({ 
-        success: false, 
-        needs_provider: true,
-        factories: factories?.map((f: any) => f.name),
-      });
-    }
-
-    const useGmail = gmailConn && (!msConn || provider === "gmail");
+    // Always use Microsoft if connected, Gmail as fallback
+    const useGmail = gmailConn && !msConn;
 
     const buildEmailBody = (contactName: string) =>
       `Hi ${contactName},
@@ -616,7 +606,8 @@ ${senderName}`;
     // Send one email per factory listing all their products
     const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token, refresh_token, token_expiry").eq("user_id", user.id).single();
     const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token, refresh_token, expires_at").eq("user_id", user.id).single();
-    const useGmail = gmailConn && (!msConn || provider === "gmail");
+    // Always use Microsoft if connected, Gmail as fallback
+    const useGmail = gmailConn && !msConn;
 
     for (const factoryId of allFactoryIds) {
       const factory = factoryMap[factoryId as string];

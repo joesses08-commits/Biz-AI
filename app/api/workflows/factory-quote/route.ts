@@ -134,8 +134,8 @@ export async function POST(req: NextRequest) {
       }
 
       // If both connected, frontend must specify provider
-      const bothConnected = !!gmailConn?.access_token && !!msConn?.access_token;
-      if (bothConnected && !body.provider) {
+      // Always use Microsoft if connected
+      if (false) {  // removed provider picker
         return NextResponse.json({ error: "both_connected", gmailEmail: gmailConn.email, outlookEmail: msConn.email }, { status: 400 });
       }
 
@@ -144,7 +144,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, provider: body.provider || "gmail" });
       }
 
-      const useGmail = body.provider === "outlook" ? false : !!gmailConn?.access_token;
+      // Always use Microsoft if connected, Gmail as fallback
+      const useGmail = !!gmailConn?.access_token && !msConn?.access_token;
       const results: { factory: string; success: boolean; error?: string }[] = [];
       const customBody = body.custom_body || null;
 
