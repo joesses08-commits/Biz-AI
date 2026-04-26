@@ -912,5 +912,27 @@ ${noteEntry}` : noteEntry;
     return NextResponse.json({ success: true });
   }
 
+  if (action === "get_assignment_requests") {
+    const { data } = await supabaseAdmin.from("assignment_requests")
+      .select("*, plm_products(id, name, sku), factory_portal_users(id, name, email)")
+      .eq("user_id", user.id).eq("status", "pending").order("created_at", { ascending: false });
+    return NextResponse.json({ requests: data || [] });
+  }
+
+  if (action === "handle_assignment_request") {
+    const { request_id, approve } = body;
+    const { data: req } = await supabaseAdmin.from("assignment_requests").select("*").eq("id", request_id).single();
+    if (!req) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    await supabaseAdmin.from("assignment_requests").update({ status: approve ? "approved" : "rejected" }).eq("id", request_id);
+    if (approve) {
+      const { data: existing } = await supabaseAdmin.from("plm_assignments").select("designer_id").eq("product_id", req.product_id);
+      const currentIds = (existing || []).map((a: any) => a.designer_id);
+      if (!currentIds.includes(req.designer_id)) {
+        await supabaseAdmin.from("plm_assignments").insert({ product_id: req.product_id, designer_id: req.designer_id, user_id: user.id });
+      }
+    }
+    return NextResponse.json({ success: true });
+  }
+
   return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 }

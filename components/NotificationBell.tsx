@@ -69,6 +69,21 @@ export default function NotificationBell() {
     if (n.link) router.push(n.link);
   };
 
+  const handleAssignment = async (requestId: string, approve: boolean, notifId: string) => {
+    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "handle_assignment_request", request_id: requestId, approve }) });
+    await markRead(notifId);
+    load();
+  };
+
+  const [assignmentRequests, setAssignmentRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "get_assignment_requests" }) })
+      .then(r => r.json()).then(d => setAssignmentRequests(d.requests || []));
+  }, [open]);
+
   const typeIcon = (type: string) => {
     if (type === "message") return "💬";
     if (type === "stage_update") return "📦";
@@ -105,7 +120,28 @@ export default function NotificationBell() {
             </div>
           </div>
           <div className="max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {assignmentRequests.length > 0 && (
+              <div className="border-b border-white/[0.06]">
+                <p className="text-[10px] text-white/30 uppercase tracking-widest px-4 pt-3 pb-2">Assignment Requests</p>
+                {assignmentRequests.map((req: any) => (
+                  <div key={req.id} className="px-4 py-3 border-b border-white/[0.04] bg-amber-500/[0.02]">
+                    <p className="text-xs font-semibold text-white">{req.factory_portal_users?.name} wants to join</p>
+                    <p className="text-[11px] text-white/40 mb-2">{req.plm_products?.name}{req.plm_products?.sku ? ` (${req.plm_products.sku})` : ""}</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleAssignment(req.id, true, "")}
+                        className="flex-1 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold hover:bg-emerald-500/30 transition">
+                        ✓ Approve
+                      </button>
+                      <button onClick={() => handleAssignment(req.id, false, "")}
+                        className="flex-1 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-semibold hover:bg-red-500/20 transition">
+                        ✕ Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {notifications.length === 0 && assignmentRequests.length === 0 ? (
               <p className="text-xs text-white/20 text-center py-8">No notifications yet</p>
             ) : notifications.map((n: any) => (
               <div key={n.id} onClick={() => handleClick(n)}

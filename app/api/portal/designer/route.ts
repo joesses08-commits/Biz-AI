@@ -200,6 +200,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  if (action === "request_assignment") {
+    const { product_id } = body;
+    // Check if already requested
+    const { data: existing } = await supabaseAdmin.from("assignment_requests")
+      .select("id").eq("product_id", product_id).eq("designer_id", portalUser.id).eq("status", "pending").maybeSingle();
+    if (existing) return NextResponse.json({ success: true, already_requested: true });
+    await supabaseAdmin.from("assignment_requests").insert({
+      product_id, designer_id: portalUser.id, user_id: portalUser.user_id, status: "pending"
+    });
+    // Notify admin
+    try {
+      const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", product_id).single();
+      await createNotification({
+        user_id: portalUser.user_id,
+        type: "action_required",
+        title: "Assignment Requested — " + (product?.name || "Product"),
+        body: (portalUser.name || "Designer") + " requested to be assigned to this product",
+        link: "/plm/" + product_id
+      });
+    } catch {}
+    return NextResponse.json({ success: true });
+  }
+
   if (action === "create_sample_requests") {
     const { product_id, factory_ids, note } = body;
     for (const factoryId of factory_ids) {

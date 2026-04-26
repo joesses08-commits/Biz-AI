@@ -417,6 +417,8 @@ ${entry}` : entry;
   const isHold = productStatus === "hold";
   const isLocked = isKilled || isHold;
   const isAssignedToMe = (product.plm_assignments || []).some((a: any) => a.designer_id === portalUser?.id);
+  const [requestingAssignment, setRequestingAssignment] = useState(false);
+  const [assignmentRequested, setAssignmentRequested] = useState(false);
   const showActionBanner = isAssignedToMe && product.action_status && product.action_status !== "up_to_date";
 
   const currentDevStage = stageInfo(product.current_stage || "concept");
@@ -1229,6 +1231,28 @@ ${entry}` : entry;
                 {product.category && <span>{product.category}</span>}
               </div>
             </div>
+            {/* Request Assignment button - only show if not assigned */}
+            {!isAssignedToMe && (
+              <div className="flex-shrink-0">
+                {assignmentRequested ? (
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                    <span className="text-[11px] text-amber-400">✓ Assignment Requested</span>
+                  </div>
+                ) : (
+                  <button onClick={async () => {
+                    setRequestingAssignment(true);
+                    await fetch("/api/portal/designer", { method: "POST",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+                      body: JSON.stringify({ action: "request_assignment", product_id: product.id }) });
+                    setRequestingAssignment(false);
+                    setAssignmentRequested(true);
+                  }} disabled={requestingAssignment}
+                    className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition disabled:opacity-40">
+                    {requestingAssignment ? "Requesting..." : "Request Assignment"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
