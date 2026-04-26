@@ -92,6 +92,8 @@ function ProductPageInner() {
   const showApproveBanner = false;
   const portalUser = typeof window !== "undefined" ? JSON.parse(localStorage.getItem("portal_user") || "{}") : {};
   const [approvingProduct, setApprovingProduct] = useState(false);
+  const [requestingAssignment, setRequestingAssignment] = useState(false);
+  const [assignmentRequested, setAssignmentRequested] = useState(false);
   const [approveSuccess, setApproveSuccess] = useState(false);
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -417,8 +419,6 @@ ${entry}` : entry;
   const isHold = productStatus === "hold";
   const isLocked = isKilled || isHold;
   const isAssignedToMe = (product.plm_assignments || []).some((a: any) => a.designer_id === portalUser?.id);
-  const [requestingAssignment, setRequestingAssignment] = useState(false);
-  const [assignmentRequested, setAssignmentRequested] = useState(false);
   const showActionBanner = isAssignedToMe && product.action_status && product.action_status !== "up_to_date";
 
   const currentDevStage = stageInfo(product.current_stage || "concept");
