@@ -153,7 +153,7 @@ export default function DashboardPage() {
 
   // Quotes sent but no response (quote_requested done, quote_received NOT done) — older than 5 days
   const waitingOnQuotes: any[] = [];
-  activeTracks.forEach((t: any) => {
+  activeTracks.filter((t: any) => t.status !== "killed" && t.status !== "disqualified").forEach((t: any) => {
     const stages = t.plm_track_stages || [];
     const quoteSent = stages.find((s: any) => s.stage === "quote_requested" && s.status === "done");
     const quoteReceived = stages.some((s: any) => s.stage === "quote_received" && s.status === "done");
@@ -224,12 +224,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {totalUrgent > 0 && (
-              <div className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
-                <Zap size={11} />
-                {totalUrgent} {totalUrgent === 1 ? "item" : "items"} need attention
-              </div>
-            )}
+
             <button onClick={load} className="p-2 rounded-xl border border-white/[0.06] text-white/30 hover:text-white/60 transition">
               <RefreshCw size={14} />
             </button>
