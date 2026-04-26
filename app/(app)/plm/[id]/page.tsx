@@ -849,15 +849,7 @@ ${entry}` : entry;
               <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h1 className="text-2xl font-bold">{product.name}</h1>
                 {product.sku && <span className="text-xs text-white/30 font-mono bg-white/[0.04] px-2 py-0.5 rounded-lg">{product.sku}</span>}
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color, border: `1px solid ${currentDevStage.color}30` }}>
-                  {currentDevStage.label}
-                </span>
-                {product.action_status === "action_required" && (
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-500/15 text-red-400 border border-red-500/25">⚡ Action Required</span>
-                )}
-                {product.action_status === "updates_made" && (
-                  <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">● Updates Made</span>
-                )}
+
                 {/* Product Status Dropdown */}
                 <div className="relative">
                   <button onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -874,12 +866,12 @@ ${entry}` : entry;
                       <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
                       <div className="absolute top-full left-0 mt-2 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 min-w-[180px]">
                         <p className="text-[10px] text-white/25 uppercase tracking-widest px-3 pt-3 pb-1">Product Status</p>
-                        {(["progression","hold","killed"] as const).map(s => (
+                        {(["progression","killed"] as const).map(s => (
                           <button key={s} onClick={() => { setShowStatusDropdown(false); setPendingStatus(s); setShowStatusModal(true); }}
                             disabled={productStatus === s}
                             className={`w-full text-left px-3 py-2.5 text-xs transition flex items-center gap-2 ${productStatus === s ? "text-white/20 cursor-default bg-white/[0.03]" : "text-white/60 hover:bg-white/[0.05] hover:text-white"}`}>
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s === "killed" ? "bg-red-400" : s === "hold" ? "bg-amber-400" : "bg-emerald-400"}`} />
-                            {s === "killed" ? "Kill Product" : s === "hold" ? "Put on Hold" : "Set to Progression"}
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s === "killed" ? "bg-red-400" : "bg-emerald-400"}`} />
+                            {s === "killed" ? "Kill Product" : "Set to Progression"}
                             {productStatus === s && <span className="ml-auto text-[10px] text-white/20">Current</span>}
                           </button>
                         ))}
@@ -893,8 +885,23 @@ ${entry}` : entry;
                 {product.category && <span>{product.category}</span>}
               </div>
             </div>
-            {/* Assigned Team - top right */}
-            <div className="flex-shrink-0 flex flex-col items-end gap-2">
+            {/* Assigned Team + Action Status - top right */}
+            <div className="flex-shrink-0 flex flex-col items-end gap-3">
+              {product.action_status && product.action_status !== "up_to_date" && (
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${product.action_status === "action_required" ? "bg-red-500/10 border-red-500/25" : "bg-blue-500/10 border-blue-500/25"}`}>
+                  <span className={`text-[10px] font-bold ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
+                    {product.action_status === "action_required" ? "⚡ Action Required" : "● Updates Made"}
+                  </span>
+                  <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/50" : "text-blue-400/50"}`}>—</span>
+                  <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/60" : "text-blue-400/60"}`}>
+                    {product.action_status === "action_required" ? "Needs attention" : "Factory updated"}
+                  </span>
+                  <button onClick={async () => {
+                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
+                    load();
+                  }} className="text-white/20 hover:text-white/50 transition ml-1 text-xs leading-none">×</button>
+                </div>
+              )}
               <p className="text-[10px] text-white/25 uppercase tracking-widest">Assigned Team</p>
               <div className="flex flex-col items-end gap-1.5">
                 {(product.plm_assignments || []).map((a: any) => (
@@ -2441,23 +2448,6 @@ Best regards,
                 })}
               </div>
             </div>
-
-            {product.action_status && product.action_status !== "up_to_date" && (
-              <div className={`flex-1 min-w-[200px] border rounded-2xl p-4 ${product.action_status === "action_required" ? "border-red-500/20 bg-red-500/[0.03]" : "border-blue-500/20 bg-blue-500/[0.03]"}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className={`text-[10px] font-bold uppercase tracking-widest ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
-                    {product.action_status === "action_required" ? "⚡ Action Required" : "● Updates Made"}
-                  </p>
-                  <button onClick={async () => {
-                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
-                    load();
-                  }} className="text-[10px] text-white/20 hover:text-white/50 transition">Dismiss</button>
-                </div>
-                <p className="text-[11px] text-white/40">
-                  {product.action_status === "action_required" ? "This product needs your attention." : "Factory has made progress on this product."}
-                </p>
-              </div>
-            )}
           </div>
 
       </div>
