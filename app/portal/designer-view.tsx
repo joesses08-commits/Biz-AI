@@ -1,4 +1,5 @@
 "use client";
+import PortalNotificationBell from "../../components/PortalNotificationBell";
 
 import { useState, useEffect } from "react";
 import { Package, Plus, Loader2, Check, X, ChevronDown, ChevronRight, LogOut, Layers, Users, Factory, Search } from "lucide-react";

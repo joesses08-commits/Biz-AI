@@ -3,7 +3,7 @@ import DesignerViewExternal from "../designer-view";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import PortalNotificationBell from "@/components/PortalNotificationBell";
+import PortalNotificationBell from "../../../components/PortalNotificationBell";
 import { Package, Loader2, LogOut, Factory, Check, X, Plus, Pencil, ChevronDown, ChevronUp, Send, Layers } from "lucide-react";
 
 const STAGES = [
