@@ -25,11 +25,12 @@ export default function PortalNotificationBell({ token, onNavigate }: { token: s
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-notif-dropdown]") && !target.closest("[data-notif-bell]")) setOpen(false);
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    if (open) document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [open]);
 
   const markRead = async (id: string) => {
     await fetch("/api/portal/notifications", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -65,7 +66,7 @@ export default function PortalNotificationBell({ token, onNavigate }: { token: s
       </button>
 
       {open && typeof document !== "undefined" && createPortal(
-        <div style={{position:"fixed", top:"60px", right:"16px", width:"320px", zIndex:999999}} className="bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+        <div data-notif-dropdown style={{position:"fixed", top:"60px", right:"16px", width:"320px", zIndex:999999}} className="bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <p className="text-sm font-semibold">Notifications</p>
             <div className="flex items-center gap-2">
