@@ -15,6 +15,7 @@ export default function SettingsPage() {
   const [sendingPinReset, setSendingPinReset] = useState(false);
   const [pinResetSent, setPinResetSent] = useState(false);
 
+  const [userEmail, setUserEmail] = useState("");
   const [company, setCompany] = useState({
     full_name: "",
     company_name: "",
@@ -33,6 +34,7 @@ export default function SettingsPage() {
   async function loadCompany() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setUserEmail(user.email || "");
     const { data } = await supabase.from("company_profiles").select("*").eq("user_id", user.id).maybeSingle();
     if (data) {
       setCompany({
@@ -52,7 +54,12 @@ export default function SettingsPage() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from("company_profiles").upsert({ user_id: user.id, ...company });
+    const { data: existing } = await supabase.from("company_profiles").select("id").eq("user_id", user.id).maybeSingle();
+    if (existing) {
+      await supabase.from("company_profiles").update({ ...company }).eq("user_id", user.id);
+    } else {
+      await supabase.from("company_profiles").insert({ user_id: user.id, ...company });
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -170,9 +177,13 @@ export default function SettingsPage() {
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 space-y-5">
               <h2 className="text-sm font-semibold text-white mb-4">Company Information</h2>
               <div>
+                <label className={labelClass}>Login Email</label>
+                <div className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 text-white/40 text-sm">{userEmail || "—"}</div>
+              </div>
+              <div>
                 <label className={labelClass}>Your Name</label>
                 <input value={company.full_name} onChange={e => setCompany({...company, full_name: e.target.value})}
-                  placeholder="Joey Esses" className={inputClass} />
+                  placeholder="Your full name" className={inputClass} />
                 <p className="text-[10px] text-white/20 mt-1">Used to sign emails sent from Jimmy on your behalf</p>
               </div>
               <div>
