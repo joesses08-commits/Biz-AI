@@ -852,18 +852,14 @@ ${entry}` : entry;
 
                 {/* Action Status inline */}
                 {product.action_status && product.action_status !== "up_to_date" && (
-                  <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${product.action_status === "action_required" ? "bg-red-500/10 border-red-500/25" : "bg-blue-500/10 border-blue-500/25"}`}>
-                    <span className={`text-[10px] font-bold ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
-                      {product.action_status === "action_required" ? "⚡ Action Required" : "● Updates Made"}
-                    </span>
-                    <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/50" : "text-blue-400/50"}`}>—</span>
-                    <span className={`text-[10px] ${product.action_status === "action_required" ? "text-red-400/60" : "text-blue-400/60"}`}>
-                      {product.action_status === "action_required" ? "Needs attention" : "Factory updated"}
+                  <div className={`flex items-start gap-2 px-3 py-1.5 rounded-xl border max-w-[200px] ${product.action_status === "action_required" ? "bg-red-500/10 border-red-500/25" : "bg-blue-500/10 border-blue-500/25"}`}>
+                    <span className={`text-[10px] font-bold leading-snug ${product.action_status === "action_required" ? "text-red-400" : "text-blue-400"}`}>
+                      {product.action_status === "action_required" ? "⚡ Action Required — needs your attention" : "● Updates Made — factory has progressed"}
                     </span>
                     <button onClick={async () => {
                       await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
                       load();
-                    }} className="text-white/20 hover:text-white/50 transition ml-1 text-xs leading-none">×</button>
+                    }} className="text-white/20 hover:text-white/50 transition text-xs leading-none flex-shrink-0 mt-0.5">×</button>
                   </div>
                 )}
                 {/* Product Status Dropdown */}
