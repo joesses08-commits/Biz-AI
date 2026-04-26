@@ -667,6 +667,17 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                                 <span className={`text-xs px-3 py-1 rounded-full border font-semibold ${sample.label === "revision" ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "bg-blue-500/20 border-blue-500/40 text-blue-300"}`}>
                                   {sample.label === "revision" ? "Revision" : "First Sample"}
                                 </span>
+                                {sample.current_stage && (() => {
+                                  const stageColorMap: Record<string,string> = { sample_production: "#f59e0b", sample_complete: "#10b981", sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", revision_requested: "#f59e0b", sample_requested: "#6b7280" };
+                                  const sc = stageColorMap[sample.current_stage] || "#6b7280";
+                                  const sl = sample.current_stage.replace(/_/g, " ").replace(/\w/g, (ch: string) => ch.toUpperCase());
+                                  return <span className="text-xs px-3 py-1 rounded-full border font-medium" style={{ background: `${sc}15`, borderColor: `${sc}40`, color: sc }}>{sl}</span>;
+                                })()}
+                                <div className="flex flex-col gap-0.5 ml-2 flex-shrink-0">
+                                  <div className="w-4 h-0.5 bg-white/20 rounded" />
+                                  <div className="w-4 h-0.5 bg-white/20 rounded" />
+                                  <div className="w-4 h-0.5 bg-white/20 rounded" />
+                                </div>
                               </div>
                             );
                           })}
