@@ -3,6 +3,7 @@ import DesignerViewExternal from "../designer-view";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import PortalNotificationBell from "@/components/PortalNotificationBell";
 import { Package, Loader2, LogOut, Factory, Check, X, Plus, Pencil, ChevronDown, ChevronUp, Send, Layers } from "lucide-react";
 
 const STAGES = [
@@ -307,6 +308,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <PortalNotificationBell token={localStorage.getItem("portal_token") || ""} onNavigate={(link) => router.push(link)} />
           <button onClick={() => router.push("/portal/messages")}
             className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-xl transition">
             💬 Messages

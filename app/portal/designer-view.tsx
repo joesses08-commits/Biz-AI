@@ -270,6 +270,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
             <button onClick={() => setShowSetPin(true)} className="text-xs text-amber-400 border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 rounded-lg">Set PIN</button>
           )}
           <div className="flex items-center gap-3">
+            <PortalNotificationBell token={tok()} onNavigate={(link) => router.push(link)} />
             <button onClick={() => router.push("/portal/designer-messages")}
               className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-xl transition">
               💬 Messages

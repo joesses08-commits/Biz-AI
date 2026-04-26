@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notify";
+import { createPortalNotification } from "@/lib/notify-portal";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(

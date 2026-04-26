@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createPortalNotification } from "@/lib/notify-portal";
 import { auditLog } from "@/lib/audit";
 import { rateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import { createServerClient } from "@supabase/ssr";
@@ -191,6 +192,16 @@ export async function POST(req: NextRequest) {
     });
     // PO created — clear action_required
     await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
+    // Notify factory of new order
+    try {
+      if (body.factory_id) {
+        const { data: factoryUsers } = await supabaseAdmin.from("factory_portal_users").select("id").eq("factory_id", body.factory_id);
+        const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", product_id).single();
+        for (const fu of (factoryUsers || [])) {
+          await createPortalNotification({ portal_user_id: fu.id, type: "order", title: "New Order — " + (product?.name || "Product"), body: (body.order_quantity || "?") + " units ordered" + (body.linked_po_number ? " (PO: " + body.linked_po_number + ")" : ""), link: "/portal/dashboard" });
+        }
+      }
+    } catch {}
     return NextResponse.json({ success: true, batch: data });
   }
 
@@ -936,6 +947,17 @@ ${noteEntry}` : noteEntry;
         const { error: assignError } = await supabaseAdmin.from("plm_assignments").insert({ product_id: req.product_id, designer_id: req.designer_id, assigned_by: user.id });
         if (assignError) console.error("assign error:", assignError.message);
       }
+      // Notify designer
+      try {
+        const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", req.product_id).single();
+        await createPortalNotification({ portal_user_id: req.designer_id, type: "assignment", title: "Assignment Approved", body: "You have been assigned to " + (product?.name || "a product"), link: "/portal/designer-product?id=" + req.product_id });
+      } catch {}
+    } else {
+      // Notify designer of rejection
+      try {
+        const { data: product } = await supabaseAdmin.from("plm_products").select("name").eq("id", req.product_id).single();
+        await createPortalNotification({ portal_user_id: req.designer_id, type: "assignment", title: "Assignment Not Approved", body: "Your request for " + (product?.name || "a product") + " was not approved", link: "/portal/dashboard?role=designer" });
+      } catch {}
     }
     return NextResponse.json({ success: true });
   }

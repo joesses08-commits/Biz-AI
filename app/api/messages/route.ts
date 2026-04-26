@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createNotification } from "@/lib/notify";
+import { createPortalNotification } from "@/lib/notify-portal";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -159,13 +160,27 @@ export async function POST(req: NextRequest) {
       sender_role: "admin", sender_name: senderName, message: message || "",
       attachment_url: attachment_url || null, attachment_type: attachment_type || null, attachment_name: attachment_name || null,
     });
+    // Notify factory portal users in this track
+    try {
+      const { data: trackInfo } = await supabaseAdmin.from("plm_factory_tracks").select("factory_id, plm_products(name)").eq("id", track_id).single();
+      if (trackInfo?.factory_id) {
+        const { data: factoryUsers } = await supabaseAdmin.from("factory_portal_users").select("id").eq("factory_id", trackInfo.factory_id);
+        const productName = (trackInfo as any).plm_products?.name || "Product";
+        for (const fu of (factoryUsers || [])) {
+          await createPortalNotification({ portal_user_id: fu.id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/portal/messages" });
+        }
+      }
+    } catch {}
     // Notify team members in this chat
     const { data: members } = await supabaseAdmin.from("track_chat_members").select("user_id").eq("track_id", track_id);
     const { data: trackInfo } = await supabaseAdmin.from("plm_factory_tracks").select("plm_products(name)").eq("id", track_id).single();
     const productName = (trackInfo as any)?.plm_products?.name || "Product";
     for (const m of (members || [])) {
       if (m.user_id !== user.id) {
-        await createNotification({ user_id: m.user_id, type: "message", title: `New message — ${productName}`, body: message || "Attachment", link: `/messages` });
+        // Try admin notification first
+        await createNotification({ user_id: m.user_id, type: "message", title: "New message — " + productName, body: message || "Attachment", link: "/messages" }).catch(() => {});
+        // Also try portal notification (for designers)
+        await createPortalNotification({ portal_user_id: m.user_id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/portal/designer-messages" }).catch(() => {});
       }
     }
     return NextResponse.json({ success: true });
