@@ -913,9 +913,11 @@ ${noteEntry}` : noteEntry;
   }
 
   if (action === "get_assignment_requests") {
-    const { data } = await supabaseAdmin.from("assignment_requests")
+    const { data, error } = await supabaseAdmin.from("assignment_requests")
       .select("*, plm_products(id, name, sku)")
       .eq("user_id", user.id).eq("status", "pending").order("created_at", { ascending: false });
+    if (error) return NextResponse.json({ requests: [], error: error.message });
+    console.log("assignment_requests query - user.id:", user.id, "data:", data?.length, "error:", error);
     // Manually fetch designer info
     const requestsWithDesigners = await Promise.all((data || []).map(async (req: any) => {
       const { data: designer } = await supabaseAdmin.from("factory_portal_users").select("id, name, email").eq("id", req.designer_id).single();
