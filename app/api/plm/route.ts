@@ -832,8 +832,8 @@ ${noteEntry}` : noteEntry;
       await supabaseAdmin.from("plm_products").update({ notes: updatedNotes, updated_at: new Date().toISOString() }).eq("id", product_id);
     }
 
-    // Update action_status based on outcome
-    if (outcome === "killed" || outcome === "unkill") {
+    // Update action_status based on outcome — clear action_required when admin reviews
+    if (outcome === "killed" || outcome === "unkill" || outcome === "approved" || outcome === "revision") {
       await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id);
     }
 
