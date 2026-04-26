@@ -60,7 +60,7 @@ export default function SettingsPage() {
 
   async function sendPinReset() {
     setSendingPinReset(true);
-    await fetch("/api/admin/pin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_reset_email" }) });
+    await fetch("/api/admin/pin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "forgot_pin" }) });
     setSendingPinReset(false);
     setPinResetSent(true);
   }
