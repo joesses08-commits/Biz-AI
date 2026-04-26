@@ -181,6 +181,16 @@ export default function ProductPage() {
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const [dragOverImage, setDragOverImage] = useState(false);
 
+  const [assignmentRequests, setAssignmentRequests] = useState<any[]>([]);
+
+  const loadAssignmentRequests = async () => {
+    const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "get_assignment_requests" }) });
+    const data = await res.json();
+    // Filter to just this product
+    setAssignmentRequests((data.requests || []).filter((r: any) => r.product_id === id));
+  };
+
   const load = async () => {
     const [prodRes, catRes, colRes, tracksRes] = await Promise.all([
       fetch(`/api/plm?type=product&id=${id}`),
@@ -212,7 +222,7 @@ export default function ProductPage() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); loadAssignmentRequests(); }, [id]);
 
   const approveProduct = async () => {
     setApprovingProduct(true);
@@ -565,6 +575,32 @@ ${entry}` : entry;
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-8 py-2.5 flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
           <p className="text-xs text-amber-400 font-medium">This product is on hold — stages, samples and orders are locked. Product info can still be edited.</p>
+        </div>
+      )}
+
+      {/* Assignment Request Banner */}
+      {assignmentRequests.length > 0 && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-8 py-3">
+          <div className="max-w-5xl mx-auto">
+            <p className="text-xs font-semibold text-amber-400 mb-2">⚡ Pending Assignment Requests</p>
+            <div className="flex flex-wrap gap-3">
+              {assignmentRequests.map((req: any) => (
+                <div key={req.id} className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+                  <p className="text-xs text-white/70"><span className="font-semibold">{req.factory_portal_users?.name}</span> wants to be assigned</p>
+                  <button onClick={async () => {
+                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "handle_assignment_request", request_id: req.id, approve: true }) });
+                    loadAssignmentRequests(); load();
+                  }} className="text-[10px] px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30 transition">✓ Approve</button>
+                  <button onClick={async () => {
+                    await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ action: "handle_assignment_request", request_id: req.id, approve: false }) });
+                    loadAssignmentRequests();
+                  }} className="text-[10px] px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">✕ Reject</button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

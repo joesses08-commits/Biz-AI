@@ -914,9 +914,14 @@ ${noteEntry}` : noteEntry;
 
   if (action === "get_assignment_requests") {
     const { data } = await supabaseAdmin.from("assignment_requests")
-      .select("*, plm_products(id, name, sku), factory_portal_users(id, name, email)")
+      .select("*, plm_products(id, name, sku)")
       .eq("user_id", user.id).eq("status", "pending").order("created_at", { ascending: false });
-    return NextResponse.json({ requests: data || [] });
+    // Manually fetch designer info
+    const requestsWithDesigners = await Promise.all((data || []).map(async (req: any) => {
+      const { data: designer } = await supabaseAdmin.from("factory_portal_users").select("id, name, email").eq("id", req.designer_id).single();
+      return { ...req, factory_portal_users: designer };
+    }));
+    return NextResponse.json({ requests: requestsWithDesigners });
   }
 
   if (action === "handle_assignment_request") {
