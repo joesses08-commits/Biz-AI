@@ -112,11 +112,13 @@ export async function POST(req: NextRequest) {
         const productId = prev.product_id;
         const factoryName = prev.factory_catalog?.name || "factory";
         const note = `Priority updated: ${factoryName} moved from #${prevPrio || "unranked"} to #${newPrio} by ${changer_name}`;
-        await supabaseAdmin.from("plm_stages").insert({
-          product_id: productId, user_id: user.id,
-          stage: "priority_updated", notes: note,
-          updated_by: changer_name, updated_by_role: "designer",
-        }).catch(() => {});
+        try {
+          await supabaseAdmin.from("plm_stages").insert({
+            product_id: productId, user_id: user.id,
+            stage: "priority_updated", notes: note,
+            updated_by: changer_name, updated_by_role: "designer",
+          });
+        } catch {}
       }
     }
     // Clear priority for tracks not in the list
