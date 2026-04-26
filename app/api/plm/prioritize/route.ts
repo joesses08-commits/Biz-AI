@@ -23,20 +23,16 @@ export async function GET(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const user = { id: userId };
 
-  // Get all factories
-  const { data: factories } = await supabaseAdmin
-    .from("factory_catalog")
-    .select("id, name, email, max_samples")
-    .eq("user_id", user.id)
-    .order("name");
-
-  // Get all factory tracks that have sample_requested but not sample_shipped/arrived
-  const { data: tracks } = await supabaseAdmin
-    .from("plm_factory_tracks")
-    .select("id, factory_id, product_id, status, priority_order, factory_catalog(id, name), plm_products(id, name, sku, images, status, killed), plm_track_stages(stage, status, revision_number)")
-    .eq("user_id", user.id)
-    .not("status", "eq", "killed")
-    .not("status", "eq", "approved");
+  // Run factories and tracks in parallel
+  const [{ data: factories }, { data: tracks }] = await Promise.all([
+    supabaseAdmin.from("factory_catalog").select("id, name, email, max_samples").eq("user_id", user.id).order("name"),
+    supabaseAdmin.from("plm_factory_tracks")
+      .select("id, factory_id, product_id, status, priority_order, factory_catalog(id, name), plm_products(id, name, sku, images, status, killed), plm_track_stages(stage, status, revision_number)")
+      .eq("user_id", user.id)
+      .not("status", "eq", "killed")
+      .not("status", "eq", "approved")
+      .eq("plm_products.killed", false)
+  ]);
 
   // Filter to only tracks where sample was requested but not yet shipped IN THE LATEST REVISION
   const filteredTracks = (tracks || []).filter((t: any) => {
