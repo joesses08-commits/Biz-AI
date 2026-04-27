@@ -363,36 +363,54 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          {/* ── Factory leaderboard ── */}
+          {/* ── Sample Pipeline ── */}
           <div className={`${ic} p-6`}>
             <div className="flex items-center justify-between mb-5">
-              <p className="text-sm font-semibold">Factory Leaderboard</p>
+              <p className="text-sm font-semibold">Sample Pipeline</p>
               <button onClick={() => router.push("/plm")} className="text-[11px] text-white/30 hover:text-white/60 transition">View PLM →</button>
             </div>
-            {factoryStats.length === 0 ? (
-              <p className="text-xs text-white/20 text-center py-6">No factory tracks yet</p>
-            ) : (
-              <div className="space-y-4">
-                {factoryStats.map((f: any, i: number) => (
-                  <div key={f.id} className="flex items-center gap-3">
-                    <span className="text-[11px] font-bold text-white/20 w-4 flex-shrink-0">#{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold text-white">{f.name}</span>
-                        <div className="flex items-center gap-3">
-                          {f.avgPrice && <span className="text-[10px] text-emerald-400">${f.avgPrice} avg</span>}
-                          {f.revisions > 0 && <span className="text-[10px] text-amber-400/70">{f.revisions} rev</span>}
-                          <span className="text-[10px] text-white/30">{f.approved}/{f.total}</span>
-                        </div>
+            {(() => {
+              const SAMPLE_STAGE_LABELS: Record<string, string> = {
+                sample_requested: "Requested", sample_production: "In Production",
+                sample_complete: "Complete", sample_shipped: "Shipped",
+                sample_arrived: "Arrived", sample_reviewed: "Reviewed",
+              };
+              const SAMPLE_STAGE_COLORS: Record<string, string> = {
+                sample_requested: "#f59e0b", sample_production: "#f59e0b",
+                sample_complete: "#10b981", sample_shipped: "#3b82f6",
+                sample_arrived: "#8b5cf6", sample_reviewed: "#10b981",
+              };
+              const activeSamples = tracks.flatMap((t: any) => {
+                const stages = t.plm_track_stages || [];
+                const sampleStages = ["sample_requested","sample_production","sample_complete","sample_shipped","sample_arrived"];
+                const latestSample = sampleStages.slice().reverse().find(s => stages.some((st: any) => st.stage === s && st.status === "done"));
+                if (!latestSample) return [];
+                const isReviewed = stages.some((st: any) => st.stage === "sample_reviewed" && st.status === "done");
+                if (isReviewed) return [];
+                return [{
+                  productName: products.find((p: any) => p.id === t.product_id)?.name,
+                  product_id: t.product_id,
+                  factory: (t as any).factory_catalog?.name,
+                  stage: latestSample,
+                }];
+              });
+              if (activeSamples.length === 0) return <p className="text-xs text-white/20 text-center py-6">No active samples</p>;
+              return (
+                <div className="space-y-2">
+                  {activeSamples.slice(0, 8).map((s: any, i: number) => (
+                    <button key={i} onClick={() => router.push(`/plm/${s.product_id}`)}
+                      className="w-full flex items-center gap-3 hover:bg-white/[0.02] -mx-2 px-2 py-1.5 rounded-xl transition text-left">
+                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: SAMPLE_STAGE_COLORS[s.stage] }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-white/60 truncate">{s.productName}</p>
+                        <p className="text-[10px] text-white/30 truncate">{s.factory}</p>
                       </div>
-                      <div className="w-full bg-white/[0.05] rounded-full h-1">
-                        <div className="h-1 rounded-full transition-all" style={{ width: `${f.total > 0 ? (f.approved / f.total) * 100 : 0}%`, background: f.approved > 0 ? "#10b981" : "#374151" }} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                      <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: SAMPLE_STAGE_COLORS[s.stage] }}>{SAMPLE_STAGE_LABELS[s.stage]}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
 
           {/* ── Collection progress ── */}
