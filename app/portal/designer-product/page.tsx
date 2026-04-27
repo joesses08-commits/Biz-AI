@@ -2059,39 +2059,7 @@ ${entry}` : entry;
           </div>
         </div>
 
-        {/* ── RIGHT SIDEBAR ── */}
-        <div className="space-y-4">
-          <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Status</p>
-            <div className="space-y-3">
 
-              {orders.length > 0 && (
-                <div>
-                  <p className="text-[10px] text-white/30 mb-2">Orders</p>
-                  {orders.map((o: any) => {
-                    const s = stageInfo(o.current_stage);
-                    return (
-                      <div key={o.id} className="flex items-center justify-between py-1.5 border-b border-white/[0.04] last:border-0">
-                        <span className="text-[11px] text-white/50">Order #{o.batch_number}</span>
-                        <span className="text-[10px] font-semibold" style={{ color: s.color }}>{s.label}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Info</p>
-            <div className="space-y-2">
-              <div className="flex justify-between"><span className="text-[11px] text-white/30">Created</span><span className="text-[11px] text-white/50">{new Date(product.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
-              <div className="flex justify-between"><span className="text-[11px] text-white/30">Orders</span><span className="text-[11px] text-white/50">{orders.length}</span></div>
-              <div className="flex justify-between"><span className="text-[11px] text-white/30">Total units</span><span className="text-[11px] text-white/50">{orders.reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0).toLocaleString()}</span></div>
-              {product.designer_name && <div className="flex justify-between"><span className="text-[11px] text-white/30">Designer</span><span className="text-[11px] text-white/50">{product.designer_name}</span></div>}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
