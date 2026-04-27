@@ -104,7 +104,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [prioSaving, setPrioSaving] = useState(false);
   const [prioSaved, setPrioSaved] = useState(false);
   const [dragOver, setDragOver] = useState<string | null>(null);
-  const [hasPinSet, setHasPinSet] = useState(false);
+  const [hasPinSet, setHasPinSet] = useState<boolean | null>(null);
   const [showSetPin, setShowSetPin] = useState(false);
   const [pinPrompt, setPinPrompt] = useState<null | { resolve: (pin: string) => void }>(null);
   const [pinError, setPinError] = useState("");
@@ -315,8 +315,10 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[10px] text-white/20 bg-white/[0.03] px-2 py-1 rounded-lg">{products.length} SKUs</span>
-          {!hasPinSet && (
-            <button onClick={() => setShowSetPin(true)} className="text-xs text-amber-400 border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 rounded-lg">Set PIN</button>
+          {hasPinSet !== null && (
+            <button onClick={() => setShowSetPin(true)} className={`text-xs px-3 py-1.5 rounded-lg border transition ${hasPinSet ? "text-white/30 border-white/[0.08] hover:text-white/60" : "text-amber-400 border-amber-500/30 bg-amber-500/10"}`}>
+              {hasPinSet ? "Change PIN" : "Set PIN"}
+            </button>
           )}
           <div className="flex items-center gap-3">
             <PortalNotificationBell token={tok()} onNavigate={(link) => router.push(link)} />
