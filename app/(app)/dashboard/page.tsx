@@ -395,7 +395,7 @@ export default function DashboardPage() {
                 }];
               });
               if (activeSamples.length === 0) return <p className="text-xs text-white/20 text-center py-6">No active samples</p>;
-              const [showAll, setShowAll] = React.useState(false);
+              const [showAll, setShowAll] = useState(false);
               const visible = showAll ? activeSamples : activeSamples.slice(0, 8);
               return (
                 <div className="space-y-2">
