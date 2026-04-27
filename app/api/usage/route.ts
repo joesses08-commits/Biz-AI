@@ -62,7 +62,7 @@ export async function GET() {
       if (!byFeature[row.feature]) byFeature[row.feature] = { calls: 0, cost: 0 };
       byFeature[row.feature].calls++;
       byFeature[row.feature].cost += row.cost_usd || 0;
-      const day = new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+      const day = new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
       byDayMap[day] = (byDayMap[day] || 0) + (row.cost_usd || 0);
     }
 
@@ -75,7 +75,7 @@ export async function GET() {
     const byDay = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
       byDay.push({ date: label, cost: byDayMap[label] || 0 });
     }
 
