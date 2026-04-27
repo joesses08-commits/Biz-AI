@@ -13,13 +13,17 @@ const supabase = createBrowserClient(
 const STAGE_COLORS: Record<string, string> = {
   artwork_sent: "#8b5cf6", quote_requested: "#ec4899", quote_received: "#3b82f6",
   sample_requested: "#f59e0b", sample_production: "#f59e0b", sample_complete: "#10b981",
-  sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", sample_reviewed: "#10b981"
+  sample_shipped: "#3b82f6", sample_arrived: "#8b5cf6", sample_reviewed: "#10b981",
+  status_progression: "#10b981", status_killed: "#ef4444", status_hold: "#f59e0b",
+  priority_updated: "#3b82f6", sample_approved: "#10b981", revision_requested: "#f59e0b",
 };
 
 const STAGE_LABELS: Record<string, string> = {
   artwork_sent: "Artwork Sent", quote_requested: "Quote Requested", quote_received: "Quote Received",
   sample_requested: "Sample Requested", sample_production: "In Production", sample_complete: "Sample Complete",
-  sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived", sample_reviewed: "Sample Reviewed"
+  sample_shipped: "Sample Shipped", sample_arrived: "Sample Arrived", sample_reviewed: "Sample Reviewed",
+  status_progression: "Set to Progression", status_killed: "Product Killed", status_hold: "Put on Hold",
+  priority_updated: "Priority Updated", sample_approved: "Sample Approved", revision_requested: "Revision Requested",
 };
 
 function NotificationsWidget() {
@@ -100,15 +104,17 @@ export default function DashboardPage() {
       { data: factories },
       { data: tracks },
       { data: orders },
+      { data: plmStages },
     ] = await Promise.all([
       supabase.from("plm_products").select("id, name, sku, images, killed, status, action_status, action_note, collection_id, plm_collections(name, season, year), plm_batches(id, current_stage, factory_id, order_quantity)").eq("user_id", user.id).eq("killed", false),
       supabase.from("plm_collections").select("id, name, season, year").eq("user_id", user.id),
       supabase.from("factory_catalog").select("id, name").eq("user_id", user.id),
-      supabase.from("plm_factory_tracks").select("id, product_id, factory_id, status, approved_price, updated_at, factory_catalog(name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number)").eq("user_id", user.id),
+      supabase.from("plm_factory_tracks").select("id, product_id, factory_id, status, approved_price, updated_at, factory_catalog(name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number, created_at)").eq("user_id", user.id),
       supabase.from("plm_batches").select("id, product_id, current_stage, factory_id, order_quantity, updated_at, factory_catalog(name)").eq("user_id", user.id),
+      supabase.from("plm_stages").select("id, product_id, stage, notes, updated_by, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50),
     ]);
 
-    setData({ products: products || [], collections: collections || [], factories: factories || [], tracks: tracks || [], orders: orders || [] });
+    setData({ products: products || [], collections: collections || [], factories: factories || [], tracks: tracks || [], orders: orders || [], plmStages: plmStages || [] });
     setLoading(false);
   };
 
@@ -121,7 +127,7 @@ export default function DashboardPage() {
   );
   if (!data) return null;
 
-  const { products, collections, factories, tracks, orders } = data;
+  const { products, collections, factories, tracks, orders, plmStages = [] } = data;
   const ic = "border border-white/[0.06] rounded-2xl bg-white/[0.01]";
 
   // ── Compute insights
@@ -197,15 +203,27 @@ export default function DashboardPage() {
   const recentActivity: any[] = [];
   tracks.forEach((t: any) => {
     (t.plm_track_stages || []).forEach((s: any) => {
-      if (s.status === "done" && s.actual_date) {
+      if (s.status === "done") {
         recentActivity.push({
           factory: (t as any).factory_catalog?.name,
           stage: s.stage,
-          date: s.actual_date,
+          date: s.created_at || s.actual_date,
           product_id: t.product_id,
           productName: products.find((p: any) => p.id === t.product_id)?.name,
         });
       }
+    });
+  });
+  // Also add product-level history (status changes, priority updates)
+  (plmStages as any[]).forEach((s: any) => {
+    recentActivity.push({
+      factory: null,
+      stage: s.stage,
+      date: s.created_at,
+      product_id: s.product_id,
+      productName: products.find((p: any) => p.id === s.product_id)?.name,
+      notes: s.notes,
+      updatedBy: s.updated_by,
     });
   });
   recentActivity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
