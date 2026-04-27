@@ -1026,15 +1026,12 @@ export default function PLMPage() {
               </div>
               <div><label className={lc}>Description</label><input value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} placeholder="Brief product description" className={ic} /></div>
               <div><label className={lc}>Specs</label><textarea value={newProduct.specs} onChange={e => setNewProduct({...newProduct, specs: e.target.value})} placeholder="Material, size, color..." rows={2} className={`${ic} resize-none`} /></div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={lc}>Collection</label>
-                  <select value={newProduct.collection_id} onChange={e => setNewProduct({...newProduct, collection_id: e.target.value})} className={ic}>
-                    <option value="">No collection</option>
-                    {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-
+              <div>
+                <label className={lc}>Collection</label>
+                <select value={newProduct.collection_id} onChange={e => setNewProduct({...newProduct, collection_id: e.target.value})} className={ic}>
+                  <option value="">No collection</option>
+                  {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lc}>Category</label><input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="Glassware" className={ic} /></div>

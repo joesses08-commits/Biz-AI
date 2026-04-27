@@ -393,7 +393,7 @@ Today: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeri
     iterations++;
 
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 1500,
       system: systemPrompt,
       tools: TOOLS,
@@ -427,7 +427,7 @@ Today: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeri
     agentMessages.push({ role: "user", content: toolResults });
   }
 
-  await trackUsage(user.id, "plm_agent", "claude-sonnet-4-5", totalInput, totalOutput);
+  await trackUsage(user.id, "plm_agent", "claude-haiku-4-5-20251001", totalInput, totalOutput);
 
   return NextResponse.json({ reply: finalReply, actions });
 }
