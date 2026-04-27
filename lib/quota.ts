@@ -14,6 +14,11 @@ export const TOKEN_COSTS = {
   document_drop: 40,
   quote_comparison: 100,
   backfill: 0,
+  chat: 0,
+  dashboard: 0,
+  snapshot: 0,
+  briefing: 0,
+  event_processor: 0,
 };
 
 // Get start of current billing period (1st of current month)
