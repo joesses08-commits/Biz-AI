@@ -92,6 +92,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [showAllSamples, setShowAllSamples] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -395,8 +396,8 @@ export default function DashboardPage() {
                 }];
               });
               if (activeSamples.length === 0) return <p className="text-xs text-white/20 text-center py-6">No active samples</p>;
-              const [showAll, setShowAll] = useState(false);
-              const visible = showAll ? activeSamples : activeSamples.slice(0, 8);
+
+              const visible = showAllSamples ? activeSamples : activeSamples.slice(0, 8);
               return (
                 <div className="space-y-2">
                   {visible.map((s: any, i: number) => (
@@ -411,8 +412,8 @@ export default function DashboardPage() {
                     </button>
                   ))}
                   {activeSamples.length > 8 && (
-                    <button onClick={() => setShowAll(!showAll)} className="w-full text-center text-[10px] text-white/30 hover:text-white/60 transition pt-1">
-                      {showAll ? "Show less ↑" : `Show all ${activeSamples.length} samples ↓`}
+                    <button onClick={() => setShowAllSamples(!showAllSamples)} className="w-full text-center text-[10px] text-white/30 hover:text-white/60 transition pt-1">
+                      {showAllSamples ? "Show less ↑" : `Show all ${activeSamples.length} samples ↓`}
                     </button>
                   )}
                 </div>
