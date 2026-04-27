@@ -1254,8 +1254,8 @@ ${entry}` : entry;
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-8 py-8 grid grid-cols-3 gap-8">
-        <div className="col-span-2 space-y-6">
+      <div className="px-8 py-8">
+        <div className="space-y-6">
 
           {/* ── FACTORY TRACKS SECTION ── */}
           {(() => {
@@ -1315,7 +1315,7 @@ ${entry}` : entry;
                   </div>
                 ) : (
                   <div className="p-4">
-                    <div style={{ columns: `${Math.min(tracks.length, 3)}`, columnGap: "12px" }}>
+                    <div style={{ columns: `${Math.min(tracks.length, 4)}`, columnGap: "12px" }}>
                       {tracks.map((track: any) => {
                         const stages = track.plm_track_stages || [];
                         const isApproved = track.status === "approved";
