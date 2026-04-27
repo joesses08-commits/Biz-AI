@@ -395,9 +395,11 @@ export default function DashboardPage() {
                 }];
               });
               if (activeSamples.length === 0) return <p className="text-xs text-white/20 text-center py-6">No active samples</p>;
+              const [showAll, setShowAll] = React.useState(false);
+              const visible = showAll ? activeSamples : activeSamples.slice(0, 8);
               return (
                 <div className="space-y-2">
-                  {activeSamples.slice(0, 8).map((s: any, i: number) => (
+                  {visible.map((s: any, i: number) => (
                     <button key={i} onClick={() => router.push(`/plm/${s.product_id}`)}
                       className="w-full flex items-center gap-3 hover:bg-white/[0.02] -mx-2 px-2 py-1.5 rounded-xl transition text-left">
                       <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: SAMPLE_STAGE_COLORS[s.stage] }} />
@@ -408,6 +410,11 @@ export default function DashboardPage() {
                       <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: SAMPLE_STAGE_COLORS[s.stage] }}>{SAMPLE_STAGE_LABELS[s.stage]}</span>
                     </button>
                   ))}
+                  {activeSamples.length > 8 && (
+                    <button onClick={() => setShowAll(!showAll)} className="w-full text-center text-[10px] text-white/30 hover:text-white/60 transition pt-1">
+                      {showAll ? "Show less ↑" : `Show all ${activeSamples.length} samples ↓`}
+                    </button>
+                  )}
                 </div>
               );
             })()}
