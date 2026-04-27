@@ -133,7 +133,11 @@ export default function PLMAgentPage() {
         }),
       });
       const data = await res.json();
-      setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Sorry, I couldn't get a response.", actions: data.actions || [] }]);
+      if (res.status === 402) {
+        setMessages(prev => [...prev, { role: "assistant", content: "⚠️ You've used up your AI quota for this month. Go to [AI Tokens](/quota) to top up." }]);
+      } else {
+        setMessages(prev => [...prev, { role: "assistant", content: data.reply || "Sorry, I couldn't get a response.", actions: data.actions || [] }]);
+      }
     } catch {
       setMessages(prev => [...prev, { role: "assistant", content: "Something went wrong. Try again." }]);
     }

@@ -9,11 +9,10 @@ export const MONTHLY_TOKENS = 50000;
 
 // Token costs per feature — shown on quota page
 export const TOKEN_COSTS = {
-  dashboard: 150,
-  chat: 30,
-  snapshot: 100,
-  briefing: 20,
-  event_processor: 3,
+  plm_agent: 30,
+  factory_quote: 50,
+  document_drop: 40,
+  quote_comparison: 100,
   backfill: 0,
 };
 

@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { trackUsage } from "@/lib/track-usage";
+import { checkQuota } from "@/lib/quota";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 const supabaseAdmin = createClient(
@@ -352,6 +353,11 @@ export async function POST(req: NextRequest) {
 
   const { message, history = [] } = await req.json();
   if (!message) return NextResponse.json({ error: "No message" }, { status: 400 });
+
+  const quotaCheck = await checkQuota(user.id, "plm_agent");
+  if (!quotaCheck.allowed) {
+    return NextResponse.json({ error: "quota_exceeded", reason: quotaCheck.reason, tokensRemaining: quotaCheck.tokensRemaining }, { status: 402 });
+  }
 
   const plmContext = await buildPLMContext(user.id);
 
