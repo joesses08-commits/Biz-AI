@@ -1193,9 +1193,6 @@ ${entry}` : entry;
               <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h1 className="text-2xl font-bold">{product.name}</h1>
                 {product.sku && <span className="text-xs text-white/30 font-mono bg-white/[0.04] px-2 py-0.5 rounded-lg">{product.sku}</span>}
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color, border: `1px solid ${currentDevStage.color}30` }}>
-                  {currentDevStage.label}
-                </span>
                 {/* Product Status Dropdown */}
                 <div className="relative">
                   <button onClick={() => setShowStatusDropdown(!showStatusDropdown)}
@@ -1212,12 +1209,12 @@ ${entry}` : entry;
                       <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
                       <div className="absolute top-full left-0 mt-2 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 min-w-[180px]">
                         <p className="text-[10px] text-white/25 uppercase tracking-widest px-3 pt-3 pb-1">Product Status</p>
-                        {(["progression","hold","killed"] as const).map(s => (
+                        {(["progression","killed"] as const).map(s => (
                           <button key={s} onClick={() => { setShowStatusDropdown(false); setPendingStatus(s); setShowStatusModal(true); }}
                             disabled={productStatus === s}
                             className={`w-full text-left px-3 py-2.5 text-xs transition flex items-center gap-2 ${productStatus === s ? "text-white/20 cursor-default bg-white/[0.03]" : "text-white/60 hover:bg-white/[0.05] hover:text-white"}`}>
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s === "killed" ? "bg-red-400" : s === "hold" ? "bg-amber-400" : "bg-emerald-400"}`} />
-                            {s === "killed" ? "Kill Product" : s === "hold" ? "Put on Hold" : "Set to Progression"}
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s === "killed" ? "bg-red-400" : "bg-emerald-400"}`} />
+                            {s === "killed" ? "Kill Product" : "Set to Progression"}
                             {productStatus === s && <span className="ml-auto text-[10px] text-white/20">Current</span>}
                           </button>
                         ))}
@@ -2067,12 +2064,7 @@ ${entry}` : entry;
           <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
             <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Status</p>
             <div className="space-y-3">
-              <div>
-                <p className="text-[10px] text-white/30 mb-1.5">Development</p>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${currentDevStage.color}20`, color: currentDevStage.color, border: `1px solid ${currentDevStage.color}30` }}>
-                  {currentDevStage.label}
-                </span>
-              </div>
+
               {orders.length > 0 && (
                 <div>
                   <p className="text-[10px] text-white/30 mb-2">Orders</p>

@@ -1034,13 +1034,7 @@ export default function PLMPage() {
                     {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className={lc}>Factory</label>
-                  <select value={newProduct.factory_id} onChange={e => setNewProduct({...newProduct, factory_id: e.target.value})} className={ic}>
-                    <option value="">Not assigned</option>
-                    {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
-                </div>
+
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lc}>Category</label><input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="Glassware" className={ic} /></div>

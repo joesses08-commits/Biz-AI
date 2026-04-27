@@ -152,7 +152,7 @@ export default function ProductPage() {
   // Factory tracks
   const [tracks, setTracks] = useState<any[]>([]);
   const [addingFactory, setAddingFactory] = useState(false);
-  const [newTrackFactoryId, setNewTrackFactoryId] = useState("");
+  const [newTrackFactoryId, setNewTrackFactoryId] = useState<string[]>([]);
   const [updatingStage, setUpdatingStage] = useState<string | null>(null);
   const [skipModal, setSkipModal] = useState<{trackId: string, productId: string, factoryId: string, stage: string} | null>(null);
   const [skipReason, setSkipReason] = useState("");
@@ -1394,24 +1394,41 @@ ${entry}` : entry;
                   </div>
                 </div>
 
-                {/* Add factory row */}
+                {/* Add factory multi-select */}
                 {addingFactory && (
-                  <div className="flex items-center gap-2 p-3 border border-white/[0.08] rounded-xl bg-white/[0.02]">
-                    <select value={newTrackFactoryId} onChange={e => setNewTrackFactoryId(e.target.value)}
-                      className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none">
-                      <option value="">Select factory...</option>
-                      {availableFactories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
-                    </select>
-                    <button onClick={async () => {
-                      if (!newTrackFactoryId) return;
-                      await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ action: "create_track", product_id: product.id, factory_id: newTrackFactoryId }) });
-                      setAddingFactory(false); setNewTrackFactoryId(""); load();
-                    }} disabled={!newTrackFactoryId} className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
-                      <Check size={11} />Add
-                    </button>
-                    <button onClick={() => { setAddingFactory(false); setNewTrackFactoryId(""); }}
-                      className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <div className="p-3 border border-white/[0.08] rounded-xl bg-white/[0.02] space-y-3">
+                    <p className="text-[10px] text-white/30 uppercase tracking-widest">Select Factories</p>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {availableFactories.map((f: any) => (
+                        <label key={f.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
+                          <input type="checkbox" checked={(newTrackFactoryId as any[]).includes(f.id)}
+                            onChange={e => {
+                              const ids = (newTrackFactoryId as any[]);
+                              if (e.target.checked) setNewTrackFactoryId([...ids, f.id] as any);
+                              else setNewTrackFactoryId(ids.filter((x: string) => x !== f.id) as any);
+                            }}
+                            className="accent-white w-3.5 h-3.5" />
+                          <span className="text-xs text-white/60">{f.name}</span>
+                        </label>
+                      ))}
+                      {availableFactories.length === 0 && <p className="text-xs text-white/20 px-2">All factories already added</p>}
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={async () => {
+                        const ids = (newTrackFactoryId as any[]);
+                        if (!ids.length) return;
+                        await Promise.all(ids.map((fid: string) =>
+                          fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ action: "create_track", product_id: product.id, factory_id: fid }) })
+                        ));
+                        setAddingFactory(false); setNewTrackFactoryId([] as any); load();
+                      }} disabled={!(newTrackFactoryId as any[]).length}
+                        className="flex items-center gap-1 px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
+                        <Check size={11} />Add {(newTrackFactoryId as any[]).length > 0 ? `(${(newTrackFactoryId as any[]).length})` : ""}
+                      </button>
+                      <button onClick={() => { setAddingFactory(false); setNewTrackFactoryId([] as any); }}
+                        className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                    </div>
                   </div>
                 )}
 
