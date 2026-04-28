@@ -76,27 +76,6 @@ export default function UsagePage() {
             </button>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Total Cost</p>
-              <p className="text-3xl font-bold text-white">${totalCost.toFixed(4)}</p>
-              <p className="text-white/30 text-xs mt-1">{activeTab === "month" ? MONTH_NAME : "Last 30 days"}</p>
-            </div>
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">AI Calls</p>
-              <p className="text-3xl font-bold text-white">{totalCalls}</p>
-              <p className="text-white/30 text-xs mt-1">{activeTab === "month" ? MONTH_NAME : "Last 30 days"}</p>
-            </div>
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">Avg Per Call</p>
-              <p className="text-3xl font-bold text-white">
-                {totalCalls > 0 ? ((totalCost / totalCalls) * 100).toFixed(3) : "0"}¢
-              </p>
-              <p className="text-white/30 text-xs mt-1">cents per call</p>
-            </div>
-          </div>
-
           {/* Daily Summary Table */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden mb-6">
             <div className="px-6 py-4 border-b border-white/[0.06] grid grid-cols-4 gap-4">
