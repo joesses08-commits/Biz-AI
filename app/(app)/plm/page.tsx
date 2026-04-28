@@ -1075,9 +1075,9 @@ export default function PLMPage() {
                       const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ action: "create_collection", name: inlineCollectionName.trim() }) });
                       const data = await res.json();
-                      if (data.id) {
-                        setCollections(prev => [...prev, data]);
-                        setNewProduct(p => ({ ...p, collection_id: data.id }));
+                      if (data.collection?.id) {
+                        setCollections(prev => [...prev, data.collection]);
+                        setNewProduct(p => ({ ...p, collection_id: data.collection.id }));
                       }
                       setShowInlineCollection(false);
                       setInlineCollectionName("");
