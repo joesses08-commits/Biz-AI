@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           type: "message",
           title: "New message — " + productName,
           body: factoryName + ": " + (message || "Attachment"),
-          link: "/messages"
+          link: "/portal/messages"
         });
       }
     } catch {}

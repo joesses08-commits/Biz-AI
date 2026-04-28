@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         const { data: factoryUsers } = await supabaseAdmin.from("factory_portal_users").select("id").eq("factory_id", trackInfo.factory_id);
         const productName = (trackInfo as any).plm_products?.name || "Product";
         for (const fu of (factoryUsers || [])) {
-          await createPortalNotification({ portal_user_id: fu.id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/messages" });
+          await createPortalNotification({ portal_user_id: fu.id, type: "message", title: "New message — " + productName, body: senderName + ": " + (message || "Attachment"), link: "/portal/messages" });
         }
       }
     } catch {}

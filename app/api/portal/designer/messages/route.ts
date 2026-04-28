@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
           type: "message",
           title: "New message — " + productName,
           body: (portalUser.name || "Designer") + ": " + (message || "Attachment"),
-          link: "/messages"
+          link: "/portal/messages"
         });
       }
     } catch {}
