@@ -263,7 +263,7 @@ export default function CollectionPage() {
             <div>
               <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Include in sheet</p>
               <div className="grid grid-cols-2 gap-2">
-                {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["images","Image URLs"],["category","Category"],["notes","Notes"]].map(([key, label]) => (
+                {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["weight","Weight"],["dimensions","Dimensions"],["images","Image URLs"],["category","Category"],["notes","Notes"]].map(([key, label]) => (
                   <label key={key} className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={rfqInclude.includes(key)} onChange={e => setRfqInclude((prev: string[]) => e.target.checked ? [...prev, key] : prev.filter((k: string) => k !== key))} />
                     <span className="text-xs text-white/60">{label}</span>

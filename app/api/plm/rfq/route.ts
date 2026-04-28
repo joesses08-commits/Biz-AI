@@ -28,6 +28,8 @@ const INCLUDE_LABELS: Record<string, string> = {
   sku: "SKU",
   description: "Description",
   specs: "Specifications",
+  weight: "Weight",
+  dimensions: "Dimensions",
   images: "Image URLs",
   category: "Category",
   collection: "Collection",
@@ -35,7 +37,7 @@ const INCLUDE_LABELS: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const user = await getEffectiveUser();
+  const user = await getEffectiveUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { product_ids, include, ask_for } = await req.json();

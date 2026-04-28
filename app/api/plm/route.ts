@@ -415,8 +415,21 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Update product stage + notes (only if not force AND at least one new request was created)
+    // Update plm_track_stages for each newly created sample request
     const newlyCreated = (factories || []).filter((f: any) => !skippedFactories.includes(f.name));
+    for (const factory of newlyCreated) {
+      const { data: track } = await supabaseAdmin.from("plm_factory_tracks").select("id").eq("product_id", product_id).eq("factory_id", factory.id).maybeSingle();
+      if (track) {
+        const { data: existingStage } = await supabaseAdmin.from("plm_track_stages").select("id").eq("track_id", track.id).eq("stage", "sample_requested").maybeSingle();
+        if (existingStage) {
+          await supabaseAdmin.from("plm_track_stages").update({ status: "done", actual_date: new Date().toISOString().split("T")[0] }).eq("id", existingStage.id);
+        } else {
+          await supabaseAdmin.from("plm_track_stages").insert({ track_id: track.id, product_id, factory_id: factory.id, stage: "sample_requested", status: "done", revision_number: 0, actual_date: new Date().toISOString().split("T")[0], notes: note || null, user_id: user.id });
+        }
+      }
+    }
+
+    // Update product stage + notes (only if not force AND at least one new request was created)
     const factoryNames = newlyCreated.map((f: any) => f.name).join(", ");
     if (!force && newlyCreated.length > 0) {
       const noteEntry = note

@@ -170,6 +170,21 @@ const TOOLS: Anthropic.Tool[] = [
     }
   },
   {
+    name: "create_rfq",
+    description: "Create an RFQ spreadsheet for selected products and email it to selected factories. Use when user asks to request quotes.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        product_ids: { type: "array", items: { type: "string" }, description: "List of product IDs to include in RFQ" },
+        factory_ids: { type: "array", items: { type: "string" }, description: "List of factory IDs to send RFQ to" },
+        include: { type: "array", items: { type: "string" }, description: "Fields to include in sheet: name, sku, description, specs, weight, dimensions, images. Always include name and sku." },
+        ask_for: { type: "array", items: { type: "string" }, description: "Fields to ask factories: unit_price, lead_time, sample_lead_time, moq, payment_terms, sample_price, packaging, comments" },
+        custom_body: { type: "string", description: "Optional custom email body" }
+      },
+      required: ["product_ids", "factory_ids"]
+    }
+  },
+  {
     name: "send_po_email",
     description: "Generate and send a PO email to a factory. Creates the order if needed.",
     input_schema: {
@@ -238,7 +253,11 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
         body: JSON.stringify({ action: "create_sample_requests", product_id: input.product_id, factory_ids: input.factory_ids, note: input.note || "", provider: "outlook" })
       });
       const data = await res.json();
-      return `Sample requested from ${input.factory_ids.length} factory/factories. Emails sent.`;
+      const skipped = data.skipped || [];
+      const requested = input.factory_ids.length - skipped.length;
+      if (requested === 0) return `No new samples requested — all ${skipped.length} factories already have active or approved requests: ${skipped.join(", ")}.`;
+      if (skipped.length > 0) return `Requested samples from ${requested} factory/factories. Skipped ${skipped.length} (already requested): ${skipped.join(", ")}. Emails sent to new requests.`;
+      return `Sample requested from ${requested} factory/factories. Emails sent.`;
     }
 
     if (name === "update_track_stage") {
@@ -288,6 +307,44 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
         payment_terms: input.payment_terms || null
       });
       return `Order created: ${input.order_quantity} units${elc > 0 ? ` @ $${elc.toFixed(2)} ELC` : ""}${input.linked_po_number ? ` (PO: ${input.linked_po_number})` : ""}`;
+    }
+
+    if (name === "create_rfq") {
+      // Step 1: Create RFQ spreadsheet + job
+      const rfqRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/plm/rfq`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        body: JSON.stringify({
+          product_ids: input.product_ids,
+          include: input.include || ["name", "sku", "description", "specs", "images"],
+          ask_for: input.ask_for || ["unit_price", "lead_time", "sample_lead_time", "moq", "payment_terms"],
+        }),
+      });
+      const rfqData = await rfqRes.json();
+      if (!rfqData.job_id) return `Failed to create RFQ: ${rfqData.error || "unknown error"}`;
+
+      // Step 2: Update job with selected factories
+      await supabaseAdmin.from("factory_quote_jobs").update({
+        factories: input.factory_ids,
+        status: "draft",
+      }).eq("id", rfqData.job_id);
+
+      // Step 3: Send RFQ emails
+      const sendRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/workflows/factory-quote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        body: JSON.stringify({
+          action: "send_rfq",
+          job_id: rfqData.job_id,
+          custom_body: input.custom_body || null,
+        }),
+      });
+      const sendData = await sendRes.json();
+      if (!sendRes.ok) return `RFQ created but email failed: ${sendData.error || "unknown"}`;
+
+      const factoryCount = input.factory_ids.length;
+      const productCount = input.product_ids.length;
+      return `RFQ created and sent to ${factoryCount} factory/factories for ${productCount} products. Job saved in Workflows → Factory Quote.`;
     }
 
     if (name === "send_po_email") {
