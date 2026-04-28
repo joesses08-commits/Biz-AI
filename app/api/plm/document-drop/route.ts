@@ -279,7 +279,7 @@ For product_import: extract ALL available fields per product including descripti
             // Also check factory match bonus
             const jobFactories = (job.factories || []).map((f: any) => f.name?.toLowerCase());
             const factoryMatch = factory_name && jobFactories.some((fn: string) =>
-              fn.includes(factory_name.toLowerCase()) || factory_name.toLowerCase().includes(fn)
+              fn && (fn.includes(factory_name.toLowerCase()) || factory_name.toLowerCase().includes(fn))
             );
 
             let overlap = 0;
