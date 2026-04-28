@@ -14,7 +14,7 @@ const DEV_STAGE_LABELS: Record<string,string> = { concept:"Concept", ready_for_q
 const DEV_STAGE_COLORS: Record<string,string> = { concept:"#6b7280", ready_for_quote:"#ec4899", artwork_sent:"#8b5cf6", quotes_received:"#3b82f6", samples_requested:"#f59e0b", sample_production:"#f59e0b", sample_complete:"#f59e0b", sample_shipped:"#3b82f6", sample_arrived:"#10b981", sample_approved:"#10b981" };
 const SEASONS = ["Spring", "Summer", "Fall", "Winter", "Holiday", "Resort", "Pre-Fall"];
 const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","weight","dimensions","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
-const COLUMN_LABELS: Record<string,string> = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };
+const COLUMN_LABELS: Record<string,string> = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", weight:"Weight", dimensions:"Dimensions", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };
 
 function getProductStatus(product: any) {
   const batches = product.plm_batches || [];
@@ -93,7 +93,7 @@ export default function PLMPage() {
   const [importCollection, setImportCollection] = useState("");
   const [importResult, setImportResult] = useState<any>(null);
   const [newCollection, setNewCollection] = useState({ name:"", season:"", year: new Date().getFullYear().toString(), notes:"" });
-  const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
+  const [newProduct, setNewProduct] = useState({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"", weight:"", dimensions:"" });
   const [newPortalUser, setNewPortalUser] = useState({ name:"", email:"", password:"", factory_id:"", role:"factory" });
   
   // Factory management
@@ -230,7 +230,7 @@ export default function PLMPage() {
     setSaving(true);
     await fetch("/api/plm", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"create_product", ...newProduct, target_elc: newProduct.target_elc ? parseFloat(newProduct.target_elc) : null, target_sell_price: newProduct.target_sell_price ? parseFloat(newProduct.target_sell_price) : null, moq: newProduct.moq ? parseInt(newProduct.moq) : null, order_quantity: newProduct.order_quantity ? parseInt(newProduct.order_quantity) : null }) });
     setSaving(false); setShowNewProduct(false);
-    setNewProduct({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"" });
+    setNewProduct({ name:"", sku:"", description:"", specs:"", category:"", collection_id:"", factory_id:"", target_elc:"", target_sell_price:"", moq:"", order_quantity:"", notes:"", weight:"", dimensions:"" });
     load();
   };
 
@@ -299,10 +299,10 @@ export default function PLMPage() {
     setDeletingPortalUser(null); load();
   };
 
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string|null>(null);
   const deleteProduct = async (id: string) => {
-    if (!confirm("Delete this product?")) return;
     await fetch("/api/plm", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ action:"delete_product", id }) });
-    load();
+    setConfirmDeleteId(null); load();
   };
 
   const toggleProduct = (id: string) => setSelectedProducts(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -656,6 +656,33 @@ export default function PLMPage() {
         )}
 
         {/* RFQ Modal */}
+        {/* Delete confirmation modal */}
+        {confirmDeleteId && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-400 text-sm">✕</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">Delete Product</p>
+                  <p className="text-xs text-white/40 mt-0.5">This cannot be undone. All factory tracks and samples will be removed.</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmDeleteId(null)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-white/50 text-xs hover:text-white transition">
+                  Cancel
+                </button>
+                <button onClick={() => deleteProduct(confirmDeleteId)}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/30 transition">
+                  Delete Product
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showRfqModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
@@ -702,7 +729,7 @@ export default function PLMPage() {
               <div>
                 <p className="text-[11px] text-white/30 uppercase tracking-widest mb-2">Include in Sheet</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["images","Image URLs"],["category","Category"],["collection","Collection"],["notes","Notes"]].map(([key, label]) => (
+                  {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["weight","Weight"],["dimensions","Dimensions"],["images","Image URLs"],["category","Category"],["collection","Collection"],["notes","Notes"]].map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={rfqInclude.includes(key)}
                         onChange={e => setRfqInclude(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}
@@ -1306,7 +1333,7 @@ export default function PLMPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => deleteProduct(product.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                        <button onClick={() => setConfirmDeleteId(product.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
                           <Trash2 size={12} />
                         </button>
                         <ChevronRight size={14} className="text-white/20 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
