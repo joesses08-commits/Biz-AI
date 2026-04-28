@@ -111,6 +111,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { data: adminProfile } = await supabaseAdmin.from("company_profiles").select("full_name").eq("user_id", user.id).single();
+  const adminName = adminProfile?.full_name || "Admin";
   const body = await req.json();
   const { action } = body;
 
@@ -139,7 +141,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("plm_stages").insert({
       product_id: data.id, user_id: user.id,
       stage: "design_brief", notes: "Product created",
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true, product: data });
   }
@@ -161,7 +163,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("plm_stages").insert({
       product_id, user_id: user.id,
       stage: milestone, notes: value ? `${milestone.replace(/_/g, " ")} marked complete` : `${milestone.replace(/_/g, " ")} unmarked by admin`,
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });
   }
@@ -194,7 +196,7 @@ export async function POST(req: NextRequest) {
       batch_id: data.id, product_id, user_id: user.id,
       stage: stage || "rfq_sent",
       notes: "Batch created",
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     // PO created — clear action_required
     await supabaseAdmin.from("plm_products").update({ action_status: "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
@@ -221,7 +223,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("plm_batch_stages").insert({
       batch_id, product_id, user_id: user.id,
       stage, notes: notes || "",
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });
   }
@@ -250,7 +252,7 @@ export async function POST(req: NextRequest) {
         product_id: id, user_id: user.id,
         stage: updates.current_stage,
         notes: updates._stage_note || "",
-        updated_by: user.email, updated_by_role: "admin",
+        updated_by: adminName, updated_by_role: "admin",
         created_at: new Date().toISOString(),
       });
       if (stageErr) console.error("plm_stages insert error:", stageErr);
@@ -283,7 +285,7 @@ export async function POST(req: NextRequest) {
     await supabaseAdmin.from("plm_stages").insert({
       product_id: id, user_id: user.id,
       stage: "sample_approved", notes: "Product approved by admin - all pre-production milestones marked complete",
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });
   }
@@ -356,7 +358,7 @@ export async function POST(req: NextRequest) {
             product_id, factory_id: factory.id, user_id: user.id,
             stage: "sample_production",
             notes: note || "Additional sample requested",
-            updated_by: user.email, updated_by_role: "admin",
+            updated_by: adminName, updated_by_role: "admin",
           });
         }
         continue;
@@ -415,7 +417,7 @@ export async function POST(req: NextRequest) {
         user_id: user.id,
         stage: "sample_production",
         notes: "Sample requested",
-        updated_by: user.email,
+        updated_by: adminName,
         updated_by_role: "admin",
       });
     }
@@ -460,7 +462,7 @@ ${note}` : note)
         product_id, user_id: user.id,
         stage: "samples_requested",
         notes: `Sample requested from ${factoryNames}`,
-        updated_by: user.email, updated_by_role: "admin",
+        updated_by: adminName, updated_by_role: "admin",
       });
     }
 
@@ -616,7 +618,7 @@ ${senderName}`;
           await supabaseAdmin.from("plm_sample_stages").insert({
             sample_request_id: newReq.id, product_id, factory_id: factoryId, user_id: user.id,
             stage: "sample_production", notes: itemNote || note || "Sample requested",
-            updated_by: user.email, updated_by_role: "admin",
+            updated_by: adminName, updated_by_role: "admin",
           });
         }
 
@@ -627,7 +629,7 @@ ${senderName}`;
           await supabaseAdmin.from("plm_stages").insert({
             product_id, user_id: user.id, stage: "samples_requested",
             notes: `Sample requested from ${factoryMap[factoryId]?.name || "factory"}`,
-            updated_by: user.email, updated_by_role: "admin",
+            updated_by: adminName, updated_by_role: "admin",
           });
         }
       }
@@ -703,7 +705,7 @@ ${senderName}`;
         sample_request_id, product_id, factory_id, user_id: user.id,
         stage: "sample_production",
         notes: "Factory revived by admin",
-        updated_by: user.email, updated_by_role: "admin",
+        updated_by: adminName, updated_by_role: "admin",
       });
       return NextResponse.json({ success: true });
     }
@@ -726,7 +728,7 @@ ${senderName}`;
         sample_request_id, product_id, factory_id, user_id: user.id,
         stage: "revision_requested",
         notes: notes || "Revision requested",
-        updated_by: user.email, updated_by_role: "admin",
+        updated_by: adminName, updated_by_role: "admin",
       });
 
       // Create new request for next round
@@ -745,7 +747,7 @@ ${senderName}`;
           sample_request_id: newReq.id, product_id, factory_id, user_id: user.id,
           stage: "sample_production",
           notes: "Revision round started",
-          updated_by: user.email, updated_by_role: "admin",
+          updated_by: adminName, updated_by_role: "admin",
         });
       }
 
@@ -758,7 +760,7 @@ ${revNote}` : revNote;
       await supabaseAdmin.from("plm_products").update({ notes: revNotes, updated_at: new Date().toISOString() }).eq("id", product_id);
       await supabaseAdmin.from("plm_stages").insert({
         product_id, user_id: user.id, stage: "revision_requested",
-        notes: revNote, updated_by: user.email, updated_by_role: "admin",
+        notes: revNote, updated_by: adminName, updated_by_role: "admin",
       });
       await supabaseAdmin.from("plm_products").update({
         action_status: "updates_made",
@@ -773,7 +775,7 @@ ${revNote}` : revNote;
       sample_request_id, product_id, factory_id, user_id: user.id,
       stage,
       notes: notes || "",
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     // Mark sample arrived = action required (needs approve/kill/revise)
     if (stage === "sample_arrived") {
@@ -801,7 +803,7 @@ ${revNote}` : revNote;
           sample_request_id: other.id, product_id, factory_id: other.factory_id, user_id: user.id,
           stage: "killed",
           notes: `Disregard sample - production started with ${factoryName}`,
-          updated_by: user.email, updated_by_role: "admin",
+          updated_by: adminName, updated_by_role: "admin",
         });
       }
       // Update product to sample_approved
@@ -819,7 +821,7 @@ ${revNote}` : revNote;
         product_id, user_id: user.id,
         stage: "sample_approved",
         notes: `Sample approved - ${factoryName} selected`,
-        updated_by: user.email, updated_by_role: "admin",
+        updated_by: adminName, updated_by_role: "admin",
       });
     } else if (outcome === "revision") {
       noteEntry = `Revision Requested to ${factoryName}: ${notes || ""}`;
@@ -892,7 +894,7 @@ ${noteEntry}` : noteEntry;
       product_id, user_id: user.id,
       stage: `status_${status}`,
       notes: noteMap[status],
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     // Clear action status when product status changes
     await supabaseAdmin.from("plm_products").update({ action_status: status === "killed" ? "up_to_date" : "up_to_date", updated_at: new Date().toISOString() }).eq("id", product_id).eq("user_id", user.id);
@@ -905,7 +907,7 @@ ${noteEntry}` : noteEntry;
         await supabaseAdmin.from("plm_sample_stages").insert({
           sample_request_id: sr.id, product_id, user_id: user.id,
           stage: "killed", notes: "Product killed - sample auto-cancelled",
-          updated_by: user.email, updated_by_role: "admin",
+          updated_by: adminName, updated_by_role: "admin",
         });
       }
     }
@@ -937,7 +939,7 @@ ${noteEntry}` : noteEntry;
       product_id, user_id: user.id,
       stage: "admin_dismissed",
       notes: "Admin dismissed status update",
-      updated_by: user.email, updated_by_role: "admin",
+      updated_by: adminName, updated_by_role: "admin",
     });
     return NextResponse.json({ success: true });
   }

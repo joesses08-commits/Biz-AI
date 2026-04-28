@@ -2464,7 +2464,7 @@ Best regards,
                           <p className="text-[11px] text-white/35 mt-0.5">{h.notes}</p>
                         )}
                         <p className="text-[10px] text-white/20 mt-0.5">
-                          {h.updated_by && h.updated_by !== "admin" ? h.updated_by : h.updated_by_role === "factory" ? "Factory" : h.updated_by_role === "designer" ? "Designer" : "Admin"} · {new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          {h.updated_by && h.updated_by !== "admin" ? h.updated_by : h.updated_by_role === "factory" ? (h._factory_name || "Factory") : h.updated_by_role === "designer" ? "Designer" : "Admin"} · {new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
                       </div>
                     </div>
