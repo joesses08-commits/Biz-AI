@@ -765,22 +765,35 @@ Return ONLY raw JSON, no markdown:
       const fileName = `${date} Factory Quote Comparison — ${job.job_name}.xlsx`;
 
       // Upload to Google Drive
-      const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("*").eq("user_id", job.user_id).single();
+      const { data: msConn2 } = await supabaseAdmin.from("microsoft_connections").select("*").eq("user_id", job.user_id).single();
       let sheetUrl = null;
-      if (gmailConn?.access_token) {
+      if (msConn2?.access_token) {
         try {
-          const uploadRes = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${gmailConn.access_token}`, "Content-Type": "multipart/related; boundary=boundary" },
-            body: [
-              "--boundary", "Content-Type: application/json", "",
-              JSON.stringify({ name: fileName, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
-              "--boundary", "Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-              "Content-Transfer-Encoding: base64", "", base64, "--boundary--",
-            ].join("\r\n"),
+          // Refresh token if needed
+          let msToken = msConn2.access_token;
+          if (new Date(msConn2.expires_at) <= new Date()) {
+            const refreshRes = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: new URLSearchParams({
+                refresh_token: msConn2.refresh_token,
+                client_id: process.env.MICROSOFT_CLIENT_ID!,
+                client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
+                grant_type: "refresh_token",
+                scope: "offline_access Files.ReadWrite.All",
+              }),
+            });
+            const refreshData = await refreshRes.json();
+            if (refreshData.access_token) msToken = refreshData.access_token;
+          }
+          const fileBuffer = Buffer.from(base64, "base64");
+          const uploadRes = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/Jimmy AI/Factory Quotes/${fileName}:/content`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${msToken}`, "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            body: fileBuffer,
           });
           const uploadData = await uploadRes.json();
-          if (uploadData.id) sheetUrl = `https://drive.google.com/file/d/${uploadData.id}/view`;
+          if (uploadData.webUrl) sheetUrl = uploadData.webUrl;
         } catch {}
       }
 
