@@ -168,14 +168,19 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await supabaseAdmin.from("plm_batches").select("batch_number").eq("product_id", p.id).order("batch_number", { ascending: false }).limit(1);
     const nextBatch = (existing?.[0]?.batch_number || 0) + 1;
 
+    // Fall back to global selected factory if no per-product override
+    const resolvedFactoryId = factoryId || factory?.id || null;
+
     const { data: batch } = await supabaseAdmin.from("plm_batches").insert({
       product_id: p.id,
       user_id: user.id,
       batch_number: nextBatch,
-      factory_id: factoryId || null,
+      factory_id: resolvedFactoryId,
       current_stage: "po_issued",
       linked_po_number: poNum,
       order_quantity: qty,
+      unit_price: unitPrice,
+      first_cost: unitPrice,
       target_elc: unitPrice,
       target_sell_price: null,
       batch_notes: notes || "",
