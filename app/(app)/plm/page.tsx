@@ -729,7 +729,7 @@ export default function PLMPage() {
               <div>
                 <p className="text-[11px] text-white/30 uppercase tracking-widest mb-2">Include in Sheet</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["weight","Weight"],["dimensions","Dimensions"],["images","Image URLs"],["category","Category"],["collection","Collection"],["notes","Notes"]].map(([key, label]) => (
+                  {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["weight","Weight"],["dimensions","Dimensions"],["images","Image URLs"],["reference_url","Dropbox Link"],["category","Category"],["collection","Collection"],["notes","Notes"]].map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={rfqInclude.includes(key)}
                         onChange={e => setRfqInclude(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}

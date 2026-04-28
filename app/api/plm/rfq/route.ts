@@ -92,7 +92,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Reference URL column
-  columns.push({ header: "Reference / Dropbox Link", key: "reference_url", width: 35 });
+  if ((include || []).includes("reference_url")) {
+    columns.push({ header: "Reference / Dropbox Link", key: "reference_url", width: 35 });
+  }
 
   (ask_for || []).forEach((key: string) => {
     columns.push({ header: ASK_FOR_LABELS[key] || key, key: `ask_${key}`, width: 20, isAsk: true });
