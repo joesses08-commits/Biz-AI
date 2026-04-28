@@ -325,6 +325,7 @@ For product_import: extract ALL available fields per product including descripti
             status: "processed",
             factory_name: saveFactoryName,
             processed_data: products_extracted,
+            raw_file_base64: file_base64 || null,
             raw_data: { source: "document_drop", file_name },
           }).eq("id", existingQuote.id);
         } else {
@@ -334,6 +335,7 @@ For product_import: extract ALL available fields per product including descripti
             factory_email: saveFactoryEmail,
             status: "processed",
             processed_data: products_extracted,
+            raw_file_base64: file_base64 || null,
             raw_data: { source: "document_drop", file_name },
           });
         }
