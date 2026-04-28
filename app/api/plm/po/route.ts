@@ -387,5 +387,6 @@ ${buyerContact || buyerCompany}`;
     created_at: new Date().toISOString(),
   });
 
+  console.log("PO factory object:", JSON.stringify(factory));
   return NextResponse.json({ success: true, html, po_number: poNum, factory, email_body, both_connected });
 }
