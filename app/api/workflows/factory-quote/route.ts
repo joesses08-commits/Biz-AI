@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
 
 Hope you're doing well! Please find attached our product list for the ${job.job_name}.
 
-Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for unit price, MOQ, lead time, and payment terms — but just fill in whatever applies.
+Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for unit price, MOQ, lead time, and payment terms.
 
 Thanks so much,
 ${senderName}`;
@@ -253,7 +253,7 @@ ${senderName}`;
 
 Hope you're doing well! Please find attached our product list for the ${job.job_name}.
 
-Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for unit price, MOQ, lead time, and payment terms — but just fill in whatever applies.
+Could you fill in your pricing in the attached file and reply to this email with the completed sheet? We're looking for unit price, MOQ, lead time, and payment terms.
 
 Thanks so much,
 ${senderName}`,
