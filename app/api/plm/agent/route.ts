@@ -170,21 +170,6 @@ const TOOLS: Anthropic.Tool[] = [
     }
   },
   {
-    name: "create_rfq",
-    description: "Create an RFQ spreadsheet for selected products and email it to selected factories. Use when user asks to request quotes. IMPORTANT: Only include products that do NOT already have quote_requested or quote_received stage done for that factory. Check the PLM context tracks before selecting product_ids.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        product_ids: { type: "array", items: { type: "string" }, description: "List of product IDs to include in RFQ" },
-        factory_ids: { type: "array", items: { type: "string" }, description: "List of factory IDs to send RFQ to" },
-        include: { type: "array", items: { type: "string" }, description: "Fields to include in sheet: name, sku, description, specs, weight, dimensions, images. Always include name and sku." },
-        ask_for: { type: "array", items: { type: "string" }, description: "Fields to ask factories: unit_price, lead_time, sample_lead_time, moq, payment_terms, sample_price, packaging, comments" },
-        custom_body: { type: "string", description: "Optional custom email body" }
-      },
-      required: ["product_ids", "factory_ids"]
-    }
-  },
-  {
     name: "send_po_email",
     description: "Generate and send a PO email to a factory. Creates the order if needed.",
     input_schema: {
@@ -418,7 +403,7 @@ You can:
 - Send messages to factories
 - Request SAMPLES from factories (physical samples to review) — use request_sample tool
   IMPORTANT: When requesting samples for multiple products from the same factory, send ONE message per factory listing all products. Find the track_id for one of the products at that factory and send a single combined message there. Do not send separate messages for each product.
-- Request QUOTES from factories (pricing/RFQ spreadsheet emails) — use create_rfq tool
+- For quote/RFQ requests: tell the user "I can't create quote requests yet — please use the RFQ button in PLM or the Collection page to send quote requests to factories."
 - Update track stages (mark artwork sent, quote received, sample requested, etc.)
 - Add notes to products or factory tracks
 - Create production orders
