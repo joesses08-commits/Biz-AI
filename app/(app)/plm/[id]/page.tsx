@@ -1293,7 +1293,6 @@ ${entry}` : entry;
                           className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/60 placeholder-white/15 text-[10px] focus:outline-none resize-none" autoFocus />
                         <div className="flex gap-1">
                           <button onClick={async () => {
-                            if (!factoryNote || !factoryNote.trim()) { setEditingNote(false); return; }
                             setSavingNote(true);
                             const noteWithDate = factoryNote.trim();
                             await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
