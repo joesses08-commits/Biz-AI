@@ -97,6 +97,28 @@ export default function UsagePage() {
             </div>
           </div>
 
+          {/* Daily Summary Table */}
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden mb-6">
+            <div className="px-6 py-4 border-b border-white/[0.06] grid grid-cols-4 gap-4">
+              <p className="text-white/30 text-xs uppercase tracking-widest">Date</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest">Calls</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest">Tokens</p>
+              <p className="text-white/30 text-xs uppercase tracking-widest text-right">Cost</p>
+            </div>
+            {Object.entries(byDay).map(([day, dayRows]) => {
+              const dayCost = dayRows.reduce((s, r) => s + (r.cost_usd || 0), 0);
+              const dayTokens = dayRows.reduce((s, r) => s + (r.input_tokens || 0) + (r.output_tokens || 0), 0);
+              return (
+                <div key={day} className="px-6 py-3 border-b border-white/[0.04] last:border-0 grid grid-cols-4 gap-4 hover:bg-white/[0.02] transition">
+                  <p className="text-xs text-white/60">{new Date(dayRows[0].created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}</p>
+                  <p className="text-xs text-white/60">{dayRows.length}</p>
+                  <p className="text-xs text-white/60">{dayTokens.toLocaleString()}</p>
+                  <p className="text-xs text-white/60 text-right">${dayCost.toFixed(4)}</p>
+                </div>
+              );
+            })}
+          </div>
+
           {/* Daily Log */}
           <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
             <div className="px-6 py-4 border-b border-white/[0.06]">
