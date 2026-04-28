@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import * as XLSX from "xlsx";
+import pdfParse from "pdf-parse";
 import JSZip from "jszip";
 import { trackUsage } from "@/lib/track-usage";
 
@@ -71,6 +72,14 @@ export async function POST(req: NextRequest) {
     let fileContent = "";
     if (file_type?.includes("sheet") || file_name?.match(/\.xlsx?$/i)) {
       fileContent = extractExcelText(file_base64).slice(0, 5000);
+    } else if (file_type?.includes("pdf") || file_name?.match(/\.pdf$/i)) {
+      try {
+        const pdfBuffer = Buffer.from(file_base64, "base64");
+        const pdfData = await pdfParse(pdfBuffer);
+        fileContent = pdfData.text.slice(0, 6000);
+      } catch {
+        fileContent = "PDF could not be parsed";
+      }
     } else {
       fileContent = Buffer.from(file_base64, "base64").toString("utf-8").slice(0, 6000);
     }
