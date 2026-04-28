@@ -8,12 +8,12 @@ const supabaseAdmin = createClient(
 );
 
 export async function getEffectiveUser(req?: import("next/server").NextRequest) {
-  // Support internal calls with x-user-id header
+  // Support internal calls with x-user-id + secret header
   if (req) {
+    const secret = req.headers.get("x-internal-secret");
     const userId = req.headers.get("x-user-id");
-    if (userId) {
-      const { data: profile } = await supabaseAdmin.from("profiles").select("id").eq("id", userId).single();
-      if (profile) return { id: userId, email: "" } as any;
+    if (userId && secret === process.env.CRON_SECRET) {
+      return { id: userId, email: "" } as any;
     }
   }
   const cookieStore = await cookies();

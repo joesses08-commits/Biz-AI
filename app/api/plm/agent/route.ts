@@ -314,7 +314,7 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
       // Step 1: Create RFQ spreadsheet + job
       const rfqRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/plm/rfq`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        headers: { "Content-Type": "application/json", "x-user-id": userId, "x-internal-secret": process.env.CRON_SECRET! },
         body: JSON.stringify({
           product_ids: input.product_ids,
           include: input.include || ["name", "sku", "description", "specs", "images"],
@@ -333,7 +333,7 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
       // Step 3: Send RFQ emails
       const sendRes = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/workflows/factory-quote`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": userId },
+        headers: { "Content-Type": "application/json", "x-user-id": userId, "x-internal-secret": process.env.CRON_SECRET! },
         body: JSON.stringify({
           action: "send_rfq",
           job_id: rfqData.job_id,
@@ -436,6 +436,15 @@ CRITICAL DISTINCTION:
 Always use the tools when asked to take an action. Be decisive and execute commands directly. Confirm what you did after executing.
 
 When creating POs, always include product name, SKU, quantity, and price in the email. Use professional but direct language.
+
+RESPONSE STYLE — CRITICAL:
+- Never use internal database terms like quote_requested, sample_requested, artwork_sent, sample_production etc. Use human language: "Quote Requested", "Sample In Production", "Artwork Sent", etc.
+- Never show raw table data or pipe-separated tables. Use clean bullet points or plain sentences.
+- Never mention track_id, factory_id, product_id, or any UUIDs in responses.
+- When summarizing status, say things like "Joeys Factory is at the Sample Review stage" not "sample_reviewed: done"
+- Keep responses concise and actionable. Lead with the most important info.
+- Format lists cleanly with product name and SKU in parentheses.
+- When something fails, explain it in plain English without technical details.
 
 ${plmContext}
 
