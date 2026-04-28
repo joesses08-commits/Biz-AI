@@ -31,7 +31,6 @@ export async function GET() {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // Fetch last 30 days
     const { data } = await supabaseAdmin
       .from("api_usage")
       .select("*")
@@ -39,7 +38,6 @@ export async function GET() {
       .gte("created_at", thirtyDaysAgo)
       .order("created_at", { ascending: true });
 
-    // Fetch this month
     const { data: monthData } = await supabaseAdmin
       .from("api_usage")
       .select("*")
