@@ -171,7 +171,7 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: "create_rfq",
-    description: "Create an RFQ spreadsheet for selected products and email it to selected factories. Use when user asks to request quotes.",
+    description: "Create an RFQ spreadsheet for selected products and email it to selected factories. Use when user asks to request quotes. IMPORTANT: Only include products that do NOT already have quote_requested or quote_received stage done for that factory. Check the PLM context tracks before selecting product_ids.",
     input_schema: {
       type: "object" as const,
       properties: {
