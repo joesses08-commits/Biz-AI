@@ -238,12 +238,26 @@ export default function PLMAgentPage() {
                       </ReactMarkdown>
                       {m.actions && m.actions.length > 0 && (
                         <div className="mt-3 space-y-1.5 border-t border-white/[0.06] pt-3">
-                          {m.actions.map((action: string, i: number) => (
-                            <div key={i} className="flex items-start gap-2 text-[11px]">
-                              <span className="text-emerald-400 flex-shrink-0">✓</span>
-                              <span className="text-white/40">{action}</span>
-                            </div>
-                          ))}
+                          {m.actions.map((action: string, i: number) => {
+                            const tool = action.split(":")[0].trim();
+                            const TOOL_LABELS: Record<string, string> = {
+                              request_sample: "Sample requested",
+                              send_message: "Message sent",
+                              update_track_stage: "Stage updated",
+                              add_note: "Note added",
+                              create_order: "Order created",
+                              send_po_email: "PO email sent",
+                              get_messages: "Messages read",
+                              get_product_details: "Product details fetched",
+                            };
+                            const label = TOOL_LABELS[tool] || tool;
+                            return (
+                              <div key={i} className="flex items-center gap-2 text-[11px]">
+                                <span className="text-emerald-400 flex-shrink-0">✓</span>
+                                <span className="text-white/40">{label}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
