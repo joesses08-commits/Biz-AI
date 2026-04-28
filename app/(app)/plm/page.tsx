@@ -62,6 +62,8 @@ export default function PLMPage() {
   const [activeTab, setActiveTab] = useState<"collections"|"all_products"|"factory_access"|"designer_access"|"prioritization">("all_products");
   const [showNewCollection, setShowNewCollection] = useState(false);
   const [showNewProduct, setShowNewProduct] = useState(false);
+  const [showInlineCollection, setShowInlineCollection] = useState(false);
+  const [inlineCollectionName, setInlineCollectionName] = useState("");
   const [showNewPortalUser, setShowNewPortalUser] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -1028,10 +1030,35 @@ export default function PLMPage() {
               <div><label className={lc}>Specs</label><textarea value={newProduct.specs} onChange={e => setNewProduct({...newProduct, specs: e.target.value})} placeholder="Material, size, color..." rows={2} className={`${ic} resize-none`} /></div>
               <div>
                 <label className={lc}>Collection</label>
-                <select value={newProduct.collection_id} onChange={e => setNewProduct({...newProduct, collection_id: e.target.value})} className={ic}>
-                  <option value="">No collection</option>
-                  {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
+                {!showInlineCollection ? (
+                  <div className="flex gap-2">
+                    <select value={newProduct.collection_id} onChange={e => setNewProduct({...newProduct, collection_id: e.target.value})} className={`${ic} flex-1`}>
+                      <option value="">No collection</option>
+                      {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <button type="button" onClick={() => setShowInlineCollection(true)}
+                      className="px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 text-xs whitespace-nowrap">+ New</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input autoFocus value={inlineCollectionName} onChange={e => setInlineCollectionName(e.target.value)}
+                      placeholder="Collection name..." className={`${ic} flex-1`} />
+                    <button type="button" onClick={async () => {
+                      if (!inlineCollectionName.trim()) return;
+                      const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "create_collection", name: inlineCollectionName.trim() }) });
+                      const data = await res.json();
+                      if (data.id) {
+                        setCollections(prev => [...prev, data]);
+                        setNewProduct(p => ({ ...p, collection_id: data.id }));
+                      }
+                      setShowInlineCollection(false);
+                      setInlineCollectionName("");
+                    }} className="px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold">Create</button>
+                    <button type="button" onClick={() => { setShowInlineCollection(false); setInlineCollectionName(""); }}
+                      className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">✕</button>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lc}>Category</label><input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="Glassware" className={ic} /></div>

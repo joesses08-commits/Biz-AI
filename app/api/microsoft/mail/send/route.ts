@@ -13,7 +13,7 @@ async function getMicrosoftToken(conn: any, supabase: any) {
         client_id: process.env.MICROSOFT_CLIENT_ID!,
         client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
         grant_type: "refresh_token",
-        scope: "offline_access Mail.Read Mail.Send Files.Read.All Files.ReadWrite.All Calendars.Read Calendars.ReadWrite Sites.Read.All Sites.ReadWrite.All",
+        scope: "offline_access Mail.Read Mail.Send",
       }),
     });
     const data = await res.json();

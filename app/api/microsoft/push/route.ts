@@ -17,7 +17,7 @@ async function refreshMicrosoftToken(conn: any) {
       client_id: process.env.MICROSOFT_CLIENT_ID!,
       client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
       grant_type: "refresh_token",
-      scope: "Mail.Read Mail.Send Files.ReadWrite offline_access",
+      scope: "offline_access Mail.Read Mail.Send",
     }),
   });
   const data = await res.json();

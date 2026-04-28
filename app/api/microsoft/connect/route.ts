@@ -10,18 +10,8 @@ export async function GET() {
     "profile",
     "offline_access",
     "User.Read",
-    // Mail — read + send
     "Mail.Read",
     "Mail.Send",
-    // Files/OneDrive — read + write
-    "Files.Read.All",
-    "Files.ReadWrite.All",
-    // Calendar — read + write
-    "Calendars.Read",
-    "Calendars.ReadWrite",
-    // SharePoint — read + write
-    "Sites.Read.All",
-    "Sites.ReadWrite.All",
   ].join(" ");
 
   const authUrl = new URL("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
