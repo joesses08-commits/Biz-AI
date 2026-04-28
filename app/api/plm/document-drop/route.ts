@@ -320,11 +320,35 @@ For product_import: extract ALL available fields per product including descripti
           (factory_name || "").toLowerCase().includes(q.factory_name?.toLowerCase())
         );
 
+        // Fetch job order details to calculate ELC
+        const { data: jobForElc } = await supabaseAdmin.from("factory_quote_jobs").select("order_details").eq("id", jobId).single();
+        const elcOrderDetails = (jobForElc?.order_details as any) || {};
+        const elcDutyPct = parseFloat(elcOrderDetails.duty_pct || "30") / 100;
+        const elcTariffPct = parseFloat(elcOrderDetails.tariff_pct || "20") / 100;
+        const elcFreight = parseFloat(elcOrderDetails.freight || "0.15");
+        const processedExtracted = (products_extracted || []).map((p: any) => {
+          const firstCost = parseFloat(p.unit_price || p.unit_cost || p.first_cost || "0") || 0;
+          const elc = firstCost * (1 + elcDutyPct) * (1 + elcTariffPct) + elcFreight;
+          return {
+            ...p,
+            factory_name: saveFactoryName,
+            factory_email: saveFactoryEmail || "",
+            first_cost: firstCost,
+            unit_cost: firstCost,
+            duty_pct: elcOrderDetails.duty_pct || "30",
+            tariff_pct: elcOrderDetails.tariff_pct || "20",
+            freight: elcFreight,
+            elc: Math.round(elc * 100) / 100,
+            product_name: p.name || p.product_name || "",
+            lead_time_days: parseInt(p.lead_time || p.lead_time_days || "0") || 0,
+          };
+        });
+
         if (existingQuote) {
           await supabaseAdmin.from("factory_quotes").update({
             status: "processed",
             factory_name: saveFactoryName,
-            processed_data: products_extracted,
+            processed_data: processedExtracted,
             raw_file_base64: file_base64 || null,
             raw_data: { source: "document_drop", file_name },
           }).eq("id", existingQuote.id);
@@ -334,7 +358,7 @@ For product_import: extract ALL available fields per product including descripti
             factory_name: saveFactoryName,
             factory_email: saveFactoryEmail,
             status: "processed",
-            processed_data: products_extracted,
+            processed_data: processedExtracted,
             raw_file_base64: file_base64 || null,
             raw_data: { source: "document_drop", file_name },
           });
