@@ -1154,7 +1154,7 @@ ${entry}` : entry;
               const isKilledTrack = track.status === "killed";
               const revision = getCurrentRevision(track);
               const [cycleCollapsed, setCycleCollapsed] = useState<Record<number, boolean>>({ 0: true });
-              const [factoryNote, setFactoryNote] = useState(track.notes || "");
+              const [factoryNote, setFactoryNote] = useState("");
               const [savingNote, setSavingNote] = useState(false);
               const [editingNote, setEditingNote] = useState(false);
 
