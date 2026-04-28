@@ -291,8 +291,8 @@ export async function POST(req: NextRequest) {
     const { data: profile } = await supabaseAdmin.from("profiles")
       .select("full_name, company_name").eq("id", user.id).single();
     const { data: companyProfile } = await supabaseAdmin.from("company_profiles")
-      .select("company_name").eq("user_id", user.id).single();
-    const senderName = profile?.full_name || user.email?.split("@")[0] || "The Team";
+      .select("company_name, full_name").eq("user_id", user.id).single();
+    const senderName = companyProfile?.full_name || profile?.full_name || user.email?.split("@")[0] || "The Team";
     const companyName = companyProfile?.company_name || profile?.company_name || "Our Company";
 
     // Get existing track notes
