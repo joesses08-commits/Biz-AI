@@ -1270,23 +1270,33 @@ ${entry}` : entry;
                           className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/60 placeholder-white/15 text-[10px] focus:outline-none resize-none" autoFocus />
                         <div className="flex gap-1">
                           <button onClick={async () => {
+                            if (!factoryNote.trim()) { setEditingNote(false); return; }
                             setSavingNote(true);
-                            const noteWithDate = factoryNote ? `${factoryNote} — ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : "";
+                            const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                            const existing = track.notes || "";
+                            const newEntry = `${factoryNote.trim()} — ${dateStr}`;
+                            const noteWithDate = existing ? `${existing}\n${newEntry}` : newEntry;
                             await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: noteWithDate }) });
-                            setSavingNote(false); setEditingNote(false); setFactoryNote(noteWithDate); load();
+                            setSavingNote(false); setEditingNote(false); setFactoryNote(""); load();
                           }} disabled={savingNote} className="text-[9px] px-2 py-1 rounded bg-white text-black font-bold disabled:opacity-40">Save</button>
                           <button onClick={() => setEditingNote(false)} className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/30">Cancel</button>
                         </div>
                       </div>
                     ) : (
-                      <button onClick={() => setEditingNote(true)} className="w-full text-left group">
-                        {factoryNote ? (
-                          <p className="text-[10px] text-white/35 group-hover:text-white/60 transition leading-relaxed">{factoryNote}</p>
-                        ) : (
-                          <p className="text-[10px] text-white/15 group-hover:text-white/30 transition italic">+ Add factory note</p>
-                        )}
-                      </button>
+                      <div className="space-y-1">
+                        {track.notes ? (
+                          <>
+                            {track.notes.split("\n").slice(0, 3).map((line: string, i: number) => (
+                              <p key={i} className="text-[10px] text-white/35 leading-relaxed">{line}</p>
+                            ))}
+                            {track.notes.split("\n").length > 3 && (
+                              <p className="text-[10px] text-white/20 italic">+{track.notes.split("\n").length - 3} more...</p>
+                            )}
+                          </>
+                        ) : null}
+                        <button onClick={() => setEditingNote(true)} className="text-[10px] text-white/15 hover:text-white/40 transition italic text-left">+ Add note</button>
+                      </div>
                     )}
                   </div>
                   {/* Messages button - only show if sample was requested */}
