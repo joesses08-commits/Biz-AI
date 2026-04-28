@@ -100,15 +100,13 @@ export async function checkQuota(userId: string, feature: keyof typeof TOKEN_COS
   dailyLimit: number | null;
 }> {
   const quota = await getQuota(userId);
-  const cost = TOKEN_COSTS[feature];
 
-  if (cost === 0) return { allowed: true, tokensRemaining: quota.tokensRemaining, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
-
-  if (quota.tokensRemaining < cost) {
-    return { allowed: false, reason: "monthly_limit", tokensRemaining: quota.tokensRemaining, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
+  // Always allow if tokens remaining (based on real cost calculation)
+  if (quota.tokensRemaining <= 0) {
+    return { allowed: false, reason: "monthly_limit", tokensRemaining: 0, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
   }
 
-  if (quota.dailyLimit && quota.tokensUsedToday + cost > quota.dailyLimit) {
+  if (quota.dailyLimit && quota.tokensUsedToday >= quota.dailyLimit) {
     return { allowed: false, reason: "daily_limit", tokensRemaining: quota.tokensRemaining, tokensUsedToday: quota.tokensUsedToday, dailyLimit: quota.dailyLimit };
   }
 
