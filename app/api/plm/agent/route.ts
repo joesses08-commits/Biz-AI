@@ -238,14 +238,6 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
         body: JSON.stringify({ action: "create_sample_requests", product_id: input.product_id, factory_ids: input.factory_ids, note: input.note || "", provider: "outlook" })
       });
       const data = await res.json();
-      // Also update track stages
-      const { data: tracks } = await supabaseAdmin.from("plm_factory_tracks").select("id, factory_id").eq("product_id", input.product_id).in("factory_id", input.factory_ids);
-      for (const track of (tracks || [])) {
-        const { data: existing } = await supabaseAdmin.from("plm_track_stages").select("id").eq("track_id", track.id).eq("stage", "sample_requested").maybeSingle();
-        if (!existing) {
-          await supabaseAdmin.from("plm_track_stages").insert({ track_id: track.id, product_id: input.product_id, factory_id: track.factory_id, stage: "sample_requested", status: "done", revision_number: 0, actual_date: new Date().toISOString().split("T")[0], notes: input.note || null, user_id: userId });
-        }
-      }
       return `Sample requested from ${input.factory_ids.length} factory/factories. Emails sent.`;
     }
 
