@@ -119,12 +119,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "create_product") {
-    const { name, sku, description, specs, category, collection_id, factory_id, target_elc, target_sell_price, moq, order_quantity, notes } = body;
+    const { name, sku, description, specs, category, collection_id, factory_id, target_elc, target_sell_price, moq, order_quantity, notes, weight, dimensions } = body;
     const { data, error } = await supabaseAdmin.from("plm_products").insert({
       user_id: user.id, name, sku, description, specs, category,
       collection_id: collection_id || null,
       factory_id: factory_id || null,
       target_elc, target_sell_price, moq, order_quantity, notes,
+      weight: weight || null, dimensions: dimensions || null,
       milestones: {},
       current_stage: "design_brief",
       stage_updated_at: new Date().toISOString(),
