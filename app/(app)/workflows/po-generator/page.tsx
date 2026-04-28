@@ -15,6 +15,7 @@ export default function POGeneratorPage() {
   const [factories, setFactories] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [factoryQuotes, setFactoryQuotes] = useState<any[]>([]);
 
   const [poSelectedProducts, setPOSelectedProducts] = useState<string[]>([]);
   const [poLineItems, setPOLineItems] = useState<Record<string, { qty: string; unit_price: string }>>({});
@@ -97,6 +98,17 @@ export default function POGeneratorPage() {
     setProducts(plmData.products || []);
     setFactories(plmData.factories || []);
     // Load warehouses
+    const quotesRes = await fetch("/api/workflows/factory-quote");
+    if (quotesRes.ok) {
+      const quotesData = await quotesRes.json();
+      const allQuotes: any[] = [];
+      for (const job of (quotesData.jobs || [])) {
+        for (const q of (job.factory_quotes || [])) {
+          allQuotes.push(q);
+        }
+      }
+      setFactoryQuotes(allQuotes);
+    }
     const invRes = await fetch("/api/inventory");
     const invData = await invRes.json();
     setWarehouses(invData.warehouses || []);
@@ -276,10 +288,31 @@ Download PO: ${publicUrl}` : ""),
               <div>
                 <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Factory (Sell To)</p>
                 <select value={selectedFactory} onChange={e => {
-                  setSelectedFactory(e.target.value);
-                  setPOSelectedProducts([]);
+                  const fid = e.target.value;
+                  setSelectedFactory(fid);
                   setPOSelectedProducts([]);
                   setPOFactoryPerProduct({});
+                  // Auto-fill prices from factory quotes
+                  const factory = factories.find((f: any) => f.id === fid);
+                  if (factory) {
+                    const fQuotes = factoryQuotes.filter((q: any) =>
+                      q.factory_name?.toLowerCase() === factory.name?.toLowerCase()
+                    );
+                    const newPrices: Record<string, { qty: string; unit_price: string }> = {};
+                    for (const product of products) {
+                      for (const q of fQuotes) {
+                        const match = (q.processed_data || []).find((pd: any) =>
+                          pd.sku?.toLowerCase() === product.sku?.toLowerCase() ||
+                          pd.product_name?.toLowerCase().includes(product.name?.toLowerCase().slice(0, 8))
+                        );
+                        if (match?.first_cost) {
+                          newPrices[product.id] = { qty: "", unit_price: String(match.first_cost) };
+                          break;
+                        }
+                      }
+                    }
+                    setPOLineItems(newPrices);
+                  }
                 }} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
                   <option value="">Select a factory...</option>
                   {factories.map((f: any) => (
