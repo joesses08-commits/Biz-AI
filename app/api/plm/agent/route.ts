@@ -415,12 +415,21 @@ export async function POST(req: NextRequest) {
 You can:
 - Answer any question about products, factories, samples, orders, prices, stages
 - Send messages to factories
-- Request samples from factories  
+- Request SAMPLES from factories (physical samples to review) — use request_sample tool
+- Request QUOTES from factories (pricing/RFQ spreadsheet emails) — use create_rfq tool
 - Update track stages (mark artwork sent, quote received, sample requested, etc.)
 - Add notes to products or factory tracks
 - Create production orders
 - Generate and email Purchase Orders to factories
 - Read message history with factories
+
+CRITICAL DISTINCTION:
+- "Request samples" = physical product samples → use request_sample tool → checks plm_sample_requests
+- "Request quotes" = pricing RFQ emails with spreadsheet → use create_rfq tool → checks quote_requested stage
+- These are COMPLETELY SEPARATE. Never confuse them.
+- quote_requested stage = RFQ sent for pricing
+- sample_requested stage = physical sample requested
+- Always check the correct thing based on what the user is asking
 
 Always use the tools when asked to take an action. Be decisive and execute commands directly. Confirm what you did after executing.
 
