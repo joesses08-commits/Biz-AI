@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
         if (existingStage) {
           await supabaseAdmin.from("plm_track_stages").update({ status: "done", actual_date: new Date().toISOString().split("T")[0] }).eq("id", existingStage.id);
         } else {
-          await supabaseAdmin.from("plm_track_stages").insert({ track_id: track.id, product_id, factory_id: factory.id, stage: "sample_requested", status: "done", revision_number: 0, actual_date: new Date().toISOString().split("T")[0], notes: note || null, user_id: user.id });
+          await supabaseAdmin.from("plm_track_stages").insert({ track_id: track.id, product_id, factory_id: factory.id, stage: "sample_requested", status: "done", revision_number: 0, actual_date: new Date().toISOString().split("T")[0], notes: note || null });
         }
       }
     }
