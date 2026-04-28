@@ -1154,7 +1154,7 @@ ${entry}` : entry;
               const isKilledTrack = track.status === "killed";
               const revision = getCurrentRevision(track);
               const [cycleCollapsed, setCycleCollapsed] = useState<Record<number, boolean>>({ 0: true });
-              const [factoryNote, setFactoryNote] = useState("");
+              const [factoryNote, setFactoryNote] = useState(track.notes || "");
               const [savingNote, setSavingNote] = useState(false);
               const [editingNote, setEditingNote] = useState(false);
 
@@ -1293,10 +1293,9 @@ ${entry}` : entry;
                           className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/60 placeholder-white/15 text-[10px] focus:outline-none resize-none" autoFocus />
                         <div className="flex gap-1">
                           <button onClick={async () => {
-                            if (!factoryNote || factoryNote.trim().length < 2) { setEditingNote(false); return; }
+                            if (!factoryNote || !factoryNote.trim()) { setEditingNote(false); return; }
                             setSavingNote(true);
-                            const existing = track.notes ? track.notes.trim() : "";
-                            const noteWithDate = existing ? `${existing}\n${factoryNote.trim()}` : factoryNote.trim();
+                            const noteWithDate = factoryNote.trim();
                             await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: noteWithDate }) });
                             setSavingNote(false); setEditingNote(false); setFactoryNote(""); load();
