@@ -933,7 +933,14 @@ Best regards,
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : job.status === "rfq_sent" || job.status === "ready" || job.status === "complete" ? "bg-blue-400/40" : "bg-white/15"}`} />
                               <span className="text-[11px] text-white/60 flex-1">{factory.name}</span>
                               {received ? (
-                                <span className="text-[10px] text-emerald-400/80">{received.processed_data?.length || 0} products received</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-emerald-400/80">{received.processed_data?.length || 0} products received</span>
+                                  <button onClick={async () => {
+                                    if (!confirm("Remove this quote?")) return;
+                                    await fetch("/api/workflows/factory-quote", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_quote", quote_id: received.id }) });
+                                    loadJobs();
+                                  }} className="text-white/15 hover:text-red-400 transition"><Trash2 size={10} /></button>
+                                </div>
                               ) : job.status !== "complete" ? (
                                 <label className="cursor-pointer">
                                   <input type="file" accept=".xlsx,.xls" className="hidden"

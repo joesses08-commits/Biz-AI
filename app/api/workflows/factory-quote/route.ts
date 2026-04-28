@@ -864,6 +864,13 @@ Return ONLY raw JSON, no markdown:
       return NextResponse.json({ success: true, fileName, sheetUrl, base64, aiRecommendation });
     }
 
+    // ── DELETE SINGLE QUOTE ─────────────────────────────────────────────
+    if (action === "delete_quote") {
+      const { quote_id } = body;
+      await supabaseAdmin.from("factory_quotes").delete().eq("id", quote_id);
+      return NextResponse.json({ success: true });
+    }
+
     // ── DELETE JOBS ─────────────────────────────────────────────────────
     if (action === "delete_jobs") {
       const { job_ids } = body;
