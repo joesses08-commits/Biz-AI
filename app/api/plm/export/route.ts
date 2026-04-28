@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
   const COLUMN_LABELS: Record<string, string> = {
     name: "Product Name", sku: "SKU", description: "Description",
     specs: "Specifications", category: "Category", collection: "Collection",
-    factory: "Factory", target_elc: "ELC ($)", target_sell_price: "Sell Price ($)",
+    factory: "Factory", weight: "Weight", dimensions: "Dimensions",
+    target_elc: "ELC ($)", target_sell_price: "Sell Price ($)",
     margin: "Margin (%)", order_quantity: "Order Qty", moq: "MOQ",
     current_stage: "Status", notes: "Notes",
   };

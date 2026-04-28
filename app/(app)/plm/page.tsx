@@ -13,7 +13,7 @@ const BATCH_STAGE_COLORS: Record<string,string> = { po_issued:"#f59e0b", product
 const DEV_STAGE_LABELS: Record<string,string> = { concept:"Concept", ready_for_quote:"Ready for Quote", artwork_sent:"Artwork Sent", quotes_received:"Quotes Received", samples_requested:"Samples Requested", sample_production:"Sample Production", sample_complete:"Sample Complete", sample_shipped:"Sample Shipped", sample_arrived:"Sample Arrived", sample_approved:"Sample Approved" };
 const DEV_STAGE_COLORS: Record<string,string> = { concept:"#6b7280", ready_for_quote:"#ec4899", artwork_sent:"#8b5cf6", quotes_received:"#3b82f6", samples_requested:"#f59e0b", sample_production:"#f59e0b", sample_complete:"#f59e0b", sample_shipped:"#3b82f6", sample_arrived:"#10b981", sample_approved:"#10b981" };
 const SEASONS = ["Spring", "Summer", "Fall", "Winter", "Holiday", "Resort", "Pre-Fall"];
-const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
+const EXPORT_COLUMNS = ["name","sku","description","specs","category","collection","factory","weight","dimensions","target_elc","target_sell_price","margin","order_quantity","moq","current_stage","notes","images"];
 const COLUMN_LABELS: Record<string,string> = { name:"Product Name", sku:"SKU", description:"Description", specs:"Specifications", category:"Category", collection:"Collection", factory:"Factory", target_elc:"ELC ($)", target_sell_price:"Sell Price ($)", margin:"Margin (%)", order_quantity:"Order Qty", moq:"MOQ", current_stage:"Stage", notes:"Notes", images:"Image URL" };
 
 function getProductStatus(product: any) {
@@ -1060,9 +1060,13 @@ export default function PLMPage() {
                   </div>
                 )}
               </div>
+              <div>
+                <label className={lc}>Category</label>
+                <input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="Glassware" className={ic} />
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className={lc}>Category</label><input value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} placeholder="Glassware" className={ic} /></div>
-                <div><label className={lc}>Order Quantity</label><input value={newProduct.order_quantity} onChange={e => setNewProduct({...newProduct, order_quantity: e.target.value})} placeholder="500" className={ic} /></div>
+                <div><label className={lc}>Weight (e.g. 0.5 kg)</label><input value={(newProduct as any).weight || ""} onChange={e => setNewProduct({...newProduct, weight: e.target.value} as any)} placeholder="0.5 kg" className={ic} /></div>
+                <div><label className={lc}>Dimensions (e.g. 10x5x3 cm)</label><input value={(newProduct as any).dimensions || ""} onChange={e => setNewProduct({...newProduct, dimensions: e.target.value} as any)} placeholder="10x5x3 cm" className={ic} /></div>
               </div>
               <div><label className={lc}>Notes</label><textarea value={newProduct.notes} onChange={e => setNewProduct({...newProduct, notes: e.target.value})} rows={2} className={`${ic} resize-none`} /></div>
               <div className="flex gap-2">

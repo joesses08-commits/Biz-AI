@@ -2275,6 +2275,8 @@ Best regards,
               <div className="col-span-2">
                 <InlineField label="Specs" value={product.specs || ""} onSave={v => saveField("specs", v)} multiline disabled={isKilled} />
               </div>
+              <InlineField label="Weight (e.g. 0.5 kg)" value={product.weight || ""} onSave={v => saveField("weight", v)} disabled={isKilled} />
+              <InlineField label="Dimensions (e.g. 10x5x3 cm)" value={product.dimensions || ""} onSave={v => saveField("dimensions", v)} disabled={isKilled} />
               <div className="col-span-2 group">
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-[10px] text-white/30 uppercase tracking-widest">Collection</p>
@@ -2305,12 +2307,7 @@ Best regards,
                     <InlineField label="Admin Notes (private)" value={product.notes || ""} onSave={v => saveField("notes", v)} multiline disabled={isKilled} />
                   </div>
                 </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-1 h-full rounded-full bg-amber-500/30 self-stretch flex-shrink-0" />
-                  <div className="flex-1">
-                    <InlineField label="Factory Notes (visible to factory)" value={product.factory_notes || ""} onSave={v => saveField("factory_notes", v)} multiline disabled={isKilled} />
-                  </div>
-                </div>
+
               </div>
             </div>
           </div>
