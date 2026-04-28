@@ -31,7 +31,7 @@ interface Chat {
 export default function PLMAgentPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(() => typeof window !== "undefined" ? localStorage.getItem("plm_agent_draft") || "" : "");
   const [loading, setLoading] = useState(false);
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export default function PLMAgentPage() {
   const send = async (text?: string) => {
     const msg = text || input.trim();
     if (!msg || loading) return;
-    setInput("");
+    setInput(""); localStorage.removeItem("plm_agent_draft");
 
     // Auto-create a chat if none exists
     let activeChatId = currentChatId;
@@ -271,7 +271,7 @@ export default function PLMAgentPage() {
       <div className="border-t border-white/[0.06] px-6 py-4 flex-shrink-0">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-end gap-3 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 focus-within:border-white/15 transition">
-            <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
+            <textarea ref={inputRef} value={input} onChange={e => { setInput(e.target.value); localStorage.setItem("plm_agent_draft", e.target.value); }} onKeyDown={handleKey}
               placeholder="Ask anything about your products, factories, or samples..."
               rows={1} className="flex-1 bg-transparent text-white/80 placeholder-white/20 text-sm focus:outline-none resize-none leading-relaxed"
               style={{ maxHeight: "120px" }}
