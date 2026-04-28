@@ -196,6 +196,7 @@ Download PO: ${publicUrl}` : ""),
       body: JSON.stringify({
         action: "send_email",
         factory: emailModal.factory,
+        factory_id: emailModal.factory?.id || selectedFactory || null,
         subject: emailModal.subject,
         body: emailModal.body,
         po_number: emailModal.po_number,

@@ -20,8 +20,17 @@ export async function POST(req: NextRequest) {
 
   // ── SEND EMAIL ──
   if (action === "send_email") {
-    const { factory, subject, body: emailBody, po_number, provider } = body;
-    console.log("send_email factory:", JSON.stringify(factory));
+    const { factory, subject, body: emailBody, po_number, provider, factory_id } = body;
+    // Look up factory directly from DB to ensure we have the email
+    let resolvedFactory = factory;
+    if (factory_id) {
+      const { data: dbFactory } = await supabaseAdmin.from("factory_catalog").select("*").eq("id", factory_id).single();
+      if (dbFactory) resolvedFactory = dbFactory;
+    } else if (factory?.id) {
+      const { data: dbFactory } = await supabaseAdmin.from("factory_catalog").select("*").eq("id", factory.id).single();
+      if (dbFactory) resolvedFactory = dbFactory;
+    }
+    console.log("send_email resolvedFactory:", JSON.stringify(resolvedFactory));
 
     const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token,refresh_token").eq("user_id", user.id).single();
     const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token,refresh_token,expires_at").eq("user_id", user.id).single();
@@ -32,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     if (useGmail && gmailConn) {
       const rawLines = [
-        `To: ${factory?.email}`,
+        `To: ${resolvedFactory?.email}`,
         `Subject: ${subject}`,
         "MIME-Version: 1.0",
         "Content-Type: text/plain; charset=UTF-8",
@@ -71,7 +80,7 @@ export async function POST(req: NextRequest) {
           message: {
             subject,
             body: { contentType: "Text", content: emailBody },
-            toRecipients: [{ emailAddress: { address: factory?.email } }],
+            toRecipients: [{ emailAddress: { address: resolvedFactory?.email } }],
           },
         }),
       });
