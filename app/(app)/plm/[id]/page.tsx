@@ -1315,7 +1315,7 @@ ${entry}` : entry;
                             )}
                           </>
                         ) : null}
-                        <button onClick={() => setEditingNote(true)} className="text-[10px] text-white/15 hover:text-white/40 transition italic text-left">+ Add note</button>
+                        <button onClick={() => { setFactoryNote(track.notes || ""); setEditingNote(true); }} className="text-[10px] text-white/15 hover:text-white/40 transition italic text-left">{track.notes ? "✏ Edit notes" : "+ Add note"}</button>
                       </div>
                     )}
                   </div>
