@@ -152,6 +152,7 @@ export default function ProductPage() {
   // Factory tracks
   const [tracks, setTracks] = useState<any[]>([]);
   const [addingFactory, setAddingFactory] = useState(false);
+  const [expandedNoteTrackId, setExpandedNoteTrackId] = useState<string|null>(null);
   const [newTrackFactoryId, setNewTrackFactoryId] = useState<string[]>([]);
   const [updatingStage, setUpdatingStage] = useState<string | null>(null);
   const [skipModal, setSkipModal] = useState<{trackId: string, productId: string, factoryId: string, stage: string} | null>(null);
@@ -566,6 +567,28 @@ ${entry}` : entry;
     <div className="min-h-screen bg-[#0a0a0a] text-white"
       onDragOver={e => e.preventDefault()}
       onDrop={e => e.preventDefault()}>
+
+      {/* Notes expand modal */}
+      {expandedNoteTrackId && (() => {
+        const t = tracks.find((tr: any) => tr.id === expandedNoteTrackId);
+        if (!t) return null;
+        const notes = (t.notes || "").split("\n").filter(Boolean);
+        return (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setExpandedNoteTrackId(null)}>
+            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-white">{t.factory_catalog?.name} — Notes</p>
+                <button onClick={() => setExpandedNoteTrackId(null)} className="text-white/30 hover:text-white/60 text-xs">✕</button>
+              </div>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {notes.length === 0 ? <p className="text-xs text-white/30">No notes yet</p> : notes.map((note: string, i: number) => (
+                  <p key={i} className="text-xs text-white/60 leading-relaxed border-b border-white/[0.04] pb-2 last:border-0">{note}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Locked banner */}
       {isKilled && (
@@ -1273,9 +1296,8 @@ ${entry}` : entry;
                             if (!factoryNote.trim()) { setEditingNote(false); return; }
                             setSavingNote(true);
                             const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                            const existing = track.notes || "";
                             const newEntry = `${factoryNote.trim()} — ${dateStr}`;
-                            const noteWithDate = existing ? `${existing}\n${newEntry}` : newEntry;
+                            const noteWithDate = newEntry;
                             await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: noteWithDate }) });
                             setSavingNote(false); setEditingNote(false); setFactoryNote(""); load();
@@ -1291,7 +1313,7 @@ ${entry}` : entry;
                               <p key={i} className="text-[10px] text-white/35 leading-relaxed">{line}</p>
                             ))}
                             {track.notes.split("\n").length > 3 && (
-                              <p className="text-[10px] text-white/20 italic">+{track.notes.split("\n").length - 3} more...</p>
+                              <button onClick={() => setExpandedNoteTrackId(track.id)} className="text-[10px] text-white/30 hover:text-white/60 italic transition">+{track.notes.split("\n").length - 3} more — view all</button>
                             )}
                           </>
                         ) : null}
