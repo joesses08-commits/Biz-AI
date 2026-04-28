@@ -28,56 +28,29 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-    const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-    const { data } = await supabaseAdmin
+    const { data: rows } = await supabaseAdmin
       .from("api_usage")
       .select("*")
       .eq("user_id", user.id)
       .gte("created_at", thirtyDaysAgo)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
 
-    const { data: monthData } = await supabaseAdmin
+    const { data: monthRows } = await supabaseAdmin
       .from("api_usage")
       .select("*")
       .eq("user_id", user.id)
-      .gte("created_at", thisMonthStart)
-      .order("created_at", { ascending: true });
+      .gte("created_at", thisMonthStart);
 
-    if (!data?.length) return NextResponse.json({ totalCost: 0, totalCalls: 0, byFeature: {}, byDay: [], monthCost: 0, monthCalls: 0, monthByFeature: {} });
+    if (!rows?.length) return NextResponse.json({ rows: [], monthCost: 0, monthCalls: 0, totalCost: 0, totalCalls: 0 });
 
-    const totalCost = data.reduce((sum: number, r: any) => sum + (r.cost_usd || 0), 0);
-    const totalCalls = data.length;
-    const monthCost = (monthData || []).reduce((sum: number, r: any) => sum + (r.cost_usd || 0), 0);
-    const monthCalls = (monthData || []).length;
+    const totalCost = rows.reduce((sum: number, r: any) => sum + (r.cost_usd || 0), 0);
+    const totalCalls = rows.length;
+    const monthCost = (monthRows || []).reduce((sum: number, r: any) => sum + (r.cost_usd || 0), 0);
+    const monthCalls = (monthRows || []).length;
 
-    const byFeature: Record<string, { calls: number; cost: number }> = {};
-    const monthByFeature: Record<string, { calls: number; cost: number }> = {};
-    const byDayMap: Record<string, number> = {};
-
-    for (const row of data) {
-      if (!byFeature[row.feature]) byFeature[row.feature] = { calls: 0, cost: 0 };
-      byFeature[row.feature].calls++;
-      byFeature[row.feature].cost += row.cost_usd || 0;
-      const day = new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-      byDayMap[day] = (byDayMap[day] || 0) + (row.cost_usd || 0);
-    }
-
-    for (const row of (monthData || [])) {
-      if (!monthByFeature[row.feature]) monthByFeature[row.feature] = { calls: 0, cost: 0 };
-      monthByFeature[row.feature].calls++;
-      monthByFeature[row.feature].cost += row.cost_usd || 0;
-    }
-
-    const byDay = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
-      const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-      byDay.push({ date: label, cost: byDayMap[label] || 0 });
-    }
-
-    return NextResponse.json({ totalCost, totalCalls, byFeature, byDay, monthCost, monthCalls, monthByFeature });
+    return NextResponse.json({ rows, monthCost, monthCalls, totalCost, totalCalls });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
