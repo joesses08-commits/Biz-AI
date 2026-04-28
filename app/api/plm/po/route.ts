@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const { factory, subject, body: emailBody, po_number, provider } = body;
 
     const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token,refresh_token").eq("user_id", user.id).single();
-    const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token").eq("user_id", user.id).single();
+    const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token,refresh_token,expires_at").eq("user_id", user.id).single();
 
     // Always use Microsoft if connected, Gmail as fallback
     const useGmail = !!gmailConn && !msConn;
@@ -47,9 +47,25 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ raw: encoded }),
       });
     } else if (useOutlook && msConn) {
-      await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
+      let msToken = msConn.access_token;
+      if (new Date(msConn.expires_at) <= new Date()) {
+        const refreshRes = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            refresh_token: msConn.refresh_token,
+            client_id: process.env.MICROSOFT_CLIENT_ID!,
+            client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
+            grant_type: "refresh_token",
+            scope: "offline_access Mail.Send Files.ReadWrite.All",
+          }),
+        });
+        const refreshData = await refreshRes.json();
+        if (refreshData.access_token) msToken = refreshData.access_token;
+      }
+      const sendRes = await fetch("https://graph.microsoft.com/v1.0/me/sendMail", {
         method: "POST",
-        headers: { Authorization: `Bearer ${msConn.access_token}`, "Content-Type": "application/json" },
+        headers: { Authorization: `Bearer ${msToken}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           message: {
             subject,
@@ -58,6 +74,11 @@ export async function POST(req: NextRequest) {
           },
         }),
       });
+      if (!sendRes.ok) {
+        const err = await sendRes.json();
+        console.error("Outlook send error:", JSON.stringify(err));
+        return NextResponse.json({ error: "Failed to send email", detail: err }, { status: 500 });
+      }
     }
 
     auditLog(user.id, "po_generated", { po_number, factory: factory?.name }).catch(() => {});
