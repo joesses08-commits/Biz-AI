@@ -288,31 +288,10 @@ Download PO: ${publicUrl}` : ""),
               <div>
                 <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Factory (Sell To)</p>
                 <select value={selectedFactory} onChange={e => {
-                  const fid = e.target.value;
-                  setSelectedFactory(fid);
+                  setSelectedFactory(e.target.value);
                   setPOSelectedProducts([]);
                   setPOFactoryPerProduct({});
-                  // Auto-fill prices from factory quotes
-                  const factory = factories.find((f: any) => f.id === fid);
-                  if (factory) {
-                    const fQuotes = factoryQuotes.filter((q: any) =>
-                      q.factory_name?.toLowerCase() === factory.name?.toLowerCase()
-                    );
-                    const newPrices: Record<string, { qty: string; unit_price: string }> = {};
-                    for (const product of products) {
-                      for (const q of fQuotes) {
-                        const match = (q.processed_data || []).find((pd: any) =>
-                          pd.sku?.toLowerCase() === product.sku?.toLowerCase() ||
-                          pd.product_name?.toLowerCase().includes(product.name?.toLowerCase().slice(0, 8))
-                        );
-                        if (match?.first_cost) {
-                          newPrices[product.id] = { qty: "", unit_price: String(match.first_cost) };
-                          break;
-                        }
-                      }
-                    }
-                    setPOLineItems(newPrices);
-                  }
+                  setPOLineItems({});
                 }} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
                   <option value="">Select a factory...</option>
                   {factories.map((f: any) => (
@@ -320,6 +299,30 @@ Download PO: ${publicUrl}` : ""),
                   ))}
                 </select>
               </div>
+              {selectedFactory && (
+                <button onClick={async () => {
+                  const factory = factories.find((f: any) => f.id === selectedFactory);
+                  if (!factory) return;
+                  const newPrices: Record<string, { qty: string; unit_price: string }> = {};
+                  for (const product of products) {
+                    const tracksRes = await fetch(`/api/plm/tracks?product_id=${product.id}`);
+                    const tracksData = await tracksRes.json();
+                    const track = (tracksData.tracks || []).find((t: any) =>
+                      t.factory_catalog?.id === selectedFactory ||
+                      t.factory_catalog?.name?.toLowerCase() === factory.name?.toLowerCase()
+                    );
+                    if (track) {
+                      const quotedStage = (track.plm_track_stages || []).find((s: any) => s.quoted_price);
+                      if (quotedStage?.quoted_price) {
+                        newPrices[product.id] = { qty: "", unit_price: String(quotedStage.quoted_price) };
+                      }
+                    }
+                  }
+                  setPOLineItems(newPrices);
+                }} className="w-full mt-2 py-2 rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition">
+                  Load Prices from {factories.find((f: any) => f.id === selectedFactory)?.name}
+                </button>
+              )}
 
               {/* Warehouse Picker */}
               <div>
