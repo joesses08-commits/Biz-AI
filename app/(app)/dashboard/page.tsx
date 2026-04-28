@@ -383,11 +383,11 @@ export default function DashboardPage() {
               };
               const activeSamples = tracks.flatMap((t: any) => {
                 const stages = t.plm_track_stages || [];
-                const sampleStages = ["sample_requested","sample_production","sample_complete","sample_shipped","sample_arrived"];
+                const isApproved = t.status === "approved" || t.status === "killed";
+                if (isApproved) return [];
+                const sampleStages = ["sample_requested","sample_production","sample_complete","sample_shipped","sample_arrived","sample_reviewed"];
                 const latestSample = sampleStages.slice().reverse().find(s => stages.some((st: any) => st.stage === s && st.status === "done"));
                 if (!latestSample) return [];
-                const isReviewed = stages.some((st: any) => st.stage === "sample_reviewed" && st.status === "done");
-                if (isReviewed) return [];
                 return [{
                   productName: products.find((p: any) => p.id === t.product_id)?.name,
                   product_id: t.product_id,
