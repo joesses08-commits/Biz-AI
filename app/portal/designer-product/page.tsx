@@ -440,6 +440,17 @@ ${entry}` : entry;
         stage: s.stage,
       }));
     }),
+    ...(product.plm_factory_tracks || []).flatMap((track: any) => {
+      const factory = track.factory_catalog;
+      return (track.plm_track_stages || [])
+        .filter((s: any) => s.status === "done" || s.status === "skipped")
+        .map((s: any) => ({
+          ...s,
+          _factory_name: factory?.name,
+          _type: "track",
+          stage: s.stage,
+        }));
+    }),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   const HISTORY_LABELS: Record<string, { label: string; color: string }> = {
@@ -1512,257 +1523,6 @@ ${entry}` : entry;
             );
           })()}
 
-          {/* ── SAMPLE REQUESTS SECTION ── */}
-          {(() => {
-            const sampleRequests = product.plm_sample_requests || [];
-            const devIdx = DEV_STAGES.findIndex(s => s.key === (product.current_stage || "concept"));
-            const quotesReceivedIdx = DEV_STAGES.findIndex(s => s.key === "quotes_received");
-            const showRequestButton = devIdx >= quotesReceivedIdx;
-            const SAMPLE_STAGES = [
-              { key: "sample_production", label: "Sample Production", color: "#f59e0b" },
-              { key: "sample_complete", label: "Sample Complete", color: "#f59e0b" },
-              { key: "sample_shipped", label: "Sample Shipped", color: "#3b82f6" },
-              { key: "sample_arrived", label: "Sample Arrived", color: "#10b981" },
-            ];
-            return (
-              <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
-                <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-white">Samples</p>
-                    <p className="text-xs text-white/30 mt-0.5">Track sample progress per factory</p>
-                  </div>
-                  {showRequestButton && !isKilled && !isHold && !sampleRequests.some((sr: any) => sr.status === "approved") && (
-                    <button onClick={() => setShowSampleModal(true)}
-                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
-                      <Plus size={11} />Request Samples
-                    </button>
-                  )}
-                </div>
-
-                {sampleSuccess && (
-                  <div className="px-6 py-3 border-b border-white/[0.04] flex items-center gap-2 text-emerald-400 text-xs bg-emerald-500/5">
-                    <Check size={12} />{sampleSuccess}
-                  </div>
-                )}
-
-                {sampleRequests.length === 0 ? (
-                  <div className="px-6 py-8 text-center">
-                    <p className="text-xs text-white/20">No samples requested yet</p>
-                    {showRequestButton && <p className="text-[11px] text-white/15 mt-1">Click "Request Samples" to start</p>}
-                    {!showRequestButton && <p className="text-[11px] text-white/15 mt-1">Available after quotes are received</p>}
-                  </div>
-                ) : (() => {
-                  const STAGE_KEYS = ["sample_production","sample_complete","sample_shipped","sample_arrived"];
-                  const STAGE_LABELS: Record<string,string> = { sample_production:"Production", sample_complete:"Complete", sample_shipped:"Shipped", sample_arrived:"Arrived" };
-                  const STAGE_COLORS: Record<string,string> = { sample_production:"#f59e0b", sample_complete:"#10b981", sample_shipped:"#3b82f6", sample_arrived:"#8b5cf6" };
-
-                  // Group by factory
-                  const byFactory: Record<string, any[]> = {};
-                  sampleRequests.forEach((sr: any) => {
-                    const fid = sr.factory_id;
-                    if (!byFactory[fid]) byFactory[fid] = [];
-                    byFactory[fid].push(sr);
-                  });
-
-                  return (
-                    <div className="divide-y divide-white/[0.04]">
-                      {Object.entries(byFactory).map(([factoryId, rounds]) => {
-                        const sortedRounds = [...rounds].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                        const factory = sortedRounds[0]?.factory_catalog;
-                        const allKilled = sortedRounds.every((r: any) => r.status === "killed");
-                        const anyApproved = sortedRounds.some((r: any) => r.status === "approved");
-                        const latestRound = sortedRounds[sortedRounds.length - 1];
-
-                        return (
-                          <div key={factoryId} className="px-6 py-4 space-y-3">
-                            {/* Factory name */}
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Factory size={12} className="text-white/30" />
-                                <span className="text-sm font-semibold text-white">{factory?.name}</span>
-                                {anyApproved && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">✓ Approved</span>
-                                  <button onClick={() => {
-                                    // Check if latest round is at least shipped
-                                    const latestActive = sortedRounds.filter((r: any) => r.status === "requested");
-                                    const lastRound = sortedRounds[sortedRounds.length - 1];
-                                    const shippedStages = ["sample_shipped","sample_arrived","sample_approved"];
-                                    if (latestActive.length > 0 && !shippedStages.includes(lastRound?.current_stage)) {
-                                      setSampleSuccess("Previous sample must be shipped before requesting another");
-                                      setTimeout(() => setSampleSuccess(""), 4000);
-                                      return;
-                                    }
-                                    setAdditionalSampleModal({ factoryId, factoryName: factory?.name });
-                                    setAdditionalSampleQty("1");
-                                    setAdditionalSampleNote("");
-                                  }} className="text-[10px] text-white/30 hover:text-white/60 underline transition">
-                                    + Request Another
-                                  </button>
-                                </div>
-                              )}
-                                {allKilled && !anyApproved && (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Killed</span>
-                                    <button onClick={() => triggerSampleOutcome(latestRound.id, factoryId, latestRound.current_stage, "", "unkill")}
-                                      className="text-[10px] text-white/30 hover:text-white/60 underline">Revive</button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Rounds as horizontal boxes */}
-                            <div className="space-y-2">
-                              {sortedRounds.map((sr: any, roundIdx: number) => {
-                                const isActive = sr.status === "requested";
-                                const isKilled = sr.status === "killed";
-                                const isApproved = sr.status === "approved";
-                                const isRevision = sr.status === "revision";
-                                const isAdditional = sr.label === "additional";
-                                const roundLabel = roundIdx === 0 ? "Round 1" : isAdditional ? `Additional Sample ${roundIdx}` : `Round ${roundIdx + 1} — Revision`;
-                                const roundSubtitle = isAdditional && (sr.qty || sr.notes) ? `${sr.qty ? sr.qty + " units" : ""}${sr.qty && sr.notes ? " · " : ""}${sr.notes || ""}` : null;
-                                const stages = (sr.plm_sample_stages || []).sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                                const completedStageKeys = stages.map((s: any) => s.stage).filter((k: string) => STAGE_KEYS.includes(k));
-                                const lastCompletedIdx = Math.max(...completedStageKeys.map((k: string) => STAGE_KEYS.indexOf(k)));
-                                const revisionNote_text = stages.find((s: any) => s.stage === "revision_requested")?.notes;
-
-                                return (
-                                  <div key={sr.id} className={`border rounded-2xl p-4 space-y-3 ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-white/[0.08] bg-white/[0.01]"}`}>
-                                    {/* Round label + delete */}
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
-                                        {roundSubtitle && <p className="text-[10px] text-amber-300/60 mt-0.5">{roundSubtitle}</p>}
-                                      </div>
-                                      <button onClick={async () => {
-                                        if (!confirm("Delete this round?")) return;
-                                        setDeletingRound(sr.id);
-                                        await fetch("/api/portal/designer", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-                                          body: JSON.stringify({ action: "delete_sample_request", sample_request_id: sr.id }) });
-                                        setDeletingRound(null);
-                                        load();
-                                      }} disabled={deletingRound === sr.id}
-                                        className="text-white/15 hover:text-red-400 transition p-1">
-                                        <Trash2 size={10} />
-                                      </button>
-                                    </div>
-
-                                    {/* Horizontal stage pills + result inline */}
-                                    <div className="flex items-center gap-1 flex-wrap">
-                                      {STAGE_KEYS.map((key, i) => {
-                                        const idx = STAGE_KEYS.indexOf(key);
-                                        const isCompleted = idx <= lastCompletedIdx;
-                                        const isCurrent = isActive && idx === lastCompletedIdx;
-                                        const color = STAGE_COLORS[key];
-                                        return (
-                                          <div key={key} className="flex items-center gap-1">
-                                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border ${
-                                              isCompleted && !isCurrent ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
-                                              isCurrent ? "border-amber-500/30 bg-amber-500/10 text-amber-300" :
-                                              "border-white/[0.05] text-white/15"
-                                            }`}>
-                                              {isCompleted && !isCurrent && <Check size={8} />}
-                                              {isCurrent && <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: color }} />}
-                                              {STAGE_LABELS[key]}
-                                            </div>
-                                            {i < STAGE_KEYS.length - 1 && <span className="text-white/10 text-[10px]">→</span>}
-                                          </div>
-                                        );
-                                      })}
-                                      {/* Result inline at end */}
-                                      {(isApproved || isRevision || isKilled) && <span className="text-white/10 text-[10px]">→</span>}
-                                      {isApproved && (
-                                        <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
-                                          <Check size={8} />Approved
-                                        </span>
-                                      )}
-                                      {isRevision && (
-                                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">
-                                          ↩ Revision{revisionNote_text ? `: ${revisionNote_text}` : ""}
-                                        </span>
-                                      )}
-                                      {isKilled && (() => {
-                                        const isLastRound = roundIdx === sortedRounds.length - 1;
-                                        const killedNote = stages.find((s: any) => s.stage === "killed")?.notes || "";
-                                        if (!isLastRound) {
-                                          return (
-                                            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium border border-amber-500/30 bg-amber-500/10 text-amber-400">
-                                              ↩ Revision Requested
-                                            </span>
-                                          );
-                                        }
-                                        return (
-                                          <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium border border-red-500/20 bg-red-500/10 text-red-400">
-                                            <X size={8} />{killedNote || "Killed"}
-                                          </span>
-                                        );
-                                      })()}
-                                    </div>
-
-                                    {/* Active round actions */}
-                                    {isActive && (
-                                      <div className="space-y-2 pt-1 border-t border-white/[0.05]">
-                                        {sr.current_stage === "sample_shipped" && (
-                                          <button onClick={() => updateSampleStage(sr.id, factoryId, "sample_arrived", "Sample marked as arrived by admin")}
-                                            disabled={updatingSampleStage === sr.id}
-                                            className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition disabled:opacity-40">
-                                            {updatingSampleStage === sr.id ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
-                                            Mark Sample Arrived
-                                          </button>
-                                        )}
-                                        {sr.current_stage === "sample_arrived" && sr.label !== "additional" && (
-                                          <div className="space-y-2">
-                                            <p className="text-[10px] text-white/25 uppercase tracking-widest">Review</p>
-                                            <div className="flex gap-1.5 flex-wrap">
-                                              <button onClick={() => triggerSampleOutcome(sr.id, factoryId, "sample_arrived", "Sample approved — moving to production", "approved")}
-                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 transition">
-                                                <Check size={11} />Approve
-                                              </button>
-                                              <button onClick={() => setShowRevisionInput(showRevisionInput === sr.id ? null : sr.id)}
-                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
-                                                ↩ Request Revision
-                                              </button>
-                                              <button onClick={() => triggerSampleOutcome(sr.id, factoryId, sr.current_stage, "Sample killed for this factory", "killed")}
-                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">
-                                                <X size={11} />Kill Factory
-                                              </button>
-                                              <button onClick={() => triggerSampleOutcome(sr.id, factoryId, sr.current_stage, "Product killed", "killed")}
-                                                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl bg-red-900/20 border border-red-900/30 text-red-600 hover:bg-red-900/30 transition">
-                                                <X size={11} />Kill Product
-                                              </button>
-                                            </div>
-                                            {showRevisionInput === sr.id && (
-                                              <div className="space-y-1.5">
-                                                <textarea value={revisionNote[sr.id] || ""} onChange={e => setRevisionNote(prev => ({ ...prev, [sr.id]: e.target.value }))}
-                                                  placeholder="Describe the revision needed..."
-                                                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
-                                                <button onClick={() => {
-                                                  triggerSampleOutcome(sr.id, factoryId, "sample_production", revisionNote[sr.id] || "Revision requested", "revision");
-                                                  setShowRevisionInput(null);
-                                                  setRevisionNote(prev => ({ ...prev, [sr.id]: "" }));
-                                                }} className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
-                                                  Send Revision Request
-                                                </button>
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
-            );
-          })()}
-
           {/* ── PRODUCTION ORDERS SECTION ── */}
           <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
             <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
@@ -2048,7 +1808,7 @@ ${entry}` : entry;
                           <p className="text-[11px] text-white/35 mt-0.5">{h.notes}</p>
                         )}
                         <p className="text-[10px] text-white/20 mt-0.5">
-                          {h.updated_by_role === "factory" ? "Factory" : h.updated_by_role === "designer" ? "Designer" : "Admin"} · {new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          {h.updated_by && h.updated_by !== "admin" ? h.updated_by : h.updated_by_role === "factory" ? (h._factory_name || "Factory") : h.updated_by_role === "designer" ? "Designer" : "Admin"} · {new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
                       </div>
                     </div>
