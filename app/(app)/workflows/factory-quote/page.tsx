@@ -555,6 +555,7 @@ Best regards,
       body: JSON.stringify({ action: "build_master", job_id: jobId }),
     });
     const data = await res.json();
+    console.log("BUILD MASTER RESPONSE:", JSON.stringify(data).slice(0, 500));
     setBuilding(null);
     loadJobs();
     if (data.sheetUrl) {
