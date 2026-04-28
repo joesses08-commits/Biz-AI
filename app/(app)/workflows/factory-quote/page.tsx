@@ -557,7 +557,18 @@ Best regards,
     const data = await res.json();
     setBuilding(null);
     loadJobs();
-    if (data.sheetUrl) window.open(data.sheetUrl, "_blank");
+    if (data.sheetUrl) {
+      window.open(data.sheetUrl, "_blank");
+    } else if (data.base64) {
+      const bytes = Uint8Array.from(atob(data.base64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.fileName || "Master_Quote_Comparison.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   const statusColors: Record<string, string> = {
