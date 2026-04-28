@@ -249,10 +249,11 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
 
     if (name === "request_sample") {
       const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/plm`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-user-id": userId },
         body: JSON.stringify({ action: "create_sample_requests", product_id: input.product_id, factory_ids: input.factory_ids, note: input.note || "", provider: "outlook" })
       });
       const data = await res.json();
+      if (!res.ok) return `Failed to request sample: ${data.error || res.status}`;
       const skipped = data.skipped || [];
       const requested = input.factory_ids.length - skipped.length;
       if (requested === 0) return `No new samples requested — all ${skipped.length} factories already have active or approved requests: ${skipped.join(", ")}.`;

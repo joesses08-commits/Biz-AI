@@ -25,7 +25,12 @@ async function checkPin(userId: string, pin: string, designerId?: string): Promi
   return pin === process.env.ADMIN_MILESTONE_PIN;
 }
 
-async function getUser() {
+async function getUser(req?: NextRequest) {
+  // Support internal agent calls with x-user-id header
+  if (req) {
+    const userId = req.headers.get("x-user-id");
+    if (userId) return { id: userId, email: "" } as any;
+  }
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -104,7 +109,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUser();
+  const user = await getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const { action } = body;
