@@ -545,7 +545,7 @@ Return ONLY raw JSON, no markdown:
       if (newStatus === "ready") {
         fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/workflows/factory-quote`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-internal-secret": process.env.CRON_SECRET!, "x-user-id": user.id },
           body: JSON.stringify({ action: "build_master", job_id, _internal: true }),
         }).catch(() => {});
       }
