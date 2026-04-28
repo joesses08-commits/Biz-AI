@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
   // ── SEND EMAIL ──
   if (action === "send_email") {
     const { factory, subject, body: emailBody, po_number, provider } = body;
+    console.log("send_email factory:", JSON.stringify(factory));
 
     const { data: gmailConn } = await supabaseAdmin.from("gmail_connections").select("access_token,refresh_token").eq("user_id", user.id).single();
     const { data: msConn } = await supabaseAdmin.from("microsoft_connections").select("access_token,refresh_token,expires_at").eq("user_id", user.id).single();
