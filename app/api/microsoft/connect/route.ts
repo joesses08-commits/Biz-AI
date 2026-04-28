@@ -12,6 +12,8 @@ export async function GET() {
     "User.Read",
     "Mail.Read",
     "Mail.Send",
+    "Files.ReadWrite.All",
+    "Calendars.ReadWrite",
   ].join(" ");
 
   const authUrl = new URL("https://login.microsoftonline.com/common/oauth2/v2.0/authorize");
