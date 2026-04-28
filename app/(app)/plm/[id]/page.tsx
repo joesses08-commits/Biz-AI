@@ -1295,9 +1295,7 @@ ${entry}` : entry;
                           <button onClick={async () => {
                             if (!factoryNote || factoryNote.trim().length < 2) { setEditingNote(false); return; }
                             setSavingNote(true);
-                            const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                            const newEntry = `${factoryNote.trim()} — ${dateStr}`;
-                            const noteWithDate = newEntry;
+                            const noteWithDate = factoryNote.trim();
                             await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: noteWithDate }) });
                             setSavingNote(false); setEditingNote(false); setFactoryNote(""); load();
