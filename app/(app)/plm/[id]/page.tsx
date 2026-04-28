@@ -407,9 +407,12 @@ ${entry}` : entry;
   const createOrder = async () => {
     setSavingOrder(true);
     const unitPrice = parseFloat((newOrder as any).unit_price) || 0;
-    const tariff = parseFloat((newOrder as any).tariff) || 0;
-    const freight = parseFloat((newOrder as any).freight) || 0;
-    const duty = parseFloat((newOrder as any).duty) || 0;
+    const tariffPct = parseFloat((newOrder as any).tariff) || 0;
+    const freightPct = parseFloat((newOrder as any).freight) || 0;
+    const dutyPct = parseFloat((newOrder as any).duty) || 0;
+    const tariff = unitPrice * tariffPct / 100;
+    const freight = unitPrice * freightPct / 100;
+    const duty = unitPrice * dutyPct / 100;
     const calcElc = unitPrice + tariff + freight + duty;
     const marginPct = parseFloat((newOrder as any).margin_pct) || 0;
     const calcSellPrice = calcElc > 0 && marginPct > 0 ? calcElc / (1 - marginPct / 100) : null;
@@ -1860,7 +1863,10 @@ Best regards,
               const tariff = parseFloat(newOrder.tariff) || 0;
               const freight = parseFloat(newOrder.freight) || 0;
               const duty = parseFloat(newOrder.duty) || 0;
-              const calcElc = unitPrice + tariff + freight + duty;
+              const tariffAmt = unitPrice * tariff / 100;
+              const freightAmt = unitPrice * freight / 100;
+              const dutyAmt = unitPrice * duty / 100;
+              const calcElc = unitPrice + tariffAmt + freightAmt + dutyAmt;
               const marginPct = parseFloat(newOrder.margin_pct) || 0;
               const calcSellPrice = calcElc > 0 && marginPct > 0 ? calcElc / (1 - marginPct / 100) : 0;
 
@@ -1887,7 +1893,7 @@ Best regards,
                     <div className="grid grid-cols-4 gap-3">
                       <div><label className={lc}>First Cost ($)</label><input type="number" step="0.01" value={newOrder.unit_price} onChange={e => setNewOrder({...newOrder, unit_price: e.target.value})} placeholder="2.00" className={ic} /></div>
                       <div><label className={lc}>Tariff (%)</label><input type="number" step="0.1" value={newOrder.tariff} onChange={e => setNewOrder({...newOrder, tariff: e.target.value})} placeholder="10" className={ic} /></div>
-                      <div><label className={lc}>Freight ($)</label><input type="number" step="0.01" value={newOrder.freight} onChange={e => setNewOrder({...newOrder, freight: e.target.value})} placeholder="0.15" className={ic} /></div>
+                      <div><label className={lc}>Freight (%)</label><input type="number" step="0.01" value={newOrder.freight} onChange={e => setNewOrder({...newOrder, freight: e.target.value})} placeholder="0.15" className={ic} /></div>
                       <div><label className={lc}>Duty (%)</label><input type="number" step="0.1" value={newOrder.duty} onChange={e => setNewOrder({...newOrder, duty: e.target.value})} placeholder="5" className={ic} /></div>
                     </div>
                   </div>
@@ -1899,9 +1905,9 @@ Best regards,
                         <p className="text-[10px] text-white/30 mb-0.5">Calculated ELC</p>
                         <p className="text-lg font-bold text-white">${calcElc.toFixed(2)}</p>
                         <p className="text-[10px] text-white/25">{unitPrice > 0 ? `$${unitPrice.toFixed(2)} first cost` : ""}
-                          {tariff > 0 ? ` + $${tariff.toFixed(2)} tariff` : ""}
-                          {freight > 0 ? ` + $${freight.toFixed(2)} freight` : ""}
-                          {duty > 0 ? ` + $${duty.toFixed(2)} duty` : ""}</p>
+                          {tariff > 0 ? ` + ${tariff}% tariff ($${tariffAmt.toFixed(2)})` : ""}
+                          {freight > 0 ? ` + ${freight}% freight ($${freightAmt.toFixed(2)})` : ""}
+                          {duty > 0 ? ` + ${duty}% duty ($${dutyAmt.toFixed(2)})` : ""}</p>
                       </div>
                       {calcSellPrice > 0 && (
                         <div className="text-right">
@@ -1920,7 +1926,7 @@ Best regards,
                         <label className={lc}>Target Markup</label>
                         <span className="text-xs font-bold text-emerald-400">{marginPct}%</span>
                       </div>
-                      <input type="range" min="0" max="80" step="1"
+                      <input type="range" min="0" max="200" step="1"
                         value={marginPct}
                         onChange={e => setNewOrder({...newOrder, margin_pct: e.target.value})}
                         className="w-full accent-emerald-500 cursor-pointer" />
