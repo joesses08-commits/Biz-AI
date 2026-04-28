@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── GENERATE PO ──
-  const { product_ids, line_items, factory_per_product, warehouse_id, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name } = body;
+  const { product_ids, line_items, factory_per_product, warehouse_id, po_number, payment_terms, delivery_terms, ship_date, destination, notes, company_name, company_address, contact_name, selected_factory_id } = body;
 
   if (!product_ids?.length) return NextResponse.json({ error: "No products" }, { status: 400 });
 
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
   // Get factory
   let factory: any = null;
   for (const p of products) {
-    const overrideId = factory_per_product?.[p.id];
+    const overrideId = factory_per_product?.[p.id] || selected_factory_id;
     if (overrideId && factoryMap[overrideId]) { factory = factoryMap[overrideId]; break; }
     const req = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
     if (req?.factory_catalog) { factory = req.factory_catalog; break; }
@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
 
   // Create batches for each product
   for (const p of products) {
-    const overrideId = factory_per_product?.[p.id];
+    const overrideId = factory_per_product?.[p.id] || selected_factory_id;
     const factoryId = overrideId || (p.plm_sample_requests || []).find((r: any) => r.status === "approved")?.factory_catalog?.id;
     const line = line_items?.[p.id] || {};
     const qty = parseFloat(line.qty) || null;

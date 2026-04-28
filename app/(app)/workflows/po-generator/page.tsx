@@ -139,6 +139,7 @@ export default function POGeneratorPage() {
         product_ids: poSelectedProducts,
         line_items: poLineItems,
         factory_per_product: poFactoryPerProduct,
+        selected_factory_id: selectedFactory || null,
         warehouse_id: selectedWarehouse || null,
         ...poForm,
       }),
