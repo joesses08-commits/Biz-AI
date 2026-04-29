@@ -21,7 +21,7 @@ export default function WarehousePortal() {
   async function login() {
     setLoggingIn(true);
     setLoginError("");
-    const res = await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", email, password }) });
+    const res = await fetch("https://myjimmy.ai/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", email, password }) });
     const data = await res.json();
     if (!res.ok) { setLoginError("Invalid email or PIN"); setLoggingIn(false); return; }
     setWarehouseUser(data.warehouse_user);
@@ -31,8 +31,8 @@ export default function WarehousePortal() {
 
   async function loadData(wu: any) {
     const [shipmentsRes, inventoryRes] = await Promise.all([
-      fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_shipments", warehouse_id: wu.warehouse_id, user_id: wu.user_id }) }),
-      fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_inventory", warehouse_id: wu.warehouse_id, user_id: wu.user_id }) }),
+      fetch("https://myjimmy.ai/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_shipments", warehouse_id: wu.warehouse_id, user_id: wu.user_id }) }),
+      fetch("https://myjimmy.ai/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_inventory", warehouse_id: wu.warehouse_id, user_id: wu.user_id }) }),
     ]);
     const shipmentsData = await shipmentsRes.json();
     const inventoryData = await inventoryRes.json();
@@ -43,7 +43,7 @@ export default function WarehousePortal() {
   async function receiveGoods() {
     if (!showReceive || !warehouseUser) return;
     setSaving(true);
-    await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "receive_goods", inventory_id: showReceive.id, quantity_received: parseInt(receiveForm.quantity), notes: receiveForm.notes, warehouse_user_id: warehouseUser.id, user_id: warehouseUser.user_id }) });
+    await fetch("https://myjimmy.ai/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "receive_goods", inventory_id: showReceive.id, quantity_received: parseInt(receiveForm.quantity), notes: receiveForm.notes, warehouse_user_id: warehouseUser.id, user_id: warehouseUser.user_id }) });
     setSaving(false);
     setShowReceive(null);
     setReceiveForm({ quantity: "", notes: "" });
@@ -53,7 +53,7 @@ export default function WarehousePortal() {
   async function reportDamage() {
     if (!showDamage || !warehouseUser) return;
     setSaving(true);
-    await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report_damage", inventory_id: showDamage.id, quantity_damaged: parseInt(damageForm.quantity), notes: damageForm.notes, user_id: warehouseUser.user_id }) });
+    await fetch("https://myjimmy.ai/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report_damage", inventory_id: showDamage.id, quantity_damaged: parseInt(damageForm.quantity), notes: damageForm.notes, user_id: warehouseUser.user_id }) });
     setSaving(false);
     setShowDamage(null);
     setDamageForm({ quantity: "", notes: "" });
