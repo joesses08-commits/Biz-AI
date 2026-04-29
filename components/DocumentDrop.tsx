@@ -299,8 +299,8 @@ export default function DocumentDrop() {
                           {p.image_url ? (
                             <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover border border-bg-border flex-shrink-0" />
                           ) : identified.doc_type === "product_import" ? (
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: "var(--bg-elevated)", border: "1px solid var(--bg-border)", color: "var(--text-muted)" }}>
-                              IMG
+                            <div className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 text-center leading-tight" style={{ background: "var(--bg-elevated)", border: "1px dashed var(--bg-border)", color: "var(--text-muted)", fontSize: "9px", padding: "4px" }}>
+                              Image will be uploaded in PLM
                             </div>
                           ) : (
                             <div className="w-8 h-8 rounded-lg flex-shrink-0" style={{ background: "var(--bg-elevated)", border: "1px solid var(--bg-border)" }} />
