@@ -306,8 +306,7 @@ export default function MessagesPage() {
             </div>
           </div>
         </div>
-      ) : (
-        {activeWarehouseThread ? (
+      ) : activeWarehouseThread ? (
           <div className="flex-1 flex flex-col min-w-0">
             <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3 flex-shrink-0">
               <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
@@ -340,7 +339,6 @@ export default function MessagesPage() {
             <p className="text-sm text-white/30">Select a chat to start messaging</p>
           </div>
         </div>
-        )}
       )}
 
       {/* Members Modal */}
