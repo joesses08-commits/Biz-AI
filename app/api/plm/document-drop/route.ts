@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
           model: "claude-haiku-4-5-20251001",
           max_tokens: 1500,
           messages: [{ role: "user", content: [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: file_base64 } },
+            { type: "document", source: { type: "base64", media_type: "application/pdf", data: file_base64 } } as any,
             { type: "text", text: "Extract all text content from this document. Return everything you can read including all fields, values, numbers, and labels." }
           ]}],
         });
