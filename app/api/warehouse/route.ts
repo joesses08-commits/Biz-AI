@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createNotification } from "@/lib/notify";
 import { createHash } from "crypto";
 
 const supabaseAdmin = createClient(
@@ -109,6 +110,11 @@ export async function POST(req: NextRequest) {
       user_id, warehouse_id, message, sender_role, sender_name,
       created_at: new Date().toISOString(),
     });
+    // Notify admin if message is from warehouse
+    if (sender_role === "warehouse") {
+      const { data: warehouse } = await supabaseAdmin.from("warehouses").select("name").eq("id", warehouse_id).single();
+      await createNotification({ user_id, type: "message", title: `New message — ${warehouse?.name || "Warehouse"}`, body: `${sender_name}: ${message}`, link: "/messages" }).catch(() => {});
+    }
     return NextResponse.json({ success: true }, { headers: corsHeaders });
   }
 
