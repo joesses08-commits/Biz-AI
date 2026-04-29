@@ -10,26 +10,61 @@
   --font-mono: "JetBrains Mono", monospace;
 }
 
+/* Dark mode (default) */
+[data-theme="dark"] {
+  --bg-base: #060608;
+  --bg-surface: #0c0c10;
+  --bg-elevated: #111116;
+  --bg-border: #1c1c24;
+  --bg-hover: #16161e;
+  --text-primary: #f4f4f8;
+  --text-secondary: #8888a8;
+  --text-muted: #404058;
+  --scrollbar-thumb: #1c1c24;
+  --scrollbar-thumb-hover: #2a2a38;
+  --glass-bg: rgba(12, 12, 16, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --selection-bg: #4f6ef730;
+}
+
+/* Light mode */
+[data-theme="light"] {
+  --bg-base: #f5f5f7;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f0f0f5;
+  --bg-border: #e0e0e8;
+  --bg-hover: #e8e8f0;
+  --text-primary: #0c0c14;
+  --text-secondary: #4a4a6a;
+  --text-muted: #9090a8;
+  --scrollbar-thumb: #d0d0dc;
+  --scrollbar-thumb-hover: #b0b0c4;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --selection-bg: #4f6ef730;
+}
+
 * { box-sizing: border-box; }
 
 html { scroll-behavior: smooth; }
 
 body {
-  background: #060608;
-  color: #f4f4f8;
+  background: var(--bg-base);
+  color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #1c1c24; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #2a2a38; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
-::selection { background: #4f6ef730; color: #f4f4f8; }
+::selection { background: var(--selection-bg); color: var(--text-primary); }
 
 @layer components {
   .card {
@@ -95,10 +130,10 @@ body {
 
 /* Glass morphism effect */
 .glass {
-  background: rgba(12, 12, 16, 0.8);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
 }
 
 /* Premium gradient text */
