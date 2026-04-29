@@ -67,7 +67,7 @@ export default function WarehousePortal() {
     if (res.ok) {
       const onHand = showDamage.quantity_on_hand || 0;
       const damaged = parseInt(damageForm.quantity) || 0;
-      const total = onHand + damaged;
+      const total = onHand;
       const good = Math.max(0, onHand - damaged);
       await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", warehouse_id: warehouseUser.warehouse_id, user_id: warehouseUser.user_id, message: `⚠️ Damage reported: ${showDamage.plm_products?.name} — ${total} total received, ${damaged} damaged, ${good} in good condition. Reason: ${damageForm.notes}`, sender_role: "warehouse", sender_name: warehouseUser.name }) });
     }
@@ -99,11 +99,13 @@ export default function WarehousePortal() {
   }, []);
 
   useEffect(() => {
-    if (isFirstLoadRef.current && messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-      isFirstLoadRef.current = false;
+    if (activeTab === "messages" && isFirstLoadRef.current && messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+        isFirstLoadRef.current = false;
+      }, 50);
     }
-  }, [messages]);
+  }, [messages, activeTab]);
 
   if (!warehouseUser) return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
