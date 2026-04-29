@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const warehouseIds = [...new Set((warehouseMsgs || []).map((m: any) => m.warehouse_id))];
+  const warehouseIds = Array.from(new Set((warehouseMsgs || []).map((m: any) => m.warehouse_id)));
   const { data: warehouseNames } = warehouseIds.length > 0
     ? await supabaseAdmin.from("warehouses").select("id, name").in("id", warehouseIds)
     : { data: [] };
