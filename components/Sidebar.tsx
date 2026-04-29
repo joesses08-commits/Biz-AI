@@ -82,7 +82,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}
 
   const SubItem = ({ href, icon: Icon, label }: { href: string; icon: any; label: string }) => (
     <Link href={href} onClick={onNavigate}>
-      <div className={cn("flex items-center gap-2.5 px-3 py-1.5 rounded-lg cursor-pointer transition-colors ml-4", isActive(href) ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-secondary hover:bg-white/5")}>
+      <div className={cn("flex items-center gap-2.5 px-3 py-1.5 rounded-lg cursor-pointer transition-colors ml-4", isActive(href) ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text-secondary hover:bg-bg-hover")}>
         <Icon size={13} className="flex-shrink-0" />
         <span className="text-[12px] font-medium">{label}</span>
       </div>

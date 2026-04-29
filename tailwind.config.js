@@ -14,11 +14,11 @@ module.exports = {
       },
       colors: {
         bg: {
-          base: "#060608",
-          surface: "#0c0c10",
-          elevated: "#111116",
-          border: "#1c1c24",
-          hover: "#16161e",
+          base: "var(--bg-base)",
+          surface: "var(--bg-surface)",
+          elevated: "var(--bg-elevated)",
+          border: "var(--bg-border)",
+          hover: "var(--bg-hover)",
         },
         accent: {
           DEFAULT: "#4f6ef7",
@@ -27,9 +27,9 @@ module.exports = {
           hover: "#6b85f8",
         },
         text: {
-          primary: "#f4f4f8",
-          secondary: "#8888a8",
-          muted: "#404058",
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
         },
       },
       animation: {
