@@ -64,22 +64,22 @@ export default function WorkflowsPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-bg-base text-text-primary">
       {/* Header */}
-      <div className="border-b border-white/[0.06] px-8 py-6">
+      <div className="border-b border-bg-border px-8 py-6">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
-              <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                <Zap size={14} className="text-white/60" />
+              <div className="w-7 h-7 rounded-lg bg-white/5 border border-bg-border flex items-center justify-center">
+                <Zap size={14} className="text-text-secondary" />
               </div>
               <h1 className="text-xl font-bold tracking-tight">Workflows</h1>
             </div>
-            <p className="text-white/30 text-sm">AI automations that act on your behalf</p>
+            <p className="text-text-muted text-sm">AI automations that act on your behalf</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-white/30">{WORKFLOWS.filter(w => w.live).length} live</span>
+            <span className="text-xs text-text-muted">{WORKFLOWS.filter(w => w.live).length} live</span>
           </div>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function WorkflowsPage() {
           <div className="grid grid-cols-1 gap-4">
             {WORKFLOWS.filter(w => w.live).map((w) => (
               <div key={w.name} onClick={() => w.href && router.push(w.href)}
-                className="group relative border border-white/[0.08] bg-white/[0.01] hover:border-white/20 hover:bg-white/[0.03] rounded-2xl p-6 cursor-pointer transition-all overflow-hidden">
+                className="group relative border border-bg-border bg-bg-surface hover:border-white/20 hover:bg-bg-elevated rounded-2xl p-6 cursor-pointer transition-all overflow-hidden">
                 {/* Glow */}
                 <div className="absolute top-0 left-0 w-32 h-32 rounded-full blur-3xl opacity-10 pointer-events-none"
                   style={{ background: w.color }} />
@@ -102,22 +102,22 @@ export default function WorkflowsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2.5 mb-1.5">
-                      <p className="text-sm font-bold text-white">{w.name}</p>
+                      <p className="text-sm font-bold text-text-primary">{w.name}</p>
                       <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Live</span>
                     </div>
-                    <p className="text-xs text-white/40 mb-4 leading-relaxed">{w.tagline}</p>
+                    <p className="text-xs text-text-secondary mb-4 leading-relaxed">{w.tagline}</p>
                     {/* Steps */}
                     <div className="flex items-center gap-2">
                       {w.steps.map((step, i) => (
                         <div key={i} className="flex items-center gap-2">
-                          <span className="text-[10px] text-white/30 bg-white/[0.04] border border-white/[0.06] px-2.5 py-1 rounded-lg">{step}</span>
+                          <span className="text-[10px] text-text-muted bg-bg-elevated border border-bg-border px-2.5 py-1 rounded-lg">{step}</span>
                           {i < w.steps.length - 1 && <ArrowRight size={10} className="text-white/15 flex-shrink-0" />}
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="w-8 h-8 rounded-xl border border-white/[0.06] bg-white/[0.03] group-hover:bg-white/[0.08] flex items-center justify-center transition flex-shrink-0">
-                    <ArrowRight size={14} className="text-white/30 group-hover:text-white/60 transition" />
+                  <div className="w-8 h-8 rounded-xl border border-bg-border bg-bg-elevated group-hover:bg-white/[0.08] flex items-center justify-center transition flex-shrink-0">
+                    <ArrowRight size={14} className="text-text-muted group-hover:text-text-secondary transition" />
                   </div>
                 </div>
               </div>
@@ -139,8 +139,8 @@ export default function WorkflowsPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-semibold text-white/60">{w.name}</p>
-                      <span className="text-[9px] bg-white/[0.03] border border-white/[0.06] text-white/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Soon</span>
+                      <p className="text-sm font-semibold text-text-secondary">{w.name}</p>
+                      <span className="text-[9px] bg-bg-elevated border border-bg-border text-text-muted px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Soon</span>
                     </div>
                     <p className="text-xs text-white/25">{w.tagline}</p>
                   </div>

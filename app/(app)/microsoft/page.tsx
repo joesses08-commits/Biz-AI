@@ -18,7 +18,7 @@ export default function MicrosoftPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-bg-base flex items-center justify-center">
         <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
@@ -26,9 +26,9 @@ export default function MicrosoftPage() {
 
   if (!data || !data.connected) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-bg-base flex items-center justify-center">
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-white/5 border border-bg-border flex items-center justify-center">
             <svg viewBox="0 0 23 23" className="w-8 h-8" fill="none">
               <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
               <rect x="12" y="1" width="10" height="10" fill="#7FBA00"/>
@@ -37,7 +37,7 @@ export default function MicrosoftPage() {
             </svg>
           </div>
           <h1 className="text-white text-2xl font-semibold mb-3">Connect Microsoft 365</h1>
-          <p className="text-white/40 text-sm mb-8 leading-relaxed">Connect your Microsoft account to give Jimmy AI access to Outlook, Calendar, Excel, and OneDrive.</p>
+          <p className="text-text-secondary text-sm mb-8 leading-relaxed">Connect your Microsoft account to give Jimmy AI access to Outlook, Calendar, Excel, and OneDrive.</p>
           <a href="/api/microsoft/connect" className="inline-flex items-center gap-2 bg-white text-black font-medium py-2.5 px-6 rounded-xl text-sm hover:bg-white/90 transition">
             Connect Microsoft 365
           </a>
@@ -109,12 +109,12 @@ export default function MicrosoftPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center gap-4 mb-10">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-bg-border flex items-center justify-center">
             <svg viewBox="0 0 23 23" className="w-6 h-6" fill="none">
               <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
               <rect x="12" y="1" width="10" height="10" fill="#7FBA00"/>
@@ -126,7 +126,7 @@ export default function MicrosoftPage() {
             <h1 className="text-xl font-semibold tracking-tight">Microsoft 365</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-white/40 text-xs">{data.email}</span>
+              <span className="text-text-secondary text-xs">{data.email}</span>
             </div>
           </div>
         </div>
@@ -135,13 +135,13 @@ export default function MicrosoftPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {tools.map((tool) => (
             <Link key={tool.href} href={tool.href}>
-              <div className={`group rounded-2xl border ${tool.border} ${tool.bg} p-6 hover:border-white/20 hover:bg-white/5 transition-all duration-200 cursor-pointer`}>
+              <div className={`group rounded-2xl border ${tool.border} ${tool.bg} p-6 hover:border-white/20 hover:bg-bg-hover transition-all duration-200 cursor-pointer`}>
                 <div className={`w-11 h-11 rounded-xl ${tool.bg} border ${tool.border} flex items-center justify-center mb-4`}>
                   {tool.icon}
                 </div>
                 <h3 className="text-sm font-semibold mb-1">{tool.label}</h3>
-                <p className="text-white/40 text-xs leading-relaxed mb-4">{tool.description}</p>
-                <span className="text-white/50 text-xs group-hover:text-white/80 transition">Open {tool.label} →</span>
+                <p className="text-text-secondary text-xs leading-relaxed mb-4">{tool.description}</p>
+                <span className="text-text-secondary text-xs group-hover:text-white/80 transition">Open {tool.label} →</span>
               </div>
             </Link>
           ))}

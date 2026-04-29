@@ -35,7 +35,7 @@ export default function StripePage() {
   const fmt = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
@@ -50,12 +50,12 @@ export default function StripePage() {
               <h1 className="text-xl font-semibold tracking-tight">Stripe</h1>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-white/40 text-xs">Live data</span>
+                <span className="text-text-secondary text-xs">Live data</span>
               </div>
             </div>
           </div>
           <button onClick={() => window.location.reload()}
-            className="text-white/40 hover:text-white/80 text-xs px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 transition">
+            className="text-text-secondary hover:text-white/80 text-xs px-3 py-1.5 rounded-lg border border-bg-border hover:border-white/20 transition">
             Refresh
           </button>
         </div>
@@ -76,8 +76,8 @@ export default function StripePage() {
                 { label: "Subscriptions", value: data.activeSubscriptions.toString(), sub: "Active" },
                 { label: "Customers", value: data.totalCustomers.toString(), sub: "Total in Stripe" },
               ].map((m) => (
-                <div key={m.label} className="bg-white/[0.03] border border-white/[0.06] rounded-2xl p-5">
-                  <div className="text-[10px] text-white/30 uppercase tracking-widest mb-3">{m.label}</div>
+                <div key={m.label} className="bg-bg-elevated border border-bg-border rounded-2xl p-5">
+                  <div className="text-[10px] text-text-muted uppercase tracking-widest mb-3">{m.label}</div>
                   <div className="text-2xl font-bold font-mono text-white mb-1">{m.value}</div>
                   <div className="text-[10px] text-white/25">{m.sub}</div>
                 </div>
@@ -85,16 +85,16 @@ export default function StripePage() {
             </div>
 
             {/* Transactions */}
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl overflow-hidden">
+              <div className="px-6 py-4 border-b border-bg-border flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white/70">Transactions</h2>
                 <span className="text-[10px] text-white/25">{data.recentTransactions.length} recent</span>
               </div>
               <div className="divide-y divide-white/[0.04]">
                 {data.recentTransactions.length === 0 ? (
-                  <div className="px-6 py-10 text-center text-white/20 text-sm">No transactions yet</div>
+                  <div className="px-6 py-10 text-center text-text-muted text-sm">No transactions yet</div>
                 ) : data.recentTransactions.map((t) => (
-                  <div key={t.id} className="px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition">
+                  <div key={t.id} className="px-6 py-4 flex items-center justify-between hover:bg-bg-surface transition">
                     <div className="flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${t.paid ? "bg-emerald-400" : "bg-red-400"}`} />
                       <div>

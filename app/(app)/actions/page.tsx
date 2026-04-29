@@ -26,7 +26,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   critical: "bg-red-500/10 border-red-500/30 text-red-400",
   high: "bg-amber-500/10 border-amber-500/30 text-amber-400",
   medium: "bg-blue-500/10 border-blue-500/20 text-blue-400",
-  low: "bg-white/5 border-white/10 text-white/30",
+  low: "bg-white/5 border-bg-border text-text-muted",
 };
 
 const PRIORITY_DOT: Record<string, string> = {
@@ -56,7 +56,7 @@ function DueBadge({ date }: { date: string }) {
   if (days < 0) return <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full">Overdue {Math.abs(days)}d</span>;
   if (days === 0) return <span className="text-[10px] bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded-full">Due today</span>;
   if (days <= 3) return <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">Due in {days}d</span>;
-  return <span className="text-[10px] bg-white/5 text-white/30 border border-white/10 px-2 py-0.5 rounded-full">{new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>;
+  return <span className="text-[10px] bg-white/5 text-text-muted border border-bg-border px-2 py-0.5 rounded-full">{new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>;
 }
 
 function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
@@ -111,20 +111,20 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
               <div className="flex items-center gap-2 flex-wrap">
                 <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PRIORITY_DOT[item.priority]}`} />
                 <h3 className="text-sm font-semibold text-white leading-snug">{item.title}</h3>
-                <span className="text-[10px] text-white/25 border border-white/10 px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] text-white/25 border border-bg-border px-1.5 py-0.5 rounded-full">
                   {SOURCE_LABEL[item.source] || item.source}
                 </span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {item.due_date && <DueBadge date={item.due_date} />}
                 <button onClick={() => setExpanded(!expanded)}
-                  className="text-white/20 hover:text-white/50 transition">
+                  className="text-text-muted hover:text-text-secondary transition">
                   {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </button>
               </div>
             </div>
 
-            <p className="text-xs text-white/40 leading-relaxed mb-3">{item.detail}</p>
+            <p className="text-xs text-text-secondary leading-relaxed mb-3">{item.detail}</p>
 
             {/* Progress bar */}
             {totalSteps > 0 && (
@@ -133,7 +133,7 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
                   <div className="h-full bg-emerald-400 rounded-full transition-all"
                     style={{ width: `${progress}%` }} />
                 </div>
-                <span className="text-[10px] text-white/30 flex-shrink-0">{completedSteps}/{totalSteps} steps</span>
+                <span className="text-[10px] text-text-muted flex-shrink-0">{completedSteps}/{totalSteps} steps</span>
               </div>
             )}
 
@@ -142,7 +142,7 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
               {item.people_involved?.length > 0 && (
                 <div className="flex items-center gap-1">
                   <Users size={11} className="text-white/25" />
-                  <span className="text-[10px] text-white/30">{item.people_involved.join(", ")}</span>
+                  <span className="text-[10px] text-text-muted">{item.people_involved.join(", ")}</span>
                 </div>
               )}
               {item.context_note && (
@@ -157,14 +157,14 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
 
       {/* Expanded section */}
       {expanded && (
-        <div className="border-t border-white/[0.06] p-5 space-y-5">
+        <div className="border-t border-bg-border p-5 space-y-5">
 
           {/* Steps */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Steps</p>
+              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Steps</p>
               <button onClick={() => setEditingSteps(!editingSteps)}
-                className="text-[10px] text-white/30 hover:text-white/60 transition">
+                className="text-[10px] text-text-muted hover:text-text-secondary transition">
                 {editingSteps ? "Done" : "Edit"}
               </button>
             </div>
@@ -175,10 +175,10 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
                     className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition ${step.done ? "bg-emerald-400 border-emerald-400" : "border-white/20 hover:border-emerald-400"}`}>
                     {step.done && <Check size={9} className="text-black" />}
                   </button>
-                  <span className={`text-xs flex-1 ${step.done ? "line-through text-white/20" : "text-white/60"}`}>{step.text}</span>
+                  <span className={`text-xs flex-1 ${step.done ? "line-through text-text-muted" : "text-text-secondary"}`}>{step.text}</span>
                   {editingSteps && (
                     <button onClick={() => removeStep(step.id)} className="opacity-0 group-hover:opacity-100 transition">
-                      <X size={12} className="text-white/30 hover:text-red-400" />
+                      <X size={12} className="text-text-muted hover:text-red-400" />
                     </button>
                   )}
                 </div>
@@ -188,12 +188,12 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
                   <input value={newStep} onChange={e => setNewStep(e.target.value)}
                     onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addStep(); }}}
                     placeholder="Add a step..."
-                    className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/20 outline-none focus:border-white/20" />
-                  <button onClick={addStep} className="text-xs text-white/40 hover:text-white px-2 py-1.5 border border-white/10 rounded-lg transition">Add</button>
+                    className="flex-1 bg-white/5 border border-bg-border rounded-lg px-3 py-1.5 text-xs text-white placeholder-white/20 outline-none focus:border-white/20" />
+                  <button onClick={addStep} className="text-xs text-text-secondary hover:text-white px-2 py-1.5 border border-bg-border rounded-lg transition">Add</button>
                 </div>
               )}
               {(item.steps || []).length === 0 && !editingSteps && (
-                <p className="text-xs text-white/20 italic">No steps yet — click Edit to add some</p>
+                <p className="text-xs text-text-muted italic">No steps yet — click Edit to add some</p>
               )}
             </div>
           </div>
@@ -201,9 +201,9 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
           {/* Context note */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Context for AI</p>
+              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Context for AI</p>
               <button onClick={() => setEditingContext(!editingContext)}
-                className="text-[10px] text-white/30 hover:text-white/60 transition flex items-center gap-1">
+                className="text-[10px] text-text-muted hover:text-text-secondary transition flex items-center gap-1">
                 <Edit3 size={10} />
                 {editingContext ? "Save" : "Edit"}
               </button>
@@ -214,9 +214,9 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
                 onBlur={() => { onUpdate(item.id, { context_note: contextNote }); setEditingContext(false); }}
                 placeholder="Tell the AI what it should know about this item... e.g. 'I already handled this' or 'This doesn't matter, it's a side project' or 'Waiting on client response'"
                 rows={3}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-white/20 outline-none focus:border-white/20 resize-none leading-relaxed" />
+                className="w-full bg-white/5 border border-bg-border rounded-xl px-3 py-2.5 text-xs text-white placeholder-white/20 outline-none focus:border-white/20 resize-none leading-relaxed" />
             ) : (
-              <p className="text-xs text-white/30 italic leading-relaxed">
+              <p className="text-xs text-text-muted italic leading-relaxed">
                 {item.context_note || "No context added — click Edit to tell the AI what it should know about this item"}
               </p>
             )}
@@ -224,31 +224,31 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
 
           {/* People involved */}
           <div>
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">People Involved</p>
+            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">People Involved</p>
             <input
               defaultValue={item.people_involved?.join(", ") || ""}
               onBlur={e => onUpdate(item.id, { people_involved: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
               placeholder="e.g. John Smith, Sarah Lee"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:border-white/20" />
+              className="w-full bg-white/5 border border-bg-border rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:border-white/20" />
           </div>
 
           {/* Due date */}
           <div>
-            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Due Date</p>
+            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Due Date</p>
             <input type="date"
               defaultValue={item.due_date || ""}
               onBlur={e => onUpdate(item.id, { due_date: e.target.value || null })}
-              className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-white/20" />
+              className="bg-white/5 border border-bg-border rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-white/20" />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2 pt-2 border-t border-white/[0.06]">
+          <div className="flex items-center gap-2 pt-2 border-t border-bg-border">
             <button onClick={() => onComplete(item.id)}
               className="flex items-center gap-1.5 text-xs text-emerald-400 border border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10 px-3 py-1.5 rounded-lg transition">
               <Check size={11} /> Mark Done
             </button>
             <button onClick={() => setShowDismiss(!showDismiss)}
-              className="flex items-center gap-1.5 text-xs text-white/30 border border-white/10 hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+              className="flex items-center gap-1.5 text-xs text-text-muted border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-lg transition">
               <Archive size={11} /> Dismiss
             </button>
           </div>
@@ -257,10 +257,10 @@ function ActionCard({ item, onUpdate, onDismiss, onComplete }: {
             <div className="space-y-2">
               <input value={dismissReason} onChange={e => setDismissReason(e.target.value)}
                 placeholder="Why are you dismissing this? (AI will learn from this)"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:border-white/20" />
+                className="w-full bg-white/5 border border-bg-border rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:border-white/20" />
               <button onClick={() => { if (dismissReason.trim()) onDismiss(item.id, dismissReason); }}
                 disabled={!dismissReason.trim()}
-                className="text-xs text-white/50 border border-white/10 hover:border-white/20 px-3 py-1.5 rounded-lg transition disabled:opacity-30">
+                className="text-xs text-text-secondary border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-lg transition disabled:opacity-30">
                 Confirm Dismiss
               </button>
             </div>
@@ -366,20 +366,20 @@ export default function ActionsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold tracking-tight mb-1">Action Tracker</h1>
-            <p className="text-white/30 text-sm">
+            <p className="text-text-muted text-sm">
               {active.length} active · {completed.length} completed · {dismissed.length} dismissed
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={generateFromAI} disabled={generating}
-              className="flex items-center gap-2 text-xs text-white/60 hover:text-white border border-white/10 hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
+              className="flex items-center gap-2 text-xs text-text-secondary hover:text-white border border-bg-border hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
               <Zap size={12} className={generating ? "animate-pulse" : ""} />
               {generating ? "Generating..." : "AI Generate"}
             </button>
@@ -392,20 +392,20 @@ export default function ActionsPage() {
 
         {/* Add new item */}
         {addingNew && (
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-5 mb-6 space-y-4">
             <h3 className="text-sm font-semibold">New Action Item</h3>
             <input value={newItem.title} onChange={e => setNewItem({...newItem, title: e.target.value})}
               placeholder="What needs to be done?"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20" />
+              className="w-full bg-white/5 border border-bg-border rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20" />
             <textarea value={newItem.detail} onChange={e => setNewItem({...newItem, detail: e.target.value})}
               placeholder="More context..."
               rows={2}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20 resize-none" />
+              className="w-full bg-white/5 border border-bg-border rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20 resize-none" />
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Priority</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Priority</label>
                 <select value={newItem.priority} onChange={e => setNewItem({...newItem, priority: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none">
+                  className="w-full bg-white/5 border border-bg-border rounded-xl px-3 py-2 text-xs text-white outline-none">
                   <option value="critical">Critical</option>
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
@@ -413,15 +413,15 @@ export default function ActionsPage() {
                 </select>
               </div>
               <div>
-                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Due Date</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Due Date</label>
                 <input type="date" value={newItem.due_date} onChange={e => setNewItem({...newItem, due_date: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white outline-none" />
+                  className="w-full bg-white/5 border border-bg-border rounded-xl px-3 py-2 text-xs text-white outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">People</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">People</label>
                 <input value={newItem.people_involved} onChange={e => setNewItem({...newItem, people_involved: e.target.value})}
                   placeholder="John, Sarah..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none" />
+                  className="w-full bg-white/5 border border-bg-border rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none" />
               </div>
             </div>
             <div className="flex gap-2">
@@ -430,7 +430,7 @@ export default function ActionsPage() {
                 Add Item
               </button>
               <button onClick={() => setAddingNew(false)}
-                className="text-xs text-white/40 hover:text-white border border-white/10 px-4 py-2 rounded-xl transition">
+                className="text-xs text-text-secondary hover:text-white border border-bg-border px-4 py-2 rounded-xl transition">
                 Cancel
               </button>
             </div>
@@ -438,10 +438,10 @@ export default function ActionsPage() {
         )}
 
         {/* Filters */}
-        <div className="flex items-center gap-1 mb-6 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 w-fit">
+        <div className="flex items-center gap-1 mb-6 bg-bg-elevated border border-bg-border rounded-xl p-1 w-fit">
           {(["all", "today", "week", "month"] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition capitalize ${filter === f ? "bg-white text-black" : "text-white/40 hover:text-white"}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition capitalize ${filter === f ? "bg-white text-black" : "text-text-secondary hover:text-text-primary"}`}>
               {f === "all" ? "All" : f === "today" ? "Today" : f === "week" ? "This Week" : "This Month"}
             </button>
           ))}
@@ -450,11 +450,11 @@ export default function ActionsPage() {
         {/* Active items */}
         {loading ? (
           <div className="space-y-3">
-            {[1,2,3].map(i => <div key={i} className="h-24 bg-white/[0.02] border border-white/[0.05] rounded-2xl animate-pulse" />)}
+            {[1,2,3].map(i => <div key={i} className="h-24 bg-bg-surface border border-white/[0.05] rounded-2xl animate-pulse" />)}
           </div>
         ) : sortedFiltered.length === 0 ? (
-          <div className="bg-white/[0.02] border border-white/[0.05] rounded-2xl p-10 text-center">
-            <p className="text-white/20 text-sm mb-2">No action items</p>
+          <div className="bg-bg-surface border border-white/[0.05] rounded-2xl p-10 text-center">
+            <p className="text-text-muted text-sm mb-2">No action items</p>
             <p className="text-white/10 text-xs">Click "AI Generate" to pull actions from your data, or add one manually</p>
           </div>
         ) : (
@@ -469,16 +469,16 @@ export default function ActionsPage() {
         {completed.length > 0 && (
           <div className="mt-8">
             <button onClick={() => setShowCompleted(!showCompleted)}
-              className="flex items-center gap-2 text-xs text-white/30 hover:text-white/50 transition mb-3">
+              className="flex items-center gap-2 text-xs text-text-muted hover:text-text-secondary transition mb-3">
               {showCompleted ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               Completed ({completed.length})
             </button>
             {showCompleted && (
               <div className="space-y-2 opacity-50">
                 {completed.map(item => (
-                  <div key={item.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-3">
+                  <div key={item.id} className="flex items-center gap-3 bg-bg-surface border border-white/[0.05] rounded-xl px-4 py-3">
                     <Check size={12} className="text-emerald-400 flex-shrink-0" />
-                    <p className="text-xs text-white/40 line-through flex-1">{item.title}</p>
+                    <p className="text-xs text-text-secondary line-through flex-1">{item.title}</p>
                   </div>
                 ))}
               </div>
@@ -490,18 +490,18 @@ export default function ActionsPage() {
         {dismissed.length > 0 && (
           <div className="mt-4">
             <button onClick={() => setShowDismissed(!showDismissed)}
-              className="flex items-center gap-2 text-xs text-white/20 hover:text-white/40 transition mb-3">
+              className="flex items-center gap-2 text-xs text-text-muted hover:text-text-secondary transition mb-3">
               {showDismissed ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               Dismissed ({dismissed.length})
             </button>
             {showDismissed && (
               <div className="space-y-2 opacity-40">
                 {dismissed.map(item => (
-                  <div key={item.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 py-3">
-                    <X size={12} className="text-white/30 flex-shrink-0" />
+                  <div key={item.id} className="flex items-center gap-3 bg-bg-surface border border-white/[0.05] rounded-xl px-4 py-3">
+                    <X size={12} className="text-text-muted flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/30 line-through">{item.title}</p>
-                      {item.dismissed_reason && <p className="text-[10px] text-white/20 italic mt-0.5">"{item.dismissed_reason}"</p>}
+                      <p className="text-xs text-text-muted line-through">{item.title}</p>
+                      {item.dismissed_reason && <p className="text-[10px] text-text-muted italic mt-0.5">"{item.dismissed_reason}"</p>}
                     </div>
                   </div>
                 ))}

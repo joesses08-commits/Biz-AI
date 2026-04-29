@@ -92,8 +92,8 @@ function WelcomeVisual() {
           </svg>
         </div>
         <div className="text-left">
-          <p className="text-2xl font-bold text-white">Jimmy AI</p>
-          <p className="text-white/40 text-sm">Sourcing OS for Wholesale</p>
+          <p className="text-2xl font-bold text-text-primary">Jimmy AI</p>
+          <p className="text-text-secondary text-sm">Sourcing OS for Wholesale</p>
         </div>
       </div>
     </div>
@@ -114,28 +114,28 @@ function PinVisual({ pin, setPin, confirmPin, setConfirmPin, pinSet, error }: an
               <Check size={24} className="text-emerald-400" />
             </div>
             <p className="text-sm font-semibold text-emerald-400">PIN Set Successfully</p>
-            <p className="text-xs text-white/30 mt-1">Your admin PIN is now active</p>
+            <p className="text-xs text-text-muted mt-1">Your admin PIN is now active</p>
           </div>
         ) : (
           <>
             <div>
-              <label className="block text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Create PIN (4-8 digits)</label>
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Create PIN (4-8 digits)</label>
               <input 
                 type="password" 
                 value={pin} 
                 onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
                 placeholder="••••"
-                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.3em] placeholder-white/20 focus:outline-none focus:border-amber-500/50 transition"
+                className="w-full bg-bg-elevated border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.3em] placeholder-white/20 focus:outline-none focus:border-amber-500/50 transition"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Confirm PIN</label>
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Confirm PIN</label>
               <input 
                 type="password" 
                 value={confirmPin} 
                 onChange={e => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
                 placeholder="••••"
-                className="w-full bg-white/[0.05] border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.3em] placeholder-white/20 focus:outline-none focus:border-amber-500/50 transition"
+                className="w-full bg-bg-elevated border border-white/[0.1] rounded-xl px-4 py-3 text-white text-center text-lg tracking-[0.3em] placeholder-white/20 focus:outline-none focus:border-amber-500/50 transition"
               />
             </div>
             {error && <p className="text-xs text-red-400 text-center">{error}</p>}
@@ -156,7 +156,7 @@ function FactoriesVisual() {
               <Factory size={18} className="text-blue-400" />
             </div>
             <p className="text-xs font-semibold text-white truncate">{name}</p>
-            <p className="text-[10px] text-white/30 mt-0.5">Factory</p>
+            <p className="text-[10px] text-text-muted mt-0.5">Factory</p>
           </div>
         ))}
       </div>
@@ -173,8 +173,8 @@ function ProductsVisual() {
             <Package size={20} className="text-amber-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-white">16oz Glass Deer Cup</p>
-            <p className="text-[10px] text-white/30">GL-009 · Christmas Glass</p>
+            <p className="text-sm font-semibold text-text-primary">16oz Glass Deer Cup</p>
+            <p className="text-[10px] text-text-muted">GL-009 · Christmas Glass</p>
           </div>
           <span className="text-[10px] px-2 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">Sample Requested</span>
         </div>
@@ -183,8 +183,8 @@ function ProductsVisual() {
             <Package size={20} className="text-emerald-400" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold text-white">10oz Rabbit Mug</p>
-            <p className="text-[10px] text-white/30">GL-008 · Easter Collection</p>
+            <p className="text-sm font-semibold text-text-primary">10oz Rabbit Mug</p>
+            <p className="text-[10px] text-text-muted">GL-008 · Easter Collection</p>
           </div>
           <span className="text-[10px] px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Approved ✓</span>
         </div>
@@ -201,14 +201,14 @@ function EmailVisual() {
           <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center">
             <svg width="32" height="32" viewBox="0 0 24 24"><path fill="#EA4335" d="M22 6v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/><path fill="#FBBC04" d="M22 6l-10 7L2 6"/><path fill="#34A853" d="M2 6l10 7 10-7v12H2z" opacity=".5"/></svg>
           </div>
-          <p className="text-[10px] text-white/40">Gmail</p>
+          <p className="text-[10px] text-text-secondary">Gmail</p>
         </div>
-        <div className="text-white/20">or</div>
+        <div className="text-text-muted">or</div>
         <div className="flex flex-col items-center gap-2">
           <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center">
             <svg width="32" height="32" viewBox="0 0 24 24"><path fill="#0078D4" d="M21 4H3a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1z"/><path fill="#fff" d="M12 13.5L3 8v10h18V8l-9 5.5z" opacity=".8"/><path fill="#fff" d="M21 5l-9 6-9-6h18z"/></svg>
           </div>
-          <p className="text-[10px] text-white/40">Outlook</p>
+          <p className="text-[10px] text-text-secondary">Outlook</p>
         </div>
       </div>
     </div>
@@ -242,8 +242,8 @@ function ReadyVisual() {
         <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center mx-auto mb-4">
           <Check size={40} className="text-emerald-400" />
         </div>
-        <p className="text-lg font-semibold text-white">You're all set</p>
-        <p className="text-sm text-white/40 mt-1">Let's start sourcing</p>
+        <p className="text-lg font-semibold text-text-primary">You're all set</p>
+        <p className="text-sm text-text-secondary mt-1">Let's start sourcing</p>
       </div>
     </div>
   );
@@ -336,7 +336,7 @@ export default function OnboardingPage() {
   };
 
   if (checking) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
       <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
     </div>
   );
@@ -358,7 +358,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+    <div className="min-h-screen bg-bg-base text-white flex flex-col">
       {/* Progress bar */}
       <div className="fixed top-0 left-0 right-0 h-1 bg-white/5 z-50">
         <div 
@@ -369,7 +369,7 @@ export default function OnboardingPage() {
 
       {/* Skip button */}
       <div className="fixed top-6 right-6 z-50">
-        <button onClick={finish} className="text-xs text-white/30 hover:text-white/60 transition">
+        <button onClick={finish} className="text-xs text-text-muted hover:text-text-secondary transition">
           Skip setup →
         </button>
       </div>
@@ -378,7 +378,7 @@ export default function OnboardingPage() {
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-2xl">
           {/* Visual */}
-          <div className={`rounded-3xl bg-gradient-to-b ${colorMap[step.color]} border border-white/[0.06] mb-8 overflow-hidden`}>
+          <div className={`rounded-3xl bg-gradient-to-b ${colorMap[step.color]} border border-bg-border mb-8 overflow-hidden`}>
             {step.visual === "welcome" && <WelcomeVisual />}
             {step.visual === "pin" && <PinVisual pin={pin} setPin={setPin} confirmPin={confirmPin} setConfirmPin={setConfirmPin} pinSet={pinSet} error={pinError} />}
             {step.visual === "factories" && <FactoriesVisual />}
@@ -391,10 +391,10 @@ export default function OnboardingPage() {
           {/* Text */}
           <div className="text-center mb-8">
             {step.subtitle && (
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">{step.subtitle}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2">{step.subtitle}</p>
             )}
             <h1 className="text-3xl font-bold tracking-tight mb-3">{step.title}</h1>
-            <p className="text-white/40 text-sm leading-relaxed max-w-md mx-auto">{step.description}</p>
+            <p className="text-text-secondary text-sm leading-relaxed max-w-md mx-auto">{step.description}</p>
           </div>
 
           {/* Action button for non-PIN steps */}
@@ -409,7 +409,7 @@ export default function OnboardingPage() {
           {/* Navigation */}
           <div className="flex items-center justify-center gap-4">
             {!isFirst && (
-              <button onClick={prev} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white hover:border-white/20 text-sm transition">
+              <button onClick={prev} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-bg-border text-text-secondary hover:text-white hover:border-white/20 text-sm transition">
                 <ArrowLeft size={14} /> Back
               </button>
             )}
@@ -425,7 +425,7 @@ export default function OnboardingPage() {
                 </button>
               )
             ) : !isLast ? (
-              <button onClick={next} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-white/10 border border-white/[0.08] text-white hover:bg-white/20 text-sm font-semibold transition">
+              <button onClick={next} className="flex items-center gap-2 px-6 py-2 rounded-xl bg-white/10 border border-bg-border text-white hover:bg-white/20 text-sm font-semibold transition">
                 Next <ArrowRight size={14} />
               </button>
             ) : (

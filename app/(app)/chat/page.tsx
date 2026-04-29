@@ -282,13 +282,13 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-48px)] md:h-screen bg-[#0a0a0a] text-white overflow-hidden relative">
+    <div className="flex h-[calc(100vh-48px)] md:h-screen bg-bg-base text-white overflow-hidden relative">
 
       {/* Sidebar — chat history */}
       {mobileSidebarOpen && <div className="fixed inset-0 bg-black/60 z-20 md:hidden" onClick={() => setMobileSidebarOpen(false)} />}
-      <div className={`absolute md:relative z-30 md:z-auto h-full w-60 flex-shrink-0 border-r border-white/[0.06] flex flex-col overflow-hidden bg-[#0a0a0a] transition-transform duration-300 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
-          <span className="text-xs font-semibold text-white/40 uppercase tracking-widest">Chats</span>
+      <div className={`absolute md:relative z-30 md:z-auto h-full w-60 flex-shrink-0 border-r border-bg-border flex flex-col overflow-hidden bg-bg-base transition-transform duration-300 md:translate-x-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="px-4 py-4 border-b border-bg-border flex items-center justify-between flex-shrink-0">
+          <span className="text-xs font-semibold text-text-secondary uppercase tracking-widest">Chats</span>
           <div className="flex items-center gap-1.5">
             {selectMode && selectedChats.size > 0 && (
               <button onClick={() => {
@@ -302,12 +302,12 @@ export default function ChatPage() {
               </button>
             )}
             <button onClick={() => { setSelectMode(!selectMode); setSelectedChats(new Set()); }}
-              className="text-[10px] text-white/30 hover:text-white/60 px-2 py-1 rounded-lg border border-white/[0.06] hover:border-white/15 transition">
+              className="text-[10px] text-text-muted hover:text-text-secondary px-2 py-1 rounded-lg border border-bg-border hover:border-white/15 transition">
               {selectMode ? "Cancel" : "Select"}
             </button>
             {!selectMode && <button onClick={newConversation}
-              className="w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition">
-              <Plus size={12} className="text-white/50" />
+              className="w-6 h-6 rounded-lg bg-white/5 hover:bg-bg-hover border border-bg-border flex items-center justify-center transition">
+              <Plus size={12} className="text-text-secondary" />
             </button>}
           </div>
         </div>
@@ -315,7 +315,7 @@ export default function ChatPage() {
         <div className="flex-1 overflow-y-auto py-2">
           {conversations.length === 0 ? (
             <div className="px-4 py-6 text-center">
-              <p className="text-white/20 text-xs">No conversations yet</p>
+              <p className="text-text-muted text-xs">No conversations yet</p>
             </div>
           ) : (
             conversations.map(conv => (
@@ -327,17 +327,17 @@ export default function ChatPage() {
                 } else {
                   setActiveId(conv.id);
                 }
-              }} className={`flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-white/[0.03] transition overflow-hidden ${activeId === conv.id && !selectMode ? "bg-white/[0.05]" : ""} ${selectedChats.has(conv.id) ? "bg-red-500/[0.05]" : ""}`}>
+              }} className={`flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-bg-elevated transition overflow-hidden ${activeId === conv.id && !selectMode ? "bg-bg-elevated" : ""} ${selectedChats.has(conv.id) ? "bg-red-500/[0.05]" : ""}`}>
                 {selectMode && (
                   <div className={`w-4 h-4 rounded flex-shrink-0 border flex items-center justify-center ${selectedChats.has(conv.id) ? "bg-red-500 border-red-500" : "border-white/20"}`}>
                     {selectedChats.has(conv.id) && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-xs truncate mb-0.5 ${activeId === conv.id && !selectMode ? "text-white/80" : "text-white/50"}`}>
+                  <p className={`text-xs truncate mb-0.5 ${activeId === conv.id && !selectMode ? "text-white/80" : "text-text-secondary"}`}>
                     {conv.title}
                   </p>
-                  <p className="text-[10px] text-white/20">{formatDate(conv.createdAt)}</p>
+                  <p className="text-[10px] text-text-muted">{formatDate(conv.createdAt)}</p>
                 </div>
               </div>
             ))
@@ -349,19 +349,19 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
 
         {/* Header */}
-        <div className="md:hidden px-4 py-3 border-b border-white/[0.06] flex items-center gap-3 flex-shrink-0">
-          <button onClick={() => setMobileSidebarOpen(true)} className="flex items-center gap-2 text-xs text-white/40 border border-white/10 px-3 py-1.5 rounded-lg hover:bg-white/5 transition">
+        <div className="md:hidden px-4 py-3 border-b border-bg-border flex items-center gap-3 flex-shrink-0">
+          <button onClick={() => setMobileSidebarOpen(true)} className="flex items-center gap-2 text-xs text-text-secondary border border-bg-border px-3 py-1.5 rounded-lg hover:bg-bg-hover transition">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/></svg>
             Chats
           </button>
         </div>
-        <div className="px-6 py-4 border-b border-white/[0.06] hidden md:flex items-center justify-between flex-shrink-0">
+        <div className="px-6 py-4 border-b border-bg-border hidden md:flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-sm font-semibold tracking-tight">AI Analyst</h1>
-            <p className="text-[10px] text-white/30">Powered by your business data</p>
+            <p className="text-[10px] text-text-muted">Powered by your business data</p>
           </div>
           <button onClick={newConversation}
-            className="text-xs text-white/40 hover:text-white border border-white/10 hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+            className="text-xs text-text-secondary hover:text-white border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-lg transition">
             New chat
           </button>
         </div>
@@ -370,13 +370,13 @@ export default function ChatPage() {
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center max-w-lg mx-auto">
-              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-white/5 border border-bg-border flex items-center justify-center mb-6">
                 <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
                 </svg>
               </div>
               <h2 className="text-xl font-bold mb-2 tracking-tight">Your AI COO</h2>
-              <p className="text-sm text-white/30 mb-8 leading-relaxed">
+              <p className="text-sm text-text-muted mb-8 leading-relaxed">
                 Ask anything about your business. I have full access to your emails, financials, and all connected data.
               </p>
 
@@ -384,9 +384,9 @@ export default function ChatPage() {
               <div className="w-full space-y-2">
                 {QUICK_ACTIONS.map(q => (
                   <button key={q} onClick={() => sendMessage(q)}
-                    className="w-full text-left px-4 py-3 rounded-xl border border-white/[0.06] hover:border-white/15 hover:bg-white/[0.03] transition group flex items-center justify-between">
-                    <span className="text-sm text-white/50 group-hover:text-white/70 transition">{q}</span>
-                    <ChevronRight size={14} className="text-white/20 group-hover:text-white/40 transition flex-shrink-0" />
+                    className="w-full text-left px-4 py-3 rounded-xl border border-bg-border hover:border-white/15 hover:bg-bg-elevated transition group flex items-center justify-between">
+                    <span className="text-sm text-text-secondary group-hover:text-white/70 transition">{q}</span>
+                    <ChevronRight size={14} className="text-text-muted group-hover:text-text-secondary transition flex-shrink-0" />
                   </button>
                 ))}
               </div>
@@ -396,7 +396,7 @@ export default function ChatPage() {
               {messages.map(message => (
                 <div key={message.id} className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                   {message.role === "assistant" && (
-                    <div className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0 mt-1">
+                    <div className="w-7 h-7 rounded-full bg-white/5 border border-bg-border flex items-center justify-center flex-shrink-0 mt-1">
                       <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none">
                         <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6"/>
                       </svg>
@@ -407,7 +407,7 @@ export default function ChatPage() {
                     <div className={`rounded-2xl px-4 py-3 ${
                       message.role === "user"
                         ? "bg-white text-black rounded-tr-md"
-                        : "bg-white/[0.04] border border-white/[0.06] rounded-tl-md"
+                        : "bg-bg-elevated border border-bg-border rounded-tl-md"
                     }`}>
                       {message.role === "user" ? (
                         <p className="text-sm font-medium leading-relaxed">{message.content}</p>
@@ -420,14 +420,14 @@ export default function ChatPage() {
                               <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">Awaiting Your Approval</p>
                             </div>
                             <p className="text-sm font-semibold text-white mb-1">{message.pendingApproval.action}</p>
-                            <p className="text-xs text-white/50 mb-3 leading-relaxed">{message.pendingApproval.details}</p>
+                            <p className="text-xs text-text-secondary mb-3 leading-relaxed">{message.pendingApproval.details}</p>
                             <div className="flex gap-2">
                               <button onClick={() => handleApprove(message)}
                                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/20 transition">
                                 ✓ Approve & Execute
                               </button>
                               <button onClick={() => handleReject(message)}
-                                className="px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/40 text-xs hover:text-white/60 transition">
+                                className="px-4 py-2 rounded-xl bg-bg-elevated border border-bg-border text-text-secondary text-xs hover:text-text-secondary transition">
                                 Cancel
                               </button>
                             </div>
@@ -440,7 +440,7 @@ export default function ChatPage() {
                           prose-headings:text-white prose-headings:font-semibold prose-headings:text-sm
                           prose-li:text-white/70 prose-li:text-sm
                           prose-ul:my-2 prose-ol:my-2
-                          prose-hr:border-white/10">
+                          prose-hr:border-bg-border">
                           <ReactMarkdown>{message.content}</ReactMarkdown>
                         </div>
                       ) : (
@@ -451,11 +451,11 @@ export default function ChatPage() {
                                 style={{ animationDelay: `${i * 0.15}s` }} />
                             ))}
                           </div>
-                          <span className="text-xs text-white/30">Thinking...</span>
+                          <span className="text-xs text-text-muted">Thinking...</span>
                         </div>
                       )}
                     </div>
-                    <p className="text-[10px] text-white/20 mt-1 px-1">
+                    <p className="text-[10px] text-text-muted mt-1 px-1">
                       {message.role === "assistant" ? "Jimmy AI · " : ""}{formatTime(message.timestamp)}
                     </p>
                   </div>
@@ -473,7 +473,7 @@ export default function ChatPage() {
         </div>
 
         {/* Input */}
-        <div className="px-6 py-4 border-t border-white/[0.06] flex-shrink-0">
+        <div className="px-6 py-4 border-t border-bg-border flex-shrink-0">
           <div className="flex gap-3 items-end max-w-4xl mx-auto">
             <div className="flex-1 relative">
               <textarea
@@ -485,7 +485,7 @@ export default function ChatPage() {
                 rows={1}
                 disabled={isLoading}
                 className={cn(
-                  "w-full bg-white/[0.03] border border-white/[0.08] rounded-2xl px-5 py-3.5 text-sm text-white placeholder-white/20 resize-none min-h-[50px] max-h-36 leading-relaxed focus:outline-none focus:border-white/20 transition-colors",
+                  "w-full bg-bg-elevated border border-bg-border rounded-2xl px-5 py-3.5 text-sm text-white placeholder-white/20 resize-none min-h-[50px] max-h-36 leading-relaxed focus:outline-none focus:border-white/20 transition-colors",
                   isLoading && "opacity-50 cursor-not-allowed"
                 )}
                 onInput={e => {

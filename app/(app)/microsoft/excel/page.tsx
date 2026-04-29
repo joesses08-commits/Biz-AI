@@ -14,13 +14,13 @@ export default function ExcelPage() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
       <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
     </div>
   );
 
   if (!data?.connected) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
       <div className="text-center max-w-md">
         <h1 className="text-white text-2xl font-semibold mb-3">Microsoft Not Connected</h1>
         <a href="/api/microsoft/connect" className="inline-flex items-center gap-2 bg-white text-black font-medium py-2.5 px-6 rounded-xl text-sm hover:bg-white/90 transition">Connect Microsoft 365</a>
@@ -32,7 +32,7 @@ export default function ExcelPage() {
   const sheets = data.sheets || [];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-10">
@@ -47,41 +47,41 @@ export default function ExcelPage() {
             <h1 className="text-xl font-semibold tracking-tight">Excel</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-white/40 text-xs">{files.length} files found in OneDrive</span>
+              <span className="text-text-secondary text-xs">{files.length} files found in OneDrive</span>
             </div>
           </div>
         </div>
 
         {files.length === 0 ? (
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-10 text-center">
-            <p className="text-white/30 text-sm">No Excel files found in your OneDrive.</p>
+          <div className="bg-bg-surface border border-bg-border rounded-2xl p-10 text-center">
+            <p className="text-text-muted text-sm">No Excel files found in your OneDrive.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* File list */}
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.06]">
-                <p className="text-xs font-semibold text-white/40">Files</p>
+            <div className="bg-bg-surface border border-bg-border rounded-2xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-bg-border">
+                <p className="text-xs font-semibold text-text-secondary">Files</p>
               </div>
               <div className="divide-y divide-white/[0.04]">
                 {sheets.map((sheet: any, i: number) => (
                   <button key={i} onClick={() => setSelectedSheet(sheet)}
-                    className={`w-full text-left px-5 py-3.5 hover:bg-white/[0.03] transition ${selectedSheet === sheet ? "bg-white/[0.06]" : ""}`}>
+                    className={`w-full text-left px-5 py-3.5 hover:bg-bg-elevated transition ${selectedSheet === sheet ? "bg-white/[0.06]" : ""}`}>
                     <p className="text-xs font-medium text-white/80 truncate">{sheet.fileName}</p>
-                    <p className="text-[10px] text-white/30 mt-0.5">{sheet.sheetName} · {sheet.rowCount} rows · {sheet.lastModified ? new Date(sheet.lastModified).toLocaleDateString() : "unknown date"}</p>
+                    <p className="text-[10px] text-text-muted mt-0.5">{sheet.sheetName} · {sheet.rowCount} rows · {sheet.lastModified ? new Date(sheet.lastModified).toLocaleDateString() : "unknown date"}</p>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Sheet data */}
-            <div className="lg:col-span-2 bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
+            <div className="lg:col-span-2 bg-bg-surface border border-bg-border rounded-2xl overflow-hidden">
               {selectedSheet ? (
                 <>
-                  <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+                  <div className="px-5 py-4 border-b border-bg-border flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-white/60">{selectedSheet.fileName}</p>
-                      <p className="text-[10px] text-white/30 mt-0.5">{selectedSheet.sheetName} · {selectedSheet.rowCount} rows</p>
+                      <p className="text-xs font-semibold text-text-secondary">{selectedSheet.fileName}</p>
+                      <p className="text-[10px] text-text-muted mt-0.5">{selectedSheet.sheetName} · {selectedSheet.rowCount} rows</p>
                     </div>
                     {selectedSheet.lastModified && (
                       <span className="text-[10px] text-white/25">Last modified {new Date(selectedSheet.lastModified).toLocaleDateString()}</span>
@@ -91,9 +91,9 @@ export default function ExcelPage() {
                     <table className="w-full text-xs">
                       <tbody>
                         {selectedSheet.rows?.slice(0, 50).map((row: any[], rowIndex: number) => (
-                          <tr key={rowIndex} className={`border-b border-white/[0.04] ${rowIndex === 0 ? "bg-white/[0.04]" : "hover:bg-white/[0.02]"}`}>
+                          <tr key={rowIndex} className={`border-b border-white/[0.04] ${rowIndex === 0 ? "bg-bg-elevated" : "hover:bg-bg-surface"}`}>
                             {row.map((cell, cellIndex) => (
-                              <td key={cellIndex} className={`px-4 py-2 whitespace-nowrap ${rowIndex === 0 ? "font-semibold text-white/70" : "text-white/50"}`}>
+                              <td key={cellIndex} className={`px-4 py-2 whitespace-nowrap ${rowIndex === 0 ? "font-semibold text-white/70" : "text-text-secondary"}`}>
                                 {cell}
                               </td>
                             ))}
@@ -105,7 +105,7 @@ export default function ExcelPage() {
                 </>
               ) : (
                 <div className="flex items-center justify-center h-40">
-                  <p className="text-white/20 text-xs">Select a file to preview</p>
+                  <p className="text-text-muted text-xs">Select a file to preview</p>
                 </div>
               )}
             </div>

@@ -54,10 +54,10 @@ function NotificationsWidget() {
   if (notifications.length === 0) return null;
 
   return (
-    <div className="border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
+    <div className="border border-bg-border rounded-2xl p-5 bg-bg-surface">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Bell size={14} className="text-white/40" />
+          <Bell size={14} className="text-text-secondary" />
           <p className="text-sm font-semibold">Notifications</p>
           {unread > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">{unread} new</span>}
         </div>
@@ -66,21 +66,21 @@ function NotificationsWidget() {
             body: JSON.stringify({ action: "mark_read", id: "all" }) });
           setUnread(0);
           setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-        }} className="text-[11px] text-white/25 hover:text-white/50 transition">Mark all read</button>
+        }} className="text-[11px] text-white/25 hover:text-text-secondary transition">Mark all read</button>
       </div>
       <div className="space-y-2">
         {notifications.map((n: any) => (
           <div key={n.id} onClick={() => markRead(n.id, n.link)}
-            className={`flex items-start gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/[0.03] transition ${!n.read ? "bg-white/[0.02]" : ""}`}>
+            className={`flex items-start gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-bg-elevated transition ${!n.read ? "bg-bg-surface" : ""}`}>
             <span className="text-sm flex-shrink-0">{typeIcon(n.type)}</span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className={`text-xs font-semibold truncate ${!n.read ? "text-white" : "text-white/50"}`}>{n.title}</p>
+                <p className={`text-xs font-semibold truncate ${!n.read ? "text-text-primary" : "text-text-secondary"}`}>{n.title}</p>
                 {!n.read && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />}
               </div>
-              <p className="text-[11px] text-white/30 truncate">{n.body}</p>
+              <p className="text-[11px] text-text-muted truncate">{n.body}</p>
             </div>
-            <p className="text-[9px] text-white/20 flex-shrink-0">{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+            <p className="text-[9px] text-text-muted flex-shrink-0">{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
           </div>
         ))}
       </div>
@@ -122,14 +122,14 @@ export default function DashboardPage() {
   useEffect(() => { load(); }, []);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <Loader2 size={20} className="animate-spin text-white/20" />
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
+      <Loader2 size={20} className="animate-spin text-text-muted" />
     </div>
   );
   if (!data) return null;
 
   const { products, collections, factories, tracks, orders, plmStages = [] } = data;
-  const ic = "border border-white/[0.06] rounded-2xl bg-white/[0.01]";
+  const ic = "border border-bg-border rounded-2xl bg-bg-surface";
 
   // ── Compute insights
   const approvedTracks = tracks.filter((t: any) => t.status === "approved");
@@ -232,19 +232,19 @@ export default function DashboardPage() {
   const totalUrgent = actionRequired.length + awaitingReview.length + waitingOnQuotes.length;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-bg-base text-text-primary">
       {/* Header */}
-      <div className="border-b border-white/[0.06] px-8 py-5">
+      <div className="border-b border-bg-border px-8 py-5">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold">PLM Dashboard</h1>
-            <p className="text-white/30 text-sm mt-0.5">
+            <p className="text-text-muted text-sm mt-0.5">
               {products.length} products · {factories.length} factories · {approvedTracks.length} approved
             </p>
           </div>
           <div className="flex items-center gap-2">
 
-            <button onClick={load} className="p-2 rounded-xl border border-white/[0.06] text-white/30 hover:text-white/60 transition">
+            <button onClick={load} className="p-2 rounded-xl border border-bg-border text-text-muted hover:text-text-secondary transition">
               <RefreshCw size={14} />
             </button>
           </div>
@@ -259,23 +259,23 @@ export default function DashboardPage() {
           {/* Awaiting your review */}
           <div className={`${ic} p-5 ${awaitingReview.length > 0 ? "border-emerald-500/20 bg-emerald-500/[0.02]" : ""}`}>
             <div className="flex items-center gap-2 mb-3">
-              <CheckCircle size={14} className={awaitingReview.length > 0 ? "text-emerald-400" : "text-white/20"} />
+              <CheckCircle size={14} className={awaitingReview.length > 0 ? "text-emerald-400" : "text-text-muted"} />
               <p className="text-xs font-semibold text-white/70">Ready to Review</p>
               {awaitingReview.length > 0 && <span className="ml-auto text-xs font-bold text-emerald-400">{awaitingReview.length}</span>}
             </div>
             {awaitingReview.length === 0 ? (
-              <p className="text-[11px] text-white/20">No samples waiting for review</p>
+              <p className="text-[11px] text-text-muted">No samples waiting for review</p>
             ) : (
               <div className="space-y-2">
                 {awaitingReview.slice(0, 3).map((p: any) => (
                   <button key={p.id} onClick={() => router.push(`/plm/${p.id}`)}
-                    className="w-full flex items-center gap-2 text-left hover:bg-white/[0.03] -mx-1 px-1 py-1 rounded-lg transition">
+                    className="w-full flex items-center gap-2 text-left hover:bg-bg-elevated -mx-1 px-1 py-1 rounded-lg transition">
                     {p.images?.[0] ? <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" /> : <div className="w-6 h-6 rounded bg-white/[0.06] flex-shrink-0" />}
-                    <span className="text-xs text-white/60 truncate">{p.name}</span>
+                    <span className="text-xs text-text-secondary truncate">{p.name}</span>
                     <span className="ml-auto text-[10px] text-emerald-400 flex-shrink-0">Review →</span>
                   </button>
                 ))}
-                {awaitingReview.length > 3 && <p className="text-[10px] text-white/30">+{awaitingReview.length - 3} more</p>}
+                {awaitingReview.length > 3 && <p className="text-[10px] text-text-muted">+{awaitingReview.length - 3} more</p>}
               </div>
             )}
           </div>
@@ -283,21 +283,21 @@ export default function DashboardPage() {
           {/* Approved, no order */}
           <div className={`${ic} p-5 ${approvedNoOrder.length > 0 ? "border-blue-500/20 bg-blue-500/[0.02]" : ""}`}>
             <div className="flex items-center gap-2 mb-3">
-              <TrendingUp size={14} className={approvedNoOrder.length > 0 ? "text-blue-400" : "text-white/20"} />
+              <TrendingUp size={14} className={approvedNoOrder.length > 0 ? "text-blue-400" : "text-text-muted"} />
               <p className="text-xs font-semibold text-white/70">Approved, No Order Yet</p>
               {approvedNoOrder.length > 0 && <span className="ml-auto text-xs font-bold text-blue-400">{approvedNoOrder.length}</span>}
             </div>
             {approvedNoOrder.length === 0 ? (
-              <p className="text-[11px] text-white/20">All approved products have orders</p>
+              <p className="text-[11px] text-text-muted">All approved products have orders</p>
             ) : (
               <div className="space-y-2">
                 {approvedNoOrder.slice(0, 3).map((p: any) => {
                   const at = approvedTracks.find((t: any) => t.product_id === p.id);
                   return (
                     <button key={p.id} onClick={() => router.push(`/plm/${p.id}`)}
-                      className="w-full flex items-center gap-2 text-left hover:bg-white/[0.03] -mx-1 px-1 py-1 rounded-lg transition">
+                      className="w-full flex items-center gap-2 text-left hover:bg-bg-elevated -mx-1 px-1 py-1 rounded-lg transition">
                       {p.images?.[0] ? <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" /> : <div className="w-6 h-6 rounded bg-white/[0.06] flex-shrink-0" />}
-                      <span className="text-xs text-white/60 truncate">{p.name}</span>
+                      <span className="text-xs text-text-secondary truncate">{p.name}</span>
                       {(at as any)?.approved_price && <span className="ml-auto text-[10px] text-blue-400 flex-shrink-0">${(at as any).approved_price}</span>}
                     </button>
                   );
@@ -309,20 +309,20 @@ export default function DashboardPage() {
           {/* Waiting on quotes */}
           <div className={`${ic} p-5 ${waitingOnQuotes.length > 0 ? "border-amber-500/20 bg-amber-500/[0.02]" : ""}`}>
             <div className="flex items-center gap-2 mb-3">
-              <Clock size={14} className={waitingOnQuotes.length > 0 ? "text-amber-400" : "text-white/20"} />
+              <Clock size={14} className={waitingOnQuotes.length > 0 ? "text-amber-400" : "text-text-muted"} />
               <p className="text-xs font-semibold text-white/70">Waiting on Quotes</p>
               {waitingOnQuotes.length > 0 && <span className="ml-auto text-xs font-bold text-amber-400">{waitingOnQuotes.length}</span>}
             </div>
             {waitingOnQuotes.length === 0 ? (
-              <p className="text-[11px] text-white/20">No quotes pending</p>
+              <p className="text-[11px] text-text-muted">No quotes pending</p>
             ) : (
               <div className="space-y-2">
                 {waitingOnQuotes.slice(0, 3).map(({ track, product, daysSince }: any) => (
                   <button key={track.id} onClick={() => product && router.push(`/plm/${product.id}`)}
-                    className="w-full flex items-center gap-2 text-left hover:bg-white/[0.03] -mx-1 px-1 py-1 rounded-lg transition">
+                    className="w-full flex items-center gap-2 text-left hover:bg-bg-elevated -mx-1 px-1 py-1 rounded-lg transition">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/60 truncate">{product?.name}</p>
-                      <p className="text-[10px] text-white/30">{(track as any).factory_catalog?.name}</p>
+                      <p className="text-xs text-text-secondary truncate">{product?.name}</p>
+                      <p className="text-[10px] text-text-muted">{(track as any).factory_catalog?.name}</p>
                     </div>
                     <span className="text-[10px] text-amber-400 flex-shrink-0">{daysSince}d</span>
                   </button>
@@ -341,18 +341,18 @@ export default function DashboardPage() {
                 <p className="text-xs font-semibold text-white/70">Action Required</p>
                 <span className="text-xs font-bold text-red-400">{actionRequired.length}</span>
               </div>
-              <button onClick={() => router.push("/plm")} className="text-[11px] text-white/30 hover:text-white/60 transition">View All →</button>
+              <button onClick={() => router.push("/plm")} className="text-[11px] text-text-muted hover:text-text-secondary transition">View All →</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {actionRequired.map((p: any) => (
                 <button key={p.id} onClick={() => router.push(`/plm/${p.id}`)}
                   className="flex items-center gap-3 p-2.5 rounded-xl border border-red-500/10 hover:border-red-500/20 bg-red-500/[0.02] transition text-left">
-                  {p.images?.[0] ? <img src={p.images[0]} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" /> : <div className="w-7 h-7 rounded bg-white/[0.04] flex-shrink-0" />}
+                  {p.images?.[0] ? <img src={p.images[0]} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" /> : <div className="w-7 h-7 rounded bg-bg-elevated flex-shrink-0" />}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-white/70 truncate">{p.name}</p>
                     {p.action_note && <p className="text-[10px] text-red-400/70 truncate">{p.action_note}</p>}
                   </div>
-                  <ChevronRight size={12} className="text-white/20 flex-shrink-0" />
+                  <ChevronRight size={12} className="text-text-muted flex-shrink-0" />
                 </button>
               ))}
             </div>
@@ -368,7 +368,7 @@ export default function DashboardPage() {
           <div className={`${ic} p-6`}>
             <div className="flex items-center justify-between mb-5">
               <p className="text-sm font-semibold">Sample Pipeline</p>
-              <button onClick={() => router.push("/plm")} className="text-[11px] text-white/30 hover:text-white/60 transition">View PLM →</button>
+              <button onClick={() => router.push("/plm")} className="text-[11px] text-text-muted hover:text-text-secondary transition">View PLM →</button>
             </div>
             {(() => {
               const SAMPLE_STAGE_LABELS: Record<string, string> = {
@@ -395,24 +395,24 @@ export default function DashboardPage() {
                   stage: latestSample,
                 }];
               });
-              if (activeSamples.length === 0) return <p className="text-xs text-white/20 text-center py-6">No active samples</p>;
+              if (activeSamples.length === 0) return <p className="text-xs text-text-muted text-center py-6">No active samples</p>;
 
               const visible = showAllSamples ? activeSamples : activeSamples.slice(0, 8);
               return (
                 <div className="space-y-2">
                   {visible.map((s: any, i: number) => (
                     <button key={i} onClick={() => router.push(`/plm/${s.product_id}`)}
-                      className="w-full flex items-center gap-3 hover:bg-white/[0.02] -mx-2 px-2 py-1.5 rounded-xl transition text-left">
+                      className="w-full flex items-center gap-3 hover:bg-bg-surface -mx-2 px-2 py-1.5 rounded-xl transition text-left">
                       <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: SAMPLE_STAGE_COLORS[s.stage] }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white/60 truncate">{s.productName}</p>
-                        <p className="text-[10px] text-white/30 truncate">{s.factory}</p>
+                        <p className="text-xs text-text-secondary truncate">{s.productName}</p>
+                        <p className="text-[10px] text-text-muted truncate">{s.factory}</p>
                       </div>
                       <span className="text-[10px] font-semibold flex-shrink-0" style={{ color: SAMPLE_STAGE_COLORS[s.stage] }}>{SAMPLE_STAGE_LABELS[s.stage]}</span>
                     </button>
                   ))}
                   {activeSamples.length > 8 && (
-                    <button onClick={() => setShowAllSamples(!showAllSamples)} className="w-full text-center text-[10px] text-white/30 hover:text-white/60 transition pt-1">
+                    <button onClick={() => setShowAllSamples(!showAllSamples)} className="w-full text-center text-[10px] text-text-muted hover:text-text-secondary transition pt-1">
                       {showAllSamples ? "Show less ↑" : `Show all ${activeSamples.length} samples ↓`}
                     </button>
                   )}
@@ -425,37 +425,37 @@ export default function DashboardPage() {
           <div className={`${ic} p-6`}>
             <div className="flex items-center justify-between mb-5">
               <p className="text-sm font-semibold">Collection Progress</p>
-              <button onClick={() => router.push("/plm?tab=collections")} className="text-[11px] text-white/30 hover:text-white/60 transition">View All →</button>
+              <button onClick={() => router.push("/plm?tab=collections")} className="text-[11px] text-text-muted hover:text-text-secondary transition">View All →</button>
             </div>
             {collectionStats.length === 0 ? (
-              <p className="text-xs text-white/20 text-center py-6">No collections yet</p>
+              <p className="text-xs text-text-muted text-center py-6">No collections yet</p>
             ) : (
               <div className="space-y-5">
                 {collectionStats.map((c: any) => (
                   <div key={c.id} className="cursor-pointer" onClick={() => router.push(`/plm/collection/${c.id}`)}>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-white">{c.name}</span>
+                      <span className="text-xs font-semibold text-text-primary">{c.name}</span>
                       <div className="flex items-center gap-2">
                         {c.season && <span className="text-[9px] text-white/25">{c.season} {c.year}</span>}
-                        <span className="text-[10px] text-white/30">{c.total} products</span>
+                        <span className="text-[10px] text-text-muted">{c.total} products</span>
                       </div>
                     </div>
                     <div className="space-y-1.5">
                       <div>
                         <div className="flex justify-between mb-0.5">
                           <span className="text-[9px] text-emerald-400/70">Approved</span>
-                          <span className="text-[9px] text-white/30">{c.approved}/{c.total}</span>
+                          <span className="text-[9px] text-text-muted">{c.approved}/{c.total}</span>
                         </div>
-                        <div className="w-full bg-white/[0.05] rounded-full h-1">
+                        <div className="w-full bg-bg-elevated rounded-full h-1">
                           <div className="h-1 rounded-full bg-emerald-500" style={{ width: `${c.total > 0 ? (c.approved / c.total) * 100 : 0}%` }} />
                         </div>
                       </div>
                       <div>
                         <div className="flex justify-between mb-0.5">
                           <span className="text-[9px] text-purple-400/70">Samples Arrived</span>
-                          <span className="text-[9px] text-white/30">{c.sampled}/{c.total}</span>
+                          <span className="text-[9px] text-text-muted">{c.sampled}/{c.total}</span>
                         </div>
-                        <div className="w-full bg-white/[0.05] rounded-full h-1">
+                        <div className="w-full bg-bg-elevated rounded-full h-1">
                           <div className="h-1 rounded-full bg-purple-500" style={{ width: `${c.total > 0 ? (c.sampled / c.total) * 100 : 0}%` }} />
                         </div>
                       </div>
@@ -470,24 +470,24 @@ export default function DashboardPage() {
           <div className={`${ic} p-6`}>
             <div className="flex items-center justify-between mb-5">
               <p className="text-sm font-semibold">Recent Activity</p>
-              <Clock size={13} className="text-white/20" />
+              <Clock size={13} className="text-text-muted" />
             </div>
             {recentActivity.length === 0 ? (
-              <p className="text-xs text-white/20 text-center py-6">No activity yet</p>
+              <p className="text-xs text-text-muted text-center py-6">No activity yet</p>
             ) : (
               <div className="space-y-2">
                 {recentActivity.slice(0, 8).map((a: any, i: number) => (
                   <button key={i} onClick={() => a.product_id && router.push(`/plm/${a.product_id}`)}
-                    className="w-full flex items-center gap-3 hover:bg-white/[0.02] -mx-2 px-2 py-1.5 rounded-xl transition text-left">
+                    className="w-full flex items-center gap-3 hover:bg-bg-surface -mx-2 px-2 py-1.5 rounded-xl transition text-left">
                     <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: STAGE_COLORS[a.stage] || "#6b7280" }} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-white/60 truncate">{a.productName}</p>
+                      <p className="text-xs text-text-secondary truncate">{a.productName}</p>
                       <div className="flex items-center gap-1.5">
                         <span className="text-[10px]" style={{ color: STAGE_COLORS[a.stage] || "#6b7280" }}>{STAGE_LABELS[a.stage] || a.stage}</span>
                         {a.factory && <span className="text-[10px] text-white/25">· {a.factory}</span>}
                       </div>
                     </div>
-                    <span className="text-[10px] text-white/20 flex-shrink-0">
+                    <span className="text-[10px] text-text-muted flex-shrink-0">
                       {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                     </span>
                   </button>
@@ -500,10 +500,10 @@ export default function DashboardPage() {
           <div className={`${ic} p-6`}>
             <div className="flex items-center justify-between mb-5">
               <p className="text-sm font-semibold">Production Orders</p>
-              <p className="text-[11px] text-white/30">{orders.length} total</p>
+              <p className="text-[11px] text-text-muted">{orders.length} total</p>
             </div>
             {orders.length === 0 ? (
-              <p className="text-xs text-white/20 text-center py-6">No orders yet</p>
+              <p className="text-xs text-text-muted text-center py-6">No orders yet</p>
             ) : (
               <div className="space-y-2">
                 {orders.map((o: any) => {
@@ -513,13 +513,13 @@ export default function DashboardPage() {
                   const sc = stageColors[o.current_stage] || "#6b7280";
                   return (
                     <button key={o.id} onClick={() => product && router.push(`/plm/${product.id}`)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/[0.04] hover:border-white/10 transition text-left">
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/[0.04] hover:border-bg-border transition text-left">
                       {product?.images?.[0]
                         ? <img src={product.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
-                        : <div className="w-8 h-8 rounded-lg bg-white/[0.04] flex-shrink-0" />}
+                        : <div className="w-8 h-8 rounded-lg bg-bg-elevated flex-shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-white truncate">{product?.name}</p>
-                        <p className="text-[10px] text-white/30">{(o as any).factory_catalog?.name} · {o.order_quantity?.toLocaleString()} units</p>
+                        <p className="text-[10px] text-text-muted">{(o as any).factory_catalog?.name} · {o.order_quantity?.toLocaleString()} units</p>
                       </div>
                       <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0"
                         style={{ color: sc, background: `${sc}15`, border: `1px solid ${sc}30` }}>
@@ -538,17 +538,17 @@ export default function DashboardPage() {
           <div className={`${ic} p-5`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Package size={13} className="text-white/30" />
-                <p className="text-xs font-semibold text-white/50">{untrackedProducts.length} products have no factory assigned yet</p>
+                <Package size={13} className="text-text-muted" />
+                <p className="text-xs font-semibold text-text-secondary">{untrackedProducts.length} products have no factory assigned yet</p>
               </div>
-              <button onClick={() => router.push("/plm")} className="text-[11px] text-white/30 hover:text-white/60 transition">Assign →</button>
+              <button onClick={() => router.push("/plm")} className="text-[11px] text-text-muted hover:text-text-secondary transition">Assign →</button>
             </div>
             <div className="flex flex-wrap gap-2">
               {untrackedProducts.slice(0, 8).map((p: any) => (
                 <button key={p.id} onClick={() => router.push(`/plm/${p.id}`)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/[0.06] hover:border-white/15 transition">
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-bg-border hover:border-white/15 transition">
                   {p.images?.[0] && <img src={p.images[0]} alt="" className="w-4 h-4 rounded object-cover" />}
-                  <span className="text-[11px] text-white/40">{p.name}</span>
+                  <span className="text-[11px] text-text-secondary">{p.name}</span>
                 </button>
               ))}
               {untrackedProducts.length > 8 && <span className="text-[11px] text-white/25 px-2 py-1.5">+{untrackedProducts.length - 8} more</span>}

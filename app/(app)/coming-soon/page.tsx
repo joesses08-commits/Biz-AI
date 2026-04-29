@@ -224,12 +224,12 @@ const ETA_COLORS: Record<string, string> = {
 
 export default function ComingSoonPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-bg-base text-text-primary">
       <div className="max-w-5xl mx-auto px-6 py-12">
 
         {/* Header */}
         <div className="mb-16">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-white/30 px-3 py-1 rounded-full border border-white/10 inline-block mb-5">Roadmap</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted px-3 py-1 rounded-full border border-bg-border inline-block mb-5">Roadmap</span>
           <h1 className="text-4xl font-bold tracking-tight mb-4">What's coming to Jimmy</h1>
           <p className="text-white/35 text-sm leading-relaxed max-w-2xl">
             Jimmy is the operating system for your wholesale business — not just a dashboard. 
@@ -246,13 +246,13 @@ export default function ComingSoonPage() {
               <div className="flex items-center gap-3 mb-7">
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: section.color }} />
                 <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: section.color }}>{section.category}</span>
-                <div className="flex-1 h-px bg-white/[0.05]" />
+                <div className="flex-1 h-px bg-bg-elevated" />
               </div>
 
               {/* 2-column grid */}
               <div className="grid grid-cols-2 gap-4">
                 {section.items.map(item => (
-                  <div key={item.title} className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01] hover:border-white/10 transition group">
+                  <div key={item.title} className="border border-bg-border rounded-2xl overflow-hidden bg-bg-surface hover:border-bg-border transition group">
                     {/* Illustration area */}
                     <div className="h-32 flex items-center justify-center px-8 py-6" style={{ background: section.bg }}>
                       <div className="w-full h-full max-w-[160px]">
@@ -264,7 +264,7 @@ export default function ComingSoonPage() {
                     <div className="p-5">
                       <div className="flex items-start justify-between gap-3 mb-2">
                         <div>
-                          <h3 className="text-sm font-bold text-white">{item.title}</h3>
+                          <h3 className="text-sm font-bold text-text-primary">{item.title}</h3>
                           <p className="text-[11px] text-white/35 mt-0.5">{item.subtitle}</p>
                         </div>
                         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 border whitespace-nowrap mt-0.5"
@@ -272,10 +272,10 @@ export default function ComingSoonPage() {
                           {item.eta}
                         </span>
                       </div>
-                      <p className="text-[11px] text-white/30 leading-relaxed mb-4">{item.description}</p>
+                      <p className="text-[11px] text-text-muted leading-relaxed mb-4">{item.description}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {item.tags.map(tag => (
-                          <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full bg-white/[0.04] text-white/25 border border-white/[0.06]">{tag}</span>
+                          <span key={tag} className="text-[9px] px-2 py-0.5 rounded-full bg-bg-elevated text-white/25 border border-bg-border">{tag}</span>
                         ))}
                       </div>
                     </div>
@@ -287,9 +287,9 @@ export default function ComingSoonPage() {
         </div>
 
         {/* Footer */}
-        <div className="mt-16 border border-white/[0.06] rounded-2xl p-7 bg-white/[0.01] text-center">
+        <div className="mt-16 border border-bg-border rounded-2xl p-7 bg-bg-surface text-center">
           <p className="text-sm font-semibold text-white mb-2">Have a feature request?</p>
-          <p className="text-xs text-white/30 leading-relaxed max-w-md mx-auto">
+          <p className="text-xs text-text-muted leading-relaxed max-w-md mx-auto">
             This roadmap is shaped entirely by how our customers work. If something's missing or you want something moved up, reach out directly.
           </p>
         </div>

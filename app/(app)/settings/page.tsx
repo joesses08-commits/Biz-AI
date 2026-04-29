@@ -163,8 +163,8 @@ export default function SettingsPage() {
                     borderColor: theme === "dark" ? "#4f6ef7" : "var(--bg-border)",
                     background: theme === "dark" ? "#4f6ef710" : "var(--bg-elevated)",
                   }}>
-                  <div className="w-full h-16 rounded-xl bg-[#060608] border border-[#1c1c24] flex items-center justify-center">
-                    <div className="w-8 h-1.5 rounded bg-[#1c1c24]" />
+                  <div className="w-full h-16 rounded-xl bg-bg-base border border-bg-border flex items-center justify-center">
+                    <div className="w-8 h-1.5 rounded bg-bg-border" />
                   </div>
                   <div className="flex items-center gap-2">
                     <Moon size={14} style={{ color: theme === "dark" ? "#4f6ef7" : "var(--text-muted)" }} />

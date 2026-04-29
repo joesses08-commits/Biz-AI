@@ -15,7 +15,7 @@ export default function DrivePendingPage() {
           Google integration is pending verification. We're working with Google to complete the security review process.
         </p>
         <p className="text-text-muted text-sm mb-8">
-          In the meantime, you can use <strong className="text-white">Microsoft OneDrive</strong> for files.
+          In the meantime, you can use <strong className="text-text-primary">Microsoft OneDrive</strong> for files.
         </p>
         <Link href="/microsoft/drive" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-100 transition">
           Use OneDrive Instead

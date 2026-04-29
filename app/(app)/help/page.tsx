@@ -39,11 +39,11 @@ const FAQS = [
 
 export default function HelpPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-10">
           <h1 className="text-2xl font-bold tracking-tight">Help</h1>
-          <p className="text-white/30 text-sm mt-1">Everything you need to get the most out of Jimmy.</p>
+          <p className="text-text-muted text-sm mt-1">Everything you need to get the most out of Jimmy.</p>
         </div>
 
         {/* Quick links */}
@@ -54,27 +54,27 @@ export default function HelpPage() {
             { label: "PLM Agent", href: "/plm/agent", desc: "Ask anything about your products" },
           ].map((link, i) => (
             <Link key={i} href={link.href}
-              className="bg-white/[0.03] border border-white/[0.06] hover:border-white/20 rounded-2xl p-5 transition">
+              className="bg-bg-elevated border border-bg-border hover:border-white/20 rounded-2xl p-5 transition">
               <p className="text-sm font-semibold mb-1">{link.label}</p>
-              <p className="text-white/30 text-xs">{link.desc}</p>
+              <p className="text-text-muted text-xs">{link.desc}</p>
             </Link>
           ))}
         </div>
 
         {/* FAQs */}
         <div className="space-y-3">
-          <p className="text-xs text-white/30 uppercase tracking-widest mb-4">Frequently Asked Questions</p>
+          <p className="text-xs text-text-muted uppercase tracking-widest mb-4">Frequently Asked Questions</p>
           {FAQS.map((faq, i) => (
-            <div key={i} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6">
+            <div key={i} className="bg-bg-surface border border-bg-border rounded-2xl p-6">
               <p className="text-sm font-semibold text-white mb-2">{faq.q}</p>
-              <p className="text-sm text-white/40 leading-relaxed">{faq.a}</p>
+              <p className="text-sm text-text-secondary leading-relaxed">{faq.a}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-10 bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 text-center">
+        <div className="mt-10 bg-bg-surface border border-bg-border rounded-2xl p-6 text-center">
           <p className="text-sm font-semibold text-white mb-1">Need more help?</p>
-          <p className="text-white/30 text-xs mb-4">Reach out and we'll get back to you within 24 hours.</p>
+          <p className="text-text-muted text-xs mb-4">Reach out and we'll get back to you within 24 hours.</p>
           <a href="mailto:joey@myjimmy.ai"
             className="inline-block bg-white text-black font-semibold px-6 py-2.5 rounded-xl hover:bg-white/90 transition text-sm">
             Contact Support

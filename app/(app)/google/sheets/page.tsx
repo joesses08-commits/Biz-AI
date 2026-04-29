@@ -15,7 +15,7 @@ export default function SheetsPendingPage() {
           Google integration is pending verification. We're working with Google to complete the security review process.
         </p>
         <p className="text-text-muted text-sm mb-8">
-          In the meantime, you can use <strong className="text-white">Microsoft Excel</strong> for spreadsheets.
+          In the meantime, you can use <strong className="text-text-primary">Microsoft Excel</strong> for spreadsheets.
         </p>
         <Link href="/microsoft/excel" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-100 transition">
           Use Excel Instead

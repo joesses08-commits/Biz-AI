@@ -120,7 +120,7 @@ function StepDot({ type }: { type: string }) {
   const configs: Record<string, { bg: string; border: string; icon: React.ReactNode }> = {
     approval: { bg: "bg-amber-500/10", border: "border-amber-500", icon: <Eye size={9} className="text-amber-400" /> },
     trigger: { bg: "bg-blue-500/10", border: "border-blue-500", icon: <Zap size={9} className="text-blue-400" /> },
-    input: { bg: "bg-white/5", border: "border-white/20", icon: <Circle size={9} className="text-white/40" /> },
+    input: { bg: "bg-white/5", border: "border-white/20", icon: <Circle size={9} className="text-text-secondary" /> },
     draft: { bg: "bg-purple-500/10", border: "border-purple-500", icon: <Bot size={9} className="text-purple-400" /> },
     monitor: { bg: "bg-blue-500/10", border: "border-blue-500", icon: <Eye size={9} className="text-blue-400" /> },
     analysis: { bg: "bg-purple-500/10", border: "border-purple-500", icon: <Bot size={9} className="text-purple-400" /> },
@@ -150,22 +150,22 @@ function PendingCard({ action, onApprove, onReject, approving }: {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
               <span className="text-[10px] font-semibold uppercase tracking-widest text-amber-400/70">Awaiting Approval</span>
-              <span className="text-[10px] text-white/20">{timeAgo(action.created_at)}</span>
+              <span className="text-[10px] text-text-muted">{timeAgo(action.created_at)}</span>
             </div>
-            <p className="text-sm font-semibold text-white">{action.title}</p>
-            <p className="text-xs text-white/40">{ACTION_LABELS[action.action_type] || action.action_type}</p>
+            <p className="text-sm font-semibold text-text-primary">{action.title}</p>
+            <p className="text-xs text-text-secondary">{ACTION_LABELS[action.action_type] || action.action_type}</p>
           </div>
-          <button onClick={() => setExpanded(!expanded)} className="text-white/20 hover:text-white/50 transition mt-1">
+          <button onClick={() => setExpanded(!expanded)} className="text-text-muted hover:text-text-secondary transition mt-1">
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         </div>
         {expanded && action.payload && (
-          <div className="mt-3 bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-            <p className="text-[10px] text-white/20 uppercase tracking-widest mb-2">Preview</p>
+          <div className="mt-3 bg-bg-elevated border border-bg-border rounded-xl p-3">
+            <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Preview</p>
             {Object.entries(action.payload).map(([k, v]) => (
               <div key={k} className="flex gap-2 mb-1">
-                <span className="text-[11px] text-white/30 min-w-[60px] capitalize">{k}:</span>
-                <span className="text-[11px] text-white/60 truncate">{String(v).slice(0, 120)}</span>
+                <span className="text-[11px] text-text-muted min-w-[60px] capitalize">{k}:</span>
+                <span className="text-[11px] text-text-secondary truncate">{String(v).slice(0, 120)}</span>
               </div>
             ))}
           </div>
@@ -177,7 +177,7 @@ function PendingCard({ action, onApprove, onReject, approving }: {
             Approve & Execute
           </button>
           <button onClick={() => onReject(action.id)} disabled={approving === action.id}
-            className="px-4 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/40 hover:text-white/60 transition disabled:opacity-50">
+            className="px-4 rounded-xl bg-bg-elevated border border-bg-border text-text-secondary hover:text-text-secondary transition disabled:opacity-50">
             <X size={12} />
           </button>
         </div>
@@ -216,43 +216,43 @@ function FactoryCatalog({ factories, onRefresh }: { factories: Factory[]; onRefr
   };
 
   return (
-    <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01]">
+    <div className="border border-bg-border rounded-xl p-4 bg-bg-surface">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Building2 size={12} className="text-white/30" />
-          <p className="text-[11px] text-white/40 uppercase tracking-widest">Factory Catalog</p>
-          <span className="text-[10px] text-white/20">{factories.length} saved</span>
+          <Building2 size={12} className="text-text-muted" />
+          <p className="text-[11px] text-text-secondary uppercase tracking-widest">Factory Catalog</p>
+          <span className="text-[10px] text-text-muted">{factories.length} saved</span>
         </div>
         <button onClick={() => setAdding(!adding)}
-          className="flex items-center gap-1 text-[11px] text-white/40 hover:text-white/70 transition px-2 py-1 rounded-lg border border-white/[0.06]">
+          className="flex items-center gap-1 text-[11px] text-text-secondary hover:text-white/70 transition px-2 py-1 rounded-lg border border-bg-border">
           <Plus size={10} />Add Factory
         </button>
       </div>
 
       {adding && (
-        <div className="mb-3 p-3 bg-white/[0.02] border border-white/[0.06] rounded-xl space-y-2">
+        <div className="mb-3 p-3 bg-bg-surface border border-bg-border rounded-xl space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-white/30 mb-1 block">Factory Name *</label>
+              <label className="text-[10px] text-text-muted mb-1 block">Factory Name *</label>
               <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                placeholder="Yuecheng" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                placeholder="Yuecheng" className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
             <div>
-              <label className="text-[10px] text-white/30 mb-1 block">Email *</label>
+              <label className="text-[10px] text-text-muted mb-1 block">Email *</label>
               <input value={form.email} onChange={e => setForm({...form, email: e.target.value})}
-                placeholder="quotes@factory.com" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                placeholder="quotes@factory.com" className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-white/30 mb-1 block">Contact Name</label>
+              <label className="text-[10px] text-text-muted mb-1 block">Contact Name</label>
               <input value={form.contact_name} onChange={e => setForm({...form, contact_name: e.target.value})}
-                placeholder="Jenny Li" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                placeholder="Jenny Li" className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
             <div>
-              <label className="text-[10px] text-white/30 mb-1 block">Notes</label>
+              <label className="text-[10px] text-text-muted mb-1 block">Notes</label>
               <input value={form.notes} onChange={e => setForm({...form, notes: e.target.value})}
-                placeholder="Specializes in glass" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                placeholder="Specializes in glass" className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
             </div>
           </div>
           <div className="flex gap-2">
@@ -260,7 +260,7 @@ function FactoryCatalog({ factories, onRefresh }: { factories: Factory[]; onRefr
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold hover:bg-white/90 transition disabled:opacity-40">
               {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Save
             </button>
-            <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+            <button onClick={() => setAdding(false)} className="px-3 py-1.5 rounded-lg border border-bg-border text-text-muted text-xs">Cancel</button>
           </div>
         </div>
       )}
@@ -269,11 +269,11 @@ function FactoryCatalog({ factories, onRefresh }: { factories: Factory[]; onRefr
         {factories.length === 0 ? (
           <p className="text-[11px] text-white/15 py-2">No factories saved yet — add one above. These stay saved across all jobs.</p>
         ) : factories.map(f => (
-          <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-            <Building2 size={11} className="text-white/20 flex-shrink-0" />
+          <div key={f.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-bg-surface border border-white/[0.04]">
+            <Building2 size={11} className="text-text-muted flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-xs text-white/70 font-medium">{f.name}</p>
-              <p className="text-[10px] text-white/30">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
+              <p className="text-[10px] text-text-muted">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
             </div>
             <button onClick={() => remove(f.id)} className="text-white/15 hover:text-red-400 transition"><Trash2 size={11} /></button>
           </div>
@@ -573,7 +573,7 @@ Best regards,
   };
 
   const statusColors: Record<string, string> = {
-    waiting: "text-white/40 bg-white/5 border-white/10",
+    waiting: "text-text-secondary bg-white/5 border-bg-border",
     rfq_sent: "text-blue-400 bg-blue-500/10 border-blue-500/20",
     ready: "text-amber-400 bg-amber-500/10 border-amber-500/20",
     complete: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
@@ -588,15 +588,15 @@ Best regards,
       {/* Draft email modal */}
       {draftModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg space-y-4 p-6">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg space-y-4 p-6">
             <div>
               <p className="text-sm font-semibold text-white mb-0.5">Review RFQ Email</p>
-              <p className="text-[11px] text-white/30">This email will be sent to each factory with their name filled in. Edit the body below then click Send.</p>
+              <p className="text-[11px] text-text-muted">This email will be sent to each factory with their name filled in. Edit the body below then click Send.</p>
             </div>
 
             {/* Field toggles */}
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Fields to request</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Fields to request</p>
               <div className="flex flex-wrap gap-2">
                 {["Unit price (USD)", "MOQ", "Lead time", "Sample lead time", "Sample price", "Payment terms", "Packaging details", "Notes/Comments"].map(field => {
                   const active = draftModal.fields.includes(field);
@@ -611,7 +611,7 @@ Best regards,
                         emailBody: buildDraftBody(jobs.find(j => j.id === draftModal.jobId)?.job_name || "", newFields),
                       });
                     }}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-white/10 bg-white/[0.03] text-white/30"}`}>
+                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-bg-border bg-bg-elevated text-text-muted"}`}>
                       {field}
                     </button>
                   );
@@ -621,12 +621,12 @@ Best regards,
 
             {/* Email body editor */}
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Email body <span className="normal-case text-white/20">— [contact name] and [your name] will be filled in automatically</span></p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Email body <span className="normal-case text-text-muted">— [contact name] and [your name] will be filled in automatically</span></p>
               <textarea
                 value={draftModal.emailBody}
                 onChange={e => setDraftModal({ ...draftModal, emailBody: e.target.value })}
                 rows={10}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none focus:border-white/20 transition resize-none font-mono leading-relaxed"
+                className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none focus:border-white/20 transition resize-none font-mono leading-relaxed"
               />
             </div>
 
@@ -641,7 +641,7 @@ Best regards,
                 <Send size={11} />Send to All Factories
               </button>
               <button onClick={() => setDraftModal(null)}
-                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
+                className="px-4 rounded-xl border border-bg-border text-text-muted text-xs hover:text-text-secondary transition">
                 Cancel
               </button>
             </div>
@@ -652,34 +652,34 @@ Best regards,
       {/* Provider picker modal */}
       {providerModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#111] border border-white/10 rounded-2xl p-6 w-80 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-80 space-y-4">
             <div>
               <p className="text-sm font-semibold text-white mb-1">Send RFQs via which account?</p>
-              <p className="text-[11px] text-white/30">Both Gmail and Outlook are connected. Pick which one to send from.</p>
+              <p className="text-[11px] text-text-muted">Both Gmail and Outlook are connected. Pick which one to send from.</p>
             </div>
             <div className="space-y-2">
               <button onClick={() => { const j = providerModal; setProviderModal(null); openDraft(j.jobId, "gmail"); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-white/20 transition text-left">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-bg-border bg-bg-surface hover:border-white/20 transition text-left">
                 <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs">G</span>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-white">Gmail</p>
-                  <p className="text-[10px] text-white/30">{providerModal.gmailEmail}</p>
+                  <p className="text-xs font-semibold text-text-primary">Gmail</p>
+                  <p className="text-[10px] text-text-muted">{providerModal.gmailEmail}</p>
                 </div>
               </button>
               <button onClick={() => { const j = providerModal; setProviderModal(null); openDraft(j.jobId, "outlook"); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] hover:border-white/20 transition text-left">
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-bg-border bg-bg-surface hover:border-white/20 transition text-left">
                 <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs">O</span>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-white">Outlook</p>
-                  <p className="text-[10px] text-white/30">{providerModal.outlookEmail}</p>
+                  <p className="text-xs font-semibold text-text-primary">Outlook</p>
+                  <p className="text-[10px] text-text-muted">{providerModal.outlookEmail}</p>
                 </div>
               </button>
             </div>
-            <button onClick={() => setProviderModal(null)} className="w-full text-center text-[11px] text-white/20 hover:text-white/40 transition">Cancel</button>
+            <button onClick={() => setProviderModal(null)} className="w-full text-center text-[11px] text-text-muted hover:text-text-secondary transition">Cancel</button>
           </div>
         </div>
       )}
@@ -689,12 +689,12 @@ Best regards,
         <>
           <div className="flex items-center gap-2">
             <button onClick={() => { setActiveDraftJob(null); setProductFile(null); setNewJob({ job_name: "", factory_ids: [], duty_pct: "30", tariff_pct: "20", freight: "0.15" }); setShowNew(!showNew); }}
-              className="flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/10 bg-white/[0.02]">
+              className="flex items-center gap-2 text-xs text-text-secondary hover:text-white/70 transition px-3 py-2 rounded-xl border border-bg-border hover:border-bg-border bg-bg-surface">
               <Plus size={11} />New Quote Job
             </button>
             {jobs.length > 0 && (
               <button onClick={() => { setSelectMode(!selectMode); setSelectedJobs([]); }}
-                className={`flex items-center gap-2 text-xs transition px-3 py-2 rounded-xl border ${selectMode ? "border-red-500/30 text-red-400 bg-red-500/5" : "border-white/[0.06] text-white/30 hover:text-white/50 bg-white/[0.02]"}`}>
+                className={`flex items-center gap-2 text-xs transition px-3 py-2 rounded-xl border ${selectMode ? "border-red-500/30 text-red-400 bg-red-500/5" : "border-bg-border text-text-muted hover:text-text-secondary bg-bg-surface"}`}>
                 {selectMode ? <X size={11} /> : <Trash2 size={11} />}
                 {selectMode ? "Cancel" : "Select"}
               </button>
@@ -709,34 +709,34 @@ Best regards,
           </div>
 
           {showNew && (
-            <div className="border border-white/[0.08] rounded-xl p-4 bg-white/[0.02] space-y-4">
+            <div className="border border-bg-border rounded-xl p-4 bg-bg-surface space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] text-white/40 uppercase tracking-widest">New Quote Job</p>
+                <p className="text-[11px] text-text-secondary uppercase tracking-widest">New Quote Job</p>
                 {activeDraftJob && activeDraftJob.order_details?.plm_product_ids?.length > 0 && <span className="text-[10px] text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2 py-0.5 rounded-full">From PLM</span>}
               </div>
 
               <div>
-                <label className="text-[11px] text-white/30 mb-1 block">Job Name</label>
+                <label className="text-[11px] text-text-muted mb-1 block">Job Name</label>
                 <input value={newJob.job_name} onChange={e => setNewJob({...newJob, job_name: e.target.value})}
                   placeholder="e.g. Spring 2026 Glass Collection"
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
               </div>
 
               {/* Product file upload */}
               <div>
-                <label className="text-[11px] text-white/30 mb-1.5 block">Product List File <span className="text-white/15">(your Excel with products — gets sent to factories as-is)</span></label>
+                <label className="text-[11px] text-text-muted mb-1.5 block">Product List File <span className="text-white/15">(your Excel with products — gets sent to factories as-is)</span></label>
                 <label className="cursor-pointer block">
                   <input type="file" accept=".xlsx,.xls" className="hidden"
                     onChange={e => setProductFile(e.target.files?.[0] || null)} />
-                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition ${productFile ? "border-emerald-500/30 bg-emerald-500/5" : (activeDraftJob && activeDraftJob.product_file_base64) ? "border-pink-500/30 bg-pink-500/5" : "border-dashed border-white/[0.08] hover:border-white/20 bg-white/[0.02]"}`}>
+                  <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition ${productFile ? "border-emerald-500/30 bg-emerald-500/5" : (activeDraftJob && activeDraftJob.product_file_base64) ? "border-pink-500/30 bg-pink-500/5" : "border-dashed border-bg-border hover:border-white/20 bg-bg-surface"}`}>
                     {productFile ? (
                       <>
                         <FileSpreadsheet size={14} className="text-emerald-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-emerald-300 font-medium truncate">{productFile.name}</p>
-                          <p className="text-[10px] text-white/30">This exact file will be emailed to each factory</p>
+                          <p className="text-[10px] text-text-muted">This exact file will be emailed to each factory</p>
                         </div>
-                        <button onClick={e => { e.preventDefault(); setProductFile(null); }} className="text-white/20 hover:text-red-400 transition">
+                        <button onClick={e => { e.preventDefault(); setProductFile(null); }} className="text-text-muted hover:text-red-400 transition">
                           <X size={12} />
                         </button>
                       </>
@@ -745,16 +745,16 @@ Best regards,
                         <FileSpreadsheet size={14} className="text-pink-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-pink-300 font-medium truncate">{activeDraftJob.product_file_name || "RFQ sheet"}</p>
-                          <p className="text-[10px] text-white/30">Saved in draft — will be sent to factories</p>
+                          <p className="text-[10px] text-text-muted">Saved in draft — will be sent to factories</p>
                         </div>
-                        <button onClick={e => { e.preventDefault(); setActiveDraftJob((prev: any) => ({...prev, product_file_base64: null, product_file_name: null})); }} className="text-white/20 hover:text-red-400 transition">
+                        <button onClick={e => { e.preventDefault(); setActiveDraftJob((prev: any) => ({...prev, product_file_base64: null, product_file_name: null})); }} className="text-text-muted hover:text-red-400 transition">
                           <X size={12} />
                         </button>
                       </>
                     ) : (
                       <>
-                        <Upload size={14} className="text-white/20 flex-shrink-0" />
-                        <p className="text-xs text-white/30">Click to upload your product list Excel</p>
+                        <Upload size={14} className="text-text-muted flex-shrink-0" />
+                        <p className="text-xs text-text-muted">Click to upload your product list Excel</p>
                       </>
                     )}
                   </div>
@@ -763,16 +763,16 @@ Best regards,
 
               {/* Factory picker */}
               <div>
-                <label className="text-[11px] text-white/30 mb-1.5 block">Send To <span className="text-white/15">(select factories)</span></label>
+                <label className="text-[11px] text-text-muted mb-1.5 block">Send To <span className="text-white/15">(select factories)</span></label>
                 {factories.length === 0 ? (
-                  <div className="text-[11px] text-white/20 italic p-3 border border-white/[0.06] rounded-xl">
+                  <div className="text-[11px] text-text-muted italic p-3 border border-bg-border rounded-xl">
                     No factories saved yet — add them in Product Lifecycle → Factory Access.
                   </div>
                 ) : (
                   <div className="space-y-1.5">
                     {factories.map(f => (
                       <button key={f.id} onClick={() => toggleFactory(f.id)}
-                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition ${newJob.factory_ids.includes(f.id) ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-white/[0.06] bg-white/[0.02] text-white/50 hover:border-white/10"}`}>
+                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition ${newJob.factory_ids.includes(f.id) ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-bg-border bg-bg-surface text-text-secondary hover:border-bg-border"}`}>
                         <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${newJob.factory_ids.includes(f.id) ? "border-emerald-400 bg-emerald-500" : "border-white/20"}`}>
                           {newJob.factory_ids.includes(f.id) && <Check size={9} className="text-black" />}
                         </div>
@@ -788,7 +788,7 @@ Best regards,
 
               {/* Cost settings */}
               <div>
-                <label className="text-[11px] text-white/30 mb-1.5 block">Cost Settings</label>
+                <label className="text-[11px] text-text-muted mb-1.5 block">Cost Settings</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
                     { key: "duty_pct", label: "Duty %", placeholder: "30" },
@@ -796,10 +796,10 @@ Best regards,
                     { key: "freight", label: "Freight/unit ($)", placeholder: "0.15" },
                   ].map(field => (
                     <div key={field.key}>
-                      <label className="text-[10px] text-white/20 mb-1 block">{field.label}</label>
+                      <label className="text-[10px] text-text-muted mb-1 block">{field.label}</label>
                       <input value={(newJob as any)[field.key]} onChange={e => setNewJob({...newJob, [field.key]: e.target.value})}
                         placeholder={field.placeholder}
-                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
+                        className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20" />
                     </div>
                   ))}
                 </div>
@@ -814,12 +814,12 @@ Best regards,
                 </button>
                 <button onClick={saveAsDraft}
                   disabled={savingDraft || !newJob.job_name}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.10] text-white/60 text-xs font-semibold hover:bg-white/5 transition disabled:opacity-40">
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl border border-bg-border text-text-secondary text-xs font-semibold hover:bg-bg-hover transition disabled:opacity-40">
                   {savingDraft ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
                   Save as Draft
                 </button>
                 <button onClick={() => { setShowNew(false); setProductFile(null); setActiveDraftJob(null); }}
-                  className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs hover:text-white/50 transition">
+                  className="px-4 py-2 rounded-xl border border-bg-border text-text-muted text-xs hover:text-text-secondary transition">
                   Cancel
                 </button>
               </div>
@@ -835,8 +835,8 @@ Best regards,
                   <FileSpreadsheet size={14} className="text-pink-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{job.job_name}</p>
-                  <p className="text-xs text-white/30">
+                  <p className="text-sm font-semibold text-text-primary">{job.job_name}</p>
+                  <p className="text-xs text-text-muted">
                     {job.order_details?.plm_product_ids?.length ? "Draft from PLM" : "Saved draft"} — add factories, set costs, then Draft RFQs
                   </p>
                 </div>
@@ -859,7 +859,7 @@ Best regards,
                     body: JSON.stringify({ action: "delete_jobs", job_ids: [job.id] }) });
                   loadJobs();
                 }}
-                  className="p-2 rounded-xl border border-white/[0.06] text-white/30 hover:text-red-400 hover:border-red-500/30 transition">
+                  className="p-2 rounded-xl border border-bg-border text-text-muted hover:text-red-400 hover:border-red-500/30 transition">
                   <Trash2 size={12} />
                 </button>
               </div>
@@ -868,7 +868,7 @@ Best regards,
 
           {/* Job list */}
           {loading ? (
-            <div className="flex items-center gap-2 text-white/20 text-xs py-2"><Loader2 size={11} className="animate-spin" />Loading jobs...</div>
+            <div className="flex items-center gap-2 text-text-muted text-xs py-2"><Loader2 size={11} className="animate-spin" />Loading jobs...</div>
           ) : jobs.filter(j => j.status !== "draft").length === 0 && jobs.filter(j => j.status === "draft").length === 0 ? (
             <p className="text-white/15 text-xs py-2">No quote jobs yet — create one above.</p>
           ) : (
@@ -880,14 +880,14 @@ Best regards,
                 const isSending = sending === job.id;
 
                 return (
-                  <div key={job.id} className={`border rounded-xl overflow-hidden transition ${selectedJobs.includes(job.id) ? "border-red-500/30 bg-red-500/[0.03]" : "border-white/[0.06] bg-white/[0.01]"}`}>
+                  <div key={job.id} className={`border rounded-xl overflow-hidden transition ${selectedJobs.includes(job.id) ? "border-red-500/30 bg-red-500/[0.03]" : "border-bg-border bg-bg-surface"}`}>
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex items-start gap-2">
                           {selectMode && (
                             <button onClick={() => setSelectedJobs(s => s.includes(job.id) ? s.filter(id => id !== job.id) : [...s, job.id])}
                               className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition ${selectedJobs.includes(job.id) ? "border-red-400 bg-red-500" : "border-white/20"}`}>
-                              {selectedJobs.includes(job.id) && <Check size={9} className="text-white" />}
+                              {selectedJobs.includes(job.id) && <Check size={9} className="text-text-primary" />}
                             </button>
                           )}
                           <div>
@@ -898,7 +898,7 @@ Best regards,
                           <p className="text-[10px] text-white/25">{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
                           </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[job.status] || "text-white/30 bg-white/5 border-white/10"}`}>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusColors[job.status] || "text-text-muted bg-white/5 border-bg-border"}`}>
                           {statusLabels[job.status] || job.status}
                         </span>
                       </div>
@@ -913,10 +913,10 @@ Best regards,
                       {/* Progress */}
                       <div className="mb-3">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] text-white/30">Quotes received</span>
-                          <span className="text-[10px] text-white/40">{quotesReceived} / {totalFactories}</span>
+                          <span className="text-[10px] text-text-muted">Quotes received</span>
+                          <span className="text-[10px] text-text-secondary">{quotesReceived} / {totalFactories}</span>
                         </div>
-                        <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+                        <div className="w-full bg-bg-elevated rounded-full h-1.5">
                           <div className="h-1.5 rounded-full bg-blue-500 transition-all" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -929,9 +929,9 @@ Best regards,
                           );
                           const isProcessing = processing === job.id + factory.name;
                           return (
-                            <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${received ? "border-emerald-500/20 bg-emerald-500/[0.03]" : "border-white/[0.05] bg-white/[0.01]"}`}>
+                            <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${received ? "border-emerald-500/20 bg-emerald-500/[0.03]" : "border-white/[0.05] bg-bg-surface"}`}>
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : job.status === "rfq_sent" || job.status === "ready" || job.status === "complete" ? "bg-blue-400/40" : "bg-white/15"}`} />
-                              <span className="text-[11px] text-white/60 flex-1">{factory.name}</span>
+                              <span className="text-[11px] text-text-secondary flex-1">{factory.name}</span>
                               {received ? (
                                 <div className="flex items-center gap-2">
                                   <span className="text-[10px] text-emerald-400/80">{received.processed_data?.length || 0} products received</span>
@@ -954,14 +954,14 @@ Best regards,
                                       <span className="text-[10px]">Processing...</span>
                                     </div>
                                   ) : (
-                                    <div className="flex items-center gap-1 text-white/30 hover:text-white/60 transition">
+                                    <div className="flex items-center gap-1 text-text-muted hover:text-text-secondary transition">
                                       <Upload size={10} />
                                       <span className="text-[10px]">Upload quote</span>
                                     </div>
                                   )}
                                 </label>
                               ) : (
-                                <span className="text-[10px] text-white/20">no quote received</span>
+                                <span className="text-[10px] text-text-muted">no quote received</span>
                               )}
                             </div>
                           );
@@ -988,12 +988,12 @@ Best regards,
 
                     {/* AI Recommendation — shows after complete */}
                     {job.status === "complete" && job.ai_recommendation && (
-                      <div className="border-t border-white/[0.06] px-4 py-3 bg-purple-500/[0.03]">
+                      <div className="border-t border-bg-border px-4 py-3 bg-purple-500/[0.03]">
                         <div className="flex items-center gap-2 mb-2">
                           <Sparkles size={11} className="text-purple-400" />
                           <p className="text-[10px] font-semibold text-purple-400 uppercase tracking-widest">Jimmy's Recommendation</p>
                         </div>
-                        <p className="text-xs text-white/50 leading-relaxed">{job.ai_recommendation}</p>
+                        <p className="text-xs text-text-secondary leading-relaxed">{job.ai_recommendation}</p>
                       </div>
                     )}
                   </div>
@@ -1027,7 +1027,7 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, 
   };
 
   return (
-    <div className={`border rounded-2xl overflow-hidden transition-all ${enabled ? "border-white/10 bg-white/[0.02]" : "border-white/[0.05] bg-white/[0.01]"}`}>
+    <div className={`border rounded-2xl overflow-hidden transition-all ${enabled ? "border-bg-border bg-bg-surface" : "border-white/[0.05] bg-bg-surface"}`}>
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -1037,16 +1037,16 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, 
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-sm font-semibold text-white">{def.name}</p>
+                <p className="text-sm font-semibold text-text-primary">{def.name}</p>
                 {enabled && <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">Live</span>}
               </div>
               <p className="text-xs text-white/35">{def.tagline}</p>
-              {userWorkflow?.last_run_at && <p className="text-[10px] text-white/20 mt-1">Last ran {timeAgo(userWorkflow.last_run_at)}</p>}
+              {userWorkflow?.last_run_at && <p className="text-[10px] text-text-muted mt-1">Last ran {timeAgo(userWorkflow.last_run_at)}</p>}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button onClick={() => setExpanded(!expanded)}
-              className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-white/30 hover:text-white/60 transition">
+              className="w-7 h-7 rounded-lg bg-bg-elevated border border-bg-border flex items-center justify-center text-text-muted hover:text-text-secondary transition">
               <Settings size={12} />
             </button>
             <button onClick={() => onToggle(def.type, !enabled)}
@@ -1059,7 +1059,7 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, 
         <div className="mt-4 flex flex-wrap items-center gap-1">
           {def.steps.map((step, i) => (
             <div key={i} className="flex items-center gap-1">
-              <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2 py-1">
+              <div className="flex items-center gap-1.5 bg-bg-elevated border border-white/[0.05] rounded-lg px-2 py-1">
                 <StepDot type={step.type} />
                 <span className="text-[10px] text-white/35 whitespace-nowrap">{step.label}</span>
                 {!step.auto && <Shield size={7} className="text-amber-400 flex-shrink-0" />}
@@ -1069,13 +1069,13 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, 
           ))}
         </div>
         <div className="flex items-center gap-4 mt-2">
-          <div className="flex items-center gap-1"><Bot size={9} className="text-purple-400" /><span className="text-[9px] text-white/20">AI Auto</span></div>
-          <div className="flex items-center gap-1"><Shield size={9} className="text-amber-400" /><span className="text-[9px] text-white/20">Needs Approval</span></div>
+          <div className="flex items-center gap-1"><Bot size={9} className="text-purple-400" /><span className="text-[9px] text-text-muted">AI Auto</span></div>
+          <div className="flex items-center gap-1"><Shield size={9} className="text-amber-400" /><span className="text-[9px] text-text-muted">Needs Approval</span></div>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-white/[0.06] p-5 bg-white/[0.01]">
+        <div className="border-t border-bg-border p-5 bg-bg-surface">
           {def.type === "factory_quote" ? (
             <FactoryQuoteManager factories={factories} onCatalogRefresh={onCatalogRefresh} />
           ) : def.settingsFields.length > 0 ? (
@@ -1084,15 +1084,15 @@ function WorkflowCard({ def, userWorkflow, onToggle, onSaveSettings, factories, 
               <div className="space-y-3">
                 {def.settingsFields.map(field => (
                   <div key={field.key}>
-                    <label className="text-[11px] text-white/40 mb-1.5 block">{field.label}</label>
+                    <label className="text-[11px] text-text-secondary mb-1.5 block">{field.label}</label>
                     {field.type === "textarea" ? (
                       <textarea value={settings[field.key] || ""} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })}
                         placeholder={field.placeholder} rows={3}
-                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition resize-none" />
+                        className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition resize-none" />
                     ) : (
                       <input type="text" value={settings[field.key] || ""} onChange={e => setSettings({ ...settings, [field.key]: e.target.value })}
                         placeholder={field.placeholder}
-                        className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
+                        className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition" />
                     )}
                   </div>
                 ))}
@@ -1127,25 +1127,25 @@ export default function FactoryQuotePage() {
 
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="border-b border-white/[0.06] px-8 py-6">
+    <div className="min-h-screen bg-bg-base text-text-primary">
+      <div className="border-b border-bg-border px-8 py-6">
         <div className="max-w-4xl mx-auto">
-          <button onClick={() => router.push("/workflows")} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition mb-3">
+          <button onClick={() => router.push("/workflows")} className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition mb-3">
             ← Back to Workflows
           </button>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-white/5 border border-bg-border flex items-center justify-center">
               <Factory size={14} className="text-blue-400" />
             </div>
             <h1 className="text-xl font-bold tracking-tight">Factory Quote Request</h1>
             <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Live</span>
           </div>
-          <p className="text-white/30 text-sm">Upload product list → Jimmy emails factories → auto-compares quotes</p>
+          <p className="text-text-muted text-sm">Upload product list → Jimmy emails factories → auto-compares quotes</p>
         </div>
       </div>
       <div className="max-w-4xl mx-auto px-8 py-8">
         {loading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
+          <div className="flex items-center justify-center py-20"><Loader2 size={20} className="animate-spin text-text-muted" /></div>
         ) : (
           <FactoryQuoteManager factories={factories} onCatalogRefresh={loadCatalog} />
         )}

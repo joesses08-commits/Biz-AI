@@ -268,7 +268,7 @@ export default function AdminPage() {
                       <select
                         value={customer.status}
                         onChange={(e) => updateStatus(customer.id, e.target.value)}
-                        className={`bg-transparent text-sm font-medium ${statusColor[customer.status] || "text-white"} border border-gray-700 rounded px-2 py-1`}
+                        className={`bg-transparent text-sm font-medium ${statusColor[customer.status] || "text-text-primary"} border border-gray-700 rounded px-2 py-1`}
                       >
                         <option value="trial">Trial</option>
                         <option value="pending">Pending</option>

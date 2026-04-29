@@ -150,33 +150,33 @@ export default function MessagesPage() {
   const unpinnedChats = filteredChats.filter(c => !c.is_pinned);
 
   return (
-    <div className="flex h-[calc(100vh-0px)] bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="flex h-[calc(100vh-0px)] bg-bg-base text-white overflow-hidden">
       {/* Sidebar */}
-      <div className="w-80 flex-shrink-0 border-r border-white/[0.06] flex flex-col">
-        <div className="px-5 py-4 border-b border-white/[0.06]">
+      <div className="w-80 flex-shrink-0 border-r border-bg-border flex flex-col">
+        <div className="px-5 py-4 border-b border-bg-border">
           <p className="text-sm font-semibold mb-3">Messages</p>
           <div className="relative">
-            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search chats..."
-              className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl pl-8 pr-3 py-2 text-xs text-white/70 placeholder-white/20 focus:outline-none" />
+              className="w-full bg-bg-elevated border border-bg-border rounded-xl pl-8 pr-3 py-2 text-xs text-white/70 placeholder-white/20 focus:outline-none" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {loading ? (
-            <p className="text-xs text-white/20 text-center py-8">Loading...</p>
+            <p className="text-xs text-text-muted text-center py-8">Loading...</p>
           ) : filteredChats.length === 0 ? (
-            <p className="text-xs text-white/20 text-center py-8">No chats yet</p>
+            <p className="text-xs text-text-muted text-center py-8">No chats yet</p>
           ) : (
             <>
               {pinnedChats.length > 0 && (
                 <div>
-                  <p className="text-[10px] text-white/20 uppercase tracking-widest px-5 pt-4 pb-2">Pinned</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest px-5 pt-4 pb-2">Pinned</p>
                   {pinnedChats.map(chat => <ChatRow key={chat.track_id} chat={chat} active={activeChat?.track_id === chat.track_id} onClick={() => openChat(chat)} onPin={e => togglePin(chat, e)} />)}
                 </div>
               )}
               {unpinnedChats.length > 0 && (
                 <div>
-                  {pinnedChats.length > 0 && <p className="text-[10px] text-white/20 uppercase tracking-widest px-5 pt-4 pb-2">All Chats</p>}
+                  {pinnedChats.length > 0 && <p className="text-[10px] text-text-muted uppercase tracking-widest px-5 pt-4 pb-2">All Chats</p>}
                   {unpinnedChats.map(chat => <ChatRow key={chat.track_id} chat={chat} active={activeChat?.track_id === chat.track_id} onClick={() => openChat(chat)} onPin={e => togglePin(chat, e)} />)}
                 </div>
               )}
@@ -184,16 +184,16 @@ export default function MessagesPage() {
           )}
           {warehouseThreads.length > 0 && (
             <div>
-              <p className="text-[10px] text-white/20 uppercase tracking-widest px-5 pt-4 pb-2">Warehouses</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest px-5 pt-4 pb-2">Warehouses</p>
               {warehouseThreads.map((t: any) => (
                 <button key={t.warehouse_id + t.user_id} onClick={() => openWarehouseThread(t)}
-                  className={`w-full px-5 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition text-left ${activeWarehouseThread?.warehouse_id === t.warehouse_id && activeWarehouseThread?.user_id === t.user_id ? "bg-white/[0.04]" : ""}`}>
-                  <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                    <span className="text-white/30 text-xs">🏭</span>
+                  className={`w-full px-5 py-3 flex items-center gap-3 hover:bg-bg-surface transition text-left ${activeWarehouseThread?.warehouse_id === t.warehouse_id && activeWarehouseThread?.user_id === t.user_id ? "bg-bg-elevated" : ""}`}>
+                  <div className="w-9 h-9 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+                    <span className="text-text-muted text-xs">🏭</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-white/70 truncate">{t.warehouse_name}</p>
-                    <p className="text-[10px] text-white/30 truncate">{t.last_message || "No messages yet"}</p>
+                    <p className="text-[10px] text-text-muted truncate">{t.last_message || "No messages yet"}</p>
                   </div>
                 </button>
               ))}
@@ -206,27 +206,27 @@ export default function MessagesPage() {
       {activeChat ? (
         <div className="flex-1 flex flex-col min-w-0">
           {/* Chat Header */}
-          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+          <div className="px-6 py-4 border-b border-bg-border flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-3">
               {activeChat.product_image ? (
-                <img src={activeChat.product_image} className="w-9 h-9 rounded-xl object-cover border border-white/[0.06]" />
+                <img src={activeChat.product_image} className="w-9 h-9 rounded-xl object-cover border border-bg-border" />
               ) : (
-                <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                  <span className="text-white/20 text-xs">📦</span>
+                <div className="w-9 h-9 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center">
+                  <span className="text-text-muted text-xs">📦</span>
                 </div>
               )}
               <div>
                 <p className="text-sm font-semibold">{activeChat.product_name}</p>
-                <p className="text-[11px] text-white/40">{activeChat.factory_name} · {activeChat.product_sku}</p>
+                <p className="text-[11px] text-text-secondary">{activeChat.factory_name} · {activeChat.product_sku}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowMembers(true)}
-                className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-xl transition">
+                className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-xl transition">
                 <Users size={12} />Members
               </button>
               <button onClick={() => router.push(`/plm/${activeChat.product_id}`)}
-                className="text-xs text-white/30 hover:text-white/60 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-xl transition">
+                className="text-xs text-text-muted hover:text-text-secondary border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-xl transition">
                 View Product →
               </button>
             </div>
@@ -245,7 +245,7 @@ export default function MessagesPage() {
                 )}
                 <div className={msg.sender_role === "admin" ? "flex justify-end" : "flex justify-start"}>
                   <div className={msg.sender_role === "factory"
-                    ? "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[70%]"
+                    ? "bg-bg-elevated border border-bg-border rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[70%]"
                     : "bg-white/10 rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[70%]"}>
                     <p className="text-[10px] font-semibold mb-1" style={{color: (() => {
                       const colors = ["#60a5fa","#34d399","#f472b6","#fb923c","#a78bfa","#facc15","#38bdf8","#f87171"];
@@ -255,14 +255,14 @@ export default function MessagesPage() {
                     })()}}>{msg.sender_name}</p>
                     {msg.message && <p className="text-sm text-white/80">{msg.message}</p>}
                     {msg.attachment_url && msg.attachment_type === "image" && (
-                      <img src={msg.attachment_url} className="mt-2 max-w-xs rounded-xl border border-white/10 cursor-pointer" onClick={() => window.open(msg.attachment_url, "_blank")} />
+                      <img src={msg.attachment_url} className="mt-2 max-w-xs rounded-xl border border-bg-border cursor-pointer" onClick={() => window.open(msg.attachment_url, "_blank")} />
                     )}
                     {msg.attachment_url && msg.attachment_type === "file" && (
                       <a href={msg.attachment_url} target="_blank" className="mt-2 flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300">
                         <Paperclip size={11} />{msg.attachment_name || "File"}
                       </a>
                     )}
-                    <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                    <p className="text-[9px] text-text-muted mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                     {(() => {
                       const lastReadAdminIdx = messages.map((m: any, i: number) => m.sender_role === "admin" && m.read_by_factory ? i : -1).filter((i: number) => i !== -1).pop();
                       return idx === lastReadAdminIdx ? <p className="text-[9px] text-blue-400/60 mt-0.5 text-right">✓ Seen</p> : null;
@@ -275,31 +275,31 @@ export default function MessagesPage() {
 
           {/* Input */}
           {attachmentPreview && (
-              <div className="px-6 py-3 border-t border-white/[0.06] flex items-center gap-3 bg-white/[0.02]">
+              <div className="px-6 py-3 border-t border-bg-border flex items-center gap-3 bg-bg-surface">
                 {attachmentPreview.type === "image" ? (
-                  <img src={attachmentPreview.url} className="h-16 w-16 rounded-xl object-cover border border-white/10" />
+                  <img src={attachmentPreview.url} className="h-16 w-16 rounded-xl object-cover border border-bg-border" />
                 ) : (
-                  <div className="h-16 w-16 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center">
-                    <Paperclip size={20} className="text-white/30" />
+                  <div className="h-16 w-16 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center">
+                    <Paperclip size={20} className="text-text-muted" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-white/60 truncate">{attachmentPreview.file.name}</p>
-                  <p className="text-[10px] text-white/30">{(attachmentPreview.file.size / 1024).toFixed(0)} KB · Ready to send</p>
+                  <p className="text-xs text-text-secondary truncate">{attachmentPreview.file.name}</p>
+                  <p className="text-[10px] text-text-muted">{(attachmentPreview.file.size / 1024).toFixed(0)} KB · Ready to send</p>
                 </div>
-                <button onClick={() => setAttachmentPreview(null)} className="text-white/30 hover:text-white/60">
+                <button onClick={() => setAttachmentPreview(null)} className="text-text-muted hover:text-text-secondary">
                   <X size={14} />
                 </button>
               </div>
             )}
-          <div className={`px-6 py-4 border-t border-white/[0.06] flex-shrink-0 ${dragging ? "bg-blue-500/5 border-blue-500/20" : ""}`}
+          <div className={`px-6 py-4 border-t border-bg-border flex-shrink-0 ${dragging ? "bg-blue-500/5 border-blue-500/20" : ""}`}
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={async e => { e.preventDefault(); setDragging(false); const file = e.dataTransfer.files[0]; if (file) await handleFile(file); }}>
             {dragging && <p className="text-xs text-blue-400 text-center mb-2">Drop file to attach</p>}
             <div className="flex gap-2 items-end">
               <button onClick={() => fileInputRef.current?.click()}
-                className="text-white/30 hover:text-white/60 transition flex-shrink-0 pb-2">
+                className="text-text-muted hover:text-text-secondary transition flex-shrink-0 pb-2">
                 <Paperclip size={16} />
               </button>
               <input ref={fileInputRef} type="file" accept="image/*,.pdf,.xlsx,.xls,.doc,.docx,.csv,.txt" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
@@ -307,7 +307,7 @@ export default function MessagesPage() {
                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
                 placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
                 rows={1} style={{ resize: "none" }}
-                className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition" />
+                className="flex-1 bg-bg-elevated border border-bg-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-white/20 transition" />
               <button onClick={() => attachmentPreview ? uploadAndSend() : sendMessage()} disabled={(!newMessage.trim() && !attachmentPreview) || sending}
                 className="flex-shrink-0 w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center disabled:opacity-40 transition">
                 <Send size={14} />
@@ -317,13 +317,13 @@ export default function MessagesPage() {
         </div>
       ) : activeWarehouseThread ? (
           <div className="flex-1 flex flex-col min-w-0">
-            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3 flex-shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
-                <span className="text-white/30 text-xs">🏭</span>
+            <div className="px-6 py-4 border-b border-bg-border flex items-center gap-3 flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center">
+                <span className="text-text-muted text-xs">🏭</span>
               </div>
               <div>
                 <p className="text-sm font-semibold">{activeWarehouseThread.warehouse_name}</p>
-                <p className="text-xs text-white/30">Warehouse</p>
+                <p className="text-xs text-text-muted">Warehouse</p>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
@@ -336,8 +336,8 @@ export default function MessagesPage() {
                 </div>
               ))}
             </div>
-            <div className="px-6 py-4 border-t border-white/[0.06] flex gap-2">
-              <input value={warehouseMsg} onChange={e => setWarehouseMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendWarehouseMessage()} placeholder="Reply to warehouse..." className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white/70 text-sm focus:outline-none focus:border-white/20" />
+            <div className="px-6 py-4 border-t border-bg-border flex gap-2">
+              <input value={warehouseMsg} onChange={e => setWarehouseMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendWarehouseMessage()} placeholder="Reply to warehouse..." className="flex-1 bg-bg-elevated border border-bg-border rounded-xl px-4 py-2.5 text-white/70 text-sm focus:outline-none focus:border-white/20" />
               <button onClick={sendWarehouseMessage} disabled={sendingWarehouse || !warehouseMsg.trim()} className="px-4 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Send</button>
             </div>
           </div>
@@ -345,7 +345,7 @@ export default function MessagesPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-2xl mb-2">💬</p>
-            <p className="text-sm text-white/30">Select a chat to start messaging</p>
+            <p className="text-sm text-text-muted">Select a chat to start messaging</p>
           </div>
         </div>
       )}
@@ -353,43 +353,43 @@ export default function MessagesPage() {
       {/* Members Modal */}
       {showMembers && activeChat && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Chat Members</p>
-              <button onClick={() => setShowMembers(false)} className="text-white/30 hover:text-white/60">×</button>
+              <button onClick={() => setShowMembers(false)} className="text-text-muted hover:text-text-secondary">×</button>
             </div>
             <div className="space-y-2">
-              <p className="text-[10px] text-white/30 uppercase tracking-widest">Always in chat</p>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03]">
+              <p className="text-[10px] text-text-muted uppercase tracking-widest">Always in chat</p>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-elevated">
                 <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px]">A</div>
-                <p className="text-xs text-white/60">Admin</p>
+                <p className="text-xs text-text-secondary">Admin</p>
               </div>
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03]">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-bg-elevated">
                 <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px]">F</div>
-                <p className="text-xs text-white/60">{activeChat.factory_name}</p>
+                <p className="text-xs text-text-secondary">{activeChat.factory_name}</p>
               </div>
             </div>
             {teamMembers.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">Team Members</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest">Team Members</p>
                 {teamMembers.map((m: any) => {
                   const isIn = chatMembers.some((cm: any) => cm.user_id === m.id);
                   const isPending = pendingMemberIds.includes(m.id);
                   return (
                     <div key={m.id} onClick={() => { if (isIn) return; setPendingMemberIds((prev: string[]) => prev.includes(m.id) ? prev.filter((id: string) => id !== m.id) : [...prev, m.id]); }}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${isIn ? "opacity-40 cursor-default border-white/[0.04] bg-white/[0.01]" : isPending ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-white/[0.04] bg-white/[0.02]"}`}>
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${isIn ? "opacity-40 cursor-default border-white/[0.04] bg-bg-surface" : isPending ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-white/[0.04] bg-bg-surface"}`}>
                       <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 ${isIn ? "border-emerald-500/30 bg-emerald-500/10" : isPending ? "bg-white border-white" : "border-white/20"}`}>
                         {isIn ? <Check size={9} className="text-emerald-400" /> : isPending ? <Check size={9} className="text-black" /> : null}
                       </div>
                       <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px]">{(m.full_name || m.email || "?")[0].toUpperCase()}</div>
-                      <p className={`text-xs flex-1 ${isIn ? "text-white/30" : "text-white/60"}`}>{m.full_name || m.email}</p>
+                      <p className={`text-xs flex-1 ${isIn ? "text-text-muted" : "text-text-secondary"}`}>{m.full_name || m.email}</p>
                       {isIn && <span className="text-[9px] text-emerald-400/50">In chat</span>}
                     </div>
                   );
                 })}
                 <div className="flex gap-2 pt-2">
                   <button onClick={() => { setShowMembers(false); setPendingMemberIds([]); }}
-                    className="flex-1 px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 text-xs">Cancel</button>
+                    className="flex-1 px-3 py-2 rounded-xl border border-bg-border text-text-secondary text-xs">Cancel</button>
                   <button disabled={savingMembers || pendingMemberIds.length === 0} onClick={async () => {
                     setSavingMembers(true);
                     const currentIds = chatMembers.map((cm: any) => cm.user_id);
@@ -426,12 +426,12 @@ export default function MessagesPage() {
 
 function ChatRow({ chat, active, onClick, onPin }: { chat: any, active: boolean, onClick: () => void, onPin: (e: React.MouseEvent) => void }) {
   return (
-    <div onClick={onClick} className={`px-5 py-3 cursor-pointer flex items-center gap-3 hover:bg-white/[0.02] transition ${active ? "bg-white/[0.04] border-r-2 border-white/20" : ""}`}>
+    <div onClick={onClick} className={`px-5 py-3 cursor-pointer flex items-center gap-3 hover:bg-bg-surface transition ${active ? "bg-bg-elevated border-r-2 border-white/20" : ""}`}>
       {chat.product_image ? (
-        <img src={chat.product_image} className="w-10 h-10 rounded-xl object-cover border border-white/[0.06] flex-shrink-0" />
+        <img src={chat.product_image} className="w-10 h-10 rounded-xl object-cover border border-bg-border flex-shrink-0" />
       ) : (
-        <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-          <span className="text-white/20 text-xs">📦</span>
+        <div className="w-10 h-10 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+          <span className="text-text-muted text-xs">📦</span>
         </div>
       )}
       <div className="flex-1 min-w-0">
@@ -441,12 +441,12 @@ function ChatRow({ chat, active, onClick, onPin }: { chat: any, active: boolean,
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 flex-shrink-0 ml-1">{chat.unread_count}</span>
           )}
         </div>
-        <p className="text-[10px] text-white/30 truncate">{chat.factory_name}</p>
+        <p className="text-[10px] text-text-muted truncate">{chat.factory_name}</p>
         {chat.latest_message && (
-          <p className="text-[10px] text-white/20 truncate mt-0.5">{chat.latest_message.sender_name}: {chat.latest_message.message || "📎 Attachment"}</p>
+          <p className="text-[10px] text-text-muted truncate mt-0.5">{chat.latest_message.sender_name}: {chat.latest_message.message || "📎 Attachment"}</p>
         )}
       </div>
-      <button onClick={onPin} className="text-white/20 hover:text-white/50 transition flex-shrink-0">
+      <button onClick={onPin} className="text-text-muted hover:text-text-secondary transition flex-shrink-0">
         {chat.is_pinned ? <PinOff size={11} /> : <Pin size={11} />}
       </button>
     </div>

@@ -228,11 +228,11 @@ Download PO: ${publicUrl}` : ""),
   }, 0);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="border-b border-white/[0.06] px-8 py-6">
+    <div className="min-h-screen bg-bg-base text-text-primary">
+      <div className="border-b border-bg-border px-8 py-6">
         <div className="max-w-5xl mx-auto">
           <button onClick={() => router.push("/workflows")}
-            className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-xs mb-4 transition">
+            className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary text-xs mb-4 transition">
             <ArrowLeft size={12} /> Back to Workflows
           </button>
           <div className="flex items-center gap-3">
@@ -241,7 +241,7 @@ Download PO: ${publicUrl}` : ""),
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">PO Generator</h1>
-              <p className="text-xs text-white/30 mt-0.5">Create purchase orders and send them to factories</p>
+              <p className="text-xs text-text-muted mt-0.5">Create purchase orders and send them to factories</p>
             </div>
           </div>
         </div>
@@ -250,51 +250,51 @@ Download PO: ${publicUrl}` : ""),
       <div className="max-w-5xl mx-auto px-8 py-8 space-y-8">
         {loading ? (
           <div className="flex items-center justify-center py-32">
-            <Loader2 size={20} className="animate-spin text-white/20" />
+            <Loader2 size={20} className="animate-spin text-text-muted" />
           </div>
         ) : (
           <>
             {/* Builder */}
-            <div className="bg-[#111] border border-white/[0.06] rounded-2xl p-6 space-y-6">
+            <div className="bg-[#111] border border-bg-border rounded-2xl p-6 space-y-6">
               <div>
-                <p className="text-sm font-semibold text-white">New Purchase Order</p>
-                <p className="text-xs text-white/30 mt-0.5">Select products, fill in details, then generate a print-ready PO</p>
+                <p className="text-sm font-semibold text-text-primary">New Purchase Order</p>
+                <p className="text-xs text-text-muted mt-0.5">Select products, fill in details, then generate a print-ready PO</p>
               </div>
 
               {/* Buyer Info */}
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Your Company (Buyer)</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">Your Company (Buyer)</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-[10px] text-white/25 mb-1.5 block">Company Name</label>
                     <input value={poForm.company_name} onChange={e => setPOForm({ ...poForm, company_name: e.target.value })}
                       placeholder="Your company name"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                   <div>
                     <label className="text-[10px] text-white/25 mb-1.5 block">Contact Name</label>
                     <input value={poForm.contact_name} onChange={e => setPOForm({ ...poForm, contact_name: e.target.value })}
                       placeholder="Your name"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                   <div>
                     <label className="text-[10px] text-white/25 mb-1.5 block">Company Address</label>
                     <input value={poForm.company_address} onChange={e => setPOForm({ ...poForm, company_address: e.target.value })}
                       placeholder="123 Main St, New York NY"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                 </div>
               </div>
 
               {/* Factory Picker */}
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Factory (Sell To)</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">Factory (Sell To)</p>
                 <select value={selectedFactory} onChange={e => {
                   setSelectedFactory(e.target.value);
                   setPOSelectedProducts([]);
                   setPOFactoryPerProduct({});
                   setPOLineItems({});
-                }} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
+                }} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
                   <option value="">Select a factory...</option>
                   {factories.map((f: any) => (
                     <option key={f.id} value={f.id}>{f.name}</option>
@@ -328,21 +328,21 @@ Download PO: ${publicUrl}` : ""),
 
               {/* Warehouse Picker */}
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Ship To Warehouse</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">Ship To Warehouse</p>
                 <select value={selectedWarehouse} onChange={e => setSelectedWarehouse(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
+                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20">
                   <option value="">Select destination warehouse...</option>
                   {warehouses.map((w: any) => (
                     <option key={w.id} value={w.id}>{w.name}{w.city ? ` — ${w.city}, ${w.state}` : ""}</option>
                   ))}
                 </select>
-                {warehouses.length === 0 && <p className="text-[10px] text-white/20 mt-1.5">No warehouses yet — add one in Inventory</p>}
+                {warehouses.length === 0 && <p className="text-[10px] text-text-muted mt-1.5">No warehouses yet — add one in Inventory</p>}
               </div>
 
               {/* Products */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Products & Line Items</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest">Products & Line Items</p>
                   <button onClick={() => {
                     const approved = products.filter(p =>
                       (p.plm_sample_requests || []).some((r: any) => r.status === "approved") &&
@@ -360,17 +360,17 @@ Download PO: ${publicUrl}` : ""),
                     Select Sample Approved
                   </button>
                 </div>
-                <div className="border border-white/[0.06] rounded-xl overflow-hidden">
-                  <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.06]">
+                <div className="border border-bg-border rounded-xl overflow-hidden">
+                  <div className="grid grid-cols-12 gap-2 px-4 py-2.5 bg-bg-surface border-b border-bg-border">
                     <div className="col-span-1" />
-                    <div className="col-span-5 text-[10px] text-white/30 uppercase tracking-widest">Product</div>
-                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Qty</div>
-                    <div className="col-span-3 text-[10px] text-white/30 uppercase tracking-widest">Unit Price ($)</div>
+                    <div className="col-span-5 text-[10px] text-text-muted uppercase tracking-widest">Product</div>
+                    <div className="col-span-3 text-[10px] text-text-muted uppercase tracking-widest">Qty</div>
+                    <div className="col-span-3 text-[10px] text-text-muted uppercase tracking-widest">Unit Price ($)</div>
                   </div>
                   {products.length === 0 ? (
                     <div className="text-center py-10">
                       <Package size={24} className="text-white/10 mx-auto mb-2" />
-                      <p className="text-white/20 text-xs">No products found</p>
+                      <p className="text-text-muted text-xs">No products found</p>
                     </div>
                   ) : (
                     <div className="max-h-64 overflow-y-auto divide-y divide-white/[0.04]">
@@ -381,7 +381,7 @@ Download PO: ${publicUrl}` : ""),
                         const approvedFactory = approvedReq?.factory_catalog;
                         const selectedFactoryId = poFactoryPerProduct[p.id] || approvedFactory?.id || "";
                         return (
-                          <div key={p.id} className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center transition ${isSelected ? "bg-blue-500/[0.04]" : "hover:bg-white/[0.01]"}`}>
+                          <div key={p.id} className={`grid grid-cols-12 gap-2 px-4 py-2.5 items-center transition ${isSelected ? "bg-blue-500/[0.04]" : "hover:bg-bg-surface"}`}>
                             <div className="col-span-1">
                               <input type="checkbox" checked={isSelected}
                                 onChange={e => {
@@ -403,7 +403,7 @@ Download PO: ${publicUrl}` : ""),
                                 <input type="number" value={line.qty}
                                   onChange={e => setPOLineItems(prev => ({ ...prev, [p.id]: { ...(prev[p.id] || { qty: "", unit_price: "" }), qty: e.target.value } }))}
                                   placeholder="0"
-                                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                                  className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
                               )}
                             </div>
                             <div className="col-span-3">
@@ -411,7 +411,7 @@ Download PO: ${publicUrl}` : ""),
                                 <input type="number" value={line.unit_price}
                                   onChange={e => setPOLineItems(prev => ({ ...prev, [p.id]: { ...(prev[p.id] || { qty: "", unit_price: "" }), unit_price: e.target.value } }))}
                                   placeholder="0.00" step="0.01"
-                                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                                  className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
                               )}
                             </div>
                           </div>
@@ -422,54 +422,54 @@ Download PO: ${publicUrl}` : ""),
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <p className="text-[11px] text-white/25">{poSelectedProducts.length} product{poSelectedProducts.length !== 1 ? "s" : ""} selected</p>
-                  {totalValue > 0 && <p className="text-[11px] text-white/40">Total: <span className="text-white/60 font-semibold">${totalValue.toFixed(2)}</span></p>}
+                  {totalValue > 0 && <p className="text-[11px] text-text-secondary">Total: <span className="text-text-secondary font-semibold">${totalValue.toFixed(2)}</span></p>}
                 </div>
               </div>
 
               {/* PO Details */}
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Order Details</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-3">Order Details</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[10px] text-white/25 mb-1.5 block">PO Number</label>
                     <input value={poForm.po_number} onChange={e => setPOForm({ ...poForm, po_number: e.target.value })}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                   <div>
                     <label className="text-[10px] text-white/25 mb-1.5 block">Requested Ship Date</label>
                     <input type="date" value={poForm.ship_date} onChange={e => setPOForm({ ...poForm, ship_date: e.target.value })}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                   <div>
                     <label className="text-[10px] text-white/25 mb-1.5 block">Payment Terms</label>
                     <input value={poForm.payment_terms} onChange={e => setPOForm({ ...poForm, payment_terms: e.target.value })}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                   <div>
                     <label className="text-[10px] text-white/25 mb-1.5 block">Delivery Terms</label>
                     <input value={poForm.delivery_terms} onChange={e => setPOForm({ ...poForm, delivery_terms: e.target.value })}
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                   <div className="col-span-2">
                     <label className="text-[10px] text-white/25 mb-1.5 block">Destination / Ship To Address</label>
                     <input value={poForm.destination} onChange={e => setPOForm({ ...poForm, destination: e.target.value })}
                       placeholder="e.g. 123 Warehouse St, Brooklyn NY 11201"
-                      className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
+                      className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20" />
                   </div>
                   <div className="col-span-2">
                     <label className="text-[10px] text-white/25 mb-1.5 block">Notes / Special Instructions</label>
                     <textarea value={poForm.notes} onChange={e => setPOForm({ ...poForm, notes: e.target.value })}
                       placeholder="e.g. Package individually, mark cartons with PO number..."
-                      rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20 resize-none" />
+                      rows={2} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none focus:border-white/20 resize-none" />
                   </div>
                 </div>
               </div>
 
               {/* Authorization */}
-              <div className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.02]">
+              <div className="border border-bg-border rounded-xl p-4 bg-bg-surface">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" checked={authorizedPO} onChange={e => setAuthorizedPO(e.target.checked)} className="mt-0.5 flex-shrink-0" />
-                  <span className="text-xs text-white/50 leading-relaxed">
+                  <span className="text-xs text-text-secondary leading-relaxed">
                     I, <strong className="text-white/70">{poForm.contact_name || "Authorized Signatory"}</strong>, authorize this Purchase Order on behalf of <strong className="text-white/70">{poForm.company_name || "my company"}</strong>. By checking this box, my name will appear as the authorized signature on the PO document.
                   </span>
                 </label>
@@ -485,13 +485,13 @@ Download PO: ${publicUrl}` : ""),
             {/* History */}
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Clock size={14} className="text-white/30" />
-                <p className="text-sm font-semibold text-white">PO History</p>
+                <Clock size={14} className="text-text-muted" />
+                <p className="text-sm font-semibold text-text-primary">PO History</p>
               </div>
               {history.length === 0 ? (
-                <div className="bg-[#111] border border-white/[0.06] rounded-2xl p-10 text-center">
+                <div className="bg-[#111] border border-bg-border rounded-2xl p-10 text-center">
                   <FileText size={28} className="text-white/10 mx-auto mb-3" />
-                  <p className="text-white/30 text-sm">No purchase orders yet</p>
+                  <p className="text-text-muted text-sm">No purchase orders yet</p>
                   <p className="text-white/15 text-xs mt-1">POs you generate will appear here</p>
                 </div>
               ) : (
@@ -505,7 +505,7 @@ Download PO: ${publicUrl}` : ""),
                     const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
                     return (
                       <div key={event.id} onClick={() => event.html_content && openPO(event.html_content)}
-                        className={`bg-[#111] border border-white/[0.06] rounded-xl px-5 py-4 flex items-center justify-between hover:border-white/10 transition ${event.html_content ? "cursor-pointer" : ""}`}>
+                        className={`bg-[#111] border border-bg-border rounded-xl px-5 py-4 flex items-center justify-between hover:border-bg-border transition ${event.html_content ? "cursor-pointer" : ""}`}>
                         <div className="flex items-center gap-4">
                           <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
                             <FileText size={13} className="text-blue-400" />
@@ -513,18 +513,18 @@ Download PO: ${publicUrl}` : ""),
                           <div>
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-semibold text-white/80">{poNum}</p>
-                              <span className="text-[10px] text-white/25 bg-white/[0.04] px-2 py-0.5 rounded-full">
+                              <span className="text-[10px] text-white/25 bg-bg-elevated px-2 py-0.5 rounded-full">
                                 {productCount} product{productCount !== 1 ? "s" : ""}
                               </span>
                             </div>
-                            <p className="text-[11px] text-white/30 mt-0.5">{dateStr} at {timeStr}</p>
+                            <p className="text-[11px] text-text-muted mt-0.5">{dateStr} at {timeStr}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          {total > 0 && <p className="text-sm font-semibold text-white/60">${total.toFixed(2)}</p>}
+                          {total > 0 && <p className="text-sm font-semibold text-text-secondary">${total.toFixed(2)}</p>}
                           <div className="flex items-center gap-3">
                             {event.html_content && (
-                              <div className="flex items-center gap-1 text-[11px] text-white/30 hover:text-white/60 transition">
+                              <div className="flex items-center gap-1 text-[11px] text-text-muted hover:text-text-secondary transition">
                                 <Eye size={11} /> View
                               </div>
                             )}
@@ -546,23 +546,23 @@ Download PO: ${publicUrl}` : ""),
       {/* Email Modal */}
       {emailModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-xl p-6 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-white">Send PO to Factory</p>
-                <p className="text-xs text-white/30 mt-0.5">To: {emailModal.factory?.email || "factory"}</p>
+                <p className="text-sm font-semibold text-text-primary">Send PO to Factory</p>
+                <p className="text-xs text-text-muted mt-0.5">To: {emailModal.factory?.email || "factory"}</p>
               </div>
-              <button onClick={() => setEmailModal(null)} className="text-white/30 hover:text-white/60 transition"><X size={14} /></button>
+              <button onClick={() => setEmailModal(null)} className="text-text-muted hover:text-text-secondary transition"><X size={14} /></button>
             </div>
             <div>
-              <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Subject</label>
+              <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Subject</label>
               <input value={emailModal.subject} onChange={e => setEmailModal({ ...emailModal, subject: e.target.value })}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
             </div>
             <div>
-              <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Message</label>
+              <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Message</label>
               <textarea value={emailModal.body} onChange={e => setEmailModal({ ...emailModal, body: e.target.value })}
-                rows={8} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none resize-none" />
+                rows={8} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none resize-none" />
             </div>
             <p className="text-[10px] text-white/25">📎 A PDF download link will be included in the email</p>
             <div className="flex gap-2">
@@ -573,7 +573,7 @@ Download PO: ${publicUrl}` : ""),
                     {sendingEmail ? "Sending..." : "Send via Gmail"}
                   </button>
                   <button onClick={() => sendEmail("outlook")} disabled={sendingEmail}
-                    className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-semibold hover:bg-white/5 transition disabled:opacity-40">
+                    className="flex-1 py-2.5 rounded-xl border border-bg-border text-text-secondary text-xs font-semibold hover:bg-bg-hover transition disabled:opacity-40">
                     Send via Outlook
                   </button>
                 </>
@@ -583,7 +583,7 @@ Download PO: ${publicUrl}` : ""),
                   {sendingEmail ? "Sending..." : "Send PO to Factory"}
                 </button>
               )}
-              <button onClick={() => setEmailModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Skip</button>
+              <button onClick={() => setEmailModal(null)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Skip</button>
             </div>
           </div>
         </div>

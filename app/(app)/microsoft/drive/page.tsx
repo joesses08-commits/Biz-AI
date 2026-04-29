@@ -14,13 +14,13 @@ export default function DrivePage() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
       <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
     </div>
   );
 
   if (!data?.connected) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
       <div className="text-center max-w-md">
         <h1 className="text-white text-2xl font-semibold mb-3">OneDrive Not Connected</h1>
         <a href="/api/microsoft/connect" className="inline-flex items-center gap-2 bg-white text-black font-medium py-2.5 px-6 rounded-xl text-sm hover:bg-white/90 transition">Connect Microsoft 365</a>
@@ -37,7 +37,7 @@ export default function DrivePage() {
   const filtered = files.filter((f: any) => f.name?.toLowerCase().includes(search.toLowerCase()));
 
   const FileRow = ({ file }: { file: any }) => (
-    <div className="flex items-center justify-between py-3 border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] px-1 rounded-lg transition">
+    <div className="flex items-center justify-between py-3 border-b border-white/[0.04] last:border-0 hover:bg-bg-surface px-1 rounded-lg transition">
       <div className="min-w-0 flex-1">
         <p className="text-xs text-white/70 truncate">{file.name}</p>
         <p className="text-[10px] text-white/25 mt-0.5">
@@ -45,8 +45,8 @@ export default function DrivePage() {
         </p>
       </div>
       <div className="text-right flex-shrink-0 ml-4">
-        <p className="text-[10px] text-white/30">{file.lastModifiedDateTime ? new Date(file.lastModifiedDateTime).toLocaleDateString() : ""}</p>
-        <p className="text-[10px] text-white/20">{file.size ? `${Math.round(file.size / 1024)} KB` : ""}</p>
+        <p className="text-[10px] text-text-muted">{file.lastModifiedDateTime ? new Date(file.lastModifiedDateTime).toLocaleDateString() : ""}</p>
+        <p className="text-[10px] text-text-muted">{file.size ? `${Math.round(file.size / 1024)} KB` : ""}</p>
       </div>
     </div>
   );
@@ -55,11 +55,11 @@ export default function DrivePage() {
     { label: "Word Documents", files: wordFiles, color: "text-blue-400", count: wordFiles.length },
     { label: "Excel Files", files: excelFiles, color: "text-emerald-400", count: excelFiles.length },
     { label: "PowerPoint", files: pptFiles, color: "text-orange-400", count: pptFiles.length },
-    { label: "Other Files", files: otherFiles, color: "text-white/40", count: otherFiles.length },
+    { label: "Other Files", files: otherFiles, color: "text-text-secondary", count: otherFiles.length },
   ].filter(g => g.files.length > 0);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
@@ -73,7 +73,7 @@ export default function DrivePage() {
             <h1 className="text-xl font-semibold tracking-tight">OneDrive</h1>
             <div className="flex items-center gap-1.5 mt-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-white/40 text-xs">{files.length} files</span>
+              <span className="text-text-secondary text-xs">{files.length} files</span>
             </div>
           </div>
         </div>
@@ -84,11 +84,11 @@ export default function DrivePage() {
             { label: "Word", count: wordFiles.length, color: "text-blue-400" },
             { label: "Excel", count: excelFiles.length, color: "text-emerald-400" },
             { label: "PowerPoint", count: pptFiles.length, color: "text-orange-400" },
-            { label: "Other", count: otherFiles.length, color: "text-white/40" },
+            { label: "Other", count: otherFiles.length, color: "text-text-secondary" },
           ].map(s => (
-            <div key={s.label} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4 text-center">
+            <div key={s.label} className="bg-bg-surface border border-bg-border rounded-2xl p-4 text-center">
               <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
-              <p className="text-white/30 text-xs mt-1">{s.label}</p>
+              <p className="text-text-muted text-xs mt-1">{s.label}</p>
             </div>
           ))}
         </div>
@@ -97,21 +97,21 @@ export default function DrivePage() {
         <div className="mb-4">
           <input type="text" placeholder="Search files..." value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20 transition" />
+            className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20 transition" />
         </div>
 
         {search ? (
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
-            <p className="text-[10px] text-white/30 uppercase tracking-widest mb-4">{filtered.length} results</p>
+          <div className="bg-bg-surface border border-bg-border rounded-2xl p-5">
+            <p className="text-[10px] text-text-muted uppercase tracking-widest mb-4">{filtered.length} results</p>
             {filtered.map((f: any) => <FileRow key={f.id} file={f} />)}
           </div>
         ) : (
           <div className="space-y-4">
             {groups.map(group => (
-              <div key={group.label} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+              <div key={group.label} className="bg-bg-surface border border-bg-border rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-bg-border flex items-center justify-between">
                   <p className={`text-xs font-semibold ${group.color}`}>{group.label}</p>
-                  <span className="text-[10px] text-white/20">{group.count} files</span>
+                  <span className="text-[10px] text-text-muted">{group.count} files</span>
                 </div>
                 <div className="px-5 py-2">
                   {group.files.map((f: any) => <FileRow key={f.id} file={f} />)}

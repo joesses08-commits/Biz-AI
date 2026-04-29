@@ -176,7 +176,7 @@ export default function IntegrationsPage() {
             Dashboard
           </button>
           <button onClick={() => { window.location.href = integration.connectHref!; }}
-            className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-bg-border text-text-muted text-xs hover:bg-white/10 transition">
+            className="px-2.5 py-1.5 rounded-lg bg-white/5 border border-bg-border text-text-muted text-xs hover:bg-bg-hover transition">
             Reconnect
           </button>
           <button onClick={() => disconnect(integration.id)} disabled={disconnecting === integration.id}
@@ -187,7 +187,7 @@ export default function IntegrationsPage() {
       ) : integration.comingSoon ? (
         <button onClick={() => setNotified(prev => [...prev, integration.id])}
           disabled={notified.includes(integration.id)}
-          className="w-full py-1.5 rounded-lg bg-white/5 border border-bg-border text-text-muted text-xs hover:bg-white/10 transition disabled:opacity-50">
+          className="w-full py-1.5 rounded-lg bg-white/5 border border-bg-border text-text-muted text-xs hover:bg-bg-hover transition disabled:opacity-50">
           {notified.includes(integration.id) ? "Notified" : "Notify Me"}
         </button>
       ) : (

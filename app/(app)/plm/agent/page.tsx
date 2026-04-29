@@ -149,21 +149,21 @@ export default function PLMAgentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex">
+    <div className="min-h-screen bg-bg-base text-white flex">
       {/* Sidebar */}
-      <div className="w-64 border-r border-white/[0.06] flex flex-col flex-shrink-0 h-screen sticky top-0">
-        <div className="px-4 py-4 border-b border-white/[0.06] flex items-center justify-between">
-          <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Chats</p>
-          <button onClick={startNewChat} className="w-6 h-6 rounded-lg border border-white/[0.08] flex items-center justify-center text-white/30 hover:text-white/60 hover:border-white/20 transition text-sm">+</button>
+      <div className="w-64 border-r border-bg-border flex flex-col flex-shrink-0 h-screen sticky top-0">
+        <div className="px-4 py-4 border-b border-bg-border flex items-center justify-between">
+          <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">Chats</p>
+          <button onClick={startNewChat} className="w-6 h-6 rounded-lg border border-bg-border flex items-center justify-center text-text-muted hover:text-text-secondary hover:border-white/20 transition text-sm">+</button>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
           {chats.length === 0 ? (
-            <p className="text-[11px] text-white/20 px-4 py-3">No chats yet</p>
+            <p className="text-[11px] text-text-muted px-4 py-3">No chats yet</p>
           ) : chats.map(chat => (
             <button key={chat.id} onClick={() => loadChat(chat)}
-              className={`w-full text-left px-4 py-2.5 hover:bg-white/[0.03] transition group \${currentChatId === chat.id ? "bg-white/[0.04]" : ""}`}>
-              <p className={`text-xs truncate \${currentChatId === chat.id ? "text-white/80" : "text-white/40"}`}>{chat.title}</p>
-              <p className="text-[10px] text-white/20 mt-0.5">{new Date(chat.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
+              className={`w-full text-left px-4 py-2.5 hover:bg-bg-elevated transition group \${currentChatId === chat.id ? "bg-bg-elevated" : ""}`}>
+              <p className={`text-xs truncate \${currentChatId === chat.id ? "text-white/80" : "text-text-secondary"}`}>{chat.title}</p>
+              <p className="text-[10px] text-text-muted mt-0.5">{new Date(chat.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
             </button>
           ))}
         </div>
@@ -171,9 +171,9 @@ export default function PLMAgentPage() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div className="border-b border-bg-border px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/plm")} className="text-white/30 hover:text-white/60 transition">
+          <button onClick={() => router.push("/plm")} className="text-text-muted hover:text-text-secondary transition">
             <ArrowLeft size={16} />
           </button>
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500/30 to-pink-500/30 border border-violet-500/20 flex items-center justify-center">
@@ -181,11 +181,11 @@ export default function PLMAgentPage() {
           </div>
           <div>
             <p className="text-sm font-semibold">PLM Agent</p>
-            <p className="text-[10px] text-white/30">Ask anything about your products, factories & samples</p>
+            <p className="text-[10px] text-text-muted">Ask anything about your products, factories & samples</p>
           </div>
         </div>
         {messages.length > 0 && (
-          <button onClick={startNewChat} className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition">
+          <button onClick={startNewChat} className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-text-secondary transition">
             <RotateCcw size={11} />New chat
           </button>
         )}
@@ -199,12 +199,12 @@ export default function PLMAgentPage() {
             </div>
             <div>
               <h2 className="text-lg font-bold mb-1">PLM Agent</h2>
-              <p className="text-white/30 text-sm max-w-sm">Ask me anything about your products, factories, samples, prices, or what needs attention right now.</p>
+              <p className="text-text-muted text-sm max-w-sm">Ask me anything about your products, factories, samples, prices, or what needs attention right now.</p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
               {SUGGESTED.map(s => (
                 <button key={s} onClick={() => send(s)}
-                  className="text-left text-xs px-4 py-3 rounded-xl border border-white/[0.06] text-white/40 hover:text-white/70 hover:border-white/15 hover:bg-white/[0.02] transition">
+                  className="text-left text-xs px-4 py-3 rounded-xl border border-bg-border text-text-secondary hover:text-white/70 hover:border-white/15 hover:bg-bg-surface transition">
                   {s}
                 </button>
               ))}
@@ -221,7 +221,7 @@ export default function PLMAgentPage() {
                 )}
                 <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   m.role === "user"
-                    ? "bg-white/[0.06] border border-white/[0.08] text-white/80 rounded-tr-sm"
+                    ? "bg-white/[0.06] border border-bg-border text-white/80 rounded-tr-sm"
                     : "text-white/80 rounded-tl-sm"
                 }`}>
                   {m.role === "assistant" ? (
@@ -237,7 +237,7 @@ export default function PLMAgentPage() {
                         {m.content}
                       </ReactMarkdown>
                       {m.actions && m.actions.length > 0 && (
-                        <div className="mt-3 space-y-1.5 border-t border-white/[0.06] pt-3">
+                        <div className="mt-3 space-y-1.5 border-t border-bg-border pt-3">
                           {m.actions.map((action: string, i: number) => {
                             const tool = action.split(":")[0].trim();
                             const TOOL_LABELS: Record<string, string> = {
@@ -254,7 +254,7 @@ export default function PLMAgentPage() {
                             return (
                               <div key={i} className="flex items-center gap-2 text-[11px]">
                                 <span className="text-emerald-400 flex-shrink-0">✓</span>
-                                <span className="text-white/40">{label}</span>
+                                <span className="text-text-secondary">{label}</span>
                               </div>
                             );
                           })}
@@ -282,9 +282,9 @@ export default function PLMAgentPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="border-t border-white/[0.06] px-6 py-4 flex-shrink-0">
+      <div className="border-t border-bg-border px-6 py-4 flex-shrink-0">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-end gap-3 bg-white/[0.03] border border-white/[0.08] rounded-2xl px-4 py-3 focus-within:border-white/15 transition">
+          <div className="flex items-end gap-3 bg-bg-elevated border border-bg-border rounded-2xl px-4 py-3 focus-within:border-white/15 transition">
             <textarea ref={inputRef} value={input} onChange={e => { setInput(e.target.value); localStorage.setItem("plm_agent_draft", e.target.value); }} onKeyDown={handleKey}
               placeholder="Ask anything about your products, factories, or samples..."
               rows={1} className="flex-1 bg-transparent text-white/80 placeholder-white/20 text-sm focus:outline-none resize-none leading-relaxed"
@@ -296,7 +296,7 @@ export default function PLMAgentPage() {
               }} />
             <button onClick={() => send()} disabled={!input.trim() || loading}
               className="w-8 h-8 rounded-xl bg-violet-500 flex items-center justify-center flex-shrink-0 disabled:opacity-30 hover:bg-violet-400 transition">
-              {loading ? <Loader2 size={13} className="animate-spin text-white" /> : <Send size={13} className="text-white" />}
+              {loading ? <Loader2 size={13} className="animate-spin text-text-primary" /> : <Send size={13} className="text-text-primary" />}
             </button>
           </div>
           <p className="text-center text-[10px] text-white/15 mt-2">Uses real data from your PLM — prices, stages, factories, revisions</p>

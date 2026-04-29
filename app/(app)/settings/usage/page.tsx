@@ -53,58 +53,58 @@ export default function UsagePage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <div className="mb-8">
-        <p className="text-white/30 text-xs uppercase tracking-widest mb-2">Settings</p>
+        <p className="text-text-muted text-xs uppercase tracking-widest mb-2">Settings</p>
         <h1 className="text-3xl font-bold text-white tracking-tight">Usage & Costs</h1>
-        <p className="text-white/30 text-sm mt-1">AI usage across PLM agent, quote extraction, and document processing</p>
+        <p className="text-text-muted text-sm mt-1">AI usage across PLM agent, quote extraction, and document processing</p>
       </div>
 
       {loading ? (
-        <div className="text-white/30 text-sm">Loading...</div>
+        <div className="text-text-muted text-sm">Loading...</div>
       ) : !data ? (
-        <div className="text-white/30 text-sm">No usage data yet.</div>
+        <div className="text-text-muted text-sm">No usage data yet.</div>
       ) : (
         <>
           {/* Tab Toggle */}
-          <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-1 w-fit mb-6">
+          <div className="flex items-center gap-1 bg-bg-elevated border border-bg-border rounded-xl p-1 w-fit mb-6">
             <button onClick={() => setActiveTab("month")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${activeTab === "month" ? "bg-white text-black" : "text-white/40 hover:text-white/60"}`}>
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${activeTab === "month" ? "bg-white text-black" : "text-text-secondary hover:text-text-secondary"}`}>
               {MONTH_NAME}
             </button>
             <button onClick={() => setActiveTab("30days")}
-              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${activeTab === "30days" ? "bg-white text-black" : "text-white/40 hover:text-white/60"}`}>
+              className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${activeTab === "30days" ? "bg-white text-black" : "text-text-secondary hover:text-text-secondary"}`}>
               Last 30 Days
             </button>
           </div>
 
           {/* Daily Summary Table */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden mb-6">
-            <div className="px-6 py-4 border-b border-white/[0.06] grid grid-cols-4 gap-4">
-              <p className="text-white/30 text-xs uppercase tracking-widest">Date</p>
-              <p className="text-white/30 text-xs uppercase tracking-widest">Calls</p>
-              <p className="text-white/30 text-xs uppercase tracking-widest">Tokens</p>
-              <p className="text-white/30 text-xs uppercase tracking-widest text-right">Cost</p>
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl overflow-hidden mb-6">
+            <div className="px-6 py-4 border-b border-bg-border grid grid-cols-4 gap-4">
+              <p className="text-text-muted text-xs uppercase tracking-widest">Date</p>
+              <p className="text-text-muted text-xs uppercase tracking-widest">Calls</p>
+              <p className="text-text-muted text-xs uppercase tracking-widest">Tokens</p>
+              <p className="text-text-muted text-xs uppercase tracking-widest text-right">Cost</p>
             </div>
             {Object.entries(byDay).map(([day, dayRows]) => {
               const dayCost = dayRows.reduce((s, r) => s + (r.cost_usd || 0), 0);
               const dayTokens = dayRows.reduce((s, r) => s + (r.input_tokens || 0) + (r.output_tokens || 0), 0);
               return (
-                <div key={day} className="px-6 py-3 border-b border-white/[0.04] last:border-0 grid grid-cols-4 gap-4 hover:bg-white/[0.02] transition">
-                  <p className="text-xs text-white/60">{new Date(dayRows[0].created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}</p>
-                  <p className="text-xs text-white/60">{dayRows.length}</p>
-                  <p className="text-xs text-white/60">{dayTokens.toLocaleString()}</p>
-                  <p className="text-xs text-white/60 text-right">${dayCost.toFixed(4)}</p>
+                <div key={day} className="px-6 py-3 border-b border-white/[0.04] last:border-0 grid grid-cols-4 gap-4 hover:bg-bg-surface transition">
+                  <p className="text-xs text-text-secondary">{new Date(dayRows[0].created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}</p>
+                  <p className="text-xs text-text-secondary">{dayRows.length}</p>
+                  <p className="text-xs text-text-secondary">{dayTokens.toLocaleString()}</p>
+                  <p className="text-xs text-text-secondary text-right">${dayCost.toFixed(4)}</p>
                 </div>
               );
             })}
           </div>
 
           {/* Daily Log */}
-          <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-white/[0.06]">
-              <p className="text-white/30 text-xs uppercase tracking-widest">Usage Log</p>
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-bg-border">
+              <p className="text-text-muted text-xs uppercase tracking-widest">Usage Log</p>
             </div>
             {Object.keys(byDay).length === 0 ? (
-              <p className="text-white/20 text-sm p-6">No usage this period.</p>
+              <p className="text-text-muted text-sm p-6">No usage this period.</p>
             ) : (
               <div>
                 {Object.entries(byDay).map(([day, dayRows]) => {
@@ -112,9 +112,9 @@ export default function UsagePage() {
                   return (
                     <div key={day}>
                       {/* Day header */}
-                      <div className="px-6 py-3 bg-white/[0.02] border-b border-white/[0.04] flex items-center justify-between">
-                        <p className="text-xs font-semibold text-white/50">{day}</p>
-                        <p className="text-xs text-white/30">${dayCost.toFixed(4)} · {dayRows.length} calls</p>
+                      <div className="px-6 py-3 bg-bg-surface border-b border-white/[0.04] flex items-center justify-between">
+                        <p className="text-xs font-semibold text-text-secondary">{day}</p>
+                        <p className="text-xs text-text-muted">${dayCost.toFixed(4)} · {dayRows.length} calls</p>
                       </div>
                       {/* Rows for this day */}
                       {dayRows.map((row, i) => {
@@ -126,11 +126,11 @@ export default function UsagePage() {
                         return (
                           <div key={i} className="px-6 py-3 border-b border-white/[0.03] last:border-0 flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <span className="text-[10px] text-white/20 w-16 flex-shrink-0">{time}</span>
+                              <span className="text-[10px] text-text-muted w-16 flex-shrink-0">{time}</span>
                               <span className="text-xs text-white/70">{feature}</span>
                               <span className="text-[10px] text-white/25">{tokens.toLocaleString()} tokens</span>
                             </div>
-                            <span className="text-xs text-white/40">{((row.cost_usd || 0) * 100).toFixed(3)}¢</span>
+                            <span className="text-xs text-text-secondary">{((row.cost_usd || 0) * 100).toFixed(3)}¢</span>
                           </div>
                         );
                       })}

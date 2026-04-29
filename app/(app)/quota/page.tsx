@@ -82,38 +82,38 @@ function QuotaContent() {
   const isEmpty = quota && quota.tokensRemaining === 0;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold tracking-tight">AI Tokens</h1>
-          <p className="text-white/30 text-sm mt-1">Manage your AI usage for quote extraction, PLM agent, and document processing.</p>
+          <p className="text-text-muted text-sm mt-1">Manage your AI usage for quote extraction, PLM agent, and document processing.</p>
         </div>
 
         {success && (
           <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 mb-6 text-center">
             <p className="text-emerald-400 font-semibold">✓ Tokens added successfully</p>
-            <p className="text-white/30 text-xs mt-1">Your balance has been updated.</p>
+            <p className="text-text-muted text-xs mt-1">Your balance has been updated.</p>
           </div>
         )}
 
         {loading ? (
-          <div className="text-white/30 text-sm">Loading...</div>
+          <div className="text-text-muted text-sm">Loading...</div>
         ) : (
           <>
-            <div className={`border rounded-2xl p-6 mb-6 ${isEmpty ? "bg-red-500/5 border-red-500/20" : isLow ? "bg-yellow-500/5 border-yellow-500/20" : "bg-white/[0.02] border-white/[0.06]"}`}>
+            <div className={`border rounded-2xl p-6 mb-6 ${isEmpty ? "bg-red-500/5 border-red-500/20" : isLow ? "bg-yellow-500/5 border-yellow-500/20" : "bg-bg-surface border-bg-border"}`}>
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Monthly Balance</p>
-                  <p className={`text-4xl font-bold ${isEmpty ? "text-red-400" : isLow ? "text-yellow-400" : "text-white"}`}>
+                  <p className="text-text-muted text-xs uppercase tracking-widest mb-1">Monthly Balance</p>
+                  <p className={`text-4xl font-bold ${isEmpty ? "text-red-400" : isLow ? "text-yellow-400" : "text-text-primary"}`}>
                     {quota?.tokensRemaining.toLocaleString()}
                   </p>
-                  <p className="text-white/30 text-xs mt-1">of {quota?.monthlyLimit.toLocaleString()} tokens remaining</p>
+                  <p className="text-text-muted text-xs mt-1">of {quota?.monthlyLimit.toLocaleString()} tokens remaining</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Used Today</p>
-                  <p className="text-xl font-semibold text-white">{quota?.tokensUsedToday.toLocaleString()}</p>
+                  <p className="text-text-muted text-xs uppercase tracking-widest mb-1">Used Today</p>
+                  <p className="text-xl font-semibold text-text-primary">{quota?.tokensUsedToday.toLocaleString()}</p>
                   {quota?.dailyLimit && (
-                    <p className="text-white/30 text-xs mt-1">of {quota.dailyLimit.toLocaleString()} daily limit</p>
+                    <p className="text-text-muted text-xs mt-1">of {quota.dailyLimit.toLocaleString()} daily limit</p>
                   )}
                 </div>
               </div>
@@ -124,35 +124,35 @@ function QuotaContent() {
                   style={{ width: `${pctRemaining}%` }}
                 />
               </div>
-              <p className="text-white/20 text-xs">{pctRemaining}% remaining this month</p>
+              <p className="text-text-muted text-xs">{pctRemaining}% remaining this month</p>
 
               {isEmpty && (
                 <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
                   <p className="text-red-400 text-sm font-semibold">You're out of tokens</p>
-                  <p className="text-white/40 text-xs mt-1">PLM Agent and quote extraction are paused. Purchase more tokens below to continue.</p>
+                  <p className="text-text-secondary text-xs mt-1">PLM Agent and quote extraction are paused. Purchase more tokens below to continue.</p>
                 </div>
               )}
 
               {isLow && !isEmpty && (
                 <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
                   <p className="text-yellow-400 text-sm font-semibold">Running low</p>
-                  <p className="text-white/40 text-xs mt-1">Consider purchasing more tokens to avoid interruption.</p>
+                  <p className="text-text-secondary text-xs mt-1">Consider purchasing more tokens to avoid interruption.</p>
                 </div>
               )}
             </div>
 
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 mb-6">
+            <div className="bg-bg-surface border border-bg-border rounded-2xl p-6 mb-6">
               <h2 className="text-sm font-semibold text-white mb-1">Daily Spending Limit</h2>
-              <p className="text-white/30 text-xs mb-4">Set a daily token cap to control how fast you use your monthly balance. Optional — hitting the limit pauses AI features for that day only.</p>
+              <p className="text-text-muted text-xs mb-4">Set a daily token cap to control how fast you use your monthly balance. Optional — hitting the limit pauses AI features for that day only.</p>
               <div className="flex gap-3 items-end">
                 <div className="flex-1">
-                  <label className="text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Daily limit (tokens)</label>
+                  <label className="text-[10px] text-text-muted uppercase tracking-widest mb-2 block">Daily limit (tokens)</label>
                   <input
                     type="number"
                     value={dailyLimit}
                     onChange={e => setDailyLimit(e.target.value)}
                     placeholder="No limit"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/20 transition text-sm"
+                    className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-white/20 transition text-sm"
                   />
                   <p className="text-white/15 text-xs mt-1">e.g. 2,000 tokens/day ≈ $2/day</p>
                 </div>
@@ -164,25 +164,25 @@ function QuotaContent() {
               {savedLimit && <p className="text-emerald-400 text-xs mt-2">Saved ✓</p>}
               {quota?.dailyLimit && (
                 <button onClick={() => { setDailyLimit(""); saveDailyLimit(); }}
-                  className="text-white/20 text-xs mt-2 hover:text-white/40 transition">
+                  className="text-text-muted text-xs mt-2 hover:text-text-secondary transition">
                   Remove limit
                 </button>
               )}
             </div>
 
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-6 mb-4">
+            <div className="bg-bg-surface border border-bg-border rounded-2xl p-6 mb-4">
               <h2 className="text-sm font-semibold text-white mb-1">Buy More Tokens</h2>
-              <p className="text-white/30 text-xs mb-6">Tokens never expire and stack on top of your monthly balance.</p>
+              <p className="text-text-muted text-xs mb-6">Tokens never expire and stack on top of your monthly balance.</p>
               <div className="grid grid-cols-2 gap-3">
                 {TOKEN_PACKS.map((pack) => (
                   <button key={pack.priceId} onClick={() => buyTokens(pack.priceId)}
                     disabled={!!buying}
-                    className={`relative border rounded-2xl p-5 text-left transition hover:border-white/20 disabled:opacity-60 ${pack.popular ? "border-white/20 bg-white/[0.04]" : "border-white/[0.06] bg-white/[0.02]"}`}>
+                    className={`relative border rounded-2xl p-5 text-left transition hover:border-white/20 disabled:opacity-60 ${pack.popular ? "border-white/20 bg-bg-elevated" : "border-bg-border bg-bg-surface"}`}>
                     {pack.popular && (
                       <span className="absolute top-3 right-3 text-[10px] bg-white text-black font-bold px-2 py-0.5 rounded-full">POPULAR</span>
                     )}
                     <p className="text-lg font-bold text-white mb-1">{pack.tokens.toLocaleString()}</p>
-                    <p className="text-white/40 text-xs mb-3">AI tokens</p>
+                    <p className="text-text-secondary text-xs mb-3">AI tokens</p>
                     <p className="text-white font-semibold">
                       {buying === pack.priceId ? "Redirecting..." : pack.price}
                     </p>
@@ -191,8 +191,8 @@ function QuotaContent() {
               </div>
             </div>
 
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-3">What costs tokens</p>
+            <div className="bg-bg-surface border border-bg-border rounded-2xl p-5">
+              <p className="text-text-muted text-xs uppercase tracking-widest mb-3">What costs tokens</p>
               <div className="space-y-2">
                 {[
                   { label: "Factory quote extraction (per file)", cost: "50 tokens" },
@@ -205,8 +205,8 @@ function QuotaContent() {
                   { label: "Excel bulk import (AI mapping)", cost: "30 tokens" },
                 ].map((item, i) => (
                   <div key={i} className="flex items-center justify-between">
-                    <p className="text-white/50 text-xs">{item.label}</p>
-                    <p className="text-xs font-semibold text-white/50">{item.cost}</p>
+                    <p className="text-text-secondary text-xs">{item.label}</p>
+                    <p className="text-xs font-semibold text-text-secondary">{item.cost}</p>
                   </div>
                 ))}
               </div>
@@ -221,7 +221,7 @@ function QuotaContent() {
 export default function QuotaPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+      <div className="min-h-screen bg-bg-base flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     }>

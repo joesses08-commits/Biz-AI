@@ -50,10 +50,10 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
   return (
     <div className="group">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] text-white/30 uppercase tracking-widest">{label}</p>
+        <p className="text-[10px] text-text-muted uppercase tracking-widest">{label}</p>
         {!editing && !disabled && (
           <button onClick={() => { setVal(value || ""); setEditing(true); }}
-            className="opacity-0 group-hover:opacity-100 transition p-1 rounded text-white/30 hover:text-white/60">
+            className="opacity-0 group-hover:opacity-100 transition p-1 rounded text-text-muted hover:text-text-secondary">
             <Pencil size={10} />
           </button>
         )}
@@ -62,10 +62,10 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
         <div className="space-y-1.5">
           {multiline ? (
             <textarea value={val} onChange={e => setVal(e.target.value)} rows={3}
-              className="w-full bg-white/[0.04] border border-white/20 rounded-xl px-3 py-2 text-white/80 text-sm focus:outline-none resize-none" autoFocus />
+              className="w-full bg-bg-elevated border border-white/20 rounded-xl px-3 py-2 text-white/80 text-sm focus:outline-none resize-none" autoFocus />
           ) : (
             <input type={type} value={val} onChange={e => setVal(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/20 rounded-xl px-3 py-2 text-white/80 text-sm focus:outline-none" autoFocus
+              className="w-full bg-bg-elevated border border-white/20 rounded-xl px-3 py-2 text-white/80 text-sm focus:outline-none" autoFocus
               onKeyDown={e => e.key === "Enter" && save()} />
           )}
           <div className="flex gap-1.5">
@@ -73,11 +73,11 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
               className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
               {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />} Save
             </button>
-            <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.08] text-white/30 text-xs">Cancel</button>
+            <button onClick={() => setEditing(false)} className="px-3 py-1.5 rounded-lg border border-bg-border text-text-muted text-xs">Cancel</button>
           </div>
         </div>
       ) : (
-        <p className="text-sm text-white/70 whitespace-pre-wrap min-h-[20px]">{value || <span className="text-white/20 italic">Not set</span>}</p>
+        <p className="text-sm text-white/70 whitespace-pre-wrap min-h-[20px]">{value || <span className="text-text-muted italic">Not set</span>}</p>
       )}
     </div>
   );
@@ -491,8 +491,8 @@ ${entry}` : entry;
     load();
   };
 
-  if (loading) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><Loader2 size={20} className="animate-spin text-white/20" /></div>;
-  if (!product) return <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center"><p className="text-white/30">Product not found</p></div>;
+  if (loading) return <div className="min-h-screen bg-bg-base flex items-center justify-center"><Loader2 size={20} className="animate-spin text-text-muted" /></div>;
+  if (!product) return <div className="min-h-screen bg-bg-base flex items-center justify-center"><p className="text-text-muted">Product not found</p></div>;
 
   const orders = (product.plm_batches || []).sort((a: any, b: any) => a.batch_number - b.batch_number);
   const productStatus = product.status || "progression";
@@ -501,8 +501,8 @@ ${entry}` : entry;
   const isLocked = isKilled || isHold;
 
   const currentDevStage = stageInfo(product.current_stage || "concept");
-  const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
-  const lc = "text-[10px] text-white/30 uppercase tracking-widest mb-1 block";
+  const ic = "w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
+  const lc = "text-[10px] text-text-muted uppercase tracking-widest mb-1 block";
 
   // Build full history from all sources
   const productHistory = [
@@ -564,7 +564,7 @@ ${entry}` : entry;
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white"
+    <div className="min-h-screen bg-bg-base text-text-primary"
       onDragOver={e => e.preventDefault()}
       onDrop={e => e.preventDefault()}>
 
@@ -575,14 +575,14 @@ ${entry}` : entry;
         const notes = (t.notes || "").split("\n").filter(Boolean);
         return (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setExpandedNoteTrackId(null)}>
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-white">{t.factory_catalog?.name} — Notes</p>
-                <button onClick={() => setExpandedNoteTrackId(null)} className="text-white/30 hover:text-white/60 text-xs">✕</button>
+                <p className="text-sm font-semibold text-text-primary">{t.factory_catalog?.name} — Notes</p>
+                <button onClick={() => setExpandedNoteTrackId(null)} className="text-text-muted hover:text-text-secondary text-xs">✕</button>
               </div>
               <div className="space-y-2 max-h-80 overflow-y-auto">
-                {notes.length === 0 ? <p className="text-xs text-white/30">No notes yet</p> : notes.map((note: string, i: number) => (
-                  <p key={i} className="text-xs text-white/60 leading-relaxed border-b border-white/[0.04] pb-2 last:border-0">{note}</p>
+                {notes.length === 0 ? <p className="text-xs text-text-muted">No notes yet</p> : notes.map((note: string, i: number) => (
+                  <p key={i} className="text-xs text-text-secondary leading-relaxed border-b border-white/[0.04] pb-2 last:border-0">{note}</p>
                 ))}
               </div>
             </div>
@@ -633,17 +633,17 @@ ${entry}` : entry;
       {/* Sample Request Modal */}
       {showSampleModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Request Samples</p>
-              <button onClick={() => setShowSampleModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              <button onClick={() => setShowSampleModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
             </div>
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Select Factories</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Select Factories</p>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {factories.map((f: any) => (
                   <button key={f.id} onClick={() => setSampleFactoryIds(prev => prev.includes(f.id) ? prev.filter(id => id !== f.id) : [...prev, f.id])}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${sampleFactoryIds.includes(f.id) ? "border-amber-500/30 bg-amber-500/10" : "border-white/[0.06] hover:bg-white/[0.03]"}`}>
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-left transition border ${sampleFactoryIds.includes(f.id) ? "border-amber-500/30 bg-amber-500/10" : "border-bg-border hover:bg-bg-elevated"}`}>
                     <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${sampleFactoryIds.includes(f.id) ? "border-amber-400 bg-amber-500" : "border-white/20"}`}>
                       {sampleFactoryIds.includes(f.id) && <Check size={9} className="text-black" />}
                     </div>
@@ -656,21 +656,21 @@ ${entry}` : entry;
               </div>
             </div>
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Note (optional)</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">Note (optional)</p>
               <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
                 placeholder="e.g. Priority samples needed by May 1st"
-                rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+                rows={2} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Request date</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">Request date</p>
                 <input type="date" id="sampleRequestDate" defaultValue={new Date().toISOString().split("T")[0]}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
               </div>
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Est. arrival date</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">Est. arrival date</p>
                 <input type="date" value={sampleArrivalDate} onChange={e => setSampleArrivalDate(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
+                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none" />
               </div>
             </div>
             <div className="flex gap-2">
@@ -679,7 +679,7 @@ ${entry}` : entry;
                 {requestingSamples ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                 Request from {sampleFactoryIds.length} {sampleFactoryIds.length === 1 ? "Factory" : "Factories"}
               </button>
-              <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+              <button onClick={() => setShowSampleModal(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -688,23 +688,23 @@ ${entry}` : entry;
       {/* Additional Sample Modal */}
       {additionalSampleModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Request Additional Sample</p>
-              <button onClick={() => setAdditionalSampleModal(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              <button onClick={() => setAdditionalSampleModal(null)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
             </div>
-            <p className="text-xs text-white/40">From <span className="text-white/70">{additionalSampleModal.factoryName}</span></p>
+            <p className="text-xs text-text-secondary">From <span className="text-white/70">{additionalSampleModal.factoryName}</span></p>
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">How many samples?</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">How many samples?</p>
               <input type="number" min="1" max="9999" value={additionalSampleQty}
                 onChange={e => setAdditionalSampleQty(e.target.value)}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
+                className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center" />
             </div>
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Reason / Note</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">Reason / Note</p>
               <textarea value={additionalSampleNote} onChange={e => setAdditionalSampleNote(e.target.value)}
                 placeholder="e.g. Need samples for Target meeting on May 1st"
-                rows={3} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                rows={3} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
             </div>
             <div className="flex gap-2">
               <button onClick={async () => {
@@ -732,7 +732,7 @@ ${entry}` : entry;
                 {requestingSamples ? "Requesting..." : `Request ${additionalSampleQty} Sample(s)`}
               </button>
               <button onClick={() => setAdditionalSampleModal(null)}
-                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -741,9 +741,9 @@ ${entry}` : entry;
       {/* Sample Email Provider Modal */}
       {sampleProviderModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <p className="text-sm font-semibold">Send via which email?</p>
-            <p className="text-xs text-white/40">Both Gmail and Outlook are connected. Choose which to send from.</p>
+            <p className="text-xs text-text-secondary">Both Gmail and Outlook are connected. Choose which to send from.</p>
             <div className="flex gap-2">
               <button onClick={async () => {
                 const isForce = sampleProviderModal?.note?.includes("Additional") || false;
@@ -754,9 +754,9 @@ ${entry}` : entry;
                 const isForce = sampleProviderModal?.note?.includes("Additional") || false;
                 setSampleProviderModal(null);
                 await requestSamples("outlook", isForce);
-              }} className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-semibold">Outlook</button>
+              }} className="flex-1 py-2.5 rounded-xl border border-bg-border text-text-secondary text-xs font-semibold">Outlook</button>
             </div>
-            <button onClick={() => setSampleProviderModal(null)} className="w-full text-center text-xs text-white/20 hover:text-white/40">Cancel</button>
+            <button onClick={() => setSampleProviderModal(null)} className="w-full text-center text-xs text-text-muted hover:text-text-secondary">Cancel</button>
           </div>
         </div>
       )}
@@ -764,10 +764,10 @@ ${entry}` : entry;
       {/* Sample Outcome PIN Modal */}
       {sampleOutcomePending && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <p className="text-sm font-semibold">Admin PIN Required</p>
-            <p className="text-xs text-white/40">
-              Enter your PIN to confirm: <strong className="text-white/60">
+            <p className="text-xs text-text-secondary">
+              Enter your PIN to confirm: <strong className="text-text-secondary">
                 {sampleOutcomePending.outcome === "approved" ? "Approve Sample" :
                  sampleOutcomePending.outcome === "revision" ? "Request Revision" :
                  sampleOutcomePending.outcome === "unkill" ? "Revive Factory" :
@@ -779,7 +779,7 @@ ${entry}` : entry;
             )}
             <input type="password" value={samplePin} onChange={e => setSamplePin(e.target.value)}
               placeholder="Enter PIN" autoFocus
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
+              className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
               onKeyDown={e => e.key === "Enter" && confirmSampleOutcome()} />
             {samplePinError && <p className="text-xs text-red-400">{samplePinError}</p>}
             <div className="flex gap-2">
@@ -788,7 +788,7 @@ ${entry}` : entry;
                 {submittingSamplePin ? "Confirming..." : "Confirm"}
               </button>
               <button onClick={() => { setSampleOutcomePending(null); setSamplePin(""); setSamplePinError(""); }}
-                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -797,10 +797,10 @@ ${entry}` : entry;
       {/* Status Change PIN Modal */}
       {showStatusModal && pendingStatus && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div>
-              <p className="text-sm font-semibold text-white">Confirm Status Change</p>
-              <p className="text-xs text-white/40 mt-1">
+              <p className="text-sm font-semibold text-text-primary">Confirm Status Change</p>
+              <p className="text-xs text-text-secondary mt-1">
                 Switch to{" "}
                 <span className={`font-semibold ${pendingStatus === "killed" ? "text-red-400" : pendingStatus === "hold" ? "text-amber-400" : "text-emerald-400"}`}>
                   {pendingStatus === "killed" ? "Killed" : pendingStatus === "hold" ? "Hold" : "Progression"}
@@ -812,7 +812,7 @@ ${entry}` : entry;
             </div>
             <input type="password" value={statusPin} onChange={e => setStatusPin(e.target.value)}
               placeholder="Enter PIN" autoFocus
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
+              className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white placeholder-white/20 text-sm focus:outline-none text-center tracking-widest"
               onKeyDown={e => e.key === "Enter" && setProductStatus(pendingStatus, statusPin)} />
             {statusPinError && <p className="text-xs text-red-400">{statusPinError}</p>}
             <div className="flex gap-2">
@@ -821,7 +821,7 @@ ${entry}` : entry;
                 {settingStatus ? "Confirming..." : "Confirm"}
               </button>
               <button onClick={() => { setShowStatusModal(false); setPendingStatus(null); setStatusPin(""); setStatusPinError(""); }}
-                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
             </div>
           </div>
         </div>
@@ -837,14 +837,14 @@ ${entry}` : entry;
               </div>
               <div>
                 <p className="text-sm font-semibold">Pending Approval</p>
-                <p className="text-xs text-white/40">A designer submitted this product for review</p>
+                <p className="text-xs text-text-secondary">A designer submitted this product for review</p>
               </div>
             </div>
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-1">
+            <div className="bg-bg-surface border border-bg-border rounded-xl p-4 space-y-1">
               <p className="text-sm font-semibold">{product?.name}</p>
-              {product?.sku && <p className="text-xs text-white/30 font-mono">{product.sku}</p>}
-              {product?.description && <p className="text-xs text-white/40 mt-1">{product.description}</p>}
-              {product?.specs && <p className="text-xs text-white/30 mt-1">{product.specs}</p>}
+              {product?.sku && <p className="text-xs text-text-muted font-mono">{product.sku}</p>}
+              {product?.description && <p className="text-xs text-text-secondary mt-1">{product.description}</p>}
+              {product?.specs && <p className="text-xs text-text-muted mt-1">{product.specs}</p>}
             </div>
             <div className="flex gap-2">
               <button onClick={approveProduct} disabled={approvingProduct}
@@ -852,7 +852,7 @@ ${entry}` : entry;
                 {approvingProduct ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Approve Product
               </button>
               <button onClick={() => window.history.replaceState({}, "", window.location.pathname)}
-                className="px-4 rounded-xl border border-white/[0.08] text-white/30 text-sm hover:text-white/60 transition">Review First</button>
+                className="px-4 rounded-xl border border-bg-border text-text-muted text-sm hover:text-text-secondary transition">Review First</button>
             </div>
           </div>
         </div>
@@ -865,16 +865,16 @@ ${entry}` : entry;
       )}
 
       {/* Header */}
-      <div className="border-b border-white/[0.06] px-8 py-6">
+      <div className="border-b border-bg-border px-8 py-6">
         <div className="max-w-5xl mx-auto">
-          <button onClick={() => router.push("/plm")} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition mb-4">
+          <button onClick={() => router.push("/plm")} className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition mb-4">
             <ArrowLeft size={12} />Back to PLM
           </button>
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h1 className="text-2xl font-bold">{product.name}</h1>
-                {product.sku && <span className="text-xs text-white/30 font-mono bg-white/[0.04] px-2 py-0.5 rounded-lg">{product.sku}</span>}
+                {product.sku && <span className="text-xs text-text-muted font-mono bg-bg-elevated px-2 py-0.5 rounded-lg">{product.sku}</span>}
 
                 {/* Action Status inline */}
                 {product.action_status && product.action_status !== "up_to_date" && (
@@ -885,7 +885,7 @@ ${entry}` : entry;
                     <button onClick={async () => {
                       await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dismiss_action", product_id: product.id }) });
                       load();
-                    }} className="text-white/20 hover:text-white/50 transition text-xs leading-none flex-shrink-0 mt-0.5">×</button>
+                    }} className="text-text-muted hover:text-text-secondary transition text-xs leading-none flex-shrink-0 mt-0.5">×</button>
                   </div>
                 )}
                 {/* Product Status Dropdown */}
@@ -902,15 +902,15 @@ ${entry}` : entry;
                   {showStatusDropdown && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
-                      <div className="absolute top-full left-0 mt-2 bg-[#111] border border-white/10 rounded-xl overflow-hidden shadow-2xl z-20 min-w-[180px]">
+                      <div className="absolute top-full left-0 mt-2 bg-[#111] border border-bg-border rounded-xl overflow-hidden shadow-2xl z-20 min-w-[180px]">
                         <p className="text-[10px] text-white/25 uppercase tracking-widest px-3 pt-3 pb-1">Product Status</p>
                         {(["progression","killed"] as const).map(s => (
                           <button key={s} onClick={() => { setShowStatusDropdown(false); setPendingStatus(s); setShowStatusModal(true); }}
                             disabled={productStatus === s}
-                            className={`w-full text-left px-3 py-2.5 text-xs transition flex items-center gap-2 ${productStatus === s ? "text-white/20 cursor-default bg-white/[0.03]" : "text-white/60 hover:bg-white/[0.05] hover:text-white"}`}>
+                            className={`w-full text-left px-3 py-2.5 text-xs transition flex items-center gap-2 ${productStatus === s ? "text-text-muted cursor-default bg-bg-elevated" : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"}`}>
                             <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s === "killed" ? "bg-red-400" : "bg-emerald-400"}`} />
                             {s === "killed" ? "Kill Product" : "Set to Progression"}
-                            {productStatus === s && <span className="ml-auto text-[10px] text-white/20">Current</span>}
+                            {productStatus === s && <span className="ml-auto text-[10px] text-text-muted">Current</span>}
                           </button>
                         ))}
                       </div>
@@ -918,7 +918,7 @@ ${entry}` : entry;
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 text-xs text-white/30">
+              <div className="flex items-center gap-3 text-xs text-text-muted">
                 {product.plm_collections && <span className="flex items-center gap-1"><Layers size={10} />{product.plm_collections.name}</span>}
                 {product.category && <span>{product.category}</span>}
               </div>
@@ -929,18 +929,18 @@ ${entry}` : entry;
               <div className="flex flex-col items-end gap-1.5">
                 {(product.plm_assignments || []).map((a: any) => (
                   <div key={a.id} className="flex items-center gap-2">
-                    <span className="text-[11px] text-white/50">{a.factory_portal_users?.name || a.factory_portal_users?.email}</span>
-                    <div className="w-6 h-6 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[9px] text-white/50 font-bold">
+                    <span className="text-[11px] text-text-secondary">{a.factory_portal_users?.name || a.factory_portal_users?.email}</span>
+                    <div className="w-6 h-6 rounded-full bg-white/10 border border-bg-border flex items-center justify-center text-[9px] text-text-secondary font-bold">
                       {(a.factory_portal_users?.name || a.factory_portal_users?.email || "?")[0].toUpperCase()}
                     </div>
                     <button onClick={async () => {
                       const currentIds = (product.plm_assignments || []).map((x: any) => x.designer_id).filter((x: string) => x !== a.designer_id);
                       await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "assign_product", product_id: product.id, designer_ids: currentIds }) });
                       load();
-                    }} className="text-white/20 hover:text-red-400 transition text-xs">×</button>
+                    }} className="text-text-muted hover:text-red-400 transition text-xs">×</button>
                   </div>
                 ))}
-                {(product.plm_assignments || []).length === 0 && <p className="text-[11px] text-white/20">No one assigned</p>}
+                {(product.plm_assignments || []).length === 0 && <p className="text-[11px] text-text-muted">No one assigned</p>}
                 <AssignTeamMember productId={product.id} currentAssignments={product.plm_assignments || []} onAssign={() => load()} />
               </div>
             </div>
@@ -1012,8 +1012,8 @@ ${entry}` : entry;
               const revisionAfterThis = isReviewStage && (track.plm_track_stages || []).some((s: any) => s.stage === "revision_requested" && s.revision_number === revNum);
 
               return (
-                <div className={`${isDone ? "bg-white/[0.02] rounded-xl" : ""}`}>
-                  <div className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl group transition ${canEdit && !expanded ? "hover:bg-white/[0.02]" : ""} ${expanded ? "bg-white/[0.03] rounded-b-none" : ""}`}>
+                <div className={`${isDone ? "bg-bg-surface rounded-xl" : ""}`}>
+                  <div className={`flex items-start gap-2.5 px-2 py-1.5 rounded-xl group transition ${canEdit && !expanded ? "hover:bg-bg-surface" : ""} ${expanded ? "bg-bg-elevated rounded-b-none" : ""}`}>
                     <button
                       onClick={() => {
                         if (!canEdit || isUpdating || isDone) {
@@ -1031,9 +1031,9 @@ ${entry}` : entry;
                         isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } :
                         expanded ? { borderColor: stageDef.color, background: `${stageDef.color}10` } :
                         { borderColor: "rgba(255,255,255,0.15)" }}>
-                      {isUpdating ? <Loader2 size={8} className="animate-spin text-white/40" /> :
+                      {isUpdating ? <Loader2 size={8} className="animate-spin text-text-secondary" /> :
                        (isDone || isApprovedReview) ? <Check size={8} style={{ color: stageDef.color }} /> :
-                       isSkipped ? <span className="text-[7px] text-white/30">—</span> : null}
+                       isSkipped ? <span className="text-[7px] text-text-muted">—</span> : null}
                     </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -1043,7 +1043,7 @@ ${entry}` : entry;
                         {isApprovedReview && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✓ Approved</span>}
                         {revisionAfterThis && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">↻ Revision requested</span>}
                         {stageData?.expected_date && !isDone && (
-                          <span className="text-[9px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">
+                          <span className="text-[9px] text-text-muted bg-bg-elevated px-1.5 py-0.5 rounded-full">
                             Est {new Date(stageData.expected_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
                         )}
@@ -1054,18 +1054,18 @@ ${entry}` : entry;
                         )}
                         {stageData?.quoted_price && <span className="text-[9px] text-emerald-400 font-bold">${stageData.quoted_price}</span>}
                       </div>
-                      {stageData?.notes && <p className="text-[10px] text-white/30 mt-0.5 leading-tight">{stageData.notes}</p>}
-                      {isSkipped && stageData?.skip_reason && <p className="text-[10px] text-white/20 mt-0.5 italic">{stageData.skip_reason}</p>}
+                      {stageData?.notes && <p className="text-[10px] text-text-muted mt-0.5 leading-tight">{stageData.notes}</p>}
+                      {isSkipped && stageData?.skip_reason && <p className="text-[10px] text-text-muted mt-0.5 italic">{stageData.skip_reason}</p>}
                     </div>
                     {canEdit && !expanded && (
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
                         {!isSkipped && !isDone && (
                           <button onClick={() => { setSkipModal({ trackId: track.id, productId: product.id, factoryId: track.factory_id, stage: stageDef.key }); setSkipReason(""); }}
-                            className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">skip</button>
+                            className="text-[8px] px-1.5 py-0.5 rounded border border-bg-border text-white/25 hover:text-text-secondary transition">skip</button>
                         )}
                         {isSkipped && (
                           <button onClick={() => markStage(track, stageDef.key, "pending", revNum)}
-                            className="text-[8px] px-1.5 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 transition">unskip</button>
+                            className="text-[8px] px-1.5 py-0.5 rounded border border-bg-border text-white/25 hover:text-text-secondary transition">unskip</button>
                         )}
                       </div>
                     )}
@@ -1073,33 +1073,33 @@ ${entry}` : entry;
 
                   {/* Magnified inline expansion */}
                   {expanded && canEdit && stageDef.type !== "review" && (
-                    <div className="mx-2 mb-2 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl rounded-tl-none space-y-2.5">
+                    <div className="mx-2 mb-2 p-3 bg-bg-elevated border border-bg-border rounded-xl rounded-tl-none space-y-2.5">
                       <div>
-                        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Date completed</p>
+                        <p className="text-[9px] text-text-muted uppercase tracking-widest mb-1">Date completed</p>
                         <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)}
-                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                          className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                       </div>
                       {stageDef.askEstimate && (
                         <div>
-                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">{stageDef.estimateLabel}</p>
+                          <p className="text-[9px] text-text-muted uppercase tracking-widest mb-1">{stageDef.estimateLabel}</p>
                           <input type="date" value={noteVal} onChange={e => setNoteVal(e.target.value)}
-                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                            className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                         </div>
                       )}
                       {stageDef.hasPrice && (
                         <div>
-                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Price (ELC)</p>
+                          <p className="text-[9px] text-text-muted uppercase tracking-widest mb-1">Price (ELC)</p>
                           <input type="number" step="0.01" value={priceVal} onChange={e => setPriceVal(e.target.value)}
                             placeholder="e.g. 2.45"
-                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                            className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                         </div>
                       )}
                       {!stageDef.askEstimate && (
                         <div>
-                          <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">Note (optional)</p>
+                          <p className="text-[9px] text-text-muted uppercase tracking-widest mb-1">Note (optional)</p>
                           <input type="text" value={noteVal} onChange={e => setNoteVal(e.target.value)}
                             placeholder="Add a note..."
-                            className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
+                            className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2.5 py-1.5 text-white/70 text-xs focus:outline-none" />
                         </div>
                       )}
                       <div className="flex gap-1.5">
@@ -1120,14 +1120,14 @@ ${entry}` : entry;
                           {saving ? <Loader2 size={9} className="animate-spin" /> : <Check size={9} />}
                           Mark complete
                         </button>
-                        <button onClick={() => setExpanded(false)} className="px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 text-[10px]">Cancel</button>
+                        <button onClick={() => setExpanded(false)} className="px-3 py-1.5 rounded-lg border border-bg-border text-text-muted text-[10px]">Cancel</button>
                       </div>
                     </div>
                   )}
                   {/* Review stage expansion — shows approve/revision/kill inline */}
                   {expanded && canEdit && stageDef.type === "review" && hasSampleArrived(track, revNum) && (
-                    <div className="mx-2 mb-2 p-3 bg-white/[0.03] border border-white/[0.08] rounded-xl rounded-tl-none space-y-2">
-                      <p className="text-[9px] text-white/40 uppercase tracking-widest">Review outcome</p>
+                    <div className="mx-2 mb-2 p-3 bg-bg-elevated border border-bg-border rounded-xl rounded-tl-none space-y-2">
+                      <p className="text-[9px] text-text-secondary uppercase tracking-widest">Review outcome</p>
                       <div className="flex gap-1.5 flex-wrap">
                         <button onClick={() => { 
                             setExpanded(false); 
@@ -1142,7 +1142,7 @@ ${entry}` : entry;
                         <button onClick={() => { setExpanded(false); setKillModal({ track }); setKillNotes(""); }}
                           className="text-[10px] px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition">✕ Kill</button>
                       </div>
-                      <button onClick={() => setExpanded(false)} className="text-[9px] text-white/20 hover:text-white/40">Cancel</button>
+                      <button onClick={() => setExpanded(false)} className="text-[9px] text-text-muted hover:text-text-secondary">Cancel</button>
                     </div>
                   )}
                 </div>
@@ -1185,7 +1185,7 @@ ${entry}` : entry;
                             {isSampleRequested && (
                               <div className="flex justify-end pr-1 mt-1 mb-0.5">
                                 <button onClick={() => toggleCycle(revNum)}
-                                  className="text-[9px] px-2 py-0.5 rounded border border-white/[0.06] text-white/25 hover:text-white/50 hover:border-white/20 transition">
+                                  className="text-[9px] px-2 py-0.5 rounded border border-bg-border text-white/25 hover:text-text-secondary hover:border-white/20 transition">
                                   {isCollapsed ? "▸ expand" : "▾ collapse"}
                                 </button>
                               </div>
@@ -1210,7 +1210,7 @@ ${entry}` : entry;
                     {revisionStage && (
                       <div className="flex items-center gap-2 px-2 py-1.5 mt-1 bg-amber-500/[0.04] rounded-lg border border-amber-500/10">
                         <span className="text-[9px] text-amber-400/80 font-medium">↻ Revision requested</span>
-                        {revisionStage.notes && <span className="text-[9px] text-white/30">· {revisionStage.notes}</span>}
+                        {revisionStage.notes && <span className="text-[9px] text-text-muted">· {revisionStage.notes}</span>}
                       </div>
                     )}
                   </div>
@@ -1240,10 +1240,10 @@ ${entry}` : entry;
               };
 
               return (
-                <div className={`flex-1 min-w-0 border border-white/[0.06] rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isKilledTrack ? "border-red-500/10 opacity-60" : "bg-white/[0.01]"}`}>
+                <div className={`flex-1 min-w-0 border border-bg-border rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isKilledTrack ? "border-red-500/10 opacity-60" : "bg-bg-surface"}`}>
                   {/* Factory header */}
                   <div className="px-4 py-3 border-b border-white/[0.04] flex items-center gap-2">
-                    <Factory size={11} className="text-white/30 flex-shrink-0" />
+                    <Factory size={11} className="text-text-muted flex-shrink-0" />
                     <span className="text-xs font-bold text-white truncate flex-1">{track.factory_catalog?.name}</span>
                     {isApproved && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">✓{track.approved_price ? ` $${track.approved_price}` : ""}</span>}
                     {isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">Disqualified</span>}
@@ -1257,24 +1257,24 @@ ${entry}` : entry;
                   </div>
 
                   {/* Quoted price strip */}
-                  <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-white/[0.01]">
-                    <span className="text-[10px] text-white/30 flex-shrink-0">Quoted price:</span>
+                  <div className="px-4 py-2 border-b border-white/[0.04] flex items-center gap-2 bg-bg-surface">
+                    <span className="text-[10px] text-text-muted flex-shrink-0">Quoted price:</span>
                     {editingQuotedPrice ? (
                       <div className="flex items-center gap-1 flex-1">
-                        <span className="text-[10px] text-white/40">$</span>
+                        <span className="text-[10px] text-text-secondary">$</span>
                         <input autoFocus value={quotedPriceInput} onChange={e => setQuotedPriceInput(e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter") saveQuotedPrice(); if (e.key === "Escape") setEditingQuotedPrice(false); }}
                           className="flex-1 bg-transparent text-[11px] text-white/70 focus:outline-none w-16"
                           placeholder="0.00" />
                         <button onClick={saveQuotedPrice} className="text-[9px] text-emerald-400 hover:text-emerald-300">Save</button>
-                        <button onClick={() => setEditingQuotedPrice(false)} className="text-[9px] text-white/25 hover:text-white/50">✕</button>
+                        <button onClick={() => setEditingQuotedPrice(false)} className="text-[9px] text-white/25 hover:text-text-secondary">✕</button>
                       </div>
                     ) : (
                       <button onClick={() => setEditingQuotedPrice(true)}
-                        className="flex items-center gap-1 hover:bg-white/[0.04] px-1.5 py-0.5 rounded transition">
+                        className="flex items-center gap-1 hover:bg-bg-elevated px-1.5 py-0.5 rounded transition">
                         {quotedPrice
                           ? <span className="text-[11px] font-semibold text-blue-400">${quotedPrice}</span>
-                          : <span className="text-[10px] text-white/20 italic">+ add price</span>}
+                          : <span className="text-[10px] text-text-muted italic">+ add price</span>}
                         <span className="text-[9px] text-white/15">✏</span>
                       </button>
                     )}
@@ -1290,7 +1290,7 @@ ${entry}` : entry;
                       <div className="space-y-1.5">
                         <textarea value={factoryNote} onChange={e => setFactoryNote(e.target.value)} rows={2}
                           placeholder="Notes for this factory..."
-                          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/60 placeholder-white/15 text-[10px] focus:outline-none resize-none" autoFocus />
+                          className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5 text-text-secondary placeholder-white/15 text-[10px] focus:outline-none resize-none" autoFocus />
                         <div className="flex gap-1">
                           <button onClick={async () => {
                             setSavingNote(true);
@@ -1299,7 +1299,7 @@ ${entry}` : entry;
                               body: JSON.stringify({ action: "update_track_notes", track_id: track.id, notes: noteWithDate }) });
                             setSavingNote(false); setEditingNote(false); setFactoryNote(""); load();
                           }} disabled={savingNote} className="text-[9px] px-2 py-1 rounded bg-white text-black font-bold disabled:opacity-40">Save</button>
-                          <button onClick={() => setEditingNote(false)} className="text-[9px] px-2 py-1 rounded border border-white/[0.06] text-white/30">Cancel</button>
+                          <button onClick={() => setEditingNote(false)} className="text-[9px] px-2 py-1 rounded border border-bg-border text-text-muted">Cancel</button>
                         </div>
                       </div>
                     ) : (
@@ -1310,11 +1310,11 @@ ${entry}` : entry;
                               <p key={i} className="text-[10px] text-white/35 leading-relaxed">{line}</p>
                             ))}
                             {track.notes.split("\n").length > 3 && (
-                              <button onClick={() => setExpandedNoteTrackId(track.id)} className="text-[10px] text-white/30 hover:text-white/60 italic transition">+{track.notes.split("\n").length - 3} more — view all</button>
+                              <button onClick={() => setExpandedNoteTrackId(track.id)} className="text-[10px] text-text-muted hover:text-text-secondary italic transition">+{track.notes.split("\n").length - 3} more — view all</button>
                             )}
                           </>
                         ) : null}
-                        <button onClick={() => { setFactoryNote(track.notes || ""); setEditingNote(true); }} className="text-[10px] text-white/15 hover:text-white/40 transition italic text-left">{track.notes ? "✏ Edit notes" : "+ Add note"}</button>
+                        <button onClick={() => { setFactoryNote(track.notes || ""); setEditingNote(true); }} className="text-[10px] text-white/15 hover:text-text-secondary transition italic text-left">{track.notes ? "✏ Edit notes" : "+ Add note"}</button>
                       </div>
                     )}
                   </div>
@@ -1344,23 +1344,23 @@ ${entry}` : entry;
                       setLoadingMessages(false);
                       if (messagePollingRef.current) clearInterval(messagePollingRef.current);
                       messagePollingRef.current = setInterval(() => fetchMsgs(track.id, false), 3000);
-                    }} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-white/[0.06] hover:border-white/20 transition group">
+                    }} className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-bg-border hover:border-white/20 transition group">
                       <div className="flex items-center gap-2">
                         <span className="text-xs">💬</span>
-                        <span className="text-[11px] font-medium text-white/50 group-hover:text-white/70 transition">Messages</span>
+                        <span className="text-[11px] font-medium text-text-secondary group-hover:text-white/70 transition">Messages</span>
                         {(() => {
                           const counts = trackMessageCounts.find(m => m.track_id === track.id);
                           const total = counts?.total || 0;
                           const unread = counts?.unread || 0;
                           return total > 0 ? (
                             <span className="flex items-center gap-1">
-                              <span className="text-[9px] text-white/30">{total}</span>
+                              <span className="text-[9px] text-text-muted">{total}</span>
                               {unread > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/30 text-blue-400 border border-blue-500/30">{unread} new</span>}
                             </span>
                           ) : null;
                         })()}
                       </div>
-                      <span className="text-white/20 text-[10px]">→</span>
+                      <span className="text-text-muted text-[10px]">→</span>
                     </button>
                   </div>
                   )}
@@ -1378,8 +1378,8 @@ ${entry}` : entry;
                 {/* Request Samples + Add Factory buttons */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-sm font-bold text-white">Factory Tracks</h2>
-                    <p className="text-[11px] text-white/30 mt-0.5">Per-factory development pipeline</p>
+                    <h2 className="text-sm font-bold text-text-primary">Factory Tracks</h2>
+                    <p className="text-[11px] text-text-muted mt-0.5">Per-factory development pipeline</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {!isLocked && (
@@ -1390,7 +1390,7 @@ ${entry}` : entry;
                     )}
                     {!isLocked && (
                       <button onClick={() => setAddingFactory(true)}
-                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-bg-border text-text-secondary hover:text-white/70 hover:border-white/20 transition">
                         <Plus size={11} />Add Factory
                       </button>
                     )}
@@ -1419,7 +1419,7 @@ ${entry}` : entry;
                         }
                         setAssignMsgExistingMembers(existingMap);
                         setAssignMessagesModal(true);
-                      }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition">
+                      }} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border border-bg-border text-text-secondary hover:text-white/70 hover:border-white/20 transition">
                         <Users size={11} />Assign Messages
                       </button>
                     )}
@@ -1428,11 +1428,11 @@ ${entry}` : entry;
 
                 {/* Add factory multi-select */}
                 {addingFactory && (
-                  <div className="p-3 border border-white/[0.08] rounded-xl bg-white/[0.02] space-y-3">
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest">Select Factories</p>
+                  <div className="p-3 border border-bg-border rounded-xl bg-bg-surface space-y-3">
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest">Select Factories</p>
                     <div className="space-y-1 max-h-48 overflow-y-auto">
                       {availableFactories.map((f: any) => (
-                        <label key={f.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.03] cursor-pointer">
+                        <label key={f.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-bg-elevated cursor-pointer">
                           <input type="checkbox" checked={(newTrackFactoryId as any[]).includes(f.id)}
                             onChange={e => {
                               const ids = (newTrackFactoryId as any[]);
@@ -1440,10 +1440,10 @@ ${entry}` : entry;
                               else setNewTrackFactoryId(ids.filter((x: string) => x !== f.id) as any);
                             }}
                             className="accent-white w-3.5 h-3.5" />
-                          <span className="text-xs text-white/60">{f.name}</span>
+                          <span className="text-xs text-text-secondary">{f.name}</span>
                         </label>
                       ))}
-                      {availableFactories.length === 0 && <p className="text-xs text-white/20 px-2">All factories already added</p>}
+                      {availableFactories.length === 0 && <p className="text-xs text-text-muted px-2">All factories already added</p>}
                     </div>
                     <div className="flex gap-2">
                       <button onClick={async () => {
@@ -1459,14 +1459,14 @@ ${entry}` : entry;
                         <Check size={11} />Add {(newTrackFactoryId as any[]).length > 0 ? `(${(newTrackFactoryId as any[]).length})` : ""}
                       </button>
                       <button onClick={() => { setAddingFactory(false); setNewTrackFactoryId([] as any); }}
-                        className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                        className="px-3 py-2 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                     </div>
                   </div>
                 )}
 
                 {tracks.length === 0 ? (
-                  <div className="py-10 text-center border border-dashed border-white/[0.06] rounded-2xl">
-                    <p className="text-xs text-white/20">No factories added yet</p>
+                  <div className="py-10 text-center border border-dashed border-bg-border rounded-2xl">
+                    <p className="text-xs text-text-muted">No factories added yet</p>
                     <p className="text-[11px] text-white/15 mt-1">Click "Add Factory" to start tracking</p>
                   </div>
                 ) : (
@@ -1487,12 +1487,12 @@ ${entry}` : entry;
           {/* Skip stage modal */}
           {skipModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Skip this stage?</p>
-                <p className="text-xs text-white/40">Enter a reason so you remember why this was skipped.</p>
+                <p className="text-xs text-text-secondary">Enter a reason so you remember why this was skipped.</p>
                 <input value={skipReason} onChange={e => setSkipReason(e.target.value)}
                   placeholder="e.g. Not needed for this product"
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none"
+                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none"
                   autoFocus />
                 <div className="flex gap-2">
                   <button onClick={async () => {
@@ -1503,7 +1503,7 @@ ${entry}` : entry;
                       body: JSON.stringify({ action: "update_stage", track_id: skipModal.trackId, product_id: skipModal.productId, factory_id: skipModal.factoryId, stage: skipModal.stage, status: "skipped", skip_reason: skipReason || "Skipped", revision_number: revNum }) });
                     setSkipModal(null); load();
                   }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Skip Stage</button>
-                  <button onClick={() => setSkipModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <button onClick={() => setSkipModal(null)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                 </div>
               </div>
             </div>
@@ -1512,17 +1512,17 @@ ${entry}` : entry;
           {/* Expected date modal */}
           {expectedDateModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Set expected date</p>
                 <input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none" autoFocus />
+                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none" autoFocus />
                 <div className="flex gap-2">
                   <button onClick={async () => {
                     await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ action: "update_stage", track_id: expectedDateModal.trackId, product_id: expectedDateModal.productId, factory_id: expectedDateModal.factoryId, stage: expectedDateModal.stage, status: "pending", expected_date: expectedDate, revision_number: 0 }) });
                     setExpectedDateModal(null); load();
                   }} className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold">Save</button>
-                  <button onClick={() => setExpectedDateModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <button onClick={() => setExpectedDateModal(null)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                 </div>
               </div>
             </div>
@@ -1532,21 +1532,21 @@ ${entry}` : entry;
           {/* Messages Modal */}
           {messagesModal && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#141414] border border-white/[0.12] rounded-2xl w-full max-w-lg flex flex-col shadow-2xl" style={{maxHeight: "85vh"}}>
-                <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+              <div className="bg-[#141414] border border-bg-border rounded-2xl w-full max-w-lg flex flex-col shadow-2xl" style={{maxHeight: "85vh"}}>
+                <div className="px-6 py-5 border-b border-bg-border flex items-center justify-between flex-shrink-0">
                   <div>
                     <p className="text-base font-semibold">Messages</p>
-                    <p className="text-xs text-white/40 mt-0.5">{messagesModal.track.factory_catalog?.name} · {trackMessages.length} message{trackMessages.length !== 1 ? "s" : ""}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{messagesModal.track.factory_catalog?.name} · {trackMessages.length} message{trackMessages.length !== 1 ? "s" : ""}</p>
                   </div>
                   <button onClick={async () => { setMessagesModal(null); setTrackMessages([]); setNewMessage(""); if (messagePollingRef.current) { clearInterval(messagePollingRef.current); messagePollingRef.current = null; } const allTracks2 = tracks; if (allTracks2.length > 0) { const counts = await Promise.all(allTracks2.map(async (t: any) => { const r = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_message_counts", track_id: t.id }) }); const d = await r.json(); return { track_id: t.id, total: d.total || 0, unread: d.unread || 0 }; })); setTrackMessageCounts(counts); } }}
-                    className="text-white/30 hover:text-white/60 text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition">×</button>
+                    className="text-text-muted hover:text-text-secondary text-xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg-elevated transition">×</button>
                 </div>
 
                 <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                   {loadingMessages ? (
-                    <p className="text-xs text-white/30 text-center py-8">Loading...</p>
+                    <p className="text-xs text-text-muted text-center py-8">Loading...</p>
                   ) : trackMessages.length === 0 ? (
-                    <p className="text-xs text-white/20 text-center py-8">No messages yet.</p>
+                    <p className="text-xs text-text-muted text-center py-8">No messages yet.</p>
                   ) : (<>
                     {trackMessages.map((msg: any, idx: number) => (
                       <div key={msg.id}>
@@ -1564,18 +1564,18 @@ ${entry}` : entry;
                             ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
                             : msg.sender_role === "designer"
                             ? "bg-blue-500/10 border border-blue-500/20 rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"
-                            : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
-                            <p className={`text-[10px] font-semibold mb-0.5 ${msg.sender_role === "designer" ? "text-blue-400/70" : "text-white/50"}`}>{msg.sender_name}</p>
+                            : "bg-bg-elevated border border-bg-border rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
+                            <p className={`text-[10px] font-semibold mb-0.5 ${msg.sender_role === "designer" ? "text-blue-400/70" : "text-text-secondary"}`}>{msg.sender_name}</p>
                             <p className="text-xs text-white/80">{msg.message}</p>
-                            <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                            <p className="text-[9px] text-text-muted mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                           </div>
                           {msg.sender_role === "admin" && (
-                            <p className="text-[9px] text-white/20 px-1">
+                            <p className="text-[9px] text-text-muted px-1">
                               {msg.read_by_factory ? "✓✓ Seen by factory" : "✓ Sent"}
                             </p>
                           )}
                           {msg.sender_role === "factory" && msg.read_by_admin && (
-                            <p className="text-[9px] text-white/20 px-1">✓ Read</p>
+                            <p className="text-[9px] text-text-muted px-1">✓ Read</p>
                           )}
                           {msg.sender_role === "designer" && msg.read_by_admin && (
                             <p className="text-[9px] text-blue-400/30 px-1">✓ Read by admin</p>
@@ -1586,7 +1586,7 @@ ${entry}` : entry;
                     <div ref={messagesBottomRef} />
                   </>)}
                 </div>
-                <div className="px-4 py-3 border-t border-white/[0.06] flex gap-2 flex-shrink-0">
+                <div className="px-4 py-3 border-t border-bg-border flex gap-2 flex-shrink-0">
                   <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
                     onKeyDown={async e => {
                       if (e.key !== "Enter" || !newMessage.trim()) return;
@@ -1602,7 +1602,7 @@ ${entry}` : entry;
                       setSendingMessage(false);
                     }}
                     placeholder="Type a message... (Enter to send)"
-                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-xs focus:outline-none" />
+                    className="flex-1 bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white text-xs focus:outline-none" />
                   <button onClick={async () => {
                     if (!newMessage.trim()) return;
                     setSendingMessage(true);
@@ -1623,14 +1623,14 @@ ${entry}` : entry;
 
           {approveModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Approve — {approveModal.track.factory_catalog?.name}</p>
-                <p className="text-xs text-white/40">Lock in this factory. Enter the agreed price.</p>
+                <p className="text-xs text-text-secondary">Lock in this factory. Enter the agreed price.</p>
                 <div>
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Agreed Price (ELC)</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">Agreed Price (ELC)</p>
                   <input type="number" step="0.01" value={approvePrice} onChange={e => setApprovePrice(e.target.value)}
                     placeholder="e.g. 2.45"
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center"
+                    className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none text-center"
                     autoFocus />
                 </div>
                 <div className="flex gap-2">
@@ -1647,7 +1647,7 @@ ${entry}` : entry;
                     {approvingTrack ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                     Approve Factory
                   </button>
-                  <button onClick={() => setApproveModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <button onClick={() => setApproveModal(null)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                 </div>
               </div>
             </div>
@@ -1656,12 +1656,12 @@ ${entry}` : entry;
           {/* Revision modal */}
           {revisionModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Request Revision — {revisionModal.track.factory_catalog?.name}</p>
-                <p className="text-xs text-white/40">Describe what needs to change. The factory will be notified.</p>
+                <p className="text-xs text-text-secondary">Describe what needs to change. The factory will be notified.</p>
                 <textarea value={revisionNotes} onChange={e => setRevisionNotes(e.target.value)}
                   placeholder="e.g. Color needs to be darker, handle needs reinforcing..."
-                  rows={3} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" autoFocus />
+                  rows={3} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" autoFocus />
                 <div className="flex gap-2">
                   <button onClick={async () => {
                     setRequestingRevision(true);
@@ -1684,7 +1684,7 @@ ${entry}` : entry;
                     {requestingRevision ? <Loader2 size={11} className="animate-spin" /> : null}
                     Send Revision Request
                   </button>
-                  <button onClick={() => setRevisionModal(null)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <button onClick={() => setRevisionModal(null)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                 </div>
               </div>
             </div>
@@ -1693,12 +1693,12 @@ ${entry}` : entry;
           {/* Kill track modal */}
           {killModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Discontinue — {killModal.track.factory_catalog?.name}</p>
-                <p className="text-xs text-white/40">This factory will be marked as discontinued for this product.</p>
+                <p className="text-xs text-text-secondary">This factory will be marked as discontinued for this product.</p>
                 <textarea value={killNotes} onChange={e => setKillNotes(e.target.value)}
                   placeholder="e.g. Price too high, lead time too slow..."
-                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" autoFocus />
+                  rows={2} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" autoFocus />
                 <div className="flex gap-2 flex-col">
                   <button onClick={async () => {
                     setKillingTrack(true);
@@ -1721,7 +1721,7 @@ ${entry}` : entry;
                     className="flex-1 py-2.5 rounded-xl bg-red-900/30 border border-red-900/40 text-red-600 text-xs font-semibold disabled:opacity-40">
                     Kill Entire Product
                   </button>
-                  <button onClick={() => setKillModal(null)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs text-center">Cancel</button>
+                  <button onClick={() => setKillModal(null)} className="px-4 py-2 rounded-xl border border-bg-border text-text-muted text-xs text-center">Cancel</button>
                 </div>
               </div>
             </div>
@@ -1730,35 +1730,35 @@ ${entry}` : entry;
           {/* Disqualify Modal */}
           {assignMessagesModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-5">
+              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold">Assign Messages</p>
-                    <p className="text-[11px] text-white/30 mt-0.5">Add team members to factory chats for this product</p>
+                    <p className="text-[11px] text-text-muted mt-0.5">Add team members to factory chats for this product</p>
                   </div>
-                  <button onClick={() => setAssignMessagesModal(false)} className="text-white/30 hover:text-white/60"><X size={16} /></button>
+                  <button onClick={() => setAssignMessagesModal(false)} className="text-text-muted hover:text-text-secondary"><X size={16} /></button>
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Factory Chats</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest">Factory Chats</p>
                   {tracks.map((track: any) => {
                     const hasSample = (track.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done");
                     const isSelected = assignMsgSelectedTracks.includes(track.id);
                     return (
                     <div key={track.id} onClick={() => { if (!hasSample) return; setAssignMsgSelectedTracks(prev => prev.includes(track.id) ? prev.filter(id => id !== track.id) : [...prev, track.id]); }}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${!hasSample ? "opacity-30 cursor-default border-white/[0.04] bg-white/[0.01]" : isSelected ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-white/[0.06] bg-white/[0.02]"}`}>
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${!hasSample ? "opacity-30 cursor-default border-white/[0.04] bg-bg-surface" : isSelected ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-bg-border bg-bg-surface"}`}>
                       <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${isSelected ? "bg-white border-white" : "border-white/20"}`}>
                         {isSelected && <Check size={10} className="text-black" />}
                       </div>
-                      <p className={`text-xs ${hasSample ? "text-white/70" : "text-white/30"}`}>{track.factory_catalog?.name}</p>
-                      {!hasSample && <span className="text-[9px] text-white/20 ml-auto">No sample</span>}
+                      <p className={`text-xs ${hasSample ? "text-white/70" : "text-text-muted"}`}>{track.factory_catalog?.name}</p>
+                      {!hasSample && <span className="text-[9px] text-text-muted ml-auto">No sample</span>}
                     </div>
                   );})}
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Team Members</p>
-                  {assignMsgTeamMembers.length === 0 && <p className="text-[11px] text-white/20">No team members found</p>}
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest">Team Members</p>
+                  {assignMsgTeamMembers.length === 0 && <p className="text-[11px] text-text-muted">No team members found</p>}
                   {assignMsgTeamMembers.map((m: any) => {
                     const isSelected = assignMsgSelectedMembers.includes(m.id);
                     // Which selected tracks already have this member
@@ -1771,15 +1771,15 @@ ${entry}` : entry;
                     const alreadyInNames = alreadyInTracks.map(tid => tracks.find((t: any) => t.id === tid)?.factory_catalog?.name).filter(Boolean);
                     return (
                     <div key={m.id} onClick={() => { if (alreadyInAll) return; setAssignMsgSelectedMembers(prev => prev.includes(m.id) ? prev.filter(id => id !== m.id) : [...prev, m.id]); }}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${alreadyInAll ? "opacity-40 cursor-default border-white/[0.04] bg-white/[0.01]" : isSelected ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-white/[0.06] bg-white/[0.02]"}`}>
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${alreadyInAll ? "opacity-40 cursor-default border-white/[0.04] bg-bg-surface" : isSelected ? "cursor-pointer border-white/20 bg-white/[0.06]" : "cursor-pointer border-bg-border bg-bg-surface"}`}>
                       <div className={`w-4 h-4 rounded-md border flex items-center justify-center flex-shrink-0 ${alreadyInAll ? "border-emerald-500/30 bg-emerald-500/10" : isSelected ? "bg-white border-white" : "border-white/20"}`}>
                         {alreadyInAll ? <Check size={10} className="text-emerald-400" /> : isSelected ? <Check size={10} className="text-black" /> : null}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs ${alreadyInAll ? "text-white/30" : "text-white/70"}`}>{m.full_name || m.email}</p>
+                        <p className={`text-xs ${alreadyInAll ? "text-text-muted" : "text-white/70"}`}>{m.full_name || m.email}</p>
                         {alreadyInAll && <p className="text-[9px] text-emerald-400/50">Already in all selected chats</p>}
-                        {alreadyInSome && <p className="text-[9px] text-white/30">Already in: {alreadyInNames.join(", ")}</p>}
-                        {isSelected && newTracks.length > 0 && <p className="text-[9px] text-white/30">Will be added to {newTracks.length} chat{newTracks.length !== 1 ? "s" : ""}</p>}
+                        {alreadyInSome && <p className="text-[9px] text-text-muted">Already in: {alreadyInNames.join(", ")}</p>}
+                        {isSelected && newTracks.length > 0 && <p className="text-[9px] text-text-muted">Will be added to {newTracks.length} chat{newTracks.length !== 1 ? "s" : ""}</p>}
                         {(product.plm_assignments || []).some((a: any) => a.designer_id === m.id) && !alreadyInAll && !alreadyInSome && (
                           <p className="text-[9px] text-amber-400/60">Assigned to product</p>
                         )}
@@ -1791,7 +1791,7 @@ ${entry}` : entry;
 
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => setAssignMessagesModal(false)}
-                    className="flex-1 px-4 py-2 rounded-xl border border-white/[0.08] text-white/40 text-xs">Cancel</button>
+                    className="flex-1 px-4 py-2 rounded-xl border border-bg-border text-text-secondary text-xs">Cancel</button>
                   <button disabled={assignMsgLoading || assignMsgSelectedTracks.length === 0 || assignMsgSelectedMembers.length === 0}
                     onClick={async () => {
                       setAssignMsgLoading(true);
@@ -1810,21 +1810,21 @@ ${entry}` : entry;
 
           {disqualifyModal && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-lg space-y-4">
+              <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-full max-w-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-bold text-white">Disqualify {disqualifyModal.track.factory_catalog?.name}</p>
-                    <p className="text-xs text-white/40 mt-0.5">They will be notified by email and their track will be greyed out</p>
+                    <p className="text-sm font-bold text-text-primary">Disqualify {disqualifyModal.track.factory_catalog?.name}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">They will be notified by email and their track will be greyed out</p>
                   </div>
-                  <button onClick={() => setDisqualifyModal(null)} className="text-white/30 hover:text-white/60 text-lg">✕</button>
+                  <button onClick={() => setDisqualifyModal(null)} className="text-text-muted hover:text-text-secondary text-lg">✕</button>
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Reason</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Reason</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[{ key: "price", label: "Price", icon: "💰" }, { key: "speed", label: "Speed", icon: "⏱" }, { key: "quality", label: "Quality", icon: "⚠️" }].map(r => (
                       <button key={r.key} onClick={() => setDisqualifyReason(r.key)}
-                        className={`py-2.5 rounded-xl border text-xs font-semibold transition ${disqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-white/[0.06] text-white/40 hover:border-white/20"}`}>
+                        className={`py-2.5 rounded-xl border text-xs font-semibold transition ${disqualifyReason === r.key ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-bg-border text-text-secondary hover:border-white/20"}`}>
                         {r.icon} {r.label}
                       </button>
                     ))}
@@ -1832,15 +1832,15 @@ ${entry}` : entry;
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Internal Note (saved to factory track, not sent in email)</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Internal Note (saved to factory track, not sent in email)</p>
                   <textarea value={disqualifyNote} onChange={e => setDisqualifyNote(e.target.value)} rows={2}
                     placeholder="e.g. Lead time was 60 days vs our requirement of 45..."
-                    className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none resize-none" />
+                    className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary placeholder-white/20 text-xs focus:outline-none resize-none" />
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Email Preview</p>
-                  <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 text-xs text-white/40 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Email Preview</p>
+                  <div className="bg-bg-surface border border-bg-border rounded-xl px-4 py-3 text-xs text-text-secondary whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
                     {`Hi ${disqualifyModal.track.factory_catalog?.contact_name || disqualifyModal.track.factory_catalog?.name},
 
 Thank you for your time and effort on the ${product.name} sample. We truly appreciate the work you put in.
@@ -1866,22 +1866,22 @@ Best regards,
                     {disqualifying ? <Loader2 size={13} className="animate-spin" /> : null}
                     Disqualify & Send Email
                   </button>
-                  <button onClick={() => setDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm">Cancel</button>
+                  <button onClick={() => setDisqualifyModal(null)} className="px-4 py-2.5 rounded-xl border border-bg-border text-text-secondary text-sm">Cancel</button>
                 </div>
               </div>
             </div>
           )}
 
           {/* ── PRODUCTION ORDERS SECTION ── */}
-          <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
+          <div className="border border-bg-border rounded-2xl overflow-hidden bg-bg-surface">
             <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-white">Production Orders</p>
-                <p className="text-xs text-white/30 mt-0.5">PO issued through shipped — factory updates these</p>
+                <p className="text-sm font-semibold text-text-primary">Production Orders</p>
+                <p className="text-xs text-text-muted mt-0.5">PO issued through shipped — factory updates these</p>
               </div>
               {!isLocked && (
                 <button onClick={() => setShowNewOrder(!showNewOrder)}
-                  className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-lg transition">
+                  className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-white/70 border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-lg transition">
                   <Plus size={11} />New Order
                 </button>
               )}
@@ -1900,8 +1900,8 @@ Best regards,
               const calcSellPrice = calcElc > 0 && marginPct > 0 ? calcElc / (1 - marginPct / 100) : 0;
 
               return (
-                <div className="px-6 py-5 border-b border-white/[0.04] space-y-4 bg-white/[0.01]">
-                  <p className="text-xs font-semibold text-white/60">New Production Order</p>
+                <div className="px-6 py-5 border-b border-white/[0.04] space-y-4 bg-bg-surface">
+                  <p className="text-xs font-semibold text-text-secondary">New Production Order</p>
 
                   {/* Row 1: Factory + PO + Qty */}
                   <div className="grid grid-cols-3 gap-3">
@@ -1918,7 +1918,7 @@ Best regards,
 
                   {/* Row 2: Cost breakdown */}
                   <div>
-                    <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Cost Breakdown</p>
+                    <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Cost Breakdown</p>
                     <div className="grid grid-cols-4 gap-3">
                       <div><label className={lc}>First Cost ($)</label><input type="number" step="0.01" value={newOrder.unit_price} onChange={e => setNewOrder({...newOrder, unit_price: e.target.value})} placeholder="2.00" className={ic} /></div>
                       <div><label className={lc}>Tariff (%)</label><input type="number" step="0.1" value={newOrder.tariff} onChange={e => setNewOrder({...newOrder, tariff: e.target.value})} placeholder="10" className={ic} /></div>
@@ -1929,10 +1929,10 @@ Best regards,
 
                   {/* ELC display */}
                   {calcElc > 0 && (
-                    <div className="flex items-center gap-3 px-4 py-3 bg-white/[0.02] border border-white/[0.06] rounded-xl">
+                    <div className="flex items-center gap-3 px-4 py-3 bg-bg-surface border border-bg-border rounded-xl">
                       <div className="flex-1">
-                        <p className="text-[10px] text-white/30 mb-0.5">Calculated ELC</p>
-                        <p className="text-lg font-bold text-white">${calcElc.toFixed(2)}</p>
+                        <p className="text-[10px] text-text-muted mb-0.5">Calculated ELC</p>
+                        <p className="text-lg font-bold text-text-primary">${calcElc.toFixed(2)}</p>
                         <p className="text-[10px] text-white/25">{unitPrice > 0 ? `$${unitPrice.toFixed(2)} first cost` : ""}
                           {tariff > 0 ? ` + ${tariff}% tariff ($${tariffAmt.toFixed(2)})` : ""}
                           {freight > 0 ? ` + ${freight}% freight ($${freightAmt.toFixed(2)})` : ""}
@@ -1940,7 +1940,7 @@ Best regards,
                       </div>
                       {calcSellPrice > 0 && (
                         <div className="text-right">
-                          <p className="text-[10px] text-white/30 mb-0.5">Sell Price</p>
+                          <p className="text-[10px] text-text-muted mb-0.5">Sell Price</p>
                           <p className="text-lg font-bold text-emerald-400">${calcSellPrice.toFixed(2)}</p>
                           <p className="text-[10px] text-white/25">{marginPct}% margin</p>
                         </div>
@@ -1959,7 +1959,7 @@ Best regards,
                         value={marginPct}
                         onChange={e => setNewOrder({...newOrder, margin_pct: e.target.value})}
                         className="w-full accent-emerald-500 cursor-pointer" />
-                      <div className="flex justify-between text-[9px] text-white/20 mt-1">
+                      <div className="flex justify-between text-[9px] text-text-muted mt-1">
                         <span>0%</span><span>50%</span><span>100%</span><span>150%</span><span>200%</span>
                       </div>
                     </div>
@@ -1972,7 +1972,7 @@ Best regards,
                     <button onClick={createOrder} disabled={savingOrder} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                       {savingOrder ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Order
                     </button>
-                    <button onClick={() => setShowNewOrder(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                    <button onClick={() => setShowNewOrder(false)} className="px-3 py-2 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                   </div>
                 </div>
               );
@@ -1981,7 +1981,7 @@ Best regards,
             <div className="divide-y divide-white/[0.04]">
               {orders.length === 0 ? (
                 <div className="px-6 py-8 text-center">
-                  <p className="text-xs text-white/20">No orders yet</p>
+                  <p className="text-xs text-text-muted">No orders yet</p>
                   <p className="text-[11px] text-white/15 mt-1">Create an order once sample is approved and PO is issued</p>
                 </div>
               ) : orders.map((order: any) => {
@@ -1999,7 +1999,7 @@ Best regards,
                         {editingOrderFactory === order.id ? (
                           <div className="flex items-center gap-1.5">
                             <select value={orderFactoryVal} onChange={e => setOrderFactoryVal(e.target.value)}
-                              className="bg-white/[0.04] border border-white/20 rounded-lg px-2 py-1 text-white/70 text-xs focus:outline-none">
+                              className="bg-bg-elevated border border-white/20 rounded-lg px-2 py-1 text-white/70 text-xs focus:outline-none">
                               <option value="">No factory</option>
                               {factories.map((f: any) => <option key={f.id} value={f.id}>{f.name}</option>)}
                             </select>
@@ -2007,18 +2007,18 @@ Best regards,
                               className="px-2 py-1 rounded-lg bg-white text-black text-xs font-semibold disabled:opacity-40">
                               {savingOrderFactory ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
                             </button>
-                            <button onClick={() => setEditingOrderFactory(null)} className="px-2 py-1 rounded-lg border border-white/[0.06] text-white/30 text-xs">✕</button>
+                            <button onClick={() => setEditingOrderFactory(null)} className="px-2 py-1 rounded-lg border border-bg-border text-text-muted text-xs">✕</button>
                           </div>
                         ) : (
                           <button onClick={() => { setEditingOrderFactory(order.id); setOrderFactoryVal(order.factory_id || ""); }}
-                            className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition">
+                            className="flex items-center gap-1 text-xs text-text-muted hover:text-text-secondary transition">
                             <Factory size={9} />{orderFactory ? orderFactory.name : "Assign factory"}<Pencil size={8} className="ml-0.5" />
                           </button>
                         )}
                         {order.linked_po_number && <span className="text-[10px] text-white/25 font-mono">PO: {order.linked_po_number}</span>}
                       </div>
                       <button onClick={() => deleteOrder(order.id)} disabled={deletingOrder === order.id}
-                        className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                        className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition">
                         {deletingOrder === order.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                       </button>
                     </div>
@@ -2031,18 +2031,18 @@ Best regards,
                       const orderCurrent = ORDER_STAGES[orderCurrentIdx] || ORDER_STAGES[0];
                       return (
                         <div className="space-y-3">
-                          <div className="w-full bg-white/[0.05] rounded-full h-1">
+                          <div className="w-full bg-bg-elevated rounded-full h-1">
                             <div className="h-1 rounded-full transition-all" style={{ width: `${((orderCurrentIdx + 1) / ORDER_STAGES.length) * 100}%`, background: orderCurrent.color }} />
                           </div>
                           <div className="flex items-center justify-between gap-3">
                             <button onClick={() => orderPrev && updateOrderStage(order.id, orderPrev.key)} disabled={!orderPrev || updatingOrderStage === order.id || isLocked}
-                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition text-xs disabled:opacity-20 disabled:cursor-not-allowed">
+                              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-bg-border text-text-secondary hover:text-white/70 transition text-xs disabled:opacity-20 disabled:cursor-not-allowed">
                               ← {orderPrev ? orderPrev.label : "Start"}
                             </button>
                             <div className="text-center">
                               <div className="flex items-center gap-1.5 justify-center">
                                 <div className="w-2 h-2 rounded-full" style={{ background: orderCurrent.color }} />
-                                <span className="text-xs font-semibold text-white">{orderCurrent.label}</span>
+                                <span className="text-xs font-semibold text-text-primary">{orderCurrent.label}</span>
                               </div>
                               <p className="text-[10px] text-white/25 mt-0.5">{orderCurrentIdx + 1} of {ORDER_STAGES.length}</p>
                             </div>
@@ -2055,7 +2055,7 @@ Best regards,
                           {/* Note input */}
                           <input value={orderStageNote[order.id] || ""} onChange={e => setOrderStageNote(prev => ({ ...prev, [order.id]: e.target.value }))}
                             placeholder="Add a note to this stage update..."
-                            className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2 text-white/60 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition" />
+                            className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition" />
                           {/* Timeline */}
                           <div className="border-t border-white/[0.04] pt-3 space-y-1">
                             {ORDER_STAGES.map((s, i) => {
@@ -2074,7 +2074,7 @@ Best regards,
                               );
                             })}
                           </div>
-                          {updatingOrderStage === order.id && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
+                          {updatingOrderStage === order.id && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-text-muted" /></div>}
                         </div>
                       );
                     })()}
@@ -2112,7 +2112,7 @@ Best regards,
                       };
 
                       return (
-                        <div className="space-y-3 border border-white/[0.04] rounded-xl p-4 bg-white/[0.01]">
+                        <div className="space-y-3 border border-white/[0.04] rounded-xl p-4 bg-bg-surface">
                           <p className="text-[10px] text-white/25 uppercase tracking-widest">Pricing</p>
 
                           {/* Cost inputs */}
@@ -2125,8 +2125,8 @@ Best regards,
                             ].map((f: any) => (
                               <div key={f.label}>
                                 <p className="text-[9px] text-white/25 mb-1">{f.label}</p>
-                                <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2 py-1.5">
-                                  <span className="text-[10px] text-white/30">{f.prefix}</span>
+                                <div className="flex items-center gap-1 bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5">
+                                  <span className="text-[10px] text-text-muted">{f.prefix}</span>
                                   <input type="number" step={f.step} value={f.val}
                                     onChange={e => setV(f.key, e.target.value)}
                                     className="flex-1 bg-transparent text-xs text-white/70 focus:outline-none w-full"
@@ -2154,10 +2154,10 @@ Best regards,
                                     </div>
                                   </div>
                                 )}
-                                <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                                <div className="px-3 py-2 rounded-lg bg-bg-elevated border border-bg-border">
                                     <p className="text-[9px] text-white/25 mb-1">Qty</p>
                                     <input type="number" defaultValue={qty || ""} placeholder="0"
-                                      className="w-16 bg-transparent text-base font-bold text-white/60 focus:outline-none focus:text-white/80"
+                                      className="w-16 bg-transparent text-base font-bold text-text-secondary focus:outline-none focus:text-white/80"
                                       onBlur={async e => {
                                         const newQty = parseInt(e.target.value) || null;
                                         await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -2167,9 +2167,9 @@ Best regards,
                                   </div>
                               </div>
                               {qty > 0 && liveElc > 0 && (
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-surface border border-white/[0.04]">
                                   <span className="text-[10px] text-white/25">Total cost:</span>
-                                  <span className="text-[11px] font-semibold text-white/50">${totalCost.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                  <span className="text-[11px] font-semibold text-text-secondary">${totalCost.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                                   {liveSell > 0 && <>
                                     <span className="text-white/15 mx-1">·</span>
                                     <span className="text-[10px] text-white/25">Total revenue:</span>
@@ -2193,7 +2193,7 @@ Best regards,
                                     value={liveMpct}
                                     onChange={e => setV("margin", e.target.value)}
                                     onKeyDown={e => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-                                    className="w-16 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-0.5 text-xs text-emerald-400 font-bold text-right focus:outline-none focus:border-emerald-500/40"
+                                    className="w-16 bg-bg-elevated border border-bg-border rounded-lg px-2 py-0.5 text-xs text-emerald-400 font-bold text-right focus:outline-none focus:border-emerald-500/40"
                                   />
                                   <span className="text-xs text-emerald-400 font-bold">%</span>
                                 </div>
@@ -2211,12 +2211,12 @@ Best regards,
                             <div className="flex items-center gap-3">
                               {order.linked_po_number && <div>
                                 <p className="text-[9px] text-white/25">PO</p>
-                                <p className="text-xs font-mono text-white/50">{order.linked_po_number}</p>
+                                <p className="text-xs font-mono text-text-secondary">{order.linked_po_number}</p>
                               </div>}
                               {order.payment_terms && <p className="text-[10px] text-white/25">{order.payment_terms}</p>}
                             </div>
                             <button onClick={saveFinancials} disabled={savingFinancials === oid}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/[0.08] text-white/50 text-xs hover:text-white/80 transition disabled:opacity-40">
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] border border-bg-border text-text-secondary text-xs hover:text-white/80 transition disabled:opacity-40">
                               {savingFinancials === oid ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
                               Save
                             </button>
@@ -2229,21 +2229,21 @@ Best regards,
                     <div className="border-t border-white/[0.04] pt-3 space-y-2">
                       <p className="text-[10px] text-white/25 uppercase tracking-widest">Factory Updates</p>
                       {history.length === 0 ? (
-                        <p className="text-[11px] text-white/20 italic">No updates yet</p>
+                        <p className="text-[11px] text-text-muted italic">No updates yet</p>
                       ) : (
                         <div className="space-y-2">
                           {history.map((h: any) => {
                             const s = stageInfo(h.stage);
                             return (
-                              <div key={h.id} className="flex items-start gap-2.5 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                              <div key={h.id} className="flex items-start gap-2.5 px-3 py-2 rounded-xl bg-bg-surface border border-white/[0.04]">
                                 <div className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: s.color }} />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between">
                                     <span className="text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
-                                    <span className="text-[10px] text-white/20">{new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                    <span className="text-[10px] text-text-muted">{new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                                   </div>
-                                  {h.notes && <p className="text-[11px] text-white/40 mt-0.5">{h.notes}</p>}
-                                  {h.updated_by && <p className="text-[10px] text-white/20">{h.updated_by_role === "factory" ? "Factory" : "Admin"}</p>}
+                                  {h.notes && <p className="text-[11px] text-text-secondary mt-0.5">{h.notes}</p>}
+                                  {h.updated_by && <p className="text-[10px] text-text-muted">{h.updated_by_role === "factory" ? "Factory" : "Admin"}</p>}
                                 </div>
                               </div>
                             );
@@ -2276,7 +2276,7 @@ Best regards,
                               onChange={e => setOrderFinancials((prev: any) => ({ ...prev, [noteKey]: { note: e.target.value, dirty: true } }))}
                               rows={2}
                               placeholder="Add notes about this order..."
-                              className="w-full bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2 text-white/50 placeholder-white/15 text-xs focus:outline-none focus:border-white/15 resize-none transition"
+                              className="w-full bg-bg-surface border border-bg-border rounded-xl px-3 py-2 text-text-secondary placeholder-white/15 text-xs focus:outline-none focus:border-white/15 resize-none transition"
                             />
                           </div>
                         );
@@ -2289,7 +2289,7 @@ Best regards,
           </div>
 
           {/* ── PRODUCT DETAILS — INLINE EDITING ── */}
-          <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
+          <div className="border border-bg-border rounded-2xl overflow-hidden bg-bg-surface">
             {/* Header */}
             <div className="px-6 py-4 border-b border-white/[0.04] flex items-center justify-between">
               <p className="text-[10px] text-white/25 uppercase tracking-widest font-medium">Product Details</p>
@@ -2313,10 +2313,10 @@ Best regards,
               <InlineField label="Dimensions (e.g. 10x5x3 cm)" value={product.dimensions || ""} onSave={v => saveField("dimensions", v)} disabled={isKilled} />
               <div className="col-span-2 group">
                 <div className="flex items-center justify-between mb-1">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Collection</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest">Collection</p>
                 </div>
                 <select value={product.collection_id || ""} onChange={e => saveCollectionField(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20 transition">
+                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20 transition">
                   <option value="">No collection</option>
                   {collections.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
@@ -2362,10 +2362,10 @@ Best regards,
               </button>
             </div>
           )}
-          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+          <div className="border border-bg-border rounded-2xl p-6 bg-bg-surface">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[10px] text-white/25 uppercase tracking-widest">Images</p>
-              <label className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 cursor-pointer transition px-3 py-1.5 rounded-lg border border-white/[0.06] hover:border-white/10">
+              <label className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-white/70 cursor-pointer transition px-3 py-1.5 rounded-lg border border-bg-border hover:border-bg-border">
                 {uploadingImage ? <Loader2 size={11} className="animate-spin" /> : <ImagePlus size={11} />}
                 {uploadingImage ? "Uploading..." : "Add Image"}
                 <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
@@ -2393,11 +2393,11 @@ Best regards,
               }}
               className={`transition rounded-xl ${dragOverImage ? "ring-2 ring-blue-500/40 bg-blue-500/5" : ""}`}>
               {(product.images || []).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 border border-dashed border-white/[0.06] rounded-xl">
+                <div className="flex flex-col items-center justify-center py-10 border border-dashed border-bg-border rounded-xl">
                   <ImagePlus size={20} className="text-white/10 mb-2" />
-                  <p className="text-xs text-white/20">No images yet</p>
+                  <p className="text-xs text-text-muted">No images yet</p>
                   <p className="text-[11px] text-white/15 mt-1">Drag & drop or click to upload</p>
-                  <label className="mt-2 text-xs text-white/30 hover:text-white/60 cursor-pointer underline underline-offset-2">
+                  <label className="mt-2 text-xs text-text-muted hover:text-text-secondary cursor-pointer underline underline-offset-2">
                     Upload one
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
                   </label>
@@ -2405,7 +2405,7 @@ Best regards,
               ) : (
                 <div className="grid grid-cols-3 gap-3">
                   {(product.images || []).map((url: string, idx: number) => (
-                    <div key={url} className={`relative group rounded-xl overflow-hidden border aspect-square ${idx === 0 ? "border-blue-500/40" : "border-white/[0.06]"}`}>
+                    <div key={url} className={`relative group rounded-xl overflow-hidden border aspect-square ${idx === 0 ? "border-blue-500/40" : "border-bg-border"}`}>
                       <img src={url} alt="Product" className="w-full h-full object-cover cursor-zoom-in"
                         onClick={() => setEnlargedImage(url)} />
                       {idx === 0 && (
@@ -2430,8 +2430,8 @@ Best regards,
                     </div>
                   ))}
                   {/* Drag to add more */}
-                  <label className={`flex flex-col items-center justify-center aspect-square rounded-xl border border-dashed cursor-pointer transition ${dragOverImage ? "border-blue-500/40 bg-blue-500/5" : "border-white/[0.06] hover:border-white/15"}`}>
-                    {uploadingImage ? <Loader2 size={16} className="animate-spin text-white/20" /> : <ImagePlus size={16} className="text-white/15" />}
+                  <label className={`flex flex-col items-center justify-center aspect-square rounded-xl border border-dashed cursor-pointer transition ${dragOverImage ? "border-blue-500/40 bg-blue-500/5" : "border-bg-border hover:border-white/15"}`}>
+                    {uploadingImage ? <Loader2 size={16} className="animate-spin text-text-muted" /> : <ImagePlus size={16} className="text-white/15" />}
                     <p className="text-[10px] text-white/15 mt-1">{uploadingImage ? "Uploading..." : "Add more"}</p>
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploadingImage} />
                   </label>
@@ -2441,10 +2441,10 @@ Best regards,
           </div>
 
           {/* ── PRODUCT HISTORY ── */}
-          <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01]">
+          <div className="border border-bg-border rounded-2xl p-6 bg-bg-surface">
             <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Product History</p>
             {productHistory.length === 0 ? (
-              <p className="text-xs text-white/20 text-center py-4">No history yet</p>
+              <p className="text-xs text-text-muted text-center py-4">No history yet</p>
             ) : (
               <div className="space-y-3">
                 {productHistory.map((h: any, i: number) => {
@@ -2461,14 +2461,14 @@ Best regards,
                       <div className="flex-1 min-w-0 pb-3">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-semibold" style={{ color: info.color }}>{info.label}</span>
-                          {h._factory_name && <span className="text-[10px] text-white/30 bg-white/[0.04] px-1.5 py-0.5 rounded-full">{h._factory_name}</span>}
+                          {h._factory_name && <span className="text-[10px] text-text-muted bg-bg-elevated px-1.5 py-0.5 rounded-full">{h._factory_name}</span>}
                           {h._order_num && <span className="text-[10px] text-white/25">Order #{h._order_num}</span>}
-                          {isSample && !h._factory_name && <span className="text-[10px] text-white/20">Sample</span>}
+                          {isSample && !h._factory_name && <span className="text-[10px] text-text-muted">Sample</span>}
                         </div>
                         {h.notes && !["Sample requested", "Revision round started", "Sample requested"].includes(h.notes) && (
                           <p className="text-[11px] text-white/35 mt-0.5">{h.notes}</p>
                         )}
-                        <p className="text-[10px] text-white/20 mt-0.5">
+                        <p className="text-[10px] text-text-muted mt-0.5">
                           {h.updated_by && h.updated_by !== "admin" ? h.updated_by : h.updated_by_role === "factory" ? (h._factory_name || "Factory") : h.updated_by_role === "designer" ? "Designer" : "Admin"} · {new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
                       </div>
@@ -2481,18 +2481,18 @@ Best regards,
 
           {/* ── INFO + TEAM STRIP ── */}
           <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-[200px] border border-white/[0.06] rounded-2xl p-5 bg-white/[0.01]">
+            <div className="flex-1 min-w-[200px] border border-bg-border rounded-2xl p-5 bg-bg-surface">
               <p className="text-[10px] text-white/25 uppercase tracking-widest mb-3">Info</p>
               <div className="space-y-2">
-                <div className="flex justify-between"><span className="text-[11px] text-white/30">Created</span><span className="text-[11px] text-white/50">{new Date(product.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
-                <div className="flex justify-between"><span className="text-[11px] text-white/30">Orders</span><span className="text-[11px] text-white/50">{orders.length}</span></div>
-                <div className="flex justify-between"><span className="text-[11px] text-white/30">Total units</span><span className="text-[11px] text-white/50">{orders.reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0).toLocaleString()}</span></div>
-                {product.designer_name && <div className="flex justify-between"><span className="text-[11px] text-white/30">Designer</span><span className="text-[11px] text-white/50">{product.designer_name}</span></div>}
+                <div className="flex justify-between"><span className="text-[11px] text-text-muted">Created</span><span className="text-[11px] text-text-secondary">{new Date(product.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span></div>
+                <div className="flex justify-between"><span className="text-[11px] text-text-muted">Orders</span><span className="text-[11px] text-text-secondary">{orders.length}</span></div>
+                <div className="flex justify-between"><span className="text-[11px] text-text-muted">Total units</span><span className="text-[11px] text-text-secondary">{orders.reduce((sum: number, o: any) => sum + (o.order_quantity || 0), 0).toLocaleString()}</span></div>
+                {product.designer_name && <div className="flex justify-between"><span className="text-[11px] text-text-muted">Designer</span><span className="text-[11px] text-text-secondary">{product.designer_name}</span></div>}
                 {orders.length > 0 && orders.map((o: any) => {
                   const s = stageInfo(o.current_stage);
                   return (
                     <div key={o.id} className="flex items-center justify-between">
-                      <span className="text-[11px] text-white/30">Order #{o.batch_number}</span>
+                      <span className="text-[11px] text-text-muted">Order #{o.batch_number}</span>
                       <span className="text-[10px] font-semibold" style={{ color: s.color }}>{s.label}</span>
                     </div>
                   );
@@ -2517,26 +2517,26 @@ function AssignTeamMember({ productId, currentAssignments, onAssign }: { product
   const unassigned = designers.filter(d => !assignedIds.includes(d.id));
 
   if (!open) return (
-    <button onClick={() => setOpen(true)} className="text-[11px] text-white/30 hover:text-white/60 transition mt-1">+ Assign member</button>
+    <button onClick={() => setOpen(true)} className="text-[11px] text-text-muted hover:text-text-secondary transition mt-1">+ Assign member</button>
   );
 
   return (
     <div className="space-y-1 mt-1">
-      {unassigned.length === 0 && <p className="text-[11px] text-white/20">All members assigned</p>}
+      {unassigned.length === 0 && <p className="text-[11px] text-text-muted">All members assigned</p>}
       {unassigned.map(d => (
         <button key={d.id} onClick={async () => {
           const newIds = [...assignedIds, d.id];
           await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "assign_product", product_id: productId, designer_ids: newIds }) });
           setOpen(false);
           onAssign();
-        }} className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/[0.05] transition">
-          <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[9px] text-white/50 font-bold">
+        }} className="w-full text-left flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-bg-elevated transition">
+          <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[9px] text-text-secondary font-bold">
             {(d.name || d.email || "?")[0].toUpperCase()}
           </div>
-          <span className="text-[11px] text-white/50">{d.name || d.email}</span>
+          <span className="text-[11px] text-text-secondary">{d.name || d.email}</span>
         </button>
       ))}
-      <button onClick={() => setOpen(false)} className="text-[10px] text-white/20 hover:text-white/40">Cancel</button>
+      <button onClick={() => setOpen(false)} className="text-[10px] text-text-muted hover:text-text-secondary">Cancel</button>
     </div>
   );
 }

@@ -403,30 +403,30 @@ export default function PLMPage() {
   const hasActionRequired = filteredProducts.some(p => p.action_status === "action_required");
   const hasUpdatesMade = filteredProducts.some(p => p.action_status === "updates_made");
 
-  const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
-  const lc = "text-[11px] text-white/30 mb-1 block";
+  const ic = "w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none focus:border-white/20 transition";
+  const lc = "text-[11px] text-text-muted mb-1 block";
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
-      <div className="border-b border-white/[0.06] px-8 py-6">
+    <div className="min-h-screen bg-bg-base text-text-primary">
+      <div className="border-b border-bg-border px-8 py-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
-              <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-                <Package size={14} className="text-white/60" />
+              <div className="w-7 h-7 rounded-lg bg-white/5 border border-bg-border flex items-center justify-center">
+                <Package size={14} className="text-text-secondary" />
               </div>
               <h1 className="text-xl font-bold tracking-tight">Product Lifecycle</h1>
               <span className="text-[10px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">{products.length} SKUs</span>
             </div>
-            <p className="text-white/30 text-sm">Track every product from concept to shelf</p>
+            <p className="text-text-muted text-sm">Track every product from concept to shelf</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => { setShowImportModal(true); setImportStep("upload"); setImportData(null); setImportResult(null); }}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-bg-border text-text-secondary hover:text-white/80 hover:border-white/20 transition bg-bg-surface">
               <Upload size={11} />Import
             </button>
             <button onClick={() => setShowNewProduct(true)}
-              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 transition bg-white/[0.02]">
+              className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-bg-border text-text-secondary hover:text-white/80 hover:border-white/20 transition bg-bg-surface">
               <Plus size={11} />New Product
             </button>
             <button onClick={() => setShowNewCollection(true)}
@@ -442,19 +442,19 @@ export default function PLMPage() {
         {/* Import Modal */}
         {showImportModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-4 my-4">
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-4 my-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white">Import Products from Spreadsheet</p>
-                  <p className="text-xs text-white/30 mt-0.5">Upload a CSV or Excel file — Jimmy will map the columns automatically</p>
+                  <p className="text-sm font-semibold text-text-primary">Import Products from Spreadsheet</p>
+                  <p className="text-xs text-text-muted mt-0.5">Upload a CSV or Excel file — Jimmy will map the columns automatically</p>
                 </div>
-                <button onClick={() => setShowImportModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+                <button onClick={() => setShowImportModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
               </div>
               {importStep === "upload" && (
-                <label className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-white/[0.08] rounded-xl cursor-pointer hover:border-white/20 transition">
-                  {importing ? <Loader2 size={24} className="animate-spin text-white/30 mb-3" /> : <FileSpreadsheet size={24} className="text-white/20 mb-3" />}
-                  <p className="text-sm text-white/40">{importing ? "Reading file & mapping columns..." : "Click to upload CSV or Excel"}</p>
-                  <p className="text-xs text-white/20 mt-1">Supports .csv, .xlsx, .xls</p>
+                <label className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-bg-border rounded-xl cursor-pointer hover:border-white/20 transition">
+                  {importing ? <Loader2 size={24} className="animate-spin text-text-muted mb-3" /> : <FileSpreadsheet size={24} className="text-text-muted mb-3" />}
+                  <p className="text-sm text-text-secondary">{importing ? "Reading file & mapping columns..." : "Click to upload CSV or Excel"}</p>
+                  <p className="text-xs text-text-muted mt-1">Supports .csv, .xlsx, .xls</p>
                   <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImportFile} disabled={importing} />
                 </label>
               )}
@@ -473,9 +473,9 @@ export default function PLMPage() {
                   <div className="space-y-2 max-h-64 overflow-y-auto">
                     {importData.headers.map((header: string) => (
                       <div key={header} className="flex items-center gap-3">
-                        <span className="text-xs text-white/50 w-40 truncate flex-shrink-0">{header}</span>
-                        <span className="text-white/20 text-xs">→</span>
-                        <select value={importMappings[header] || "ignore"} onChange={e => setImportMappings((prev: any) => ({...prev, [header]: e.target.value}))} className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white/60 text-xs focus:outline-none">
+                        <span className="text-xs text-text-secondary w-40 truncate flex-shrink-0">{header}</span>
+                        <span className="text-text-muted text-xs">→</span>
+                        <select value={importMappings[header] || "ignore"} onChange={e => setImportMappings((prev: any) => ({...prev, [header]: e.target.value}))} className="flex-1 bg-bg-elevated border border-bg-border rounded-lg px-3 py-1.5 text-text-secondary text-xs focus:outline-none">
                           <option value="ignore">Ignore</option>
                           <option value="name">Product Name</option>
                           <option value="sku">SKU</option>
@@ -493,13 +493,13 @@ export default function PLMPage() {
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-white/30">{importData.all_rows.length} products will be imported</p>
+                  <p className="text-xs text-text-muted">{importData.all_rows.length} products will be imported</p>
                   <div className="flex gap-2">
                     <button onClick={handleImport} disabled={importing} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                       {importing ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                       {importing ? "Importing..." : `Import ${importData.all_rows.length} Products`}
                     </button>
-                    <button onClick={() => setShowImportModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                    <button onClick={() => setShowImportModal(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                   </div>
                 </div>
               )}
@@ -510,7 +510,7 @@ export default function PLMPage() {
                   </div>
                   {importResult.errors?.length > 0 && (
                     <div className="space-y-1">
-                      <p className="text-xs text-white/30">{importResult.errors.length} errors:</p>
+                      <p className="text-xs text-text-muted">{importResult.errors.length} errors:</p>
                       {importResult.errors.map((e: string, i: number) => <p key={i} className="text-xs text-red-400">{e}</p>)}
                     </div>
                   )}
@@ -530,8 +530,8 @@ export default function PLMPage() {
                   <Trash2 size={16} className="text-red-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-white">Delete {selectedProducts.length} product{selectedProducts.length > 1 ? "s" : ""}?</p>
-                  <p className="text-xs text-white/40 mt-0.5">This cannot be undone.</p>
+                  <p className="text-sm font-bold text-text-primary">Delete {selectedProducts.length} product{selectedProducts.length > 1 ? "s" : ""}?</p>
+                  <p className="text-xs text-text-secondary mt-0.5">This cannot be undone.</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -552,7 +552,7 @@ export default function PLMPage() {
                   Yes, delete
                 </button>
                 <button onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-white/40 text-sm font-semibold">
+                  className="flex-1 py-2.5 rounded-xl border border-bg-border text-text-secondary text-sm font-semibold">
                   Cancel
                 </button>
               </div>
@@ -563,26 +563,26 @@ export default function PLMPage() {
         {/* Bulk Assign Modal */}
         {showAssignModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-sm space-y-4">
-              <h3 className="text-sm font-bold text-white">Assign {selectedProducts.length} Products</h3>
-              <p className="text-xs text-white/40">Select team members to assign these products to.</p>
+            <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+              <h3 className="text-sm font-bold text-text-primary">Assign {selectedProducts.length} Products</h3>
+              <p className="text-xs text-text-secondary">Select team members to assign these products to.</p>
               <div className="space-y-2">
-                {assignDesigners.length === 0 && <p className="text-xs text-white/30">No designers found. Add designers in the Designer Access tab.</p>}
+                {assignDesigners.length === 0 && <p className="text-xs text-text-muted">No designers found. Add designers in the Designer Access tab.</p>}
                 {assignDesigners.map((d: any) => {
                   const assignedCount = selectedProducts.filter(pid => (existingAssignments[pid] || []).includes(d.id)).length;
                   const alreadyInAll = assignedCount === selectedProducts.length;
                   const alreadyInSome = assignedCount > 0 && !alreadyInAll;
                   return (
                   <button key={d.id} onClick={() => { if (alreadyInAll) return; setSelectedDesignerIds(prev => prev.includes(d.id) ? prev.filter(x => x !== d.id) : [...prev, d.id]); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${alreadyInAll ? "border-white/[0.04] opacity-40 cursor-default" : selectedDesignerIds.includes(d.id) ? "border-blue-500/40 bg-blue-500/10" : "border-white/[0.06] hover:border-white/15"}`}>
-                    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-white/50">
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition ${alreadyInAll ? "border-white/[0.04] opacity-40 cursor-default" : selectedDesignerIds.includes(d.id) ? "border-blue-500/40 bg-blue-500/10" : "border-bg-border hover:border-white/15"}`}>
+                    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold text-text-secondary">
                       {(d.name || d.email || "?")[0].toUpperCase()}
                     </div>
                     <div className="flex-1 text-left">
                       <p className="text-xs font-semibold text-white/80">{d.name || d.email}</p>
                       {alreadyInAll && <p className="text-[10px] text-emerald-400/60">Already assigned to all</p>}
-                      {alreadyInSome && <p className="text-[10px] text-white/30">Assigned to {assignedCount}/{selectedProducts.length} products</p>}
-                      {!alreadyInAll && !alreadyInSome && d.name && <p className="text-[10px] text-white/30">{d.email}</p>}
+                      {alreadyInSome && <p className="text-[10px] text-text-muted">Assigned to {assignedCount}/{selectedProducts.length} products</p>}
+                      {!alreadyInAll && !alreadyInSome && d.name && <p className="text-[10px] text-text-muted">{d.email}</p>}
                     </div>
                     {selectedDesignerIds.includes(d.id) && <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg></div>}
                   </button>
@@ -604,7 +604,7 @@ export default function PLMPage() {
                   className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {assigning ? "Assigning..." : `Assign to ${selectedDesignerIds.length} member${selectedDesignerIds.length !== 1 ? "s" : ""}`}
                 </button>
-                <button onClick={() => setShowAssignModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                <button onClick={() => setShowAssignModal(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
               </div>
             </div>
           </div>
@@ -613,32 +613,32 @@ export default function PLMPage() {
         {/* Export Modal */}
         {showExportModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4">
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white">Export Product Catalog</p>
-                  <p className="text-xs text-white/30 mt-0.5">{selectedProducts.length} products selected</p>
+                  <p className="text-sm font-semibold text-text-primary">Export Product Catalog</p>
+                  <p className="text-xs text-text-muted mt-0.5">{selectedProducts.length} products selected</p>
                 </div>
-                <button onClick={() => setShowExportModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+                <button onClick={() => setShowExportModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
               </div>
               <div>
-                <p className="text-[11px] text-white/30 mb-2">Presets</p>
+                <p className="text-[11px] text-text-muted mb-2">Presets</p>
                 <div className="flex gap-2 flex-wrap">
                   {[["buyer","Buyer Catalog"],["internal","Internal"],["factory","Factory Sheet"],["custom","Custom"]].map(([key, label]) => (
                     <button key={key} onClick={() => applyPreset(key)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${exportPreset === key ? "bg-white text-black border-white" : "border-white/[0.08] text-white/40 hover:text-white/70"}`}>
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${exportPreset === key ? "bg-white text-black border-white" : "border-bg-border text-text-secondary hover:text-white/70"}`}>
                       {label}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-[11px] text-white/30 mb-2">Columns to include</p>
+                <p className="text-[11px] text-text-muted mb-2">Columns to include</p>
                 <div className="grid grid-cols-2 gap-2">
                   {EXPORT_COLUMNS.map(col => (
                     <label key={col} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={exportColumns.includes(col)} onChange={e => setExportColumns(prev => e.target.checked ? [...prev, col] : prev.filter(c => c !== col))} className="rounded" />
-                      <span className="text-xs text-white/60">{COLUMN_LABELS[col]}</span>
+                      <span className="text-xs text-text-secondary">{COLUMN_LABELS[col]}</span>
                     </label>
                   ))}
                 </div>
@@ -649,7 +649,7 @@ export default function PLMPage() {
                   {exporting ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />}
                   {exporting ? "Exporting..." : "Export Excel"}
                 </button>
-                <button onClick={() => setShowExportModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                <button onClick={() => setShowExportModal(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
               </div>
             </div>
           </div>
@@ -659,19 +659,19 @@ export default function PLMPage() {
         {/* Delete confirmation modal */}
         {confirmDeleteId && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-red-400 text-sm">✕</span>
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">Delete Product</p>
-                  <p className="text-xs text-white/40 mt-0.5">This cannot be undone. All factory tracks and samples will be removed.</p>
+                  <p className="text-sm font-semibold text-text-primary">Delete Product</p>
+                  <p className="text-xs text-text-secondary mt-0.5">This cannot be undone. All factory tracks and samples will be removed.</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <button onClick={() => setConfirmDeleteId(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-white/[0.08] text-white/50 text-xs hover:text-white transition">
+                  className="flex-1 py-2.5 rounded-xl border border-bg-border text-text-secondary text-xs hover:text-white transition">
                   Cancel
                 </button>
                 <button onClick={() => deleteProduct(confirmDeleteId)}
@@ -685,38 +685,38 @@ export default function PLMPage() {
 
         {showRfqModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white">Create RFQ</p>
-                  <p className="text-xs text-white/30 mt-0.5">Select products, choose what to include and ask for, then export to Workflows</p>
+                  <p className="text-sm font-semibold text-text-primary">Create RFQ</p>
+                  <p className="text-xs text-text-muted mt-0.5">Select products, choose what to include and ask for, then export to Workflows</p>
                 </div>
-                <button onClick={() => setShowRfqModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+                <button onClick={() => setShowRfqModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
               </div>
 
               {/* Product selection */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-[11px] text-white/30 uppercase tracking-widest">Products to Include</p>
+                  <p className="text-[11px] text-text-muted uppercase tracking-widest">Products to Include</p>
                   <div className="flex gap-2">
                     <button onClick={() => setRfqSelectedProducts(products.filter(p => p.current_stage === "ready_for_quote").map(p => p.id))}
                       className="text-[11px] text-pink-400 hover:text-pink-300 transition">Select RFQ Ready</button>
                     <button onClick={() => setRfqSelectedProducts(products.map(p => p.id))}
-                      className="text-[11px] text-white/30 hover:text-white/60 transition">Select All</button>
+                      className="text-[11px] text-text-muted hover:text-text-secondary transition">Select All</button>
                     <button onClick={() => setRfqSelectedProducts([])}
-                      className="text-[11px] text-white/30 hover:text-white/60 transition">Clear</button>
+                      className="text-[11px] text-text-muted hover:text-text-secondary transition">Clear</button>
                   </div>
                 </div>
-                <div className="max-h-48 overflow-y-auto space-y-1.5 border border-white/[0.06] rounded-xl p-3">
+                <div className="max-h-48 overflow-y-auto space-y-1.5 border border-bg-border rounded-xl p-3">
                   {products.map(p => (
-                    <label key={p.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-white/[0.02] px-2 py-1.5 rounded-lg transition">
+                    <label key={p.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-bg-surface px-2 py-1.5 rounded-lg transition">
                       <input type="checkbox" checked={rfqSelectedProducts.includes(p.id)}
                         onChange={e => setRfqSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
                         className="rounded" />
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                         <span className="text-xs text-white/70 truncate">{p.name}</span>
-                        {p.sku && <span className="text-[10px] text-white/30 font-mono flex-shrink-0">{p.sku}</span>}
+                        {p.sku && <span className="text-[10px] text-text-muted font-mono flex-shrink-0">{p.sku}</span>}
                         {p.current_stage === "ready_for_quote" && <span className="text-[10px] text-pink-400 bg-pink-500/10 px-1.5 py-0.5 rounded-full flex-shrink-0">RFQ Ready</span>}
                       </div>
                     </label>
@@ -727,14 +727,14 @@ export default function PLMPage() {
 
               {/* What to include */}
               <div>
-                <p className="text-[11px] text-white/30 uppercase tracking-widest mb-2">Include in Sheet</p>
+                <p className="text-[11px] text-text-muted uppercase tracking-widest mb-2">Include in Sheet</p>
                 <div className="grid grid-cols-3 gap-2">
                   {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["weight","Weight"],["dimensions","Dimensions"],["images","Image URLs"],["reference_url","Dropbox Link"],["category","Category"],["collection","Collection"],["notes","Notes"]].map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={rfqInclude.includes(key)}
                         onChange={e => setRfqInclude(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}
                         className="rounded" />
-                      <span className="text-xs text-white/60">{label}</span>
+                      <span className="text-xs text-text-secondary">{label}</span>
                     </label>
                   ))}
                 </div>
@@ -742,14 +742,14 @@ export default function PLMPage() {
 
               {/* What to ask factories */}
               <div>
-                <p className="text-[11px] text-white/30 uppercase tracking-widest mb-2">Ask Factories to Fill In</p>
+                <p className="text-[11px] text-text-muted uppercase tracking-widest mb-2">Ask Factories to Fill In</p>
                 <div className="grid grid-cols-3 gap-2">
                   {[["price","Unit Price"],["sample_lead_time","Sample Lead Time"],["moq","MOQ"],["lead_time","Production Lead Time"],["sample_price","Sample Price"],["payment_terms","Payment Terms"],["packaging","Packaging Details"],["notes","Notes/Comments"]].map(([key, label]) => (
                     <label key={key} className="flex items-center gap-2 cursor-pointer">
                       <input type="checkbox" checked={rfqAskFor.includes(key)}
                         onChange={e => setRfqAskFor(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}
                         className="rounded" />
-                      <span className="text-xs text-white/60">{label}</span>
+                      <span className="text-xs text-text-secondary">{label}</span>
                     </label>
                   ))}
                 </div>
@@ -800,7 +800,7 @@ export default function PLMPage() {
                   {creatingRfq ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
                   {creatingRfq ? "Creating RFQ..." : `Create RFQ for ${rfqSelectedProducts.length} Products`}
                 </button>
-                <button onClick={() => { setShowRfqModal(false); setRfqJobId(null); }} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                <button onClick={() => { setShowRfqModal(false); setRfqJobId(null); }} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
               </div>
             </div>
           </div>
@@ -809,19 +809,19 @@ export default function PLMPage() {
         {/* Bulk Sample Request Modal */}
         {showSampleRequestModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white">Request Samples</p>
-                  <p className="text-xs text-white/30 mt-0.5">Select products and pick which factories to request from</p>
+                  <p className="text-sm font-semibold text-text-primary">Request Samples</p>
+                  <p className="text-xs text-text-muted mt-0.5">Select products and pick which factories to request from</p>
                 </div>
-                <button onClick={() => setShowSampleRequestModal(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+                <button onClick={() => setShowSampleRequestModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
               </div>
 
               {/* Collection quick-select */}
               {collections.length > 0 && (
-                <div className="border border-white/[0.06] rounded-xl p-3 space-y-2 bg-white/[0.02]">
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest">Quick-select by collection</p>
+                <div className="border border-bg-border rounded-xl p-3 space-y-2 bg-bg-surface">
+                  <p className="text-[10px] text-text-muted uppercase tracking-widest">Quick-select by collection</p>
                   <div className="flex flex-wrap gap-1.5">
                     {collections.map((c: any) => {
                       const collectionProductIds = products
@@ -845,7 +845,7 @@ export default function PLMPage() {
                               setBulkSampleSelections(newSelections);
                             }
                           }}
-                          className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20"}`}>
+                          className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-bg-border text-text-secondary hover:text-white/70 hover:border-white/20"}`}>
                           {c.name} ({collectionProductIds.length})
                         </button>
                       );
@@ -856,11 +856,11 @@ export default function PLMPage() {
                       const newSelections: Record<string, any> = {};
                       allIds.forEach((pid: string) => { newSelections[pid] = factories.map((f: any) => f.id); });
                       setBulkSampleSelections(newSelections);
-                    }} className="text-[10px] px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 hover:text-white/60 transition">
+                    }} className="text-[10px] px-3 py-1.5 rounded-lg border border-bg-border text-text-muted hover:text-text-secondary transition">
                       Select All
                     </button>
                     <button onClick={() => { setBulkSampleProductIds([]); setBulkSampleSelections({}); }}
-                      className="text-[10px] px-3 py-1.5 rounded-lg border border-white/[0.06] text-white/30 hover:text-white/60 transition">
+                      className="text-[10px] px-3 py-1.5 rounded-lg border border-bg-border text-text-muted hover:text-text-secondary transition">
                       Clear
                     </button>
                   </div>
@@ -868,9 +868,9 @@ export default function PLMPage() {
               )}
 
               {/* Info note */}
-              <div className="flex items-start gap-2.5 bg-white/[0.02] border border-white/[0.06] rounded-xl px-3 py-2.5">
+              <div className="flex items-start gap-2.5 bg-bg-surface border border-bg-border rounded-xl px-3 py-2.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-white/30 flex-shrink-0 mt-1" />
-                <p className="text-[11px] text-white/40">Products with active sample requests are not shown here. To request an additional sample or revision, open the individual product card.</p>
+                <p className="text-[11px] text-text-secondary">Products with active sample requests are not shown here. To request an additional sample or revision, open the individual product card.</p>
               </div>
 
               {/* Product list with factory picker per product */}
@@ -890,7 +890,7 @@ export default function PLMPage() {
                   const isAdditional = !!approvedReq;
                   const approvedFactory = isAdditional ? factories.find((f: any) => f.id === approvedReq.factory_id) : null;
                   return (
-                    <div key={p.id} className={`border rounded-xl p-3 space-y-2 transition ${isSelected ? "border-amber-500/30 bg-amber-500/[0.03]" : "border-white/[0.06]"}`}>
+                    <div key={p.id} className={`border rounded-xl p-3 space-y-2 transition ${isSelected ? "border-amber-500/30 bg-amber-500/[0.03]" : "border-bg-border"}`}>
                       <label className="flex items-center gap-2.5 cursor-pointer">
                         <input type="checkbox" checked={isSelected}
                           onChange={e => {
@@ -903,7 +903,7 @@ export default function PLMPage() {
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                           {p.images?.[0] && <img src={p.images[0]} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />}
                           <span className="text-xs text-white/70 font-medium truncate">{p.name}</span>
-                          {p.sku && <span className="text-[10px] text-white/30 font-mono flex-shrink-0">{p.sku}</span>}
+                          {p.sku && <span className="text-[10px] text-text-muted font-mono flex-shrink-0">{p.sku}</span>}
                           {isAdditional && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/20 flex-shrink-0">Additional</span>}
                         </div>
                       </label>
@@ -911,38 +911,38 @@ export default function PLMPage() {
                         <div className="pl-6 space-y-2">
                           {isAdditional ? (
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-xs text-white/50">
-                                <span className="text-[10px] text-white/30 uppercase tracking-widest">Factory:</span>
+                              <div className="flex items-center gap-2 text-xs text-text-secondary">
+                                <span className="text-[10px] text-text-muted uppercase tracking-widest">Factory:</span>
                                 <span className="px-2 py-0.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300">{approvedFactory?.name || "Approved factory"}</span>
-                                <span className="text-[10px] text-white/20">(locked — approved factory only)</span>
+                                <span className="text-[10px] text-text-muted">(locked — approved factory only)</span>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Quantity *</p>
+                                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Quantity *</p>
                                   <input type="number" placeholder="e.g. 3"
                                     value={bulkSampleSelections[`${p.id}_qty`] || ""}
                                     onChange={e => setBulkSampleSelections(prev => ({ ...prev, [`${p.id}_qty`]: e.target.value }))}
-                                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                                    className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
                                 </div>
                                 <div>
-                                  <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Reason *</p>
+                                  <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Reason *</p>
                                   <input type="text" placeholder="e.g. Color change"
                                     value={bulkSampleSelections[`${p.id}_reason`] || ""}
                                     onChange={e => setBulkSampleSelections(prev => ({ ...prev, [`${p.id}_reason`]: e.target.value }))}
-                                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                                    className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
                                 </div>
                               </div>
                             </div>
                           ) : (
                             <div>
-                              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Request from:</p>
+                              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Request from:</p>
                               <div className="flex flex-wrap gap-1.5">
                                 {factories.map((f: any) => (
                                   <button key={f.id} onClick={() => setBulkSampleSelections(prev => ({
                                     ...prev,
                                     [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter((id: string) => id !== f.id) : [...selectedFactories, f.id]
                                   }))}
-                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-white/[0.06] text-white/30 hover:text-white/60"}`}>
+                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
                                     {f.name}
                                   </button>
                                 ))}
@@ -957,10 +957,10 @@ export default function PLMPage() {
               </div>
 
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5">Note to factories (optional)</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">Note to factories (optional)</p>
                 <textarea value={bulkSampleNote} onChange={e => setBulkSampleNote(e.target.value)}
                   placeholder="e.g. Priority samples needed by May 1st"
-                  rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+                  rows={2} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
               </div>
 
               <div className="flex gap-2">
@@ -1005,7 +1005,7 @@ export default function PLMPage() {
                   {submittingBulkSample ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
                   Request Samples for {bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0).length} Products
                 </button>
-                <button onClick={() => setShowSampleRequestModal(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                <button onClick={() => setShowSampleRequestModal(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
               </div>
             </div>
           </div>
@@ -1014,10 +1014,10 @@ export default function PLMPage() {
         {/* New Collection Modal */}
         {showNewCollection && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-white">New Collection</p>
-                <button onClick={() => setShowNewCollection(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+                <p className="text-sm font-semibold text-text-primary">New Collection</p>
+                <button onClick={() => setShowNewCollection(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
               </div>
               <div><label className={lc}>Collection Name *</label><input value={newCollection.name} onChange={e => setNewCollection({...newCollection, name: e.target.value})} placeholder="Spring 2026 Glass Collection" className={ic} /></div>
               <div className="grid grid-cols-2 gap-3">
@@ -1035,7 +1035,7 @@ export default function PLMPage() {
                 <button onClick={createCollection} disabled={saving || !newCollection.name} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Collection
                 </button>
-                <button onClick={() => setShowNewCollection(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                <button onClick={() => setShowNewCollection(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
               </div>
             </div>
           </div>
@@ -1044,10 +1044,10 @@ export default function PLMPage() {
         {/* New Product Modal */}
         {showNewProduct && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-white">New Product / SKU</p>
-                <button onClick={() => setShowNewProduct(false)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+                <p className="text-sm font-semibold text-text-primary">New Product / SKU</p>
+                <button onClick={() => setShowNewProduct(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div><label className={lc}>Product Name *</label><input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} placeholder="16oz Glass Dog Cup" className={ic} /></div>
@@ -1064,7 +1064,7 @@ export default function PLMPage() {
                       {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                     <button type="button" onClick={() => setShowInlineCollection(true)}
-                      className="px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 text-xs whitespace-nowrap">+ New</button>
+                      className="px-3 py-2 rounded-xl border border-bg-border text-text-secondary hover:text-white/70 text-xs whitespace-nowrap">+ New</button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
@@ -1083,7 +1083,7 @@ export default function PLMPage() {
                       setInlineCollectionName("");
                     }} className="px-3 py-2 rounded-xl bg-white text-black text-xs font-semibold">Create</button>
                     <button type="button" onClick={() => { setShowInlineCollection(false); setInlineCollectionName(""); }}
-                      className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">✕</button>
+                      className="px-3 py-2 rounded-xl border border-bg-border text-text-muted text-xs">✕</button>
                   </div>
                 )}
               </div>
@@ -1100,23 +1100,23 @@ export default function PLMPage() {
                 <button onClick={createProduct} disabled={saving || !newProduct.name} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                   {saving ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Product
                 </button>
-                <button onClick={() => setShowNewProduct(false)} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                <button onClick={() => setShowNewProduct(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
               </div>
             </div>
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded-xl p-0.5 w-fit mb-8">
-          <button onClick={() => setActiveTab("all_products")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "all_products" ? "bg-white text-black" : "text-white/40"}`}>All Products</button>
-          <button onClick={() => setActiveTab("collections")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "collections" ? "bg-white text-black" : "text-white/40"}`}>Collections</button>
-          <button onClick={() => setActiveTab("factory_access")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factory_access" ? "bg-white text-black" : "text-white/40"}`}>Factory Access</button>
-          <button onClick={() => setActiveTab("designer_access")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "designer_access" ? "bg-white text-black" : "text-white/40"}`}>Designer Access</button>
-          <button onClick={() => setActiveTab("prioritization")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "prioritization" ? "bg-white text-black" : "text-white/40"}`}>Prioritization</button>
+        <div className="flex items-center gap-1 bg-bg-elevated border border-bg-border rounded-xl p-0.5 w-fit mb-8">
+          <button onClick={() => setActiveTab("all_products")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "all_products" ? "bg-white text-black" : "text-text-secondary"}`}>All Products</button>
+          <button onClick={() => setActiveTab("collections")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "collections" ? "bg-white text-black" : "text-text-secondary"}`}>Collections</button>
+          <button onClick={() => setActiveTab("factory_access")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "factory_access" ? "bg-white text-black" : "text-text-secondary"}`}>Factory Access</button>
+          <button onClick={() => setActiveTab("designer_access")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "designer_access" ? "bg-white text-black" : "text-text-secondary"}`}>Designer Access</button>
+          <button onClick={() => setActiveTab("prioritization")} className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition ${activeTab === "prioritization" ? "bg-white text-black" : "text-text-secondary"}`}>Prioritization</button>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
+          <div className="flex items-center justify-center py-20"><Loader2 size={20} className="animate-spin text-text-muted" /></div>
         ) : activeTab === "collections" ? (
           <CollectionsView
             collections={collections}
@@ -1129,8 +1129,8 @@ export default function PLMPage() {
           <div>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition w-44" />
-                <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition w-44" />
+                <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
                   <option value="">All Stages</option>
                   <optgroup label="Development">
                     {Object.entries(DEV_STAGE_LABELS).filter(([key]) => !["sample_production","sample_complete","sample_shipped","sample_arrived"].includes(key)).map(([key, label]) => <option key={key} value={key}>{label as string}</option>)}
@@ -1139,12 +1139,12 @@ export default function PLMPage() {
                     {BATCH_STAGE_ORDER.map(s => <option key={s} value={s}>{BATCH_STAGE_LABELS[s]}</option>)}
                   </optgroup>
                 </select>
-                <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/50 text-xs focus:outline-none">
+                <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
                   <option value="">All Collections</option>
                   {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 {(filterStage || filterCollection) && (
-                  <button onClick={() => { setFilterStage(""); setFilterCollection(""); setSearchQuery(""); }} className="text-[11px] text-white/30 hover:text-white/60 flex items-center gap-1">
+                  <button onClick={() => { setFilterStage(""); setFilterCollection(""); setSearchQuery(""); }} className="text-[11px] text-text-muted hover:text-text-secondary flex items-center gap-1">
                     <X size={10} />Clear
                   </button>
                 )}
@@ -1171,19 +1171,19 @@ export default function PLMPage() {
               </div>
             </div>
             {filteredProducts.length === 0 ? (
-              <div className="text-center py-20"><Package size={32} className="text-white/10 mx-auto mb-3" /><p className="text-white/30 text-sm">No products yet</p></div>
+              <div className="text-center py-20"><Package size={32} className="text-white/10 mx-auto mb-3" /><p className="text-text-muted text-sm">No products yet</p></div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
                 <div className="flex items-center gap-3 px-4 py-2">
-                  <button onClick={() => { setSelectMode(s => !s); setSelectedProducts([]); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectMode ? "border-white/20 text-white/70 bg-white/5 hover:bg-white/10" : "border-white/10 text-white/40 hover:bg-white/5"}`}>
+                  <button onClick={() => { setSelectMode(s => !s); setSelectedProducts([]); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectMode ? "border-white/20 text-white/70 bg-white/5 hover:bg-bg-hover" : "border-bg-border text-text-secondary hover:bg-bg-hover"}`}>
                     {selectMode && selectedProducts.length > 0 ? `${selectedProducts.length} selected` : "Select"}
                   </button>
                   {selectMode && (
-                    <button onClick={toggleAll} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-white/10 text-white/40 hover:bg-white/5 font-semibold transition">
+                    <button onClick={toggleAll} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl border border-bg-border text-text-secondary hover:bg-bg-hover font-semibold transition">
                       {selectedProducts.length === filteredProducts.length ? "Deselect All" : "Select All"}
                     </button>
                   )}
-                  <button onClick={() => { if (selectedProducts.length > 0) setShowExportModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-white/10 text-white/60 hover:bg-white/5" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
+                  <button onClick={() => { if (selectedProducts.length > 0) setShowExportModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-bg-border text-text-secondary hover:bg-bg-hover" : "border-white/[0.04] text-text-muted cursor-not-allowed"}`}>
                     <Download size={11} />{selectedProducts.length > 0 ? `Export ${selectedProducts.length}` : "Export"}
                   </button>
                   <button onClick={async () => { if (selectedProducts.length === 0) return; 
@@ -1199,7 +1199,7 @@ export default function PLMPage() {
     assignMap[pid] = (d.product?.plm_assignments || []).map((a: any) => a.designer_id);
   }
   setExistingAssignments(assignMap);
-  setShowAssignModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" : "border-white/[0.04] text-white/20 cursor-not-allowed"}`}>
+  setShowAssignModal(true); }} className={`flex items-center gap-2 text-xs px-4 py-2 rounded-xl border font-semibold transition ${selectedProducts.length > 0 ? "border-blue-500/30 text-blue-400 bg-blue-500/10 hover:bg-blue-500/20" : "border-white/[0.04] text-text-muted cursor-not-allowed"}`}>
                     {selectedProducts.length > 0 ? `Assign ${selectedProducts.length}` : "Assign"}
                   </button>
                   {selectMode && selectedProducts.length > 0 && (
@@ -1217,8 +1217,8 @@ export default function PLMPage() {
                     <div key={product.id} onClick={() => router.push(`/plm/${product.id}`)} className="flex items-center gap-3 p-4 border border-red-500/10 rounded-xl bg-red-500/[0.01] opacity-50 cursor-pointer hover:opacity-70 transition">
                       {product.images?.[0] && <img src={product.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 grayscale" />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white/40 truncate line-through">{product.name}</p>
-                        {product.sku && <p className="text-[10px] text-white/20 font-mono">{product.sku}</p>}
+                        <p className="text-sm font-semibold text-text-secondary truncate line-through">{product.name}</p>
+                        {product.sku && <p className="text-[10px] text-text-muted font-mono">{product.sku}</p>}
                       </div>
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400/70 border border-red-500/15 flex-shrink-0">Product Discontinued</span>
                     </div>
@@ -1295,18 +1295,18 @@ export default function PLMPage() {
                   }
 
                   return (
-                    <div key={product.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition flex items-center gap-4"
+                    <div key={product.id} className="border border-bg-border rounded-xl p-4 bg-bg-surface hover:border-bg-border transition flex items-center gap-4"
                       style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
                       {selectMode && <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />}
                       {product.images?.[0] ? (
-                        <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
+                        <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-bg-border flex-shrink-0" />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0" />
+                        <div className="w-10 h-10 rounded-lg bg-bg-elevated border border-bg-border flex-shrink-0" />
                       )}
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <p className="text-sm font-semibold text-white">{product.name}</p>
-                          {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
+                          <p className="text-sm font-semibold text-text-primary">{product.name}</p>
+                          {product.sku && <span className="text-[10px] text-text-muted font-mono">{product.sku}</span>}
                           {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
                           {product.action_status === "action_required" && (
                             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
@@ -1333,10 +1333,10 @@ export default function PLMPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => setConfirmDeleteId(product.id)} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                        <button onClick={() => setConfirmDeleteId(product.id)} className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition">
                           <Trash2 size={12} />
                         </button>
-                        <ChevronRight size={14} className="text-white/20 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
+                        <ChevronRight size={14} className="text-text-muted cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)} />
                       </div>
                     </div>
                   );
@@ -1350,8 +1350,8 @@ export default function PLMPage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-white">Your Factories</p>
-                  <p className="text-xs text-white/30 mt-0.5">Add factories you work with — then create portal access for them</p>
+                  <p className="text-sm font-semibold text-text-primary">Your Factories</p>
+                  <p className="text-xs text-text-muted mt-0.5">Add factories you work with — then create portal access for them</p>
                 </div>
                 <button onClick={() => setShowAddFactory(true)} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
                   <Plus size={11} />Add Factory
@@ -1359,7 +1359,7 @@ export default function PLMPage() {
               </div>
 
               {showAddFactory && (
-                <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
+                <div className="border border-bg-border rounded-2xl p-5 bg-bg-surface space-y-3">
                   <p className="text-xs font-semibold text-white/70">New Factory</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className={lc}>Factory Name *</label><input value={newFactory.name} onChange={e => setNewFactory({...newFactory, name: e.target.value})} placeholder="Yuecheng Glass" className={ic} /></div>
@@ -1373,29 +1373,29 @@ export default function PLMPage() {
                     <button onClick={createFactory} disabled={savingFactory || !newFactory.name || !newFactory.email} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                       {savingFactory ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Save Factory
                     </button>
-                    <button onClick={() => setShowAddFactory(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                    <button onClick={() => setShowAddFactory(false)} className="px-4 py-2 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                   </div>
                 </div>
               )}
 
               {factories.length === 0 && !showAddFactory ? (
-                <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
+                <div className="text-center py-16 border border-dashed border-bg-border rounded-2xl">
                   <Building2 size={28} className="text-white/10 mx-auto mb-3" />
-                  <p className="text-white/30 text-sm">No factories yet — add your first factory above</p>
+                  <p className="text-text-muted text-sm">No factories yet — add your first factory above</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {factories.map(f => {
                     const hasPortal = portalUsers.some(u => u.factory_id === f.id);
                     return (
-                      <div key={f.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-5 py-4 bg-white/[0.01]">
+                      <div key={f.id} className="flex items-center gap-4 border border-bg-border rounded-xl px-5 py-4 bg-bg-surface">
                         <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
                           <Building2 size={16} className="text-blue-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white">{f.name}</p>
-                          <p className="text-xs text-white/30">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
-                          {f.notes && <p className="text-[10px] text-white/20 mt-0.5">{f.notes}</p>}
+                          <p className="text-sm font-semibold text-text-primary">{f.name}</p>
+                          <p className="text-xs text-text-muted">{f.email}{f.contact_name ? ` · ${f.contact_name}` : ""}</p>
+                          {f.notes && <p className="text-[10px] text-text-muted mt-0.5">{f.notes}</p>}
                         </div>
                         <div className="flex items-center gap-2">
                           {hasPortal ? (
@@ -1407,7 +1407,7 @@ export default function PLMPage() {
                               Create Portal Access
                             </button>
                           )}
-                          <button onClick={() => deleteFactory(f.id)} disabled={deletingFactory === f.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                          <button onClick={() => deleteFactory(f.id)} disabled={deletingFactory === f.id} className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition">
                             {deletingFactory === f.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                           </button>
                         </div>
@@ -1419,35 +1419,35 @@ export default function PLMPage() {
             </div>
 
             {/* PORTAL USERS SECTION */}
-            <div className="space-y-4 pt-4 border-t border-white/[0.06]">
+            <div className="space-y-4 pt-4 border-t border-bg-border">
               <div>
-                <p className="text-sm font-semibold text-white">Factory Portal Users</p>
-                <p className="text-xs text-white/30 mt-0.5">Factories log into portal.myjimmy.ai to update sample and production stages</p>
+                <p className="text-sm font-semibold text-text-primary">Factory Portal Users</p>
+                <p className="text-xs text-text-muted mt-0.5">Factories log into portal.myjimmy.ai to update sample and production stages</p>
               </div>
 
               {portalUsers.filter(u => u.role !== "designer").length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-white/[0.06] rounded-2xl">
+                <div className="text-center py-12 border border-dashed border-bg-border rounded-2xl">
                   <Users size={24} className="text-white/10 mx-auto mb-2" />
-                  <p className="text-white/30 text-sm">No factory portal users yet</p>
-                  <p className="text-white/20 text-xs mt-1">Create portal access from a factory above</p>
+                  <p className="text-text-muted text-sm">No factory portal users yet</p>
+                  <p className="text-text-muted text-xs mt-1">Create portal access from a factory above</p>
                 </div>
               ) : (
                 <div className="space-y-2">
                   {portalUsers.filter(u => u.role !== "designer").map(u => (
-                    <div key={u.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-5 py-4 bg-white/[0.01]">
-                      <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                        <Users size={13} className="text-white/30" />
+                    <div key={u.id} className="flex items-center gap-4 border border-bg-border rounded-xl px-5 py-4 bg-bg-surface">
+                      <div className="w-8 h-8 rounded-full bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+                        <Users size={13} className="text-text-muted" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white">{u.name || u.email}</p>
+                        <p className="text-sm font-semibold text-text-primary">{u.name || u.email}</p>
                         <div className="flex items-center gap-3">
-                          <p className="text-xs text-white/30">{u.email}</p>
-                          {u.factory_catalog && <p className="text-xs text-white/20">{u.factory_catalog.name}</p>}
+                          <p className="text-xs text-text-muted">{u.email}</p>
+                          {u.factory_catalog && <p className="text-xs text-text-muted">{u.factory_catalog.name}</p>}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">Active</span>
-                        <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                        <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition">
                           {deletingPortalUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                         </button>
                       </div>
@@ -1460,15 +1460,15 @@ export default function PLMPage() {
             {/* Create Portal Modal */}
             {showPortalModal && (
               <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-                <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md">
+                <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-full max-w-md">
                   <h3 className="text-base font-bold text-white mb-1">Create Portal Access</h3>
-                  <p className="text-xs text-white/40 mb-4">Create login credentials for <span className="text-white">{showPortalModal.factory.name}</span> to access their portal</p>
+                  <p className="text-xs text-text-secondary mb-4">Create login credentials for <span className="text-text-primary">{showPortalModal.factory.name}</span> to access their portal</p>
                   
                   <div className="space-y-3 mb-5">
                     <div>
                       <label className={lc}>Email</label>
                       <input value={showPortalModal.factory.email} disabled className={`${ic} opacity-50 cursor-not-allowed`} />
-                      <p className="text-[10px] text-white/20 mt-1">Uses the factory's email address</p>
+                      <p className="text-[10px] text-text-muted mt-1">Uses the factory's email address</p>
                     </div>
                     <div>
                       <label className={lc}>Password *</label>
@@ -1480,7 +1480,7 @@ export default function PLMPage() {
                     <button onClick={createFactoryPortal} disabled={creatingPortal || !portalPassword} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                       {creatingPortal ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create & Send Email
                     </button>
-                    <button onClick={() => setShowPortalModal(null)} className="px-4 py-2.5 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                    <button onClick={() => setShowPortalModal(null)} className="px-4 py-2.5 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                   </div>
                 </div>
               </div>
@@ -1490,15 +1490,15 @@ export default function PLMPage() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-white">Designer Portal Users</p>
-                <p className="text-xs text-white/30 mt-0.5">Designers log into portal.myjimmy.ai to add products and submit for approval</p>
+                <p className="text-sm font-semibold text-text-primary">Designer Portal Users</p>
+                <p className="text-xs text-text-muted mt-0.5">Designers log into portal.myjimmy.ai to add products and submit for approval</p>
               </div>
               <button onClick={() => { setNewPortalUser({name:"", email:"", password:"", factory_id:"", role:"designer"}); setShowNewPortalUser(true); }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
                 <Plus size={11} />Add Designer
               </button>
             </div>
             {showNewPortalUser && newPortalUser.role === "designer" && (
-              <div className="border border-white/[0.08] rounded-2xl p-5 bg-white/[0.02] space-y-3">
+              <div className="border border-bg-border rounded-2xl p-5 bg-bg-surface space-y-3">
                 <p className="text-xs font-semibold text-white/70">New Designer</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className={lc}>Name</label><input value={newPortalUser.name} onChange={e => setNewPortalUser({...newPortalUser, name: e.target.value})} placeholder="Designer name" className={ic} /></div>
@@ -1509,29 +1509,29 @@ export default function PLMPage() {
                   <button onClick={createPortalUser} disabled={savingPortalUser || !newPortalUser.email || !newPortalUser.password} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                     {savingPortalUser ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}Create Designer
                   </button>
-                  <button onClick={() => setShowNewPortalUser(false)} className="px-4 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <button onClick={() => setShowNewPortalUser(false)} className="px-4 py-2 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                 </div>
               </div>
             )}
             {portalUsers.filter(u => u.role === "designer").length === 0 && !showNewPortalUser ? (
-              <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
+              <div className="text-center py-16 border border-dashed border-bg-border rounded-2xl">
                 <Users size={28} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No designers yet</p>
+                <p className="text-text-muted text-sm">No designers yet</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {portalUsers.filter(u => u.role === "designer").map(u => (
-                  <div key={u.id} className="flex items-center gap-4 border border-white/[0.06] rounded-xl px-5 py-4 bg-white/[0.01]">
-                    <div className="w-8 h-8 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                      <Users size={13} className="text-white/30" />
+                  <div key={u.id} className="flex items-center gap-4 border border-bg-border rounded-xl px-5 py-4 bg-bg-surface">
+                    <div className="w-8 h-8 rounded-full bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+                      <Users size={13} className="text-text-muted" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white">{u.name || u.email}</p>
-                      <p className="text-xs text-white/30">{u.email}</p>
+                      <p className="text-sm font-semibold text-text-primary">{u.name || u.email}</p>
+                      <p className="text-xs text-text-muted">{u.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-full">Designer</span>
-                      <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition">
+                      <button onClick={() => deletePortalUser(u.id)} disabled={deletingPortalUser === u.id} className="p-1.5 rounded-lg text-text-muted hover:text-red-400 hover:bg-red-500/10 transition">
                         {deletingPortalUser === u.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
                       </button>
                     </div>
@@ -1545,13 +1545,13 @@ export default function PLMPage() {
         {activeTab === "prioritization" && (
           <div className="space-y-6">
             {prioLoading ? (
-              <div className="flex items-center justify-center py-20"><Loader2 size={18} className="animate-spin text-white/20" /></div>
+              <div className="flex items-center justify-center py-20"><Loader2 size={18} className="animate-spin text-text-muted" /></div>
             ) : prioFactories.length === 0 ? (
-              <div className="text-center py-20"><p className="text-white/30 text-sm">No factories found. Add factories in Factory Access first.</p></div>
+              <div className="text-center py-20"><p className="text-text-muted text-sm">No factories found. Add factories in Factory Access first.</p></div>
             ) : (
               <>
                 {/* Factory tabs */}
-                <div className="flex gap-2 border-b border-white/[0.06] pb-3">
+                <div className="flex gap-2 border-b border-bg-border pb-3">
                   {prioFactories.map(f => {
                     const factorySamples = prioSamples.filter((s: any) => s.factory_id === f.id);
                     const prioritized = (prioOrder[f.id] || []).filter(id => {
@@ -1561,7 +1561,7 @@ export default function PLMPage() {
                     const max = f.max_samples || 50;
                     return (
                       <button key={f.id} onClick={() => setPrioActiveFactory(f.id)}
-                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 ${prioActiveFactory === f.id ? "bg-white text-black" : "text-white/40 hover:text-white/70 border border-white/[0.06]"}`}>
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 ${prioActiveFactory === f.id ? "bg-white text-black" : "text-text-secondary hover:text-white/70 border border-bg-border"}`}>
                         {f.name}
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${prioActiveFactory === f.id ? "bg-black/10" : "bg-white/[0.06]"}`}>
                           {factorySamples.length} pending
@@ -1585,28 +1585,28 @@ export default function PLMPage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                           <div>
-                            <p className="text-xs text-white/30 uppercase tracking-widest mb-1">Factory Capacity</p>
+                            <p className="text-xs text-text-muted uppercase tracking-widest mb-1">Factory Capacity</p>
                             <div className="flex items-center gap-2">
                               {prioMaxEditing[prioActiveFactory] !== undefined ? (
                                 <div className="flex items-center gap-2">
                                   <input type="number" value={prioMaxEditing[prioActiveFactory]}
                                     onChange={e => setPrioMaxEditing(prev => ({ ...prev, [prioActiveFactory]: e.target.value }))}
-                                    className="w-20 bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1 text-white/70 text-xs focus:outline-none" />
+                                    className="w-20 bg-bg-elevated border border-bg-border rounded-lg px-2 py-1 text-white/70 text-xs focus:outline-none" />
                                   <button onClick={() => saveMaxSamples(prioActiveFactory, prioMaxEditing[prioActiveFactory])}
                                     className="text-[10px] px-2 py-1 rounded-lg bg-white text-black font-semibold">Save</button>
                                   <button onClick={() => setPrioMaxEditing(prev => { const n = { ...prev }; delete n[prioActiveFactory]; return n; })}
-                                    className="text-[10px] px-2 py-1 rounded-lg border border-white/[0.06] text-white/30">Cancel</button>
+                                    className="text-[10px] px-2 py-1 rounded-lg border border-bg-border text-text-muted">Cancel</button>
                                 </div>
                               ) : (
                                 <button onClick={() => setPrioMaxEditing(prev => ({ ...prev, [prioActiveFactory]: String(max) }))}
                                   className="flex items-center gap-1.5 text-sm font-semibold text-white/70 hover:text-white transition">
                                   {max} samples allowed
-                                  <span className="text-[10px] text-white/25 border border-white/[0.08] px-1.5 py-0.5 rounded">edit</span>
+                                  <span className="text-[10px] text-white/25 border border-bg-border px-1.5 py-0.5 rounded">edit</span>
                                 </button>
                               )}
                             </div>
                           </div>
-                          <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${prioritizedCount >= max ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/[0.03] border-white/[0.08] text-white/60"}`}>
+                          <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${prioritizedCount >= max ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-bg-elevated border-bg-border text-text-secondary"}`}>
                             {prioritizedCount} / {max} samples
                           </div>
                         </div>
@@ -1625,8 +1625,8 @@ export default function PLMPage() {
 
                       {/* Sample list */}
                       {orderedSamples.length === 0 ? (
-                        <div className="text-center py-16 border border-white/[0.06] rounded-2xl">
-                          <p className="text-white/20 text-sm">No pending samples for this factory</p>
+                        <div className="text-center py-16 border border-bg-border rounded-2xl">
+                          <p className="text-text-muted text-sm">No pending samples for this factory</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -1647,11 +1647,11 @@ export default function PLMPage() {
                                 }}
                                 className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition cursor-grab active:cursor-grabbing ${
                                   dragOver === sample.id ? "border-blue-500/40 bg-blue-500/5" :
-                                  isPrioritized ? "border-white/[0.08] bg-white/[0.02]" : "border-white/[0.04] bg-transparent opacity-50"
+                                  isPrioritized ? "border-bg-border bg-bg-surface" : "border-white/[0.04] bg-transparent opacity-50"
                                 }`}>
                                 {/* Priority number */}
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                                  isPrioritized ? "bg-blue-500/20 border border-blue-500/30 text-blue-400" : "bg-white/[0.04] border border-white/[0.06] text-white/20"
+                                  isPrioritized ? "bg-blue-500/20 border border-blue-500/30 text-blue-400" : "bg-bg-elevated border border-bg-border text-text-muted"
                                 }`}>
                                   {isPrioritized ? idx + 1 : "—"}
                                 </div>
@@ -1660,7 +1660,7 @@ export default function PLMPage() {
                                   {product?.images?.[0] && <img src={product.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />}
                                   <div className="min-w-0">
                                     <p className="text-sm text-white/80 font-medium truncate">{product?.name}</p>
-                                    {product?.sku && <p className="text-[10px] text-white/30 font-mono">{product.sku}</p>}
+                                    {product?.sku && <p className="text-[10px] text-text-muted font-mono">{product.sku}</p>}
                                   </div>
                                 </div>
                                 {/* Status */}

@@ -44,21 +44,21 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
     critical: "text-red-400",
     high: "text-amber-400",
     medium: "text-blue-400",
-    low: "text-white/30",
+    low: "text-text-muted",
   };
 
   return (
-    <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/10 transition">
+    <div className="bg-bg-elevated border border-bg-border rounded-2xl overflow-hidden hover:border-bg-border transition">
       <div className="p-5 cursor-pointer" onClick={() => setExpanded(!expanded)}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h3 className="text-sm font-semibold text-white truncate">{meeting.title}</h3>
-              <span className="text-[10px] text-white/25 border border-white/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
+              <span className="text-[10px] text-white/25 border border-bg-border px-1.5 py-0.5 rounded-full flex-shrink-0">
                 {SOURCE_LABELS[meeting.source] || meeting.source}
               </span>
             </div>
-            <div className="flex items-center gap-4 text-[11px] text-white/30 mb-3">
+            <div className="flex items-center gap-4 text-[11px] text-text-muted mb-3">
               <div className="flex items-center gap-1">
                 <Calendar size={10} />
                 {formatDate(meeting.date)}
@@ -74,7 +74,7 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
                 </div>
               )}
             </div>
-            <p className="text-xs text-white/40 leading-relaxed line-clamp-2">{meeting.summary}</p>
+            <p className="text-xs text-text-secondary leading-relaxed line-clamp-2">{meeting.summary}</p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             {meeting.action_items_extracted?.length > 0 && (
@@ -83,23 +83,23 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
                 <span className="text-[10px] text-blue-400">{meeting.action_items_extracted.length} actions</span>
               </div>
             )}
-            {expanded ? <ChevronUp size={14} className="text-white/30" /> : <ChevronDown size={14} className="text-white/30" />}
+            {expanded ? <ChevronUp size={14} className="text-text-muted" /> : <ChevronDown size={14} className="text-text-muted" />}
           </div>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-white/[0.06] p-5 space-y-5">
+        <div className="border-t border-bg-border p-5 space-y-5">
 
           {/* Decisions */}
           {meeting.decisions?.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">Decisions Made</p>
+              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">Decisions Made</p>
               <div className="space-y-2">
                 {meeting.decisions.map((d, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0 mt-1.5" />
-                    <p className="text-xs text-white/60 leading-relaxed">{d}</p>
+                    <p className="text-xs text-text-secondary leading-relaxed">{d}</p>
                   </div>
                 ))}
               </div>
@@ -109,12 +109,12 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
           {/* Action Items */}
           {meeting.action_items_extracted?.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">
+              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">
                 Action Items — Added to Tracker
               </p>
               <div className="space-y-2">
                 {meeting.action_items_extracted.map((item, i) => (
-                  <div key={i} className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
+                  <div key={i} className="bg-bg-surface border border-white/[0.05] rounded-xl p-3">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <p className={`text-xs font-medium ${priorityColors[item.priority] || "text-white/70"}`}>
                         {item.title}
@@ -123,9 +123,9 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
                         <span className="text-[10px] text-white/25 flex-shrink-0">{item.assigned_to}</span>
                       )}
                     </div>
-                    {item.detail && <p className="text-[11px] text-white/30">{item.detail}</p>}
+                    {item.detail && <p className="text-[11px] text-text-muted">{item.detail}</p>}
                     {item.due_date && (
-                      <p className="text-[10px] text-white/20 mt-1">Due: {item.due_date}</p>
+                      <p className="text-[10px] text-text-muted mt-1">Due: {item.due_date}</p>
                     )}
                   </div>
                 ))}
@@ -136,10 +136,10 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
           {/* Participants */}
           {meeting.participants?.length > 0 && (
             <div>
-              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2">Participants</p>
+              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Participants</p>
               <div className="flex flex-wrap gap-2">
                 {meeting.participants.map((p, i) => (
-                  <span key={i} className="text-[11px] text-white/40 bg-white/5 border border-white/10 px-2 py-1 rounded-lg">{p}</span>
+                  <span key={i} className="text-[11px] text-text-secondary bg-white/5 border border-bg-border px-2 py-1 rounded-lg">{p}</span>
                 ))}
               </div>
             </div>
@@ -244,25 +244,25 @@ export default function MeetingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-8">
+    <div className="min-h-screen bg-bg-base text-white p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold tracking-tight mb-1">Meeting Intelligence</h1>
-            <p className="text-white/30 text-sm">
+            <p className="text-text-muted text-sm">
               {meetings.length} meetings processed · Action items auto-added to tracker
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={scanTeams} disabled={scanningTeams}
-              className="flex items-center gap-2 text-xs text-white/60 hover:text-white border border-white/10 hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
+              className="flex items-center gap-2 text-xs text-text-secondary hover:text-white border border-bg-border hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
               <RefreshCw size={12} className={scanningTeams ? "animate-spin" : ""} />
               {scanningTeams ? "Scanning..." : "Scan Teams"}
             </button>
             <button onClick={scanDrive} disabled={scanning}
-              className="flex items-center gap-2 text-xs text-white/60 hover:text-white border border-white/10 hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
+              className="flex items-center gap-2 text-xs text-text-secondary hover:text-white border border-bg-border hover:border-white/20 px-3 py-2 rounded-xl transition disabled:opacity-40">
               <RefreshCw size={12} className={scanning ? "animate-spin" : ""} />
               {scanning ? "Scanning..." : "Scan Google Meet"}
             </button>
@@ -283,7 +283,7 @@ export default function MeetingsPage() {
 
         {/* How it works — shown when no meetings */}
         {meetings.length === 0 && !loading && (
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 mb-6">
+          <div className="bg-bg-surface border border-bg-border rounded-2xl p-8 mb-6">
             <h3 className="text-sm font-semibold text-white mb-4">How Meeting Intelligence Works</h3>
             <div className="space-y-3">
               {[
@@ -294,10 +294,10 @@ export default function MeetingsPage() {
                 { step: "5", text: "Paste any transcript manually using 'Upload Transcript'" },
               ].map(item => (
                 <div key={item.step} className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-white/50">
+                  <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-text-secondary">
                     {item.step}
                   </div>
-                  <p className="text-xs text-white/40 leading-relaxed">{item.text}</p>
+                  <p className="text-xs text-text-secondary leading-relaxed">{item.text}</p>
                 </div>
               ))}
             </div>
@@ -311,19 +311,19 @@ export default function MeetingsPage() {
 
         {/* Upload transcript */}
         {showUpload && (
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-5 mb-6 space-y-4">
             <h3 className="text-sm font-semibold">Process a Transcript</h3>
             <div>
-              <label className="text-[10px] text-white/30 uppercase tracking-widest mb-2 block">Meeting Title</label>
+              <label className="text-[10px] text-text-muted uppercase tracking-widest mb-2 block">Meeting Title</label>
               <input value={meetingTitle} onChange={e => setMeetingTitle(e.target.value)}
                 placeholder="e.g. Q1 Sales Review, Client Kickoff Call"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20" />
+                className="w-full bg-white/5 border border-bg-border rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/20" />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] text-white/30 uppercase tracking-widest">Transcript</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest">Transcript</label>
                 <button onClick={() => fileRef.current?.click()}
-                  className="flex items-center gap-1 text-[10px] text-white/40 hover:text-white border border-white/10 px-2 py-1 rounded-lg transition">
+                  className="flex items-center gap-1 text-[10px] text-text-secondary hover:text-white border border-bg-border px-2 py-1 rounded-lg transition">
                   <FileText size={10} /> Upload file
                 </button>
               </div>
@@ -331,8 +331,8 @@ export default function MeetingsPage() {
               <textarea value={transcript} onChange={e => setTranscript(e.target.value)}
                 placeholder="Paste your meeting transcript here... or upload a .txt file above"
                 rows={8}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-white/20 resize-none leading-relaxed" />
-              <p className="text-[10px] text-white/20 mt-1">{transcript.length} characters</p>
+                className="w-full bg-white/5 border border-bg-border rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-white/20 resize-none leading-relaxed" />
+              <p className="text-[10px] text-text-muted mt-1">{transcript.length} characters</p>
             </div>
             <div className="flex gap-2">
               <button onClick={processTranscript} disabled={processing || !transcript.trim()}
@@ -340,7 +340,7 @@ export default function MeetingsPage() {
                 {processing ? "Processing..." : "Process Meeting"}
               </button>
               <button onClick={() => { setShowUpload(false); setTranscript(""); setMeetingTitle(""); }}
-                className="text-xs text-white/40 hover:text-white border border-white/10 px-4 py-2 rounded-xl transition">
+                className="text-xs text-text-secondary hover:text-white border border-bg-border px-4 py-2 rounded-xl transition">
                 Cancel
               </button>
             </div>
@@ -350,7 +350,7 @@ export default function MeetingsPage() {
         {/* Meetings list */}
         {loading ? (
           <div className="space-y-3">
-            {[1,2,3].map(i => <div key={i} className="h-24 bg-white/[0.02] border border-white/[0.05] rounded-2xl animate-pulse" />)}
+            {[1,2,3].map(i => <div key={i} className="h-24 bg-bg-surface border border-white/[0.05] rounded-2xl animate-pulse" />)}
           </div>
         ) : meetings.length > 0 ? (
           <div className="space-y-3">
