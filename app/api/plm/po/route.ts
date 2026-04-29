@@ -180,7 +180,6 @@ export async function POST(req: NextRequest) {
       linked_po_number: poNum,
       order_quantity: qty,
       unit_price: unitPrice,
-      first_cost: unitPrice,
       target_elc: unitPrice,
       target_sell_price: null,
       batch_notes: notes || "",
