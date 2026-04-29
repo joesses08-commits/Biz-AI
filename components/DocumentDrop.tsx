@@ -31,6 +31,7 @@ export default function DocumentDrop() {
   const [userHint, setUserHint] = useState("");
   const [editingProduct, setEditingProduct] = useState<{ index: number; data: any } | null>(null);
   const [factories, setFactories] = useState<any[]>([]);
+  const [factories, setFactories] = useState<any[]>([]);
   const fileDataRef = useRef<{ base64: string; name: string; type: string } | null>(null);
   const dragCounterRef = useRef(0);
 
@@ -69,6 +70,12 @@ export default function DocumentDrop() {
 
     setIdentified(data.identified);
     setDropState("confirming");
+    // Fetch factories for dropdown
+    try {
+      const fr = await fetch("/api/plm?type=factories");
+      const fd = await fr.json();
+      setFactories(fd.factories || []);
+    } catch {}
     // Fetch factories for dropdown
     try {
       const fr = await fetch("/api/plm?type=factories");
