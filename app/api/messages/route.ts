@@ -83,7 +83,32 @@ export async function GET(req: NextRequest) {
       return new Date(b.latest_message?.created_at || 0).getTime() - new Date(a.latest_message?.created_at || 0).getTime();
     });
 
-  return NextResponse.json({ chats });
+  // Add warehouse chats
+  const { data: warehouseMsgs } = await supabaseAdmin
+    .from("warehouse_messages")
+    .select("*, warehouses(name)")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  const warehouseThreadMap: Record<string, any> = {};
+  for (const m of (warehouseMsgs || [])) {
+    if (!warehouseThreadMap[m.warehouse_id]) {
+      warehouseThreadMap[m.warehouse_id] = {
+        track_id: "warehouse_" + m.warehouse_id,
+        warehouse_id: m.warehouse_id,
+        product_name: m.warehouses?.name || "Warehouse",
+        factory_name: "Warehouse",
+        product_image: null,
+        latest_message: m,
+        unread_count: 0,
+        is_pinned: false,
+        is_warehouse: true,
+      };
+    }
+  }
+  const warehouseChats = Object.values(warehouseThreadMap);
+
+  return NextResponse.json({ chats: [...warehouseChats, ...chats] });
 }
 
 export async function POST(req: NextRequest) {

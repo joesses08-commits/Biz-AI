@@ -61,8 +61,10 @@ export default function WarehousePortal() {
     setSaving(true);
     const res = await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report_damage", inventory_id: showDamage.id, quantity_damaged: parseInt(damageForm.quantity), notes: damageForm.notes, user_id: warehouseUser.user_id }) });
     if (res.ok) {
-      // Send message to admin about damage
-      await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", warehouse_id: warehouseUser.warehouse_id, user_id: warehouseUser.user_id, message: `⚠️ Damage reported: ${showDamage.plm_products?.name} — ${damageForm.quantity} units damaged. Reason: ${damageForm.notes}`, sender_role: "warehouse", sender_name: warehouseUser.name }) });
+      const total = showDamage.quantity_incoming || 0;
+      const damaged = parseInt(damageForm.quantity) || 0;
+      const good = total - damaged;
+      await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", warehouse_id: warehouseUser.warehouse_id, user_id: warehouseUser.user_id, message: `⚠️ Damage reported: ${showDamage.plm_products?.name} — ${total} incoming, ${damaged} damaged, ${good} in good condition. Reason: ${damageForm.notes}`, sender_role: "warehouse", sender_name: warehouseUser.name }) });
     }
     setSaving(false);
     setShowDamage(null);
@@ -153,9 +155,11 @@ export default function WarehousePortal() {
                   <button onClick={() => { setShowReceive(item); setReceiveForm({ quantity: String(item.quantity_incoming), notes: "" }); }} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition">
                     <CheckCircle size={12} /> Mark Received
                   </button>
+                  {item.quantity_on_hand > 0 && (
                   <button onClick={() => { setShowDamage(item); setDamageForm({ quantity: "", notes: "" }); }} className="px-3 py-2 rounded-xl border border-red-500/20 text-red-400 text-xs hover:bg-red-500/10 transition">
                     <AlertTriangle size={12} />
                   </button>
+                  )}
                 </div>
               </div>
             ))}
