@@ -86,9 +86,16 @@ export async function GET(req: NextRequest) {
   // Add warehouse chats
   const { data: warehouseMsgs } = await supabaseAdmin
     .from("warehouse_messages")
-    .select("*, warehouses(name)")
+    .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+
+  const warehouseIds = [...new Set((warehouseMsgs || []).map((m: any) => m.warehouse_id))];
+  const { data: warehouseNames } = warehouseIds.length > 0
+    ? await supabaseAdmin.from("warehouses").select("id, name").in("id", warehouseIds)
+    : { data: [] };
+  const warehouseNameMap: Record<string, string> = {};
+  for (const w of (warehouseNames || [])) warehouseNameMap[w.id] = w.name;
 
   const warehouseThreadMap: Record<string, any> = {};
   for (const m of (warehouseMsgs || [])) {
@@ -96,7 +103,8 @@ export async function GET(req: NextRequest) {
       warehouseThreadMap[m.warehouse_id] = {
         track_id: "warehouse_" + m.warehouse_id,
         warehouse_id: m.warehouse_id,
-        product_name: m.warehouses?.name || "Warehouse",
+        user_id: m.user_id,
+        product_name: warehouseNameMap[m.warehouse_id] || "Warehouse",
         factory_name: "Warehouse",
         product_image: null,
         latest_message: m,
