@@ -1,13 +1,15 @@
-
 "use client";
-import { useState } from "react";
-import { Package, CheckCircle, AlertTriangle, LogOut, ArrowDown } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Package, CheckCircle, AlertTriangle, LogOut, ArrowDown, MessageCircle, Send } from "lucide-react";
 
 export default function WarehousePortal() {
   const [warehouseUser, setWarehouseUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<"incoming" | "inventory">("incoming");
+  const [activeTab, setActiveTab] = useState<"incoming" | "inventory" | "messages">("incoming");
   const [shipments, setShipments] = useState<any[]>([]);
   const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [sendingMsg, setSendingMsg] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -17,28 +19,31 @@ export default function WarehousePortal() {
   const [receiveForm, setReceiveForm] = useState({ quantity: "", notes: "" });
   const [damageForm, setDamageForm] = useState({ quantity: "", notes: "" });
   const [saving, setSaving] = useState(false);
+  const messagesEndRef = useRef<any>(null);
+
+  const inputClass = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20";
 
   async function login() {
     setLoggingIn(true);
     setLoginError("");
     const res = await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", email, password }) });
     const data = await res.json();
-    if (!res.ok) { setLoginError("Invalid email or PIN"); setLoggingIn(false); return; }
-    const wu = data.user || data.warehouse_user;
+    if (!res.ok) { setLoginError("Invalid email or password"); setLoggingIn(false); return; }
+    const wu = data.user;
     setWarehouseUser(wu);
     setLoggingIn(false);
     loadData(wu);
   }
 
   async function loadData(wu: any) {
-    const [shipmentsRes, inventoryRes] = await Promise.all([
+    const [shipmentsRes, inventoryRes, messagesRes] = await Promise.all([
       fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_shipments", warehouse_id: wu.warehouse_id, user_id: wu.user_id }) }),
       fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_inventory", warehouse_id: wu.warehouse_id, user_id: wu.user_id }) }),
+      fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_messages", warehouse_id: wu.warehouse_id, user_id: wu.user_id }) }),
     ]);
-    const shipmentsData = await shipmentsRes.json();
-    const inventoryData = await inventoryRes.json();
-    setShipments(shipmentsData.shipments || []);
-    setInventoryItems(inventoryData.inventory || []);
+    setShipments((await shipmentsRes.json()).shipments || []);
+    setInventoryItems((await inventoryRes.json()).inventory || []);
+    setMessages((await messagesRes.json()).messages || []);
   }
 
   async function receiveGoods() {
@@ -61,17 +66,23 @@ export default function WarehousePortal() {
     loadData(warehouseUser);
   }
 
-  const inputClass = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20";
+  async function sendMessage() {
+    if (!newMessage.trim() || !warehouseUser) return;
+    setSendingMsg(true);
+    await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", warehouse_id: warehouseUser.warehouse_id, user_id: warehouseUser.user_id, message: newMessage.trim(), sender_role: "warehouse", sender_name: warehouseUser.name }) });
+    setNewMessage("");
+    setSendingMsg(false);
+    loadData(warehouseUser);
+  }
+
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   if (!warehouseUser) return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center mx-auto mb-4">
-            <svg width="24" height="24" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-              <line x1="24" y1="8" x2="24" y2="26" stroke="#0a0a0a" strokeWidth="4" strokeLinecap="round"/>
-              <path d="M24 26 Q24 34 18 35 Q11 36 10 30" fill="none" stroke="#0a0a0a" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <Package size={20} className="text-black" />
           </div>
           <h1 className="text-2xl font-bold mb-1">Warehouse Portal</h1>
           <p className="text-white/30 text-sm">Sign in to manage incoming shipments</p>
@@ -89,7 +100,7 @@ export default function WarehousePortal() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
       <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold">{warehouseUser.warehouses?.name}</p>
@@ -100,13 +111,16 @@ export default function WarehousePortal() {
         </button>
       </div>
 
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 flex-1 flex flex-col">
         <div className="flex gap-2 mb-6">
           <button onClick={() => setActiveTab("incoming")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "incoming" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
             <ArrowDown size={12} /> Incoming ({shipments.length})
           </button>
           <button onClick={() => setActiveTab("inventory")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "inventory" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
             <Package size={12} /> Inventory ({inventoryItems.length})
+          </button>
+          <button onClick={() => setActiveTab("messages")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "messages" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
+            <MessageCircle size={12} /> Messages
           </button>
         </div>
 
@@ -117,34 +131,30 @@ export default function WarehousePortal() {
                 <CheckCircle size={32} className="text-white/10 mx-auto mb-3" />
                 <p className="text-white/30 text-sm">No incoming shipments</p>
               </div>
-            ) : shipments.map((item: any) => {
-              const product = item.plm_products;
-              const batch = product?.plm_batches?.[0];
-              return (
-                <div key={item.id} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    {product?.images?.[0] && <img src={product.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />}
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold">{product?.name}</p>
-                      {product?.sku && <p className="text-xs text-white/30 font-mono">{product.sku}</p>}
-                      {batch?.linked_po_number && <p className="text-xs text-white/30 mt-1">PO: {batch.linked_po_number}</p>}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-amber-400">{item.incoming}</p>
-                      <p className="text-[10px] text-white/25">expected units</p>
-                    </div>
+            ) : shipments.map((item: any) => (
+              <div key={item.id} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
+                <div className="flex items-start gap-3 mb-3">
+                  {item.plm_products?.images?.[0] && <img src={item.plm_products.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />}
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">{item.plm_products?.name}</p>
+                    {item.plm_products?.sku && <p className="text-xs text-white/30 font-mono">{item.plm_products.sku}</p>}
+                    {item.po_number && <p className="text-xs text-white/30 mt-1">PO: {item.po_number}</p>}
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setShowReceive(item); setReceiveForm({ quantity: String(item.incoming), notes: "" }); }} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition">
-                      <CheckCircle size={12} /> Mark Received
-                    </button>
-                    <button onClick={() => { setShowDamage(item); setDamageForm({ quantity: "", notes: "" }); }} className="px-3 py-2 rounded-xl border border-red-500/20 text-red-400 text-xs hover:bg-red-500/10 transition">
-                      <AlertTriangle size={12} />
-                    </button>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-amber-400">{item.quantity_incoming}</p>
+                    <p className="text-[10px] text-white/25">expected units</p>
                   </div>
                 </div>
-              );
-            })}
+                <div className="flex gap-2">
+                  <button onClick={() => { setShowReceive(item); setReceiveForm({ quantity: String(item.quantity_incoming), notes: "" }); }} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition">
+                    <CheckCircle size={12} /> Mark Received
+                  </button>
+                  <button onClick={() => { setShowDamage(item); setDamageForm({ quantity: "", notes: "" }); }} className="px-3 py-2 rounded-xl border border-red-500/20 text-red-400 text-xs hover:bg-red-500/10 transition">
+                    <AlertTriangle size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -162,17 +172,51 @@ export default function WarehousePortal() {
                   <p className="text-sm font-medium text-white/80">{item.plm_products?.name}</p>
                   {item.plm_products?.sku && <p className="text-[10px] text-white/25 font-mono">{item.plm_products.sku}</p>}
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-white">{item.on_hand}</p>
-                  <p className="text-[10px] text-white/25">on hand</p>
+                <div className="flex gap-4 text-right">
+                  <div>
+                    <p className="text-lg font-bold text-white">{item.quantity_on_hand}</p>
+                    <p className="text-[10px] text-white/25">on hand</p>
+                  </div>
+                  {item.quantity_incoming > 0 && (
+                    <div>
+                      <p className="text-lg font-bold text-amber-400">{item.quantity_incoming}</p>
+                      <p className="text-[10px] text-white/25">incoming</p>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
+
+        {activeTab === "messages" && (
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="flex-1 overflow-y-auto space-y-3 mb-4 max-h-[60vh]">
+              {messages.length === 0 ? (
+                <div className="text-center py-16">
+                  <MessageCircle size={32} className="text-white/10 mx-auto mb-3" />
+                  <p className="text-white/30 text-sm">No messages yet</p>
+                </div>
+              ) : messages.map((m: any) => (
+                <div key={m.id} className={`flex ${m.sender_role === "warehouse" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${m.sender_role === "warehouse" ? "bg-white text-black" : "bg-white/[0.06] text-white/80"}`}>
+                    <p>{m.message}</p>
+                    <p className={`text-[10px] mt-1 ${m.sender_role === "warehouse" ? "text-black/40" : "text-white/25"}`}>{m.sender_name} · {new Date(m.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className="flex gap-2">
+              <input value={newMessage} onChange={e => setNewMessage(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder="Type a message..." className={inputClass} />
+              <button onClick={sendMessage} disabled={sendingMsg || !newMessage.trim()} className="px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40 hover:bg-white/90 transition">
+                <Send size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Receive Modal */}
       {showReceive && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
           <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-5 w-full max-w-sm">
@@ -198,7 +242,6 @@ export default function WarehousePortal() {
         </div>
       )}
 
-      {/* Damage Modal */}
       {showDamage && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
           <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-5 w-full max-w-sm">
