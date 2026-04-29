@@ -265,8 +265,8 @@ export default function DocumentDrop() {
 
                 <p className="text-base leading-relaxed font-medium" style={{ color: "var(--text-secondary)" }}>{identified.confirmation_message}</p>
 
-                {/* Factory dropdown */}
-                <div>
+                {/* Factory dropdown — hide for product import */}
+                {identified.doc_type !== "product_import" && <div>
                   <p className="text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--text-muted)" }}>Factory</p>
                   <select
                     value={identified.factory_name || ""}
@@ -284,7 +284,7 @@ export default function DocumentDrop() {
                       <option value={identified.factory_name}>{identified.factory_name} (detected)</option>
                     )}
                   </select>
-                </div>
+                </div>}
 
                 {/* Products list */}
                 {identified.extracted_data?.products?.length > 0 && (
@@ -297,9 +297,13 @@ export default function DocumentDrop() {
                       {identified.extracted_data.products.map((p: any, i: number) => (
                         <div key={i} className="flex items-center gap-3 px-3 py-2.5 border-b border-white/[0.04] last:border-0 group">
                           {p.image_url ? (
-                            <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover border border-white/10 flex-shrink-0" />
+                            <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover border border-bg-border flex-shrink-0" />
+                          ) : identified.doc_type === "product_import" ? (
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold" style={{ background: "var(--bg-elevated)", border: "1px solid var(--bg-border)", color: "var(--text-muted)" }}>
+                              IMG
+                            </div>
                           ) : (
-                            <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex-shrink-0" />
+                            <div className="w-8 h-8 rounded-lg flex-shrink-0" style={{ background: "var(--bg-elevated)", border: "1px solid var(--bg-border)" }} />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{p.name || p.sku || "Unknown product"}</p>
