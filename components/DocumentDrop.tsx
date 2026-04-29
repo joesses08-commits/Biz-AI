@@ -213,7 +213,7 @@ export default function DocumentDrop() {
           )}
 
           {dropState === "confirming" && identified && (
-            <div className="bg-bg-elevated border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-5 mx-4">
+            <div className="bg-bg-elevated border border-white/10 rounded-2xl w-full max-w-lg p-6 space-y-5 mx-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
@@ -238,7 +238,7 @@ export default function DocumentDrop() {
                 )}
               </div>
 
-              <p className="text-sm text-white/70 leading-relaxed">{identified.confirmation_message}</p>
+              <p className="text-base text-white/80 leading-relaxed font-medium">{identified.confirmation_message}</p>
 
               {/* Editable factory override */}
               {!identified.factory_name && identified.doc_type !== "product_import" && (
@@ -253,16 +253,25 @@ export default function DocumentDrop() {
               )}
 
               {identified.extracted_data?.products?.length > 0 && (
-                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 space-y-1.5 max-h-36 overflow-y-auto">
-                  {identified.extracted_data.products.slice(0, 6).map((p: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <span className="text-white/60 truncate flex-1">{p.name || p.sku}</span>
-                      {p.price && <span className="text-emerald-400 flex-shrink-0 ml-2">${p.price}</span>}
-                    </div>
-                  ))}
-                  {identified.extracted_data.products.length > 6 && (
-                    <p className="text-[10px] text-white/30">+{identified.extracted_data.products.length - 6} more</p>
-                  )}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Products being wired in</p>
+                    <span className="text-xs text-white/40">{identified.extracted_data.products.length} items</span>
+                  </div>
+                  <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                    {identified.extracted_data.products.map((p: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between px-3 py-2 border-b border-white/[0.04] last:border-0">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white/80 truncate">{p.name || p.sku || "Unknown product"}</p>
+                          {p.sku && p.name && <p className="text-[10px] text-white/30 font-mono">{p.sku}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                          {p.moq && <span className="text-[10px] text-white/30">MOQ {p.moq}</span>}
+                          {p.price && <span className="text-sm font-bold text-emerald-400">${p.price}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
