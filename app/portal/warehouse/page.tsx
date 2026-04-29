@@ -62,7 +62,7 @@ export default function WarehousePortal() {
     setSaving(true);
     const res = await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report_damage", inventory_id: showDamage.id, quantity_damaged: parseInt(damageForm.quantity), notes: damageForm.notes, user_id: warehouseUser.user_id }) });
     if (res.ok) {
-      const total = showDamage.quantity_incoming || 0;
+      const total = showDamage.quantity_on_hand || 0;
       const damaged = parseInt(damageForm.quantity) || 0;
       const good = total - damaged;
       await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", warehouse_id: warehouseUser.warehouse_id, user_id: warehouseUser.user_id, message: `⚠️ Damage reported: ${showDamage.plm_products?.name} — ${total} incoming, ${damaged} damaged, ${good} in good condition. Reason: ${damageForm.notes}`, sender_role: "warehouse", sender_name: warehouseUser.name }) });
