@@ -30,6 +30,7 @@ export default function DocumentDrop() {
   const [panelDragging, setPanelDragging] = useState(false);
   const [userHint, setUserHint] = useState("");
   const [editingProduct, setEditingProduct] = useState<{ index: number; data: any } | null>(null);
+  const [factories, setFactories] = useState<any[]>([]);
   const fileDataRef = useRef<{ base64: string; name: string; type: string } | null>(null);
   const dragCounterRef = useRef(0);
 
@@ -68,6 +69,12 @@ export default function DocumentDrop() {
 
     setIdentified(data.identified);
     setDropState("confirming");
+    // Fetch factories for dropdown
+    try {
+      const fr = await fetch("/api/plm?type=factories");
+      const fd = await fr.json();
+      setFactories(fd.factories || []);
+    } catch {}
   }, [userHint]);
 
   const execute = async () => {
@@ -228,8 +235,8 @@ export default function DocumentDrop() {
                     <FileText size={18} style={{ color }} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">{DOC_TYPE_LABELS[identified.doc_type]}</p>
-                    <p className="text-[11px] text-white/40">{fileName}</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{DOC_TYPE_LABELS[identified.doc_type]}</p>
+                    <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{fileName}</p>
                   </div>
                 </div>
                 <button onClick={reset} className="text-white/30 hover:text-white/60"><X size={16} /></button>
@@ -250,25 +257,35 @@ export default function DocumentDrop() {
                   )}
                 </div>
 
-                <p className="text-base text-white/80 leading-relaxed font-medium">{identified.confirmation_message}</p>
+                <p className="text-base leading-relaxed font-medium" style={{ color: "var(--text-secondary)" }}>{identified.confirmation_message}</p>
 
-                {/* Factory name override */}
+                {/* Factory dropdown */}
                 <div>
-                  <p className="text-xs text-white/40 mb-1.5 font-semibold uppercase tracking-widest">Factory</p>
-                  <input
+                  <p className="text-xs font-semibold uppercase tracking-widest mb-1.5" style={{ color: "var(--text-muted)" }}>Factory</p>
+                  <select
                     value={identified.factory_name || ""}
-                    placeholder="Factory name..."
-                    className="w-full bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white/80 placeholder-white/20 focus:outline-none focus:border-white/20"
-                    onChange={e => setIdentified((prev: any) => ({ ...prev, factory_name: e.target.value }))}
-                  />
+                    onChange={e => {
+                      const selected = factories.find((f: any) => f.name === e.target.value);
+                      setIdentified((prev: any) => ({ ...prev, factory_name: e.target.value, factory_id: selected?.id || prev.factory_id }));
+                    }}
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                    style={{ background: "var(--bg-elevated)", border: "1px solid var(--bg-border)", color: "var(--text-primary)" }}>
+                    <option value="">— Select factory —</option>
+                    {factories.map((f: any) => (
+                      <option key={f.id} value={f.name}>{f.name}</option>
+                    ))}
+                    {identified.factory_name && !factories.find((f: any) => f.name === identified.factory_name) && (
+                      <option value={identified.factory_name}>{identified.factory_name} (detected)</option>
+                    )}
+                  </select>
                 </div>
 
                 {/* Products list */}
                 {identified.extracted_data?.products?.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Products being wired in</p>
-                      <span className="text-xs text-white/30">{identified.extracted_data.products.length} items</span>
+                      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>Products being wired in</p>
+                      <span className="text-xs" style={{ color: "var(--text-muted)" }}>{identified.extracted_data.products.length} items</span>
                     </div>
                     <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
                       {identified.extracted_data.products.map((p: any, i: number) => (
@@ -279,10 +296,10 @@ export default function DocumentDrop() {
                             <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex-shrink-0" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white/90 truncate">{p.name || p.sku || "Unknown product"}</p>
+                            <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{p.name || p.sku || "Unknown product"}</p>
                             <div className="flex items-center gap-2">
-                              {p.sku && <p className="text-[10px] text-white/30 font-mono">{p.sku}</p>}
-                              {p.moq && <p className="text-[10px] text-white/30">MOQ {p.moq}</p>}
+                              {p.sku && <p className="text-[10px] font-mono" style={{ color: "var(--text-muted)" }}>{p.sku}</p>}
+                              {p.moq && <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>MOQ {p.moq}</p>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
