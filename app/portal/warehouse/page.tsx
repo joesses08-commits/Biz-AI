@@ -24,9 +24,10 @@ export default function WarehousePortal() {
     const res = await fetch("https://myjimmy.ai/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", email, password }) });
     const data = await res.json();
     if (!res.ok) { setLoginError("Invalid email or PIN"); setLoggingIn(false); return; }
-    setWarehouseUser(data.user || data.warehouse_user);
-    loadData(data.warehouse_user);
+    const wu = data.user || data.warehouse_user;
+    setWarehouseUser(wu);
     setLoggingIn(false);
+    loadData(wu);
   }
 
   async function loadData(wu: any) {
