@@ -76,7 +76,21 @@ export async function POST(req: NextRequest) {
       try {
         const pdfBuffer = Buffer.from(file_base64, "base64");
         const pdfData = await pdfParse(pdfBuffer);
-        fileContent = pdfData.text.slice(0, 6000);
+        const text = pdfData.text?.trim();
+        if (text && text.length > 100) {
+          fileContent = text.slice(0, 6000);
+        } else {
+          // Image-based PDF — send to Claude vision
+          const visionRes = await anthropic.messages.create({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 1500,
+            messages: [{ role: "user", content: [
+              { type: "document", source: { type: "base64", media_type: "application/pdf", data: file_base64 } },
+              { type: "text", text: "Extract all text content from this document. Return everything you can read including all fields, values, numbers, and labels." }
+            ]}],
+          });
+          fileContent = visionRes.content[0].type === "text" ? visionRes.content[0].text : "Could not extract PDF content";
+        }
       } catch {
         fileContent = "PDF could not be parsed";
       }
