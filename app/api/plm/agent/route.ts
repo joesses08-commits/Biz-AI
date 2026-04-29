@@ -283,7 +283,7 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
         const { error: updateErr } = await supabaseAdmin.from("plm_track_stages").update({ status: "done", ...extra }).eq("id", existing.id);
         console.log("update error:", updateErr);
       } else {
-        const { error: insertErr } = await supabaseAdmin.from("plm_track_stages").insert({ track_id: input.track_id, product_id: input.product_id, factory_id: input.factory_id, stage: input.stage, status: "done", revision_number: 0, user_id: userId, ...extra });
+        const { error: insertErr } = await supabaseAdmin.from("plm_track_stages").insert({ track_id: input.track_id, product_id: input.product_id, factory_id: input.factory_id, stage: input.stage, status: "done", revision_number: 0, ...extra });
         console.log("insert error:", insertErr);
       }
       return `Stage "${input.stage}" marked as done.`;
