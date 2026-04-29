@@ -31,6 +31,7 @@ export default function WarehousePortal() {
     if (!res.ok) { setLoginError("Invalid email or password"); setLoggingIn(false); return; }
     const wu = data.user;
     setWarehouseUser(wu);
+    localStorage.setItem("warehouse_user", JSON.stringify(wu));
     setLoggingIn(false);
     loadData(wu);
   }
@@ -81,6 +82,15 @@ export default function WarehousePortal() {
     loadData(warehouseUser);
   }
 
+  useEffect(() => {
+    const saved = localStorage.getItem("warehouse_user");
+    if (saved) {
+      const wu = JSON.parse(saved);
+      setWarehouseUser(wu);
+      loadData(wu);
+    }
+  }, []);
+
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   if (!warehouseUser) return (
@@ -112,7 +122,7 @@ export default function WarehousePortal() {
           <p className="text-sm font-semibold">{warehouseUser.warehouses?.name}</p>
           <p className="text-xs text-white/30">{warehouseUser.name}</p>
         </div>
-        <button onClick={() => setWarehouseUser(null)} className="flex items-center gap-1.5 text-white/30 hover:text-white text-xs transition">
+        <button onClick={() => { localStorage.removeItem("warehouse_user"); setWarehouseUser(null); }} className="flex items-center gap-1.5 text-white/30 hover:text-white text-xs transition">
           <LogOut size={12} /> Sign out
         </button>
       </div>
