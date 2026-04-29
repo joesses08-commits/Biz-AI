@@ -59,7 +59,11 @@ export default function WarehousePortal() {
   async function reportDamage() {
     if (!showDamage || !warehouseUser) return;
     setSaving(true);
-    await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report_damage", inventory_id: showDamage.id, quantity_damaged: parseInt(damageForm.quantity), notes: damageForm.notes, user_id: warehouseUser.user_id }) });
+    const res = await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "report_damage", inventory_id: showDamage.id, quantity_damaged: parseInt(damageForm.quantity), notes: damageForm.notes, user_id: warehouseUser.user_id }) });
+    if (res.ok) {
+      // Send message to admin about damage
+      await fetch("/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", warehouse_id: warehouseUser.warehouse_id, user_id: warehouseUser.user_id, message: `⚠️ Damage reported: ${showDamage.plm_products?.name} — ${damageForm.quantity} units damaged. Reason: ${damageForm.notes}`, sender_role: "warehouse", sender_name: warehouseUser.name }) });
+    }
     setSaving(false);
     setShowDamage(null);
     setDamageForm({ quantity: "", notes: "" });

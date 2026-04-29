@@ -23,8 +23,38 @@ export default function MessagesPage() {
   const [pendingMemberIds, setPendingMemberIds] = useState<string[]>([]);
   const [savingMembers, setSavingMembers] = useState(false);
   const [attachmentPreview, setAttachmentPreview] = useState<{file: File, url: string, type: string} | null>(null);
+  const [warehouseThreads, setWarehouseThreads] = useState<any[]>([]);
+  const [activeWarehouseThread, setActiveWarehouseThread] = useState<any>(null);
+  const [warehouseMsgs, setWarehouseMsgs] = useState<any[]>([]);
+  const [warehouseMsg, setWarehouseMsg] = useState("");
+  const [sendingWarehouse, setSendingWarehouse] = useState(false);
 
-  useEffect(() => { loadChats(); }, []);
+  useEffect(() => { loadChats(); loadWarehouseThreads(); }, []);
+
+  const loadWarehouseThreads = async () => {
+    const res = await fetch("/api/messages/warehouse");
+    if (res.ok) {
+      const data = await res.json();
+      setWarehouseThreads(data.threads || []);
+    }
+  };
+
+  const openWarehouseThread = async (thread: any) => {
+    setActiveChat(null);
+    setActiveWarehouseThread(thread);
+    const res = await fetch("/api/messages/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_messages", warehouse_id: thread.warehouse_id, user_id: thread.user_id }) });
+    const data = await res.json();
+    setWarehouseMsgs(data.messages || []);
+  };
+
+  const sendWarehouseMessage = async () => {
+    if (!warehouseMsg.trim() || !activeWarehouseThread) return;
+    setSendingWarehouse(true);
+    await fetch("/api/messages/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", warehouse_id: activeWarehouseThread.warehouse_id, user_id: activeWarehouseThread.user_id, message: warehouseMsg.trim(), sender_role: "admin", sender_name: "Admin" }) });
+    setWarehouseMsg("");
+    setSendingWarehouse(false);
+    openWarehouseThread(activeWarehouseThread);
+  };
 
   const loadChats = async () => {
     const res = await fetch("/api/messages");
@@ -143,6 +173,23 @@ export default function MessagesPage() {
               )}
             </>
           )}
+          {warehouseThreads.length > 0 && (
+            <div>
+              <p className="text-[10px] text-white/20 uppercase tracking-widest px-5 pt-4 pb-2">Warehouses</p>
+              {warehouseThreads.map((t: any) => (
+                <button key={t.warehouse_id + t.user_id} onClick={() => openWarehouseThread(t)}
+                  className={`w-full px-5 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition text-left ${activeWarehouseThread?.warehouse_id === t.warehouse_id && activeWarehouseThread?.user_id === t.user_id ? "bg-white/[0.04]" : ""}`}>
+                  <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
+                    <span className="text-white/30 text-xs">🏭</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white/70 truncate">{t.warehouse_name}</p>
+                    <p className="text-[10px] text-white/30 truncate">{t.last_message || "No messages yet"}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -260,12 +307,40 @@ export default function MessagesPage() {
           </div>
         </div>
       ) : (
+        {activeWarehouseThread ? (
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3 flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+                <span className="text-white/30 text-xs">🏭</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{activeWarehouseThread.warehouse_name}</p>
+                <p className="text-xs text-white/30">Warehouse</p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+              {warehouseMsgs.map((m: any) => (
+                <div key={m.id} className={`flex ${m.sender_role === "admin" ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${m.sender_role === "admin" ? "bg-white text-black" : "bg-white/[0.06] text-white/80"}`}>
+                    <p>{m.message}</p>
+                    <p className={`text-[10px] mt-1 ${m.sender_role === "admin" ? "text-black/40" : "text-white/25"}`}>{m.sender_name} · {new Date(m.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="px-6 py-4 border-t border-white/[0.06] flex gap-2">
+              <input value={warehouseMsg} onChange={e => setWarehouseMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendWarehouseMessage()} placeholder="Reply to warehouse..." className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white/70 text-sm focus:outline-none focus:border-white/20" />
+              <button onClick={sendWarehouseMessage} disabled={sendingWarehouse || !warehouseMsg.trim()} className="px-4 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Send</button>
+            </div>
+          </div>
+        ) : (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-2xl mb-2">💬</p>
             <p className="text-sm text-white/30">Select a chat to start messaging</p>
           </div>
         </div>
+        )}
       )}
 
       {/* Members Modal */}
