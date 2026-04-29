@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     if (!inv) return NextResponse.json({ error: "Not found" }, { status: 404, headers: corsHeaders });
     await supabaseAdmin.from("inventory").update({
       quantity_on_hand: Math.max(0, (inv.quantity_on_hand || 0) - qty),
-      quantity_damaged: (inv.quantity_damaged || 0) + qty,
+      quantity_damaged: ((inv as any).quantity_damaged || 0) + qty,
       updated_at: new Date().toISOString(),
     }).eq("id", inventory_id);
     await supabaseAdmin.from("inventory_movements").insert({
