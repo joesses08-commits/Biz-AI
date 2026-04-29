@@ -10,6 +10,7 @@ export default function WarehousePortal() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
+  const openMessages = () => { isFirstLoadRef.current = true; setActiveTab("messages"); };
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -20,6 +21,8 @@ export default function WarehousePortal() {
   const [damageForm, setDamageForm] = useState({ quantity: "", notes: "" });
   const [saving, setSaving] = useState(false);
   const messagesEndRef = useRef<any>(null);
+  const isFirstLoadRef = useRef(true);
+  const pollRef = useRef<any>(null);
 
   const inputClass = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20";
 
@@ -89,10 +92,18 @@ export default function WarehousePortal() {
       const wu = JSON.parse(saved);
       setWarehouseUser(wu);
       loadData(wu);
+      // Poll messages every 3s
+      pollRef.current = setInterval(() => loadData(wu), 3000);
     }
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    if (isFirstLoadRef.current && messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+      isFirstLoadRef.current = false;
+    }
+  }, [messages]);
 
   if (!warehouseUser) return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
@@ -136,7 +147,7 @@ export default function WarehousePortal() {
           <button onClick={() => setActiveTab("inventory")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "inventory" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
             <Package size={12} /> Inventory ({inventoryItems.length})
           </button>
-          <button onClick={() => setActiveTab("messages")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "messages" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
+          <button onClick={openMessages} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "messages" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
             <MessageCircle size={12} /> Messages
           </button>
         </div>
