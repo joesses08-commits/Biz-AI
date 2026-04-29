@@ -29,18 +29,18 @@
 
 /* Light mode */
 [data-theme="light"] {
-  --bg-base: #f5f5f7;
+  --bg-base: #f0f0f3;
   --bg-surface: #ffffff;
-  --bg-elevated: #f0f0f5;
-  --bg-border: #e0e0e8;
-  --bg-hover: #e8e8f0;
-  --text-primary: #0c0c14;
-  --text-secondary: #4a4a6a;
-  --text-muted: #9090a8;
-  --scrollbar-thumb: #d0d0dc;
-  --scrollbar-thumb-hover: #b0b0c4;
+  --bg-elevated: #e8e8ee;
+  --bg-border: #d0d0da;
+  --bg-hover: #e0e0ea;
+  --text-primary: #080810;
+  --text-secondary: #1a1a2e;
+  --text-muted: #3a3a5c;
+  --scrollbar-thumb: #c0c0cc;
+  --scrollbar-thumb-hover: #a0a0b4;
   --glass-bg: rgba(255, 255, 255, 0.8);
-  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border: rgba(0, 0, 0, 0.10);
   --selection-bg: #4f6ef730;
 }
 
