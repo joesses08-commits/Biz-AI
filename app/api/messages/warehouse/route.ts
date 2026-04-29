@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
       .eq("warehouse_id", warehouse_id)
       .eq("user_id", user.id)
       .order("created_at", { ascending: true });
+    // Mark all warehouse messages as read by admin
+    await supabaseAdmin.from("warehouse_messages")
+      .update({ read_by_admin: true })
+      .eq("warehouse_id", warehouse_id)
+      .eq("user_id", user.id)
+      .eq("sender_role", "warehouse");
     return NextResponse.json({ messages: data || [] });
   }
 

@@ -11,6 +11,7 @@ export default function WarehousePortal() {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const openMessages = () => { isFirstLoadRef.current = true; setActiveTab("messages"); };
+  const unreadWarehouse = messages.filter((m: any) => m.sender_role === "admin" && !m.read_by_warehouse).length;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -150,7 +151,7 @@ export default function WarehousePortal() {
             <Package size={12} /> Inventory ({inventoryItems.length})
           </button>
           <button onClick={openMessages} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "messages" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
-            <MessageCircle size={12} /> Messages
+            <MessageCircle size={12} /> Messages{unreadWarehouse > 0 && <span className="ml-1 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{unreadWarehouse}</span>}
           </button>
         </div>
 

@@ -113,6 +113,9 @@ export async function GET(req: NextRequest) {
         is_warehouse: true,
       };
     }
+    if (m.sender_role === "warehouse" && !m.read_by_admin) {
+      warehouseThreadMap[m.warehouse_id].unread_count = (warehouseThreadMap[m.warehouse_id].unread_count || 0) + 1;
+    }
   }
   const warehouseChats = Object.values(warehouseThreadMap);
 
