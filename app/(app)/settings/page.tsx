@@ -118,7 +118,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { href: "/plm?tab=factory_access", icon: <Factory size={16} className="text-blue-400" />, title: "Add Factories", desc: "Add your factory contacts with name, email, and contact person. Create portal access so they can update progress." },
-                  { href: "/plm", icon: <Package size={16} className="text-amber-400" />, title: "Create Products", desc: "Add products with SKUs, images, and specs. Group them into collections like "Spring 2026"." },
+                  { href: "/plm", icon: <Package size={16} className="text-amber-400" />, title: "Create Products", desc: "Add products with SKUs, images, and specs. Group them into collections like 'Spring 2026'." },
                   { href: "/workflows/factory-quote", icon: <FileSpreadsheet size={16} className="text-purple-400" />, title: "Request & Compare Quotes", desc: "Send RFQs to multiple factories, upload their Excel quotes, compare landed costs side-by-side." },
                   { href: "/plm", icon: <Truck size={16} className="text-emerald-400" />, title: "Track Samples", desc: "Track samples through production → shipped → arrived. Approve and generate POs with one click." },
                   { href: "/chat", icon: <Mail size={16} className="text-amber-400" />, title: "Drop Documents", desc: "Drop any factory email, quote, or PO into chat. Jimmy extracts data and files it automatically." },
