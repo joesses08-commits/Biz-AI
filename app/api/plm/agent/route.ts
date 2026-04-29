@@ -273,14 +273,18 @@ async function executeTool(name: string, input: any, userId: string): Promise<st
     }
 
     if (name === "update_track_stage") {
+      console.log("update_track_stage input:", JSON.stringify(input));
       const extra: any = { actual_date: new Date().toISOString().split("T")[0] };
       if (input.notes) extra.notes = input.notes;
       if (input.quoted_price) extra.quoted_price = input.quoted_price;
-      const { data: existing } = await supabaseAdmin.from("plm_track_stages").select("id").eq("track_id", input.track_id).eq("stage", input.stage).maybeSingle();
+      const { data: existing, error: fetchErr } = await supabaseAdmin.from("plm_track_stages").select("id").eq("track_id", input.track_id).eq("stage", input.stage).maybeSingle();
+      console.log("existing stage:", existing, "fetchErr:", fetchErr);
       if (existing) {
-        await supabaseAdmin.from("plm_track_stages").update({ status: "done", ...extra }).eq("id", existing.id);
+        const { error: updateErr } = await supabaseAdmin.from("plm_track_stages").update({ status: "done", ...extra }).eq("id", existing.id);
+        console.log("update error:", updateErr);
       } else {
-        await supabaseAdmin.from("plm_track_stages").insert({ track_id: input.track_id, product_id: input.product_id, factory_id: input.factory_id, stage: input.stage, status: "done", revision_number: 0, user_id: userId, ...extra });
+        const { error: insertErr } = await supabaseAdmin.from("plm_track_stages").insert({ track_id: input.track_id, product_id: input.product_id, factory_id: input.factory_id, stage: input.stage, status: "done", revision_number: 0, user_id: userId, ...extra });
+        console.log("insert error:", insertErr);
       }
       return `Stage "${input.stage}" marked as done.`;
     }
