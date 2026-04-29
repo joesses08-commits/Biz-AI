@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     const { inventory_id, quantity_damaged, notes, user_id } = body;
     const qty = parseInt(quantity_damaged) || 0;
     if (qty <= 0) return NextResponse.json({ error: "Invalid quantity" }, { status: 400, headers: corsHeaders });
-    const { data: inv } = await supabaseAdmin.from("inventory").select("quantity_on_hand").eq("id", inventory_id).single();
+    const { data: inv } = await supabaseAdmin.from("inventory").select("quantity_on_hand, quantity_damaged").eq("id", inventory_id).single();
     if (!inv) return NextResponse.json({ error: "Not found" }, { status: 404, headers: corsHeaders });
     await supabaseAdmin.from("inventory").update({
       quantity_on_hand: Math.max(0, (inv.quantity_on_hand || 0) - qty),
