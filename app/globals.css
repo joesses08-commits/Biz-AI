@@ -262,6 +262,19 @@ body {
   border-color: var(--bg-border) !important;
 }
 
+/* Light mode — darken colored text for readability */
+[data-theme="light"] .text-amber-400 { color: #b45309 !important; font-weight: 600; }
+[data-theme="light"] .text-amber-500 { color: #92400e !important; font-weight: 600; }
+[data-theme="light"] .text-yellow-400 { color: #854d0e !important; font-weight: 600; }
+[data-theme="light"] .text-emerald-400 { color: #065f46 !important; font-weight: 600; }
+[data-theme="light"] .text-green-400 { color: #065f46 !important; font-weight: 600; }
+[data-theme="light"] .text-blue-400 { color: #1d4ed8 !important; font-weight: 600; }
+[data-theme="light"] .text-purple-400 { color: #6d28d9 !important; font-weight: 600; }
+[data-theme="light"] .text-pink-400 { color: #9d174d !important; font-weight: 600; }
+[data-theme="light"] .text-red-400 { color: #991b1b !important; font-weight: 600; }
+[data-theme="light"] .text-orange-400 { color: #9a3412 !important; font-weight: 600; }
+[data-theme="light"] .text-cyan-400 { color: #0e7490 !important; font-weight: 600; }
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

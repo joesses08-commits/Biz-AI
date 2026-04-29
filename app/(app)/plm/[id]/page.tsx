@@ -1037,11 +1037,11 @@ ${entry}` : entry;
                     </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[11px]" style={isDone ? { color: "var(--text-primary)", fontWeight: 600 } : isSkipped ? { color: "var(--text-muted)" } : expanded ? { color: stageDef.color, fontWeight: 500 } : { color: "var(--text-muted)" }}>
+                        <span className="text-sm font-medium" style={isDone ? { color: "var(--text-primary)", fontWeight: 700 } : isSkipped ? { color: "var(--text-muted)" } : expanded ? { color: stageDef.color, fontWeight: 600 } : { color: "var(--text-secondary)" }}>
                           {stageDef.label}
                         </span>
-                        {isApprovedReview && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✓ Approved</span>}
-                        {revisionAfterThis && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">↻ Revision requested</span>}
+                        {isApprovedReview && <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">✓ Approved</span>}
+                        {revisionAfterThis && <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/20">↻ Revision requested</span>}
                         {stageData?.expected_date && !isDone && (
                           <span className="text-[9px] text-text-muted bg-bg-elevated px-1.5 py-0.5 rounded-full">
                             Est {new Date(stageData.expected_date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
