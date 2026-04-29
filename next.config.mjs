@@ -1,5 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/api/warehouse/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "https://warehouse.myjimmy.ai" },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type" },
+        ],
+      },
+    ];
+  },
   experimental: {
     serverComponentsExternalPackages: ["@anthropic-ai/sdk"],
   },
