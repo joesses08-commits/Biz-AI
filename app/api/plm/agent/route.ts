@@ -407,7 +407,7 @@ Best regards`;
     }
 
     if (name === "create_track") {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/plm`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/plm/tracks`, {
         method: "POST", headers: { "Content-Type": "application/json", "x-user-id": userId },
         body: JSON.stringify({ action: "create_track", product_id: input.product_id, factory_id: input.factory_id })
       });
