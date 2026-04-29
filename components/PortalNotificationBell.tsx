@@ -66,7 +66,7 @@ export default function PortalNotificationBell({ token, onNavigate }: { token: s
       </button>
 
       {open && typeof document !== "undefined" && createPortal(
-        <div data-notif-dropdown style={{position:"fixed", top:"60px", right:"16px", width:"320px", zIndex:999999}} className="bg-[#111] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+        <div data-notif-dropdown style={{position:"fixed", top:"60px", right:"16px", width:"320px", zIndex:999999}} className="bg-bg-elevated border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <p className="text-sm font-semibold">Notifications</p>
             <div className="flex items-center gap-2">

@@ -442,7 +442,7 @@ export default function PLMPage() {
         {/* Import Modal */}
         {showImportModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-4 my-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-4 my-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-text-primary">Import Products from Spreadsheet</p>
@@ -524,7 +524,7 @@ export default function PLMPage() {
         {/* Delete Confirm Modal */}
         {showDeleteConfirm && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-[#111] border border-red-500/20 rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <div className="bg-bg-elevated border border-red-500/20 rounded-2xl p-6 w-full max-w-sm space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
                   <Trash2 size={16} className="text-red-400" />
@@ -563,7 +563,7 @@ export default function PLMPage() {
         {/* Bulk Assign Modal */}
         {showAssignModal && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 w-full max-w-sm space-y-4">
               <h3 className="text-sm font-bold text-text-primary">Assign {selectedProducts.length} Products</h3>
               <p className="text-xs text-text-secondary">Select team members to assign these products to.</p>
               <div className="space-y-2">
@@ -613,7 +613,7 @@ export default function PLMPage() {
         {/* Export Modal */}
         {showExportModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-text-primary">Export Product Catalog</p>
@@ -659,7 +659,7 @@ export default function PLMPage() {
         {/* Delete confirmation modal */}
         {confirmDeleteId && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
                   <span className="text-red-400 text-sm">✕</span>
@@ -685,7 +685,7 @@ export default function PLMPage() {
 
         {showRfqModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-text-primary">Create RFQ</p>
@@ -809,7 +809,7 @@ export default function PLMPage() {
         {/* Bulk Sample Request Modal */}
         {showSampleRequestModal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-text-primary">Request Samples</p>
@@ -1014,7 +1014,7 @@ export default function PLMPage() {
         {/* New Collection Modal */}
         {showNewCollection && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-text-primary">New Collection</p>
                 <button onClick={() => setShowNewCollection(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
@@ -1044,7 +1044,7 @@ export default function PLMPage() {
         {/* New Product Modal */}
         {showNewProduct && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-text-primary">New Product / SKU</p>
                 <button onClick={() => setShowNewProduct(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
@@ -1296,7 +1296,7 @@ export default function PLMPage() {
 
                   return (
                     <div key={product.id} className="border border-bg-border rounded-xl p-4 bg-bg-surface hover:border-bg-border transition flex items-center gap-4"
-                      style={{ borderColor: selectedProducts.includes(product.id) ? "rgba(255,255,255,0.15)" : "" }}>
+                      style={{ borderColor: selectedProducts.includes(product.id) ? "var(--bg-border)" : "" }}>
                       {selectMode && <input type="checkbox" checked={selectedProducts.includes(product.id)} onChange={() => toggleProduct(product.id)} className="rounded flex-shrink-0" onClick={e => e.stopPropagation()} />}
                       {product.images?.[0] ? (
                         <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-bg-border flex-shrink-0" />
@@ -1460,7 +1460,7 @@ export default function PLMPage() {
             {/* Create Portal Modal */}
             {showPortalModal && (
               <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-                <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-full max-w-md">
+                <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 w-full max-w-md">
                   <h3 className="text-base font-bold text-white mb-1">Create Portal Access</h3>
                   <p className="text-xs text-text-secondary mb-4">Create login credentials for <span className="text-text-primary">{showPortalModal.factory.name}</span> to access their portal</p>
                   

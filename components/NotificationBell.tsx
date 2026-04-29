@@ -94,22 +94,22 @@ export default function NotificationBell() {
   };
 
   const dropdown = open && typeof document !== "undefined" ? createPortal(
-    <div data-notif-bell style={{ position: "fixed", top: bellPos.top, left: bellPos.left, width: 320, background: "#0d0d0d", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 16, boxShadow: "0 25px 60px rgba(0,0,0,0.95)", zIndex: 999999, overflow: "hidden" }}>
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: "white" }}>Notifications</p>
+    <div data-notif-bell style={{ position: "fixed", top: bellPos.top, left: bellPos.left, width: 320, background: "var(--bg-surface)", border: "1px solid var(--bg-border)", borderRadius: 16, boxShadow: "0 25px 60px rgba(0,0,0,0.4)", zIndex: 999999, overflow: "hidden" }}>
+      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--bg-border)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Notifications</p>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {unread > 0 && <button onClick={() => markRead("all")} style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
-          <button onClick={() => setOpen(false)} style={{ color: "rgba(255,255,255,0.3)", background: "none", border: "none", cursor: "pointer" }}><X size={14} /></button>
+          {unread > 0 && <button onClick={() => markRead("all")} style={{ fontSize: 10, color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}>Mark all read</button>}
+          <button onClick={() => setOpen(false)} style={{ color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer" }}><X size={14} /></button>
         </div>
       </div>
       <div style={{ maxHeight: 380, overflowY: "auto" }}>
         {assignmentRequests.length > 0 && (
-          <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <p style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em", padding: "12px 16px 8px" }}>Assignment Requests</p>
+          <div style={{ borderBottom: "1px solid var(--bg-border)" }}>
+            <p style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", padding: "12px 16px 8px" }}>Assignment Requests</p>
             {assignmentRequests.map((req: any) => (
-              <div key={req.id} style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)", background: "rgba(245,158,11,0.02)" }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: "white" }}>{req.factory_portal_users?.name} wants to join</p>
-                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginBottom: 8 }}>{req.plm_products?.name}</p>
+              <div key={req.id} style={{ padding: "12px 16px", borderBottom: "1px solid var(--bg-border)", background: "rgba(245,158,11,0.05)" }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{req.factory_portal_users?.name} wants to join</p>
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 8 }}>{req.plm_products?.name}</p>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={(e) => { e.stopPropagation(); handleAssignment(req.id, true); }}
                     style={{ flex: 1, padding: "4px 0", borderRadius: 8, background: "rgba(16,185,129,0.2)", border: "1px solid rgba(16,185,129,0.3)", color: "#34d399", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>✓ Approve</button>
@@ -121,20 +121,20 @@ export default function NotificationBell() {
           </div>
         )}
         {notifications.length === 0 && assignmentRequests.length === 0 ? (
-          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.2)", textAlign: "center", padding: "32px 0" }}>No notifications yet</p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: "32px 0" }}>No notifications yet</p>
         ) : notifications.map((n: any) => (
           <div key={n.id} onClick={() => handleClick(n)}
-            style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 12, background: n.read ? "transparent" : "rgba(255,255,255,0.02)" }}
-            onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
-            onMouseLeave={e => (e.currentTarget.style.background = n.read ? "transparent" : "rgba(255,255,255,0.02)")}>
+            style={{ padding: "12px 16px", borderBottom: "1px solid var(--bg-border)", cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 12, background: n.read ? "transparent" : "var(--bg-elevated)" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-hover)")}
+            onMouseLeave={e => (e.currentTarget.style.background = n.read ? "transparent" : "var(--bg-elevated)")}>
             <span style={{ fontSize: 16, flexShrink: 0, marginTop: 2 }}>{typeIcon(n.type)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <p style={{ fontSize: 12, fontWeight: 600, color: n.read ? "rgba(255,255,255,0.6)" : "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: n.read ? "var(--text-secondary)" : "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</p>
                 {!n.read && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#60a5fa", flexShrink: 0 }} />}
               </div>
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 2 }}>{n.body}</p>
-              <p style={{ fontSize: 9, color: "rgba(255,255,255,0.2)", marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+              <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{n.body}</p>
+              <p style={{ fontSize: 9, color: "var(--text-muted)", marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
             </div>
           </div>
         ))}
@@ -146,7 +146,7 @@ export default function NotificationBell() {
   return (
     <div data-notif-bell style={{ position: "relative" }}>
       <button ref={bellRef} onClick={toggleOpen}
-        className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.05] transition text-white/40 hover:text-white/70">
+        className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-bg-hover transition text-text-muted hover:text-text-secondary">
         <Bell size={15} />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">

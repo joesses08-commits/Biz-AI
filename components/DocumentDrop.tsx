@@ -130,7 +130,7 @@ export default function DocumentDrop() {
       {dropState === "idle" && (
         <div className="fixed right-0 top-1/2 -translate-y-1/2 z-50 flex items-stretch">
           {panelOpen && (
-            <div className="bg-[#0d1117] border border-blue-500/30 border-r-0 rounded-l-2xl w-72 shadow-2xl flex flex-col">
+            <div className="bg-bg-surface border border-blue-500/30 border-r-0 rounded-l-2xl w-72 shadow-2xl flex flex-col">
               <div className="p-4 space-y-3 flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export default function DocumentDrop() {
           )}
 
           {dropState === "confirming" && identified && (
-            <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-5 mx-4">
+            <div className="bg-bg-elevated border border-white/10 rounded-2xl w-full max-w-md p-6 space-y-5 mx-4">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}15`, border: `1px solid ${color}30` }}>
@@ -287,7 +287,7 @@ export default function DocumentDrop() {
           )}
 
           {dropState === "done" && (
-            <div className="bg-[#111] border border-emerald-500/20 rounded-2xl w-full max-w-sm p-6 mx-4 space-y-4">
+            <div className="bg-bg-elevated border border-emerald-500/20 rounded-2xl w-full max-w-sm p-6 mx-4 space-y-4">
               <div className="flex items-center gap-3">
                 <CheckCircle size={24} className="text-emerald-400" />
                 <p className="text-sm font-semibold text-white">Done!</p>
@@ -300,7 +300,7 @@ export default function DocumentDrop() {
           )}
 
           {dropState === "error" && (
-            <div className="bg-[#111] border border-red-500/20 rounded-2xl w-full max-w-sm p-6 mx-4 space-y-4">
+            <div className="bg-bg-elevated border border-red-500/20 rounded-2xl w-full max-w-sm p-6 mx-4 space-y-4">
               <div className="flex items-center gap-3">
                 <AlertCircle size={24} className="text-red-400" />
                 <p className="text-sm font-semibold text-white">Something went wrong</p>

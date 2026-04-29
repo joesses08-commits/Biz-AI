@@ -575,7 +575,7 @@ ${entry}` : entry;
         const notes = (t.notes || "").split("\n").filter(Boolean);
         return (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setExpandedNoteTrackId(null)}>
-            <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-text-primary">{t.factory_catalog?.name} — Notes</p>
                 <button onClick={() => setExpandedNoteTrackId(null)} className="text-text-muted hover:text-text-secondary text-xs">✕</button>
@@ -633,7 +633,7 @@ ${entry}` : entry;
       {/* Sample Request Modal */}
       {showSampleModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Request Samples</p>
               <button onClick={() => setShowSampleModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
@@ -688,7 +688,7 @@ ${entry}` : entry;
       {/* Additional Sample Modal */}
       {additionalSampleModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Request Additional Sample</p>
               <button onClick={() => setAdditionalSampleModal(null)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
@@ -741,7 +741,7 @@ ${entry}` : entry;
       {/* Sample Email Provider Modal */}
       {sampleProviderModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <p className="text-sm font-semibold">Send via which email?</p>
             <p className="text-xs text-text-secondary">Both Gmail and Outlook are connected. Choose which to send from.</p>
             <div className="flex gap-2">
@@ -764,7 +764,7 @@ ${entry}` : entry;
       {/* Sample Outcome PIN Modal */}
       {sampleOutcomePending && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <p className="text-sm font-semibold">Admin PIN Required</p>
             <p className="text-xs text-text-secondary">
               Enter your PIN to confirm: <strong className="text-text-secondary">
@@ -797,7 +797,7 @@ ${entry}` : entry;
       {/* Status Change PIN Modal */}
       {showStatusModal && pendingStatus && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div>
               <p className="text-sm font-semibold text-text-primary">Confirm Status Change</p>
               <p className="text-xs text-text-secondary mt-1">
@@ -830,7 +830,7 @@ ${entry}` : entry;
       {/* Approve banner */}
       {showApproveBanner && product?.approval_status === "pending_review" && !approveSuccess && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-amber-500/30 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
+          <div className="bg-bg-elevated border border-amber-500/30 rounded-2xl w-full max-w-md p-6 space-y-4 shadow-2xl">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
                 <div className="w-3 h-3 rounded-full bg-amber-400" />
@@ -902,7 +902,7 @@ ${entry}` : entry;
                   {showStatusDropdown && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowStatusDropdown(false)} />
-                      <div className="absolute top-full left-0 mt-2 bg-[#111] border border-bg-border rounded-xl overflow-hidden shadow-2xl z-20 min-w-[180px]">
+                      <div className="absolute top-full left-0 mt-2 bg-bg-elevated border border-bg-border rounded-xl overflow-hidden shadow-2xl z-20 min-w-[180px]">
                         <p className="text-[10px] text-white/25 uppercase tracking-widest px-3 pt-3 pb-1">Product Status</p>
                         {(["progression","killed"] as const).map(s => (
                           <button key={s} onClick={() => { setShowStatusDropdown(false); setPendingStatus(s); setShowStatusModal(true); }}
@@ -1030,14 +1030,14 @@ ${entry}` : entry;
                       style={(isDone || isApprovedReview) ? { borderColor: stageDef.color, background: `${stageDef.color}25` } :
                         isSkipped ? { borderColor: "#6b7280", background: "#6b728015" } :
                         expanded ? { borderColor: stageDef.color, background: `${stageDef.color}10` } :
-                        { borderColor: "rgba(255,255,255,0.15)" }}>
+                        { borderColor: "var(--bg-border)" }}>
                       {isUpdating ? <Loader2 size={8} className="animate-spin text-text-secondary" /> :
                        (isDone || isApprovedReview) ? <Check size={8} style={{ color: stageDef.color }} /> :
                        isSkipped ? <span className="text-[7px] text-text-muted">—</span> : null}
                     </button>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[11px]" style={isDone ? { color: "rgba(255,255,255,0.8)", fontWeight: 600 } : isSkipped ? { color: "rgba(255,255,255,0.2)" } : expanded ? { color: stageDef.color, fontWeight: 500 } : { color: "rgba(255,255,255,0.45)" }}>
+                        <span className="text-[11px]" style={isDone ? { color: "var(--text-primary)", fontWeight: 600 } : isSkipped ? { color: "var(--text-muted)" } : expanded ? { color: stageDef.color, fontWeight: 500 } : { color: "var(--text-muted)" }}>
                           {stageDef.label}
                         </span>
                         {isApprovedReview && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">✓ Approved</span>}
@@ -1487,7 +1487,7 @@ ${entry}` : entry;
           {/* Skip stage modal */}
           {skipModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Skip this stage?</p>
                 <p className="text-xs text-text-secondary">Enter a reason so you remember why this was skipped.</p>
                 <input value={skipReason} onChange={e => setSkipReason(e.target.value)}
@@ -1512,7 +1512,7 @@ ${entry}` : entry;
           {/* Expected date modal */}
           {expectedDateModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Set expected date</p>
                 <input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)}
                   className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-white/70 text-xs focus:outline-none" autoFocus />
@@ -1532,7 +1532,7 @@ ${entry}` : entry;
           {/* Messages Modal */}
           {messagesModal && (
             <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#141414] border border-bg-border rounded-2xl w-full max-w-lg flex flex-col shadow-2xl" style={{maxHeight: "85vh"}}>
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-lg flex flex-col shadow-2xl" style={{maxHeight: "85vh"}}>
                 <div className="px-6 py-5 border-b border-bg-border flex items-center justify-between flex-shrink-0">
                   <div>
                     <p className="text-base font-semibold">Messages</p>
@@ -1623,7 +1623,7 @@ ${entry}` : entry;
 
           {approveModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Approve — {approveModal.track.factory_catalog?.name}</p>
                 <p className="text-xs text-text-secondary">Lock in this factory. Enter the agreed price.</p>
                 <div>
@@ -1656,7 +1656,7 @@ ${entry}` : entry;
           {/* Revision modal */}
           {revisionModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Request Revision — {revisionModal.track.factory_catalog?.name}</p>
                 <p className="text-xs text-text-secondary">Describe what needs to change. The factory will be notified.</p>
                 <textarea value={revisionNotes} onChange={e => setRevisionNotes(e.target.value)}
@@ -1693,7 +1693,7 @@ ${entry}` : entry;
           {/* Kill track modal */}
           {killModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
                 <p className="text-sm font-semibold">Discontinue — {killModal.track.factory_catalog?.name}</p>
                 <p className="text-xs text-text-secondary">This factory will be marked as discontinued for this product.</p>
                 <textarea value={killNotes} onChange={e => setKillNotes(e.target.value)}
@@ -1730,7 +1730,7 @@ ${entry}` : entry;
           {/* Disqualify Modal */}
           {assignMessagesModal && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-5">
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-md p-6 space-y-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-semibold">Assign Messages</p>
@@ -1810,7 +1810,7 @@ ${entry}` : entry;
 
           {disqualifyModal && (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-full max-w-lg space-y-4">
+              <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 w-full max-w-lg space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-bold text-text-primary">Disqualify {disqualifyModal.track.factory_catalog?.name}</p>
@@ -2048,7 +2048,7 @@ Best regards,
                             </div>
                             <button onClick={() => orderNext && updateOrderStage(order.id, orderNext.key)} disabled={!orderNext || updatingOrderStage === order.id || isLocked}
                               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs transition disabled:opacity-20 disabled:cursor-not-allowed"
-                              style={orderNext ? { borderColor: `${orderNext.color}40`, color: orderNext.color, background: `${orderNext.color}10` } : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
+                              style={orderNext ? { borderColor: `${orderNext.color}40`, color: orderNext.color, background: `${orderNext.color}10` } : { borderColor: "var(--bg-border)", color: "var(--text-muted)" }}>
                               {orderNext ? orderNext.label : "Complete"} →
                             </button>
                           </div>
@@ -2064,12 +2064,12 @@ Best regards,
                               return (
                                 <div key={s.key} className="flex items-center gap-2.5 px-2 py-1">
                                   <div className="w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0"
-                                    style={isCurrent ? { borderColor: s.color, background: `${s.color}20` } : isPast ? { borderColor: "#10b981", background: "#10b98120" } : { borderColor: "rgba(255,255,255,0.08)" }}>
+                                    style={isCurrent ? { borderColor: s.color, background: `${s.color}20` } : isPast ? { borderColor: "#10b981", background: "#10b98120" } : { borderColor: "var(--bg-border)" }}>
                                     {isPast ? <Check size={8} className="text-emerald-400" /> :
                                      isCurrent ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: s.color }} /> :
                                      <div className="w-1 h-1 rounded-full bg-white/10" />}
                                   </div>
-                                  <span className="text-xs" style={isCurrent ? { color: s.color, fontWeight: 600 } : isPast ? { color: "rgba(255,255,255,0.4)" } : { color: "rgba(255,255,255,0.15)" }}>{s.label}</span>
+                                  <span className="text-xs" style={isCurrent ? { color: s.color, fontWeight: 600 } : isPast ? { color: "var(--text-muted)" } : { color: "var(--text-muted)" }}>{s.label}</span>
                                 </div>
                               );
                             })}

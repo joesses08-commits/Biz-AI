@@ -353,7 +353,7 @@ export default function MessagesPage() {
       {/* Members Modal */}
       {showMembers && activeChat && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">Chat Members</p>
               <button onClick={() => setShowMembers(false)} className="text-text-muted hover:text-text-secondary">×</button>

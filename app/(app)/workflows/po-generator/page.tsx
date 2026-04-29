@@ -255,7 +255,7 @@ Download PO: ${publicUrl}` : ""),
         ) : (
           <>
             {/* Builder */}
-            <div className="bg-[#111] border border-bg-border rounded-2xl p-6 space-y-6">
+            <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 space-y-6">
               <div>
                 <p className="text-sm font-semibold text-text-primary">New Purchase Order</p>
                 <p className="text-xs text-text-muted mt-0.5">Select products, fill in details, then generate a print-ready PO</p>
@@ -489,7 +489,7 @@ Download PO: ${publicUrl}` : ""),
                 <p className="text-sm font-semibold text-text-primary">PO History</p>
               </div>
               {history.length === 0 ? (
-                <div className="bg-[#111] border border-bg-border rounded-2xl p-10 text-center">
+                <div className="bg-bg-elevated border border-bg-border rounded-2xl p-10 text-center">
                   <FileText size={28} className="text-white/10 mx-auto mb-3" />
                   <p className="text-text-muted text-sm">No purchase orders yet</p>
                   <p className="text-white/15 text-xs mt-1">POs you generate will appear here</p>
@@ -505,7 +505,7 @@ Download PO: ${publicUrl}` : ""),
                     const timeStr = date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
                     return (
                       <div key={event.id} onClick={() => event.html_content && openPO(event.html_content)}
-                        className={`bg-[#111] border border-bg-border rounded-xl px-5 py-4 flex items-center justify-between hover:border-bg-border transition ${event.html_content ? "cursor-pointer" : ""}`}>
+                        className={`bg-bg-elevated border border-bg-border rounded-xl px-5 py-4 flex items-center justify-between hover:border-bg-border transition ${event.html_content ? "cursor-pointer" : ""}`}>
                         <div className="flex items-center gap-4">
                           <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
                             <FileText size={13} className="text-blue-400" />
@@ -546,7 +546,7 @@ Download PO: ${publicUrl}` : ""),
       {/* Email Modal */}
       {emailModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-xl p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-text-primary">Send PO to Factory</p>

@@ -54,7 +54,7 @@ export default function UsagePage() {
     <div className="p-8 max-w-4xl mx-auto">
       <div className="mb-8">
         <p className="text-text-muted text-xs uppercase tracking-widest mb-2">Settings</p>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Usage & Costs</h1>
+        <h1 className="text-3xl font-bold text-text-primary tracking-tight">Usage & Costs</h1>
         <p className="text-text-muted text-sm mt-1">AI usage across PLM agent, quote extraction, and document processing</p>
       </div>
 
@@ -127,8 +127,8 @@ export default function UsagePage() {
                           <div key={i} className="px-6 py-3 border-b border-white/[0.03] last:border-0 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <span className="text-[10px] text-text-muted w-16 flex-shrink-0">{time}</span>
-                              <span className="text-xs text-white/70">{feature}</span>
-                              <span className="text-[10px] text-white/25">{tokens.toLocaleString()} tokens</span>
+                              <span className="text-xs text-text-secondary">{feature}</span>
+                              <span className="text-[10px] text-text-muted">{tokens.toLocaleString()} tokens</span>
                             </div>
                             <span className="text-xs text-text-secondary">{((row.cost_usd || 0) * 100).toFixed(3)}¢</span>
                           </div>

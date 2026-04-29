@@ -588,7 +588,7 @@ Best regards,
       {/* Draft email modal */}
       {draftModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg space-y-4 p-6">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-lg space-y-4 p-6">
             <div>
               <p className="text-sm font-semibold text-white mb-0.5">Review RFQ Email</p>
               <p className="text-[11px] text-text-muted">This email will be sent to each factory with their name filled in. Edit the body below then click Send.</p>
@@ -652,7 +652,7 @@ Best regards,
       {/* Provider picker modal */}
       {providerModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-80 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 w-80 space-y-4">
             <div>
               <p className="text-sm font-semibold text-white mb-1">Send RFQs via which account?</p>
               <p className="text-[11px] text-text-muted">Both Gmail and Outlook are connected. Pick which one to send from.</p>

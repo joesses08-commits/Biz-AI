@@ -53,7 +53,7 @@ function ProductNoteModal({ product, onClose }: { product: any; onClose: () => v
   const router = useRouter();
   return (
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+      <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {product.images?.[0] && <img src={product.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover" />}
@@ -107,7 +107,7 @@ function FactoryStageCell({ products, factoryId, stageKey, color }: any) {
       {noteProduct && <ProductNoteModal product={noteProduct} onClose={() => setNoteProduct(null)} />}
       <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-white/[0.04] transition cursor-pointer">
-        <span className="text-xs font-bold" style={{ color: allDone ? color : noneDone ? "rgba(255,255,255,0.2)" : color }}>
+        <span className="text-xs font-bold" style={{ color: allDone ? color : noneDone ? "var(--text-muted)" : color }}>
           {count}/{total}
         </span>
         <ChevronDown size={9} className="text-white/20 flex-shrink-0" style={{ transform: expanded ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />

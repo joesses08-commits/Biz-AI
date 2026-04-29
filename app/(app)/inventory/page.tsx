@@ -209,7 +209,7 @@ export default function InventoryPage() {
       {/* Add Warehouse Modal */}
       {showAddWarehouse && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#111] border border-bg-border rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-bold">Add Warehouse</h2>
               <button onClick={() => setShowAddWarehouse(false)}><X size={16} className="text-text-muted" /></button>
@@ -239,7 +239,7 @@ export default function InventoryPage() {
       {/* Add Warehouse User Modal */}
       {showAddUser && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#111] border border-bg-border rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-sm font-bold">Add Warehouse User</h2>
               <button onClick={() => setShowAddUser(false)}><X size={16} className="text-text-muted" /></button>
@@ -269,7 +269,7 @@ export default function InventoryPage() {
       {/* Adjust Inventory Modal */}
       {showAdjust && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-          <div className="bg-[#111] border border-bg-border rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold">Adjust Inventory</h2>
               <button onClick={() => setShowAdjust(null)}><X size={16} className="text-text-muted" /></button>

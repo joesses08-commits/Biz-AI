@@ -62,7 +62,7 @@ function StageCell({ products, factoryId, stageKey, color, onNoteProduct }: any)
     <div>
       <button onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg hover:bg-bg-elevated transition">
-        <span className="text-xs font-bold" style={{ color: allDone ? color : noneDone ? "rgba(255,255,255,0.15)" : color }}>
+        <span className="text-xs font-bold" style={{ color: allDone ? color : noneDone ? "var(--text-muted)" : color }}>
           {count}/{total}
         </span>
         <ChevronDown size={9} className="text-text-muted flex-shrink-0"
@@ -174,7 +174,7 @@ export default function CollectionPage() {
 
       {noteProduct && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setNoteProduct(null)}>
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {noteProduct.images?.[0] && <img src={noteProduct.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover" />}
@@ -195,7 +195,7 @@ export default function CollectionPage() {
 
       {bulkDisqualifyModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#111] border border-bg-border rounded-2xl p-6 w-full max-w-lg space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-6 w-full max-w-lg space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-text-primary">Disqualify {bulkDisqualifyModal.factory.name}</p>
@@ -254,7 +254,7 @@ export default function CollectionPage() {
 
       {showRfqModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-lg p-6 space-y-4 my-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-text-primary">RFQ — {collection.name}</p>
               <button onClick={() => setShowRfqModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
@@ -308,7 +308,7 @@ export default function CollectionPage() {
 
       {showSampleModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#111] border border-bg-border rounded-2xl w-full max-w-xl p-6 space-y-4 my-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-xl p-6 space-y-4 my-4">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-text-primary">Request Samples — {collection.name}</p>
               <button onClick={() => setShowSampleModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
@@ -451,7 +451,7 @@ export default function CollectionPage() {
                     {factories.map((f: any) => {
                       const count = products.filter((p: any) => { const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id); return track && track.status === outcome.key; }).length;
                       const total = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id)).length;
-                      return <td key={f.id} className="px-3 py-2 text-center"><span className="text-xs font-bold" style={{ color: count > 0 ? outcome.color : "rgba(255,255,255,0.15)" }}>{total > 0 ? `${count}/${total}` : "—"}</span></td>;
+                      return <td key={f.id} className="px-3 py-2 text-center"><span className="text-xs font-bold" style={{ color: count > 0 ? outcome.color : "var(--text-muted)" }}>{total > 0 ? `${count}/${total}` : "—"}</span></td>;
                     })}
                   </tr>
                 ))}
