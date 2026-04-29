@@ -50,7 +50,7 @@ function InlineField({ label, value, onSave, multiline = false, type = "text", d
   return (
     <div className="group">
       <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] text-text-muted uppercase tracking-widest">{label}</p>
+        <p className="text-xs font-bold text-text-secondary uppercase tracking-widest">{label}</p>
         {!editing && !disabled && (
           <button onClick={() => { setVal(value || ""); setEditing(true); }}
             className="opacity-0 group-hover:opacity-100 transition p-1 rounded text-text-muted hover:text-text-secondary">

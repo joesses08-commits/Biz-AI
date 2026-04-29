@@ -1306,21 +1306,21 @@ export default function PLMPage() {
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push(`/plm/${product.id}`)}>
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                           <p className="text-sm font-semibold text-text-primary">{product.name}</p>
-                          {product.sku && <span className="text-[10px] text-text-muted font-mono">{product.sku}</span>}
-                          {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
+                          {product.sku && <span className="text-xs text-text-muted font-mono font-semibold">{product.sku}</span>}
+                          {product.plm_collections && <span className="text-xs text-text-muted">{product.plm_collections.name}</span>}
                           {product.action_status === "action_required" && (
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-500 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
                           )}
                           {product.action_status === "updates_made" && (
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25 uppercase tracking-wide">● Updates Made</span>
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-500 border border-blue-500/25 uppercase tracking-wide">● Updates Made</span>
                           )}
                           {productStatusMode === "hold" && (
-                            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">⏸ Hold</span>
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-600 border border-amber-500/25">⏸ Hold</span>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {awardBadges.map((badge, i) => (
-                            <span key={i} className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                            <span key={i} className="text-xs font-bold px-2.5 py-0.5 rounded-full"
                               style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}` }}>
                               {badge.label}
                             </span>
