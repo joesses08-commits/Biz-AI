@@ -157,7 +157,7 @@ For product_import: extract ALL available fields per product including descripti
     }
 
     // Enrich products with PLM images
-    if (parsed.extracted_data?.products?.length > 0 && products?.length > 0) {
+    if (parsed.extracted_data?.products?.length > 0 && products && (products as any[]).length > 0) {
       parsed.extracted_data.products = parsed.extracted_data.products.map((ep: any) => {
         const epSku = ep.sku?.trim().toLowerCase();
         const epName = ep.name?.trim().toLowerCase();
