@@ -213,6 +213,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, batch: data });
   }
 
+  if (action === "update_batch") {
+    const { id, order_quantity, unit_price, factory_id } = body;
+    const updates: any = { updated_at: new Date().toISOString() };
+    if (order_quantity !== undefined) updates.order_quantity = order_quantity;
+    if (unit_price !== undefined) updates.unit_price = unit_price;
+    if (factory_id !== undefined) updates.factory_id = factory_id;
+    await supabaseAdmin.from("plm_batches").update(updates).eq("id", id);
+    return NextResponse.json({ success: true });
+  }
+
   if (action === "update_batch_stage") {
     const { batch_id, product_id, stage, notes } = body;
     await supabaseAdmin.from("plm_batches").update({

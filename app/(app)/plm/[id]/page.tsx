@@ -2154,12 +2154,17 @@ Best regards,
                                     </div>
                                   </div>
                                 )}
-                                {qty > 0 && (
-                                  <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
-                                    <p className="text-[9px] text-white/25">Qty</p>
-                                    <p className="text-base font-bold text-white/60">{qty.toLocaleString()}</p>
+                                <div className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                                    <p className="text-[9px] text-white/25 mb-1">Qty</p>
+                                    <input type="number" defaultValue={qty || ""} placeholder="0"
+                                      className="w-16 bg-transparent text-base font-bold text-white/60 focus:outline-none focus:text-white/80"
+                                      onBlur={async e => {
+                                        const newQty = parseInt(e.target.value) || null;
+                                        await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ action: "update_batch", id: order.id, order_quantity: newQty }) });
+                                        load();
+                                      }} />
                                   </div>
-                                )}
                               </div>
                               {qty > 0 && liveElc > 0 && (
                                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">

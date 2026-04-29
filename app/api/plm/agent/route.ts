@@ -198,6 +198,32 @@ const TOOLS: Anthropic.Tool[] = [
     }
   },
   {
+    name: "advance_order",
+    description: "Advance a production order to the next stage (production_started, production_complete, qc_inspection, ready_to_ship, shipped).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        batch_id: { type: "string", description: "The production order/batch ID" },
+        product_id: { type: "string", description: "The product ID" },
+        stage: { type: "string", description: "Stage to advance to: production_started, production_complete, qc_inspection, ready_to_ship, shipped" },
+        notes: { type: "string", description: "Optional notes" }
+      },
+      required: ["batch_id", "product_id", "stage"]
+    }
+  },
+  {
+    name: "create_track",
+    description: "Add a factory to a product's factory tracks.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        product_id: { type: "string", description: "The product ID" },
+        factory_id: { type: "string", description: "The factory ID to add" }
+      },
+      required: ["product_id", "factory_id"]
+    }
+  },
+  {
     name: "get_product_details",
     description: "Get full details about a specific product including all tracks, stages, messages, and orders.",
     input_schema: {
@@ -366,6 +392,28 @@ Best regards`;
 
       if (!emailRes.ok) return `Failed to send PO email to ${factory.email}.`;
       return `PO email sent to ${factory.name} (${factory.email}) with ${input.items.length} line items.`;
+    }
+
+    if (name === "advance_order") {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).single();
+      await supabaseAdmin.from("plm_batches").update({ current_stage: input.stage, updated_at: new Date().toISOString() }).eq("id", input.batch_id);
+      await supabaseAdmin.from("plm_batch_stages").insert({
+        batch_id: input.batch_id, product_id: input.product_id, user_id: userId,
+        stage: input.stage, notes: input.notes || `Advanced to ${input.stage}`,
+        updated_by: profile?.full_name || "Admin", updated_by_role: "admin",
+        created_at: new Date().toISOString(),
+      });
+      return `Order advanced to stage: ${input.stage}`;
+    }
+
+    if (name === "create_track") {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/plm`, {
+        method: "POST", headers: { "Content-Type": "application/json", "x-user-id": userId },
+        body: JSON.stringify({ action: "create_track", product_id: input.product_id, factory_id: input.factory_id })
+      });
+      const data = await res.json();
+      if (!res.ok) return `Failed to create track: ${data.error || res.status}`;
+      return `Factory track created for product.`;
     }
 
     if (name === "get_product_details") {
