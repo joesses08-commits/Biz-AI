@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       cell.alignment = { vertical: "middle", wrapText: true };
       cell.font = { size: 9 };
       if (i % 2 === 0) {
-        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF111111" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
       }
     });
 
