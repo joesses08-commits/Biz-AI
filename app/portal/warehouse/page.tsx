@@ -24,7 +24,7 @@ export default function WarehousePortal() {
     const res = await fetch("https://myjimmy.ai/api/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "login", email, password }) });
     const data = await res.json();
     if (!res.ok) { setLoginError("Invalid email or PIN"); setLoggingIn(false); return; }
-    setWarehouseUser(data.warehouse_user);
+    setWarehouseUser(data.user || data.warehouse_user);
     loadData(data.warehouse_user);
     setLoggingIn(false);
   }
@@ -129,12 +129,12 @@ export default function WarehousePortal() {
                       {batch?.linked_po_number && <p className="text-xs text-white/30 mt-1">PO: {batch.linked_po_number}</p>}
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-amber-400">{item.quantity_incoming}</p>
+                      <p className="text-2xl font-bold text-amber-400">{item.incoming}</p>
                       <p className="text-[10px] text-white/25">expected units</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setShowReceive(item); setReceiveForm({ quantity: String(item.quantity_incoming), notes: "" }); }} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition">
+                    <button onClick={() => { setShowReceive(item); setReceiveForm({ quantity: String(item.incoming), notes: "" }); }} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-400 transition">
                       <CheckCircle size={12} /> Mark Received
                     </button>
                     <button onClick={() => { setShowDamage(item); setDamageForm({ quantity: "", notes: "" }); }} className="px-3 py-2 rounded-xl border border-red-500/20 text-red-400 text-xs hover:bg-red-500/10 transition">
@@ -162,7 +162,7 @@ export default function WarehousePortal() {
                   {item.plm_products?.sku && <p className="text-[10px] text-white/25 font-mono">{item.plm_products.sku}</p>}
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-white">{item.quantity_on_hand}</p>
+                  <p className="text-lg font-bold text-white">{item.on_hand}</p>
                   <p className="text-[10px] text-white/25">on hand</p>
                 </div>
               </div>
