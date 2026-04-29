@@ -7,7 +7,22 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+  };
   const body = await req.json();
   const { action } = body;
 
@@ -20,8 +35,8 @@ export async function POST(req: NextRequest) {
       .eq("email", email)
       .eq("pin_hash", pin_hash)
       .single();
-    if (error || !user) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
-    return NextResponse.json({ success: true, user });
+    if (error || !user) return NextResponse.json({ error: "Invalid email or password" }, { status: 401, headers: corsHeaders });
+    return NextResponse.json({ success: true, user }, { headers: corsHeaders });
   }
 
   if (action === "get_inventory") {
@@ -32,7 +47,7 @@ export async function POST(req: NextRequest) {
       .eq("warehouse_id", warehouse_id)
       .eq("user_id", user_id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ inventory: data || [] });
+    return NextResponse.json({ inventory: data || [] }, { headers: corsHeaders });
   }
 
   if (action === "get_shipments") {
@@ -44,16 +59,16 @@ export async function POST(req: NextRequest) {
       .eq("user_id", user_id)
       .gt("incoming", 0);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ shipments: data || [] });
+    return NextResponse.json({ shipments: data || [] }, { headers: corsHeaders });
   }
 
   if (action === "receive_goods") {
     const { inventory_id, quantity_received, notes, warehouse_user_id, user_id } = body;
     const qty = parseInt(quantity_received) || 0;
-    if (qty <= 0) return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
+    if (qty <= 0) return NextResponse.json({ error: "Invalid quantity" }, { status: 400, headers: corsHeaders });
 
     const { data: inv } = await supabaseAdmin.from("inventory").select("incoming, on_hand").eq("id", inventory_id).single();
-    if (!inv) return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
+    if (!inv) return NextResponse.json({ error: "Inventory not found" }, { status: 404, headers: corsHeaders });
 
     const newIncoming = Math.max(0, (inv.incoming || 0) - qty);
     const newOnHand = (inv.on_hand || 0) + qty;
@@ -73,16 +88,16 @@ export async function POST(req: NextRequest) {
       created_at: new Date().toISOString(),
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
   }
 
   if (action === "report_damage") {
     const { inventory_id, quantity_damaged, notes, user_id } = body;
     const qty = parseInt(quantity_damaged) || 0;
-    if (qty <= 0) return NextResponse.json({ error: "Invalid quantity" }, { status: 400 });
+    if (qty <= 0) return NextResponse.json({ error: "Invalid quantity" }, { status: 400, headers: corsHeaders });
 
     const { data: inv } = await supabaseAdmin.from("inventory").select("on_hand").eq("id", inventory_id).single();
-    if (!inv) return NextResponse.json({ error: "Inventory not found" }, { status: 404 });
+    if (!inv) return NextResponse.json({ error: "Inventory not found" }, { status: 404, headers: corsHeaders });
 
     const newOnHand = Math.max(0, (inv.on_hand || 0) - qty);
 
@@ -100,8 +115,8 @@ export async function POST(req: NextRequest) {
       created_at: new Date().toISOString(),
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { headers: corsHeaders });
   }
 
-  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  return NextResponse.json({ error: "Unknown action" }, { status: 400, headers: corsHeaders });
 }
