@@ -451,6 +451,8 @@ You can:
 - Send messages to factories
 - Request SAMPLES from factories (physical samples to review) — use request_sample tool
   IMPORTANT: When requesting samples for multiple products from the same factory, send ONE message per factory listing all products. Find the track_id for one of the products at that factory and send a single combined message there. Do not send separate messages for each product.
+- Create factory tracks for products (add a factory to a product's pipeline)
+- Advance production orders to the next stage
 - For quote/RFQ requests: tell the user "I can't create quote requests yet — please use the RFQ button in PLM or the Collection page to send quote requests to factories."
 - Update track stages (mark artwork sent, quote received, sample requested, etc.)
 - Add notes to products or factory tracks
