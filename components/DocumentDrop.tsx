@@ -31,7 +31,6 @@ export default function DocumentDrop() {
   const [userHint, setUserHint] = useState("");
   const [editingProduct, setEditingProduct] = useState<{ index: number; data: any } | null>(null);
   const [factories, setFactories] = useState<any[]>([]);
-  const [factories, setFactories] = useState<any[]>([]);
   const fileDataRef = useRef<{ base64: string; name: string; type: string } | null>(null);
   const dragCounterRef = useRef(0);
 
