@@ -1240,17 +1240,17 @@ ${entry}` : entry;
               };
 
               return (
-                <div className={`flex-1 min-w-0 border border-bg-border rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isKilledTrack ? "border-red-500/10 opacity-60" : "bg-bg-surface"}`}>
+                <div className={`flex-1 min-w-0 border-2 rounded-2xl overflow-hidden ${isApproved ? "border-emerald-500 bg-emerald-500/[0.04] shadow-[0_0_0_1px_rgba(16,185,129,0.2)]" : isKilledTrack ? "border-red-500/10 opacity-60 border" : "border border-bg-border bg-bg-surface"}`}>
                   {/* Factory header */}
                   <div className="px-4 py-3 border-b border-white/[0.04] flex items-center gap-2">
                     <Factory size={11} className="text-text-muted flex-shrink-0" />
                     <span className="text-xs font-bold text-white truncate flex-1">{track.factory_catalog?.name}</span>
-                    {isApproved && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">✓{track.approved_price ? ` $${track.approved_price}` : ""}</span>}
+                    {isApproved && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/40 flex-shrink-0">✓ Approved{track.approved_price ? ` · $${track.approved_price}` : ""}</span>}
                     {isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">Disqualified</span>}
                     {revision > 0 && !isApproved && !isKilledTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 flex-shrink-0">Rev {revision}</span>}
                     {!isApproved && !isKilledTrack && !isLocked && (track.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done") && (
                       <button onClick={e => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("disqualify-track", { detail: track })); }}
-                        className="text-[9px] px-1.5 py-0.5 rounded border border-red-500/20 text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition flex-shrink-0 ml-auto">
+                        className="text-xs font-semibold px-2 py-0.5 rounded-lg border border-red-500/40 text-red-500 hover:bg-red-500/10 transition flex-shrink-0 ml-auto">
                         Disqualify
                       </button>
                     )}
