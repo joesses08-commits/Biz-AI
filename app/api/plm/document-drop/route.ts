@@ -128,10 +128,18 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 
 For product_import: extract ALL available fields per product including description, specs, category, notes. Extract collection name from sheet header or title row.`;
 
+    const isPdf = file_type?.includes("pdf") || file_name?.match(/\.pdf$/i);
+    const messageContent: any[] = isPdf
+      ? [
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: file_base64 } } as any,
+          { type: "text", text: prompt }
+        ]
+      : [{ type: "text", text: prompt }];
+
     const response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 4000,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: messageContent }],
     });
 
     await trackUsage(user.id, "document_drop_identify", "claude-haiku-4-5-20251001",
