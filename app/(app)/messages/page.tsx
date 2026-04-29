@@ -64,6 +64,15 @@ export default function MessagesPage() {
   };
 
   const openChat = async (chat: any) => {
+    if (chat.is_warehouse) {
+      setActiveWarehouseThread(chat);
+      setActiveChat(null);
+      const res = await fetch("/api/messages/warehouse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_messages", warehouse_id: chat.warehouse_id, user_id: chat.user_id }) });
+      const data = await res.json();
+      setWarehouseMsgs(data.messages || []);
+      return;
+    }
+    setActiveWarehouseThread(null);
     setActiveChat(chat);
     if (pollRef.current) clearInterval(pollRef.current);
     const fetchMsgs = async (isFirst?: boolean) => {

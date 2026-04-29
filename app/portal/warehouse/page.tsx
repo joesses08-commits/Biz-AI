@@ -190,16 +190,23 @@ export default function WarehousePortal() {
                   <p className="text-sm font-medium text-white/80">{item.plm_products?.name}</p>
                   {item.plm_products?.sku && <p className="text-[10px] text-white/25 font-mono">{item.plm_products.sku}</p>}
                 </div>
-                <div className="flex gap-4 text-right">
-                  <div>
-                    <p className="text-lg font-bold text-white">{item.quantity_on_hand}</p>
-                    <p className="text-[10px] text-white/25">on hand</p>
-                  </div>
-                  {item.quantity_incoming > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-4 text-right">
                     <div>
-                      <p className="text-lg font-bold text-amber-400">{item.quantity_incoming}</p>
-                      <p className="text-[10px] text-white/25">incoming</p>
+                      <p className="text-lg font-bold text-white">{item.quantity_on_hand}</p>
+                      <p className="text-[10px] text-white/25">on hand</p>
                     </div>
+                    {item.quantity_incoming > 0 && (
+                      <div>
+                        <p className="text-lg font-bold text-amber-400">{item.quantity_incoming}</p>
+                        <p className="text-[10px] text-white/25">incoming</p>
+                      </div>
+                    )}
+                  </div>
+                  {item.quantity_on_hand > 0 && (
+                    <button onClick={() => { setShowDamage(item); setDamageForm({ quantity: "", notes: "" }); }} className="px-2 py-1 rounded-lg border border-red-500/20 text-red-400 text-xs hover:bg-red-500/10 transition">
+                      <AlertTriangle size={11} />
+                    </button>
                   )}
                 </div>
               </div>
