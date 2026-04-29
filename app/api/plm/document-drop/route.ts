@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     try {
     // Fetch context for identification
     const [{ data: products }, { data: factories }, { data: rfqJobs }] = await Promise.all([
-      supabaseAdmin.from("plm_products").select("id, name, sku").eq("user_id", user.id).eq("killed", false),
+      supabaseAdmin.from("plm_products").select("id, name, sku, images").eq("user_id", user.id).eq("killed", false),
       supabaseAdmin.from("factory_catalog").select("id, name, email").eq("user_id", user.id),
       supabaseAdmin.from("factory_quote_jobs").select("id, job_name, status, factories").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
     ]);
@@ -156,6 +156,22 @@ For product_import: extract ALL available fields per product including descripti
       return NextResponse.json({ error: "Could not identify this document. Try again." }, { status: 400 });
     }
 
+    // Enrich products with PLM images
+    if (parsed.extracted_data?.products?.length > 0 && products?.length > 0) {
+      parsed.extracted_data.products = parsed.extracted_data.products.map((ep: any) => {
+        const epSku = ep.sku?.trim().toLowerCase();
+        const epName = ep.name?.trim().toLowerCase();
+        const matched = (products as any[]).find((p: any) =>
+          (epSku && p.sku?.trim().toLowerCase() === epSku) ||
+          (epName && p.name?.trim().toLowerCase() === epName)
+        );
+        if (matched?.images?.[0]) {
+          return { ...ep, image_url: matched.images[0] };
+        }
+        return ep;
+      });
+    }
+
     return NextResponse.json({ success: true, identified: parsed });
     } catch (err: any) {
       console.error("Document drop identify error:", err?.message || err);
@@ -181,7 +197,7 @@ For product_import: extract ALL available fields per product including descripti
       }
 
       const [{ data: allProducts }, { data: allTracks }] = await Promise.all([
-        supabaseAdmin.from("plm_products").select("id, name, sku").eq("user_id", user.id).eq("killed", false),
+        supabaseAdmin.from("plm_products").select("id, name, sku, images").eq("user_id", user.id).eq("killed", false),
         factory_id
           ? supabaseAdmin.from("plm_factory_tracks").select("id, product_id, factory_id, plm_track_stages(id, stage, status, revision_number)").eq("user_id", user.id).eq("factory_id", factory_id)
           : Promise.resolve({ data: [] }),
@@ -397,7 +413,7 @@ For product_import: extract ALL available fields per product including descripti
     if (doc_type === "purchase_order") {
       const { order_qty, order_price, products: poProducts } = extracted_data || {};
       const [{ data: allProducts }, { data: allFactories }] = await Promise.all([
-        supabaseAdmin.from("plm_products").select("id, name, sku").eq("user_id", user.id).eq("killed", false),
+        supabaseAdmin.from("plm_products").select("id, name, sku, images").eq("user_id", user.id).eq("killed", false),
         supabaseAdmin.from("factory_catalog").select("id, name").eq("user_id", user.id),
       ]);
 
