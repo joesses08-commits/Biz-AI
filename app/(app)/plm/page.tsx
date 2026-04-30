@@ -845,7 +845,7 @@ export default function PLMPage() {
                               setBulkSampleSelections(newSelections);
                             }
                           }}
-                          className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-bg-border text-text-secondary hover:text-white/70 hover:border-white/20"}`}>
+                          className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-bg-border text-text-secondary hover:text-white/70 hover:border-white/20"}`}>
                           {c.name} ({collectionProductIds.length})
                         </button>
                       );
@@ -913,7 +913,7 @@ export default function PLMPage() {
                             <div className="space-y-2">
                               <div className="flex items-center gap-2 text-xs text-text-secondary">
                                 <span className="text-[10px] text-text-muted uppercase tracking-widest">Factory:</span>
-                                <span className="px-2 py-0.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300">{approvedFactory?.name || "Approved factory"}</span>
+                                <span className="px-2 py-0.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700">{approvedFactory?.name || "Approved factory"}</span>
                                 <span className="text-[10px] text-text-muted">(locked — approved factory only)</span>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
@@ -942,7 +942,7 @@ export default function PLMPage() {
                                     ...prev,
                                     [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter((id: string) => id !== f.id) : [...selectedFactories, f.id]
                                   }))}
-                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
+                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
                                     {f.name}
                                   </button>
                                 ))}
