@@ -942,7 +942,7 @@ export default function PLMPage() {
                                     ...prev,
                                     [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter((id: string) => id !== f.id) : [...selectedFactories, f.id]
                                   }))}
-                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/60 bg-transparent font-bold" style={{ color: "var(--text-primary)" }} : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
+                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/60 bg-transparent text-text-primary font-bold" : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
                                     {f.name}
                                   </button>
                                 ))}
