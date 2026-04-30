@@ -845,7 +845,7 @@ export default function PLMPage() {
                               setBulkSampleSelections(newSelections);
                             }
                           }}
-                          className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-bg-border text-text-secondary hover:text-white/70 hover:border-white/20"}`}>
+                          className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/60 bg-transparent text-text-primary font-bold" : "border-bg-border text-text-secondary hover:text-text-primary hover:border-bg-border"}`}>
                           {c.name} ({collectionProductIds.length})
                         </button>
                       );
@@ -942,7 +942,7 @@ export default function PLMPage() {
                                     ...prev,
                                     [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter((id: string) => id !== f.id) : [...selectedFactories, f.id]
                                   }))}
-                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
+                                    className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/60 bg-transparent font-bold" style={{ color: "var(--text-primary)" }} : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
                                     {f.name}
                                   </button>
                                 ))}
