@@ -370,6 +370,7 @@ export default function CollectionPage() {
                   if (data.success) {
                     const tracksData = await fetch("/api/plm/tracks?product_id=" + pid).then(r => r.json());
                     const allTracks = tracksData.tracks || [];
+                    alert("tracks for " + pid + ": " + allTracks.length + " | factoryIds: " + JSON.stringify(factoryIds));
                     for (const fid of factoryIds) {
                       const track = allTracks.find((t: any) => t.factory_id === fid);
                       if (track) {
