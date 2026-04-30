@@ -164,7 +164,13 @@ export default function CollectionPage() {
     const ids = products.map((p: any) => p.id);
     setSampleProductIds(ids);
     const sel: Record<string, string[]> = {};
-    ids.forEach((pid: string) => { sel[pid] = allFactories.map((f: any) => f.id); });
+    ids.forEach((pid: string) => {
+      const product = products.find((p: any) => p.id === pid);
+      const productFactoryIds = (product?.plm_factory_tracks || [])
+        .filter((t: any) => t.status === "active")
+        .map((t: any) => t.factory_id);
+      sel[pid] = productFactoryIds.length > 0 ? productFactoryIds : allFactories.map((f: any) => f.id);
+    });
     setSampleSelections(sel);
     setShowSampleModal(true);
   };
@@ -325,14 +331,17 @@ export default function CollectionPage() {
                     <div className="flex items-center gap-2 cursor-pointer" onClick={() => setExpandedSampleProducts(prev => prev.includes(pid) ? prev.filter(id => id !== pid) : [...prev, pid])}>
                       {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                       <span className="text-xs font-medium text-white/70 flex-1">{p.name}</span>
-                      <span className="text-[9px] text-text-muted">{sel.length}/{allFactories.length} factories</span>
+                      <span className="text-[9px] text-text-muted">{sel.length} factories</span>
                       <button onClick={e => { e.stopPropagation(); setSampleProductIds(prev => prev.filter(id => id !== pid)); }} className="text-text-muted hover:text-red-400 text-xs ml-2">×</button>
                     </div>
                     {isExpanded && (
                       <div className="flex flex-wrap gap-1.5 pl-8">
-                        {allFactories.map((f: any) => (
+                        {((p?.plm_factory_tracks || []).filter((t: any) => t.status === "active").length > 0
+                          ? (p?.plm_factory_tracks || []).filter((t: any) => t.status === "active").map((t: any) => t.factory_catalog)
+                          : allFactories
+                        ).map((f: any) => (
                           <button key={f.id} onClick={() => setSampleSelections(prev => ({ ...prev, [pid]: sel.includes(f.id) ? sel.filter((fid: string) => fid !== f.id) : [...sel, f.id] }))}
-                            className={`text-[10px] px-2 py-0.5 rounded border transition ${sel.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-300" : "border-bg-border text-white/25"}`}>
+                            className={`text-[10px] px-2 py-0.5 rounded border transition ${sel.includes(f.id) ? "border-amber-500/40 bg-amber-500/10 text-amber-600" : "border-bg-border text-text-muted"}`}>
                             {f.name}
                           </button>
                         ))}
