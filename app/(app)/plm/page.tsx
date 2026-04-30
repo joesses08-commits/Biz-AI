@@ -877,11 +877,9 @@ export default function PLMPage() {
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {products.filter(p => {
                   if (p.killed) return false;
-                  // Hide if any sample request ever existed (requested, approved, revision, killed all count)
-                  if ((p.plm_sample_requests || []).length > 0) return false;
-                  // Hide if at samples_requested stage or later
-                  const laterStages = ["samples_requested","sample_production","sample_complete","sample_shipped","sample_arrived","sample_approved"];
-                  if (laterStages.includes(p.current_stage || "")) return false;
+                  // Hide only if there's an active (non-killed) sample request
+                  const activeRequest = (p.plm_sample_requests || []).find((r: any) => r.status === "requested");
+                  if (activeRequest) return false;
                   return true;
                 }).map((p: any) => {
                   const isSelected = bulkSampleProductIds.includes(p.id);
@@ -1122,7 +1120,18 @@ export default function PLMPage() {
             collections={collections}
             factories={factories}
             onRFQ={(productIds: string[]) => { setRfqSelectedProducts(productIds); setShowRfqModal(true); }}
-            onSampleRequest={(productIds: string[]) => { setBulkSampleProductIds(productIds); setBulkSampleSelections({}); setShowSampleRequestModal(true); }}
+            onSampleRequest={(productIds: string[]) => {
+              setBulkSampleProductIds(productIds);
+              // Pre-select factories for each product
+              const sel: Record<string, string[]> = {};
+              productIds.forEach((pid: string) => {
+                const p = products.find((pr: any) => pr.id === pid);
+                const activeFactoryIds = (p?.plm_factory_tracks || []).filter((t: any) => t.status === "active").map((t: any) => t.factory_id);
+                sel[pid] = activeFactoryIds.length > 0 ? activeFactoryIds : factories.map((f: any) => f.id);
+              });
+              setBulkSampleSelections(sel);
+              setShowSampleRequestModal(true);
+            }}
             onNavigate={(collectionId: string) => { setFilterCollection(collectionId); setActiveTab("all_products"); }}
           />
         ) : activeTab === "all_products" ? (
@@ -1158,8 +1167,7 @@ export default function PLMPage() {
                   <FileSpreadsheet size={11} />RFQ
                 </button>
                 <button onClick={() => {
-                  const quoteReceived = products.filter(p => p.current_stage === "quotes_received" && !p.killed).map(p => p.id);
-                  setBulkSampleProductIds(quoteReceived);
+                  setBulkSampleProductIds([]);
                   setBulkSampleSelections({});
                   setShowSampleRequestModal(true);
                 }} className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
