@@ -330,10 +330,7 @@ export async function POST(req: NextRequest) {
         continue; // Sample already approved - block unless force (additional sample)
       }
 
-      if (hasActive && !force) {
-        skippedFactories.push(factory.name);
-        continue; // Already has active request
-      }
+      // If already has active request, skip silently but don't block — let it fall through to create
       // Force always creates a new row - skip the killed check
       if (force) {
         const { data: fprios } = await supabaseAdmin.from("plm_sample_requests").select("priority_order").eq("factory_id", factory.id).eq("user_id", user.id).eq("status", "requested").not("priority_order", "is", null);

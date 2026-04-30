@@ -364,7 +364,7 @@ export default function CollectionPage() {
                 for (const pid of sampleProductIds) {
                   const factoryIds = sampleSelections[pid] || allFactories.map((f: any) => f.id);
                   if (!factoryIds.length) { errors.push("No factories selected for a product"); continue; }
-                  const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "outlook", force: true }) });
+                  const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "outlook" }) });
                   const data = await res.json();
                   if (data.success) anyCreated = true;
                   if (data.error) errors.push(data.error);
