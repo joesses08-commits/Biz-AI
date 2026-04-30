@@ -161,11 +161,7 @@ export default function CollectionPage() {
 
   const openRfq = () => { setRfqProductIds(products.map((p: any) => p.id)); setRfqDone(false); setShowRfqModal(true); };
   const openSamples = () => {
-    const ids = products.filter((p: any) => {
-      // Exclude products that already have an active (non-killed) sample request
-      const activeReq = (p.plm_sample_requests || []).find((r: any) => r.status === "requested");
-      return !activeReq;
-    }).map((p: any) => p.id);
+    const ids = products.map((p: any) => p.id);
     setSampleProductIds(ids);
     const sel: Record<string, string[]> = {};
     ids.forEach((pid: string) => {
@@ -368,7 +364,7 @@ export default function CollectionPage() {
                 for (const pid of sampleProductIds) {
                   const factoryIds = sampleSelections[pid] || allFactories.map((f: any) => f.id);
                   if (!factoryIds.length) { errors.push("No factories selected for a product"); continue; }
-                  const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "outlook" }) });
+                  const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "outlook", force: true }) });
                   const data = await res.json();
                   if (data.success) anyCreated = true;
                   if (data.error) errors.push(data.error);
