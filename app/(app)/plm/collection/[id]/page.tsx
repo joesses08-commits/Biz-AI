@@ -350,12 +350,22 @@ export default function CollectionPage() {
             <div className="flex gap-2">
               <button onClick={async () => {
                 setRequestingSamples(true);
+                let anyCreated = false;
+                const errors: string[] = [];
                 for (const pid of sampleProductIds) {
                   const factoryIds = sampleSelections[pid] || allFactories.map((f: any) => f.id);
-                  if (!factoryIds.length) continue;
-                  await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "gmail" }) });
+                  if (!factoryIds.length) { errors.push("No factories selected for a product"); continue; }
+                  const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "outlook" }) });
+                  const data = await res.json();
+                  if (data.success) anyCreated = true;
+                  if (data.error) errors.push(data.error);
                 }
-                setRequestingSamples(false); setShowSampleModal(false); setSampleNote("");
+                setRequestingSamples(false);
+                setShowSampleModal(false);
+                setSampleNote("");
+                if (anyCreated) { load(); alert("Sample requests created successfully!"); }
+                else if (errors.length) { alert("Error: " + errors.join(", ")); }
+                else { alert("No new sample requests were created. Products may already have active requests."); }
               }} disabled={requestingSamples || sampleProductIds.length === 0} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
                 {requestingSamples ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
                 {requestingSamples ? "Requesting..." : `Request for ${sampleProductIds.length} Products`}
