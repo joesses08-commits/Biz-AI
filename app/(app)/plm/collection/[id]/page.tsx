@@ -418,15 +418,15 @@ export default function CollectionPage() {
       <div className="px-8 py-8 space-y-8 max-w-full overflow-x-auto">
         {factories.length > 0 && (
           <div>
-            <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">Factory Progress</p>
+            <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">Factory Progress</p>
             <table className="w-full text-left" style={{ minWidth: `${220 + factories.length * 140}px` }}>
               <thead>
                 <tr className="border-b border-bg-border bg-bg-surface">
-                  <th className="px-5 py-3 text-[10px] text-white/25 uppercase tracking-widest font-medium w-48">Stage</th>
+                  <th className="px-5 py-3 text-xs text-text-secondary uppercase tracking-widest font-bold w-48">Stage</th>
                   {factories.map((f: any) => {
                     const factoryActiveProducts = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id && t.status === "active" && (t.plm_track_stages || []).some((s: any) => s.stage === "sample_requested" && s.status === "done")));
                     return (
-                      <th key={f.id} className="px-3 py-3 text-[10px] text-text-secondary font-semibold text-center">
+                      <th key={f.id} className="px-3 py-3 text-sm text-text-primary font-bold text-center">
                         <div className="flex flex-col items-center gap-1.5">
                           <div className="flex items-center gap-1">
                             <Factory size={9} className="text-text-muted" />
@@ -434,7 +434,7 @@ export default function CollectionPage() {
                           </div>
                           {factoryActiveProducts.length > 0 && (
                             <button onClick={() => { setBulkDisqualifyProducts(factoryActiveProducts.map((p: any) => p.id)); setBulkDisqualifyReason("price"); setBulkDisqualifyNote(""); setBulkDisqualifyModal({ factory: f }); }}
-                              className="text-[8px] px-1.5 py-0.5 rounded border border-red-500/20 text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition">
+                              className="text-xs font-bold px-2 py-0.5 rounded-lg border border-red-500/60 text-red-600 bg-red-500/10 hover:bg-red-500/20 transition">
                               Disqualify
                             </button>
                           )}
@@ -446,11 +446,11 @@ export default function CollectionPage() {
               </thead>
               <tbody>
                 {TRACK_STAGES.map(stageDef => (
-                  <tr key={stageDef.key} className="border-b border-white/[0.03] hover:bg-bg-surface transition">
+                  <tr key={stageDef.key} className="border-b border-bg-border hover:bg-bg-elevated transition">
                     <td className="px-5 py-2">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: stageDef.color, opacity: 0.7 }} />
-                        <span className="text-[11px] text-text-secondary">{stageDef.label}</span>
+                        <span className="text-sm font-medium text-text-primary">{stageDef.label}</span>
                       </div>
                     </td>
                     {factories.map((f: any) => (
@@ -461,16 +461,16 @@ export default function CollectionPage() {
                   </tr>
                 ))}
                 <tr className="border-t-2 border-bg-border">
-                  <td className="px-5 py-2"><span className="text-[10px] text-white/25 uppercase tracking-widest font-medium">Outcomes</span></td>
+                  <td className="px-5 py-2"><span className="text-xs font-bold text-text-secondary uppercase tracking-widest">Outcomes</span></td>
                   {factories.map((f: any) => <td key={f.id} />)}
                 </tr>
                 {OUTCOMES.map(outcome => (
-                  <tr key={outcome.key} className="border-b border-white/[0.03] hover:bg-bg-surface transition">
-                    <td className="px-5 py-2"><span className="text-[11px] font-medium" style={{ color: outcome.color }}>{outcome.label}</span></td>
+                  <tr key={outcome.key} className="border-b border-bg-border hover:bg-bg-elevated transition">
+                    <td className="px-5 py-2"><span className="text-sm font-bold" style={{ color: outcome.color }}>{outcome.label}</span></td>
                     {factories.map((f: any) => {
                       const count = products.filter((p: any) => { const track = (p.plm_factory_tracks || []).find((t: any) => t.factory_id === f.id); return track && track.status === outcome.key; }).length;
                       const total = products.filter((p: any) => (p.plm_factory_tracks || []).some((t: any) => t.factory_id === f.id)).length;
-                      return <td key={f.id} className="px-3 py-2 text-center"><span className="text-xs font-bold" style={{ color: count > 0 ? outcome.color : "var(--text-muted)" }}>{total > 0 ? `${count}/${total}` : "—"}</span></td>;
+                      return <td key={f.id} className="px-3 py-2 text-center"><span className="text-sm font-bold" style={{ color: count > 0 ? outcome.color : "var(--text-muted)" }}>{total > 0 ? `${count}/${total}` : "—"}</span></td>;
                     })}
                   </tr>
                 ))}
@@ -480,7 +480,7 @@ export default function CollectionPage() {
         )}
 
         <div>
-          <p className="text-[10px] text-white/25 uppercase tracking-widest mb-4">All Products ({products.length})</p>
+          <p className="text-xs font-bold text-text-secondary uppercase tracking-widest mb-4">All Products ({products.length})</p>
           <div className="grid grid-cols-1 gap-2">
             {products.map((p: any) => {
               const approvedTrack = (p.plm_factory_tracks || []).find((t: any) => t.status === "approved");
@@ -493,18 +493,18 @@ export default function CollectionPage() {
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <span className="text-sm font-semibold text-text-primary">{p.name}</span>
                       {p.sku && <span className="text-[10px] text-text-muted font-mono">{p.sku}</span>}
-                      {approvedTrack && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">✓ {approvedTrack.factory_catalog?.name}{approvedTrack.approved_price ? ` · $${approvedTrack.approved_price}` : ""}</span>}
-                      {p.action_status === "action_required" && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20">⚡ Action</span>}
+                      {approvedTrack && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">✓ {approvedTrack.factory_catalog?.name}{approvedTrack.approved_price ? ` · $${approvedTrack.approved_price}` : ""}</span>}
+                      {p.action_status === "action_required" && <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-500 border border-red-500/25">⚡ Action Required</span>}
                     </div>
                     <div className="flex items-center gap-3">
-                      {activeFactories > 0 && <span className="text-[10px] text-white/25">{activeFactories} active {activeFactories === 1 ? "factory" : "factories"}</span>}
-                      {killedFactories > 0 && <span className="text-[10px] text-red-400/40">{killedFactories} discontinued</span>}
+                      {activeFactories > 0 && <span className="text-xs text-text-secondary font-medium">{activeFactories} active {activeFactories === 1 ? "factory" : "factories"}</span>}
+                      {killedFactories > 0 && <span className="text-xs text-red-500 font-medium">{killedFactories} discontinued</span>}
                       {p.notes && <span className="text-[10px] text-text-muted truncate max-w-xs">{p.notes}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button onClick={() => setNoteProduct(p)} className="text-[9px] px-2 py-1 rounded border border-bg-border text-white/25 hover:text-text-secondary transition">Notes</button>
-                    <button onClick={() => router.push(`/plm/${p.id}`)} className="text-[9px] px-2 py-1 rounded border border-bg-border text-white/25 hover:text-text-secondary transition">Open →</button>
+                    <button onClick={() => setNoteProduct(p)} className="text-xs px-3 py-1.5 rounded-lg border border-bg-border text-text-secondary hover:text-text-primary transition font-medium">Notes</button>
+                    <button onClick={() => router.push(`/plm/${p.id}`)} className="text-xs px-3 py-1.5 rounded-lg border border-bg-border text-text-secondary hover:text-text-primary transition font-medium">Open →</button>
                   </div>
                 </div>
               );

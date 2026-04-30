@@ -263,9 +263,9 @@ body {
 }
 
 /* Light mode — darken colored text for readability */
-[data-theme="light"] .text-amber-400 { color: #b45309 !important; font-weight: 600; }
+[data-theme="light"] .text-amber-400 { color: #92400e !important; font-weight: 700; }
 [data-theme="light"] .text-amber-500 { color: #92400e !important; font-weight: 600; }
-[data-theme="light"] .text-yellow-400 { color: #854d0e !important; font-weight: 600; }
+[data-theme="light"] .text-yellow-400 { color: #713f12 !important; font-weight: 700; }
 [data-theme="light"] .text-emerald-400 { color: #065f46 !important; font-weight: 600; }
 [data-theme="light"] .text-green-400 { color: #065f46 !important; font-weight: 600; }
 [data-theme="light"] .text-blue-400 { color: #1d4ed8 !important; font-weight: 600; }
@@ -274,6 +274,11 @@ body {
 [data-theme="light"] .text-red-400 { color: #991b1b !important; font-weight: 600; }
 [data-theme="light"] .text-orange-400 { color: #9a3412 !important; font-weight: 600; }
 [data-theme="light"] .text-cyan-400 { color: #0e7490 !important; font-weight: 600; }
+[data-theme="light"] .bg-amber-500 { background-color: #b45309 !important; }
+[data-theme="light"] .bg-amber-500\/10 { background-color: #92400e15 !important; }
+[data-theme="light"] .bg-amber-500\/15 { background-color: #92400e20 !important; }
+[data-theme="light"] .border-amber-500\/20 { border-color: #92400e40 !important; }
+[data-theme="light"] .border-amber-500\/30 { border-color: #92400e50 !important; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(8px); }
