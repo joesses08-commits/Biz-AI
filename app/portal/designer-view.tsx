@@ -1,5 +1,6 @@
 "use client";
 import PortalNotificationBell from "../../components/PortalNotificationBell";
+import PortalThemeToggle from "@/components/PortalThemeToggle";
 
 import { useState, useEffect } from "react";
 import { Package, Plus, Loader2, Check, X, ChevronDown, ChevronRight, LogOut, Layers, Users, Factory, Search } from "lucide-react";
