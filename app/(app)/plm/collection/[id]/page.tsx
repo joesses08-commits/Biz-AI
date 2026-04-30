@@ -390,9 +390,7 @@ export default function CollectionPage() {
                 setRequestingSamples(false);
                 setShowSampleModal(false);
                 setSampleNote("");
-                if (anyCreated) { load(); alert("Sample requests created successfully!"); }
-                else if (errors.length) { alert("Error: " + errors.join(", ")); }
-                else { alert("No new sample requests were created. Products may already have active requests."); }
+                if (anyCreated) { load(); }
               }} disabled={requestingSamples || sampleProductIds.length === 0} className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold disabled:opacity-40">
                 {requestingSamples ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />}
                 {requestingSamples ? "Requesting..." : `Request for ${sampleProductIds.length} Products`}
