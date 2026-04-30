@@ -366,8 +366,20 @@ export default function CollectionPage() {
                   if (!factoryIds.length) { errors.push("No factories selected for a product"); continue; }
                   const res = await fetch("/api/plm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_sample_requests", product_id: pid, factory_ids: factoryIds, note: sampleNote, provider: "outlook" }) });
                   const data = await res.json();
-                  alert("API response: " + JSON.stringify(data));
                   if (data.success) anyCreated = true;
+                  if (data.success) {
+                    const tracksData = await fetch("/api/plm/tracks?product_id=" + pid).then(r => r.json());
+                    const allTracks = tracksData.tracks || [];
+                    for (const fid of factoryIds) {
+                      const track = allTracks.find((t: any) => t.factory_id === fid);
+                      if (track) {
+                        const revNum = (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
+                        await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update_stage", track_id: track.id, product_id: pid, factory_id: fid, stage: "sample_requested", status: "done", revision_number: revNum, actual_date: new Date().toISOString().split("T")[0], notes: sampleNote || null }) });
+                        const msg = "Sample requested." + (sampleNote ? " Note: " + sampleNote : "");
+                        await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "send_message", track_id: track.id, product_id: pid, message: msg }) });
+                      }
+                    }
+                  }
                   if (data.error) errors.push(data.error);
                 }
                 setRequestingSamples(false);
