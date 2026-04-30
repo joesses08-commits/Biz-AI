@@ -25,7 +25,7 @@ export default function WarehousePortal() {
   const isFirstLoadRef = useRef(true);
   const pollRef = useRef<any>(null);
 
-  const inputClass = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-sm focus:outline-none focus:border-white/20";
+  const inputClass = "w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-sm focus:outline-none focus:border-white/20";
 
   async function login() {
     setLoggingIn(true);
@@ -109,14 +109,14 @@ export default function WarehousePortal() {
   }, [messages, activeTab]);
 
   if (!warehouseUser) return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-bg-base text-white flex items-center justify-center p-6">
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
           <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center mx-auto mb-4">
             <Package size={20} className="text-black" />
           </div>
           <h1 className="text-2xl font-bold mb-1">Warehouse Portal</h1>
-          <p className="text-white/30 text-sm">Sign in to manage incoming shipments</p>
+          <p className="text-text-muted text-sm">Sign in to manage incoming shipments</p>
         </div>
         <div className="space-y-3 mb-4">
           <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={inputClass} />
@@ -131,26 +131,26 @@ export default function WarehousePortal() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
-      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-bg-base text-white flex flex-col">
+      <div className="border-b border-bg-border px-6 py-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold">{warehouseUser.warehouses?.name}</p>
-          <p className="text-xs text-white/30">{warehouseUser.name}</p>
+          <p className="text-xs text-text-muted">{warehouseUser.name}</p>
         </div>
-        <button onClick={() => { localStorage.removeItem("warehouse_user"); setWarehouseUser(null); }} className="flex items-center gap-1.5 text-white/30 hover:text-white text-xs transition">
+        <button onClick={() => { localStorage.removeItem("warehouse_user"); setWarehouseUser(null); }} className="flex items-center gap-1.5 text-text-muted hover:text-white text-xs transition">
           <LogOut size={12} /> Sign out
         </button>
       </div>
 
       <div className="px-6 py-4 flex-1 flex flex-col">
         <div className="flex gap-2 mb-6">
-          <button onClick={() => setActiveTab("incoming")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "incoming" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
+          <button onClick={() => setActiveTab("incoming")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "incoming" ? "bg-white text-black" : "text-text-secondary border border-bg-border"}`}>
             <ArrowDown size={12} /> Incoming ({shipments.length})
           </button>
-          <button onClick={() => setActiveTab("inventory")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "inventory" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
+          <button onClick={() => setActiveTab("inventory")} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "inventory" ? "bg-white text-black" : "text-text-secondary border border-bg-border"}`}>
             <Package size={12} /> Inventory ({inventoryItems.length})
           </button>
-          <button onClick={openMessages} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "messages" ? "bg-white text-black" : "text-white/40 border border-white/[0.08]"}`}>
+          <button onClick={openMessages} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition ${activeTab === "messages" ? "bg-white text-black" : "text-text-secondary border border-bg-border"}`}>
             <MessageCircle size={12} /> Messages{unreadWarehouse > 0 && <span className="ml-1 bg-blue-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">{unreadWarehouse}</span>}
           </button>
         </div>
@@ -160,20 +160,20 @@ export default function WarehousePortal() {
             {shipments.length === 0 ? (
               <div className="text-center py-16">
                 <CheckCircle size={32} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No incoming shipments</p>
+                <p className="text-text-muted text-sm">No incoming shipments</p>
               </div>
             ) : shipments.map((item: any) => (
-              <div key={item.id} className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
+              <div key={item.id} className="bg-bg-surface border border-bg-border rounded-2xl p-4">
                 <div className="flex items-start gap-3 mb-3">
                   {item.plm_products?.images?.[0] && <img src={item.plm_products.images[0]} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />}
                   <div className="flex-1">
                     <p className="text-sm font-semibold">{item.plm_products?.name}</p>
-                    {item.plm_products?.sku && <p className="text-xs text-white/30 font-mono">{item.plm_products.sku}</p>}
-                    {item.po_number && <p className="text-xs text-white/30 mt-1">PO: {item.po_number}</p>}
+                    {item.plm_products?.sku && <p className="text-xs text-text-muted font-mono">{item.plm_products.sku}</p>}
+                    {item.po_number && <p className="text-xs text-text-muted mt-1">PO: {item.po_number}</p>}
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-amber-400">{item.quantity_incoming}</p>
-                    <p className="text-[10px] text-white/25">expected units</p>
+                    <p className="text-[10px] text-text-muted">expected units</p>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -196,31 +196,31 @@ export default function WarehousePortal() {
             {inventoryItems.length === 0 ? (
               <div className="text-center py-16">
                 <Package size={32} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No inventory yet</p>
+                <p className="text-text-muted text-sm">No inventory yet</p>
               </div>
             ) : inventoryItems.map((item: any) => (
-              <div key={item.id} className="bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-3">
+              <div key={item.id} className="bg-bg-surface border border-bg-border rounded-xl px-4 py-3 flex items-center gap-3">
                 {item.plm_products?.images?.[0] && <img src={item.plm_products.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />}
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-white/80">{item.plm_products?.name}</p>
-                  {item.plm_products?.sku && <p className="text-[10px] text-white/25 font-mono">{item.plm_products.sku}</p>}
+                  <p className="text-sm font-medium text-text-primary">{item.plm_products?.name}</p>
+                  {item.plm_products?.sku && <p className="text-[10px] text-text-muted font-mono">{item.plm_products.sku}</p>}
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex gap-4 text-right">
                     <div>
-                      <p className="text-lg font-bold text-white">{item.quantity_on_hand}</p>
-                      <p className="text-[10px] text-white/25">on hand</p>
+                      <p className="text-lg font-bold text-text-primary">{item.quantity_on_hand}</p>
+                      <p className="text-[10px] text-text-muted">on hand</p>
                     </div>
                     {item.quantity_incoming > 0 && (
                       <div>
                         <p className="text-lg font-bold text-amber-400">{item.quantity_incoming}</p>
-                        <p className="text-[10px] text-white/25">incoming</p>
+                        <p className="text-[10px] text-text-muted">incoming</p>
                       </div>
                     )}
                     {item.quantity_damaged > 0 && (
                       <div>
                         <p className="text-lg font-bold text-red-400">{item.quantity_damaged}</p>
-                        <p className="text-[10px] text-white/25">damaged</p>
+                        <p className="text-[10px] text-text-muted">damaged</p>
                       </div>
                     )}
                   </div>
@@ -241,13 +241,13 @@ export default function WarehousePortal() {
               {messages.length === 0 ? (
                 <div className="text-center py-16">
                   <MessageCircle size={32} className="text-white/10 mx-auto mb-3" />
-                  <p className="text-white/30 text-sm">No messages yet</p>
+                  <p className="text-text-muted text-sm">No messages yet</p>
                 </div>
               ) : messages.map((m: any) => (
                 <div key={m.id} className={`flex ${m.sender_role === "warehouse" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${m.sender_role === "warehouse" ? "bg-white text-black" : "bg-white/[0.06] text-white/80"}`}>
+                  <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${m.sender_role === "warehouse" ? "bg-white text-black" : "bg-white/[0.06] text-text-primary"}`}>
                     <p>{m.message}</p>
-                    <p className={`text-[10px] mt-1 ${m.sender_role === "warehouse" ? "text-black/40" : "text-white/25"}`}>{m.sender_name} · {new Date(m.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
+                    <p className={`text-[10px] mt-1 ${m.sender_role === "warehouse" ? "text-black/40" : "text-text-muted"}`}>{m.sender_name} · {new Date(m.created_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</p>
                   </div>
                 </div>
               ))}
@@ -265,21 +265,21 @@ export default function WarehousePortal() {
 
       {showReceive && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-5 w-full max-w-sm">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-5 w-full max-w-sm">
             <h3 className="text-sm font-bold mb-1">Receive Shipment</h3>
-            <p className="text-xs text-white/30 mb-4">{showReceive.plm_products?.name}</p>
+            <p className="text-xs text-text-muted mb-4">{showReceive.plm_products?.name}</p>
             <div className="space-y-3 mb-4">
               <div>
-                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Units Received *</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Units Received *</label>
                 <input type="number" value={receiveForm.quantity} onChange={e => setReceiveForm({...receiveForm, quantity: e.target.value})} className={inputClass} />
               </div>
               <div>
-                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Notes</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Notes</label>
                 <input value={receiveForm.notes} onChange={e => setReceiveForm({...receiveForm, notes: e.target.value})} placeholder="e.g. All units in good condition" className={inputClass} />
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowReceive(null)} className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-xs">Cancel</button>
+              <button onClick={() => setShowReceive(null)} className="px-4 py-2.5 rounded-xl border border-bg-border text-text-secondary text-xs">Cancel</button>
               <button onClick={receiveGoods} disabled={saving || !receiveForm.quantity} className="flex-1 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-semibold disabled:opacity-40">
                 {saving ? "Saving..." : "Confirm Receipt"}
               </button>
@@ -290,21 +290,21 @@ export default function WarehousePortal() {
 
       {showDamage && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end justify-center p-4">
-          <div className="bg-[#111] border border-white/[0.08] rounded-2xl p-5 w-full max-w-sm">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl p-5 w-full max-w-sm">
             <h3 className="text-sm font-bold mb-1">Report Damage</h3>
-            <p className="text-xs text-white/30 mb-4">{showDamage.plm_products?.name}</p>
+            <p className="text-xs text-text-muted mb-4">{showDamage.plm_products?.name}</p>
             <div className="space-y-3 mb-4">
               <div>
-                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Damaged Units *</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Damaged Units *</label>
                 <input type="number" value={damageForm.quantity} onChange={e => setDamageForm({...damageForm, quantity: e.target.value})} className={inputClass} />
               </div>
               <div>
-                <label className="text-[10px] text-white/30 uppercase tracking-widest mb-1.5 block">Description *</label>
+                <label className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5 block">Description *</label>
                 <input value={damageForm.notes} onChange={e => setDamageForm({...damageForm, notes: e.target.value})} placeholder="e.g. Broken during transit" className={inputClass} />
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowDamage(null)} className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-xs">Cancel</button>
+              <button onClick={() => setShowDamage(null)} className="px-4 py-2.5 rounded-xl border border-bg-border text-text-secondary text-xs">Cancel</button>
               <button onClick={reportDamage} disabled={saving || !damageForm.quantity || !damageForm.notes} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-xs font-semibold disabled:opacity-40">
                 {saving ? "Saving..." : "Report Damage"}
               </button>

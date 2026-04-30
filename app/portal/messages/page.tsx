@@ -90,26 +90,26 @@ export default function PortalMessagesPage() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] text-white overflow-hidden">
+    <div className="flex h-screen bg-bg-base text-white overflow-hidden">
       {/* Sidebar */}
-      <div className="w-72 flex-shrink-0 border-r border-white/[0.06] flex flex-col">
-        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-3">
-          <button onClick={() => router.push("/portal/dashboard")} className="text-white/30 hover:text-white/60">
+      <div className="w-72 flex-shrink-0 border-r border-bg-border flex flex-col">
+        <div className="px-5 py-4 border-b border-bg-border flex items-center gap-3">
+          <button onClick={() => router.push("/portal/dashboard")} className="text-text-muted hover:text-text-secondary">
             <ArrowLeft size={14} />
           </button>
           <p className="text-sm font-semibold">Messages</p>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {loading ? <p className="text-xs text-white/20 text-center py-8">Loading...</p> :
-           chats.length === 0 ? <p className="text-xs text-white/20 text-center py-8">No messages yet</p> :
+          {loading ? <p className="text-xs text-text-muted text-center py-8">Loading...</p> :
+           chats.length === 0 ? <p className="text-xs text-text-muted text-center py-8">No messages yet</p> :
            chats.map(chat => (
             <div key={chat.track_id} onClick={() => openChat(chat)}
-              className={`px-4 py-3 cursor-pointer flex items-center gap-3 hover:bg-white/[0.02] transition border-b border-white/[0.03] ${activeChat?.track_id === chat.track_id ? "bg-white/[0.04]" : ""}`}>
+              className={`px-4 py-3 cursor-pointer flex items-center gap-3 hover:bg-bg-surface transition border-b border-white/[0.03] ${activeChat?.track_id === chat.track_id ? "bg-bg-elevated" : ""}`}>
               {chat.product_image ? (
-                <img src={chat.product_image} className="w-10 h-10 rounded-xl object-cover border border-white/[0.06] flex-shrink-0" />
+                <img src={chat.product_image} className="w-10 h-10 rounded-xl object-cover border border-bg-border flex-shrink-0" />
               ) : (
-                <div className="w-10 h-10 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                  <span className="text-white/20 text-xs">📦</span>
+                <div className="w-10 h-10 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+                  <span className="text-text-muted text-xs">📦</span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -117,7 +117,7 @@ export default function PortalMessagesPage() {
                   <p className="text-xs font-semibold truncate">{chat.product_name}</p>
                   {chat.unread_count > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 ml-1">{chat.unread_count}</span>}
                 </div>
-                {chat.latest_message && <p className="text-[10px] text-white/20 truncate">{chat.latest_message.sender_name}: {chat.latest_message.message || "📎 Attachment"}</p>}
+                {chat.latest_message && <p className="text-[10px] text-text-muted truncate">{chat.latest_message.sender_name}: {chat.latest_message.message || "📎 Attachment"}</p>}
               </div>
             </div>
            ))}
@@ -127,12 +127,12 @@ export default function PortalMessagesPage() {
       {/* Chat */}
       {activeChat ? (
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3 flex-shrink-0">
-            {activeChat.product_image ? <img src={activeChat.product_image} className="w-9 h-9 rounded-xl object-cover border border-white/[0.06]" /> :
-              <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center"><span className="text-white/20 text-xs">📦</span></div>}
+          <div className="px-6 py-4 border-b border-bg-border flex items-center gap-3 flex-shrink-0">
+            {activeChat.product_image ? <img src={activeChat.product_image} className="w-9 h-9 rounded-xl object-cover border border-bg-border" /> :
+              <div className="w-9 h-9 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center"><span className="text-text-muted text-xs">📦</span></div>}
             <div>
               <p className="text-sm font-semibold">{activeChat.product_name}</p>
-              <p className="text-[11px] text-white/40">{activeChat.product_sku}</p>
+              <p className="text-[11px] text-text-secondary">{activeChat.product_sku}</p>
             </div>
           </div>
           <div ref={containerRef} className="flex-1 overflow-y-auto p-6 space-y-3">
@@ -148,21 +148,21 @@ export default function PortalMessagesPage() {
                     </div>
                   )}
                   <div className={isMe ? "flex justify-end" : "flex justify-start"}>
-                    <div className={isMe ? "bg-white/10 rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[70%]" : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[70%]"}>
+                    <div className={isMe ? "bg-white/10 rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[70%]" : "bg-bg-elevated border border-bg-border rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[70%]"}>
               <p className="text-[10px] font-semibold mb-1" style={{color: (() => {
                 const colors = ["#60a5fa","#34d399","#f472b6","#fb923c","#a78bfa","#facc15","#38bdf8","#f87171"];
                 let hash = 0;
                 for (let i = 0; i < (msg.sender_name||"").length; i++) hash = (msg.sender_name.charCodeAt(i) + ((hash << 5) - hash));
                 return colors[Math.abs(hash) % colors.length];
               })()}}>{msg.sender_name}</p>
-                      {msg.message && <p className="text-sm text-white/80">{msg.message}</p>}
+                      {msg.message && <p className="text-sm text-text-primary">{msg.message}</p>}
                       {msg.attachment_url && msg.attachment_type === "image" && (
-                        <img src={msg.attachment_url} className="mt-2 max-w-xs rounded-xl border border-white/10 cursor-pointer" onClick={() => window.open(msg.attachment_url, "_blank")} />
+                        <img src={msg.attachment_url} className="mt-2 max-w-xs rounded-xl border border-bg-border cursor-pointer" onClick={() => window.open(msg.attachment_url, "_blank")} />
                       )}
                       {msg.attachment_url && msg.attachment_type === "file" && (
                         <a href={msg.attachment_url} target="_blank" className="mt-2 flex items-center gap-2 text-xs text-blue-400"><Paperclip size={11} />{msg.attachment_name || "File"}</a>
                       )}
-                      <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                      <p className="text-[9px] text-text-muted mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                       {(() => {
                         const lastReadFactoryIdx = messages.map((m: any, i: number) => m.sender_role === "factory" && m.read_by_admin ? i : -1).filter((i: number) => i !== -1).pop();
                         return idx === lastReadFactoryIdx ? <p className="text-[9px] text-blue-400/60 mt-0.5 text-right">✓ Seen</p> : null;
@@ -174,30 +174,30 @@ export default function PortalMessagesPage() {
             })}
           </div>
           {attachmentPreview && (
-            <div className="px-6 py-3 border-t border-white/[0.06] flex items-center gap-3 bg-white/[0.02]">
-              {attachmentPreview.type === "image" ? <img src={attachmentPreview.url} className="h-16 w-16 rounded-xl object-cover border border-white/10" /> :
-                <div className="h-16 w-16 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center"><Paperclip size={20} className="text-white/30" /></div>}
+            <div className="px-6 py-3 border-t border-bg-border flex items-center gap-3 bg-bg-surface">
+              {attachmentPreview.type === "image" ? <img src={attachmentPreview.url} className="h-16 w-16 rounded-xl object-cover border border-bg-border" /> :
+                <div className="h-16 w-16 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center"><Paperclip size={20} className="text-text-muted" /></div>}
               <div className="flex-1 min-w-0">
-                <p className="text-xs text-white/60 truncate">{attachmentPreview.file.name}</p>
-                <p className="text-[10px] text-white/30">{(attachmentPreview.file.size / 1024).toFixed(0)} KB · Ready to send</p>
+                <p className="text-xs text-text-secondary truncate">{attachmentPreview.file.name}</p>
+                <p className="text-[10px] text-text-muted">{(attachmentPreview.file.size / 1024).toFixed(0)} KB · Ready to send</p>
               </div>
-              <button onClick={() => setAttachmentPreview(null)} className="text-white/30 hover:text-white/60"><X size={14} /></button>
+              <button onClick={() => setAttachmentPreview(null)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
             </div>
           )}
-          <div className="px-6 py-4 border-t border-white/[0.06] flex gap-2 items-end flex-shrink-0">
-            <button onClick={() => fileInputRef.current?.click()} className="text-white/30 hover:text-white/60 transition flex-shrink-0 pb-2"><Paperclip size={16} /></button>
+          <div className="px-6 py-4 border-t border-bg-border flex gap-2 items-end flex-shrink-0">
+            <button onClick={() => fileInputRef.current?.click()} className="text-text-muted hover:text-text-secondary transition flex-shrink-0 pb-2"><Paperclip size={16} /></button>
             <input ref={fileInputRef} type="file" accept="image/*,.pdf,.xlsx,.xls,.doc,.docx,.csv,.txt" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
             <textarea value={newMessage} onChange={e => setNewMessage(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); attachmentPreview ? uploadAndSend() : sendMessage(); } }}
               placeholder="Type a message..." rows={1} style={{ resize: "none" }}
-              className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none" />
+              className="flex-1 bg-bg-elevated border border-bg-border rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none" />
             <button onClick={() => attachmentPreview ? uploadAndSend() : sendMessage()} disabled={(!newMessage.trim() && !attachmentPreview) || sending}
               className="flex-shrink-0 w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center disabled:opacity-40"><Send size={14} /></button>
           </div>
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center"><p className="text-2xl mb-2">💬</p><p className="text-sm text-white/30">Select a chat</p></div>
+          <div className="text-center"><p className="text-2xl mb-2">💬</p><p className="text-sm text-text-muted">Select a chat</p></div>
         </div>
       )}
     </div>

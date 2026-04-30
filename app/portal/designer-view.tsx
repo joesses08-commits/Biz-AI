@@ -16,8 +16,8 @@ const ORDERED_STAGES = [
   { key: "sample_reviewed",  label: "Sample Reviewed",  color: "#10b981", bg: "#10b98115", border: "#10b98130" },
 ];
 
-const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/80 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition";
-const lc = "text-[10px] text-white/30 mb-1.5 block uppercase tracking-widest";
+const ic = "w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-text-primary placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition";
+const lc = "text-[10px] text-text-muted mb-1.5 block uppercase tracking-widest";
 
 function getProductStatus(product: any) {
   const batches = product.plm_batches || [];
@@ -34,17 +34,17 @@ function PinPrompt({ onConfirm, onCancel, error }: { onConfirm: (pin: string) =>
   const [pin, setPin] = useState("");
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
-        <p className="text-sm font-semibold text-white">Enter PIN</p>
+      <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+        <p className="text-sm font-semibold text-text-primary">Enter PIN</p>
         <input type="password" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
           onKeyDown={e => e.key === "Enter" && onConfirm(pin)}
           placeholder="••••" autoFocus
-          className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest focus:outline-none" />
+          className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest focus:outline-none" />
         {error && <p className="text-red-400 text-xs text-center">{error}</p>}
         <div className="flex gap-2">
           <button onClick={() => onConfirm(pin)} disabled={!pin}
             className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Confirm</button>
-          <button onClick={onCancel} className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+          <button onClick={onCancel} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
         </div>
       </div>
     </div>
@@ -67,15 +67,15 @@ function SetPinModal({ token, onDone }: { token: string; onDone: () => void }) {
   };
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
-        <p className="text-sm font-semibold text-white">Set Your PIN</p>
-        <p className="text-xs text-white/30">Required for approvals, kills, and status changes.</p>
+      <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+        <p className="text-sm font-semibold text-text-primary">Set Your PIN</p>
+        <p className="text-xs text-text-muted">Required for approvals, kills, and status changes.</p>
         <div><label className={lc}>PIN (4-8 digits)</label>
           <input type="password" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 8))}
-            placeholder="••••" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest focus:outline-none" /></div>
+            placeholder="••••" className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest focus:outline-none" /></div>
         <div><label className={lc}>Confirm PIN</label>
           <input type="password" value={confirm} onChange={e => setConfirm(e.target.value.replace(/\D/g, "").slice(0, 8))}
-            placeholder="••••" className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest focus:outline-none" /></div>
+            placeholder="••••" className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest focus:outline-none" /></div>
         {error && <p className="text-red-400 text-xs text-center">{error}</p>}
         <button onClick={save} disabled={saving || !pin || !confirm}
           className="w-full py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
@@ -298,35 +298,36 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-bg-base text-text-primary">
       {showSetPin && <SetPinModal token={tok()} onDone={() => { setShowSetPin(false); setHasPinSet(true); load(); }} />}
       {pinPrompt && <PinPrompt error={pinError} onConfirm={pin => pinPrompt.resolve(pin)} onCancel={() => { setPinPrompt(null); setPinError(""); }} />}
 
       {/* Header */}
-      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a] z-10">
+      <div className="border-b border-bg-border px-6 py-4 flex items-center justify-between sticky top-0 bg-bg-base z-10">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <Layers size={15} className="text-white/60" />
+          <div className="w-8 h-8 rounded-xl bg-white/5 border border-bg-border flex items-center justify-center">
+            <Layers size={15} className="text-text-secondary" />
           </div>
           <div>
             <p className="text-sm font-semibold">Designer Portal</p>
-            <p className="text-[10px] text-white/30">{portalUser?.name || portalUser?.email}</p>
+            <p className="text-[10px] text-text-muted">{portalUser?.name || portalUser?.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-[10px] text-white/20 bg-white/[0.03] px-2 py-1 rounded-lg">{products.length} SKUs</span>
+          <span className="text-[10px] text-text-muted bg-bg-elevated px-2 py-1 rounded-lg">{products.length} SKUs</span>
+          <PortalThemeToggle />
           {hasPinSet !== null && (
-            <button onClick={() => setShowSetPin(true)} className={`text-xs px-3 py-1.5 rounded-lg border transition ${hasPinSet ? "text-white/30 border-white/[0.08] hover:text-white/60" : "text-amber-400 border-amber-500/30 bg-amber-500/10"}`}>
+            <button onClick={() => setShowSetPin(true)} className={`text-xs px-3 py-1.5 rounded-lg border transition ${hasPinSet ? "text-text-muted border-bg-border hover:text-text-secondary" : "text-amber-400 border-amber-500/30 bg-amber-500/10"}`}>
               {hasPinSet ? "Change PIN" : "Set PIN"}
             </button>
           )}
           <div className="flex items-center gap-3">
             <PortalNotificationBell token={tok()} onNavigate={(link) => router.push(link)} />
             <button onClick={() => router.push("/portal/designer-messages")}
-              className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-xl transition">
+              className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-xl transition">
               💬 Messages
             </button>
-            <button onClick={logout} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition">
+            <button onClick={logout} className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition">
               <LogOut size={12} />Sign out
             </button>
           </div>
@@ -334,11 +335,11 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-white/[0.06] px-6 sticky top-[57px] bg-[#0a0a0a] z-10">
+      <div className="border-b border-bg-border px-6 sticky top-[57px] bg-bg-base z-10">
         <div className="flex gap-0">
           {([["products", "Products"], ["collections", "Collections"], ["prioritization", "Prioritization"]] as const).map(([key, label]) => (
             <button key={key} onClick={() => { setActiveTab(key); if (key === "prioritization" && prioFactories.length === 0) loadPrioritization(); }}
-              className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${activeTab === key ? "border-white text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>
+              className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${activeTab === key ? "border-white text-text-primary" : "border-transparent text-text-muted hover:text-text-secondary"}`}>
               {label}
             </button>
           ))}
@@ -347,27 +348,27 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
 
       <div className="max-w-5xl mx-auto px-6 py-6">
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
+          <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-text-muted" /></div>
         ) : activeTab === "products" ? (
           <div className="space-y-4">
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                   <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Search products..." 
-                    className="bg-white/[0.03] border border-white/[0.08] rounded-xl pl-9 pr-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none w-52" />
+                    className="bg-bg-elevated border border-bg-border rounded-xl pl-9 pr-3 py-2 text-text-secondary placeholder-white/20 text-xs focus:outline-none w-52" />
                 </div>
                 <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)}
-                  className="bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 text-xs focus:outline-none">
+                  className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
                   <option value="">All Collections</option>
                   {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowNewCollection(!showNewCollection)}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition">
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-bg-border text-text-secondary hover:text-text-secondary transition">
                   <Plus size={11} />Collection
                 </button>
                 <button onClick={() => setShowNewProduct(!showNewProduct)}
@@ -379,8 +380,8 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
 
             {/* New Collection */}
             {showNewCollection && (
-              <div className="border border-white/[0.08] rounded-2xl p-4 space-y-3 bg-white/[0.01]">
-                <p className="text-xs font-semibold text-white/70">New Collection</p>
+              <div className="border border-bg-border rounded-2xl p-4 space-y-3 bg-bg-surface">
+                <p className="text-xs font-semibold text-text-secondary">New Collection</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div><label className={lc}>Name *</label><input value={newCollection.name} onChange={e => setNewCollection({ ...newCollection, name: e.target.value })} className={ic} /></div>
                   <div><label className={lc}>Season</label><input value={newCollection.season} onChange={e => setNewCollection({ ...newCollection, season: e.target.value })} className={ic} /></div>
@@ -390,15 +391,15 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                   <button onClick={createCollection} disabled={saving || !newCollection.name} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                     {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Create
                   </button>
-                  <button onClick={() => setShowNewCollection(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <button onClick={() => setShowNewCollection(false)} className="px-3 py-2 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                 </div>
               </div>
             )}
 
             {/* New Product */}
             {showNewProduct && (
-              <div className="border border-white/[0.08] rounded-2xl p-4 space-y-3 bg-white/[0.01]">
-                <p className="text-xs font-semibold text-white/70">New Product</p>
+              <div className="border border-bg-border rounded-2xl p-4 space-y-3 bg-bg-surface">
+                <p className="text-xs font-semibold text-text-secondary">New Product</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className={lc}>Name *</label><input value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} placeholder="Product name" className={ic} /></div>
                   <div><label className={lc}>SKU</label><input value={newProduct.sku} onChange={e => setNewProduct({ ...newProduct, sku: e.target.value })} placeholder="SKU-001" className={ic} /></div>
@@ -416,7 +417,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                   <button onClick={createProduct} disabled={saving || !newProduct.name} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">
                     {saving ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Create
                   </button>
-                  <button onClick={() => setShowNewProduct(false)} className="px-3 py-2 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                  <button onClick={() => setShowNewProduct(false)} className="px-3 py-2 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                 </div>
               </div>
             )}
@@ -431,7 +432,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                     <div>
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                        <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Assigned to Me · {assignedProducts.length}</p>
+                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">Assigned to Me · {assignedProducts.length}</p>
                       </div>
                       <div className="grid grid-cols-1 gap-3">
                         {assignedProducts.map(product => {
@@ -446,8 +447,8 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                       className="flex items-center gap-3 p-4 border border-red-500/10 rounded-xl bg-red-500/[0.01] opacity-50 cursor-pointer hover:opacity-70 transition">
                       {product.images?.[0] && <img src={product.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 grayscale" />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white/40 truncate line-through">{product.name}</p>
-                        {product.sku && <p className="text-[10px] text-white/20 font-mono">{product.sku}</p>}
+                        <p className="text-sm font-semibold text-text-secondary truncate line-through">{product.name}</p>
+                        {product.sku && <p className="text-[10px] text-text-muted font-mono">{product.sku}</p>}
                       </div>
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400/70 border border-red-500/15 flex-shrink-0">Product Discontinued</span>
                     </div>
@@ -455,21 +456,21 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
 
                   return (
                     <div key={product.id} 
-                      className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer"
+                      className="border border-bg-border rounded-xl p-4 bg-bg-surface hover:border-bg-border transition cursor-pointer"
                       onClick={() => router.push(`/portal/designer-product?id=${product.id}`)}>
                       <div className="flex items-center gap-4">
                         {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0" />
+                          <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-bg-border flex-shrink-0" />
                         ) : (
-                          <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0 flex items-center justify-center">
-                            <Package size={14} className="text-white/20" />
+                          <div className="w-10 h-10 rounded-lg bg-bg-elevated border border-bg-border flex-shrink-0 flex items-center justify-center">
+                            <Package size={14} className="text-text-muted" />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                            <p className="text-sm font-semibold text-white">{product.name}</p>
-                            {product.sku && <span className="text-[10px] text-white/30 font-mono">{product.sku}</span>}
-                            {product.plm_collections && <span className="text-[10px] text-white/25">{product.plm_collections.name}</span>}
+                            <p className="text-sm font-semibold text-text-primary">{product.name}</p>
+                            {product.sku && <span className="text-[10px] text-text-muted font-mono">{product.sku}</span>}
+                            {product.plm_collections && <span className="text-[10px] text-text-muted">{product.plm_collections.name}</span>}
                             {product.action_status === "action_required" && (
                               <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 uppercase tracking-wide">⚡ Action Required</span>
                             )}
@@ -495,10 +496,10 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                           </div>
                           {/* Added by attribution */}
                           {addedBy && (
-                            <p className="text-[10px] text-white/20 mt-1.5">Added by {addedBy}</p>
+                            <p className="text-[10px] text-text-muted mt-1.5">Added by {addedBy}</p>
                           )}
                         </div>
-                        <ChevronRight size={16} className="text-white/20 flex-shrink-0" />
+                        <ChevronRight size={16} className="text-text-muted flex-shrink-0" />
                       </div>
                     </div>
                   );
@@ -510,21 +511,21 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                     <div>
                       <div className="flex items-center gap-2 mb-3 mt-6">
                         <div className="w-2 h-2 rounded-full bg-white/20" />
-                        <p className="text-xs font-semibold text-white/50 uppercase tracking-widest">Not Assigned · {unassignedProducts.length}</p>
+                        <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">Not Assigned · {unassignedProducts.length}</p>
                       </div>
                       <div className="grid grid-cols-1 gap-3">
                         {unassignedProducts.map(product => (
-                          <div key={product.id} className="border border-white/[0.04] rounded-xl p-4 bg-white/[0.005] flex items-center gap-4 cursor-pointer hover:border-white/[0.08] transition"
+                          <div key={product.id} className="border border-white/[0.04] rounded-xl p-4 bg-white/[0.005] flex items-center gap-4 cursor-pointer hover:border-bg-border transition"
                             onClick={() => router.push("/portal/designer-product?id=" + product.id)}>
-                            {product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-white/[0.06] flex-shrink-0 opacity-60" /> :
-                              <div className="w-10 h-10 rounded-lg bg-white/[0.03] border border-white/[0.06] flex-shrink-0 opacity-60" />}
+                            {product.images?.[0] ? <img src={product.images[0]} alt={product.name} className="w-10 h-10 rounded-lg object-cover border border-bg-border flex-shrink-0 opacity-60" /> :
+                              <div className="w-10 h-10 rounded-lg bg-bg-elevated border border-bg-border flex-shrink-0 opacity-60" />}
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-white/50 truncate">{product.name}</p>
-                              {product.sku && <p className="text-[10px] text-white/25 font-mono">{product.sku}</p>}
-                              {product.plm_collections && <p className="text-[10px] text-white/20">{product.plm_collections.name}</p>}
+                              <p className="text-sm font-semibold text-text-secondary truncate">{product.name}</p>
+                              {product.sku && <p className="text-[10px] text-text-muted font-mono">{product.sku}</p>}
+                              {product.plm_collections && <p className="text-[10px] text-text-muted">{product.plm_collections.name}</p>}
                             </div>
                             <button onClick={e => { e.stopPropagation(); setRequestAssignmentProduct(product); }}
-                              className="text-[10px] px-3 py-1.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition flex-shrink-0">
+                              className="text-[10px] px-3 py-1.5 rounded-xl border border-bg-border text-text-secondary hover:text-text-secondary hover:border-white/20 transition flex-shrink-0">
                               Request Assignment
                             </button>
                           </div>
@@ -535,7 +536,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                   {sortedProducts.length === 0 && (
                     <div className="text-center py-20">
                       <Package size={32} className="text-white/10 mx-auto mb-3" />
-                      <p className="text-white/30 text-sm">No products yet</p>
+                      <p className="text-text-muted text-sm">No products yet</p>
                     </div>
                   )}
                 </>
@@ -546,7 +547,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
           /* Collections Tab */
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-white/40">{collections.length} collections</p>
+              <p className="text-xs text-text-secondary">{collections.length} collections</p>
               <button onClick={() => setShowNewCollection(true)}
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition">
                 <Plus size={11} />New Collection
@@ -555,7 +556,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
             {collections.length === 0 ? (
               <div className="text-center py-20">
                 <Layers size={32} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No collections yet</p>
+                <p className="text-text-muted text-sm">No collections yet</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3">
@@ -564,15 +565,15 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                   const actionRequired = colProducts.filter(p => p.action_status === "action_required").length;
                   const updatesMade = colProducts.filter(p => p.action_status === "updates_made").length;
                   return (
-                    <div key={col.id} className="border border-white/[0.06] rounded-xl p-4 bg-white/[0.01] hover:border-white/10 transition cursor-pointer"
+                    <div key={col.id} className="border border-bg-border rounded-xl p-4 bg-bg-surface hover:border-bg-border transition cursor-pointer"
                       onClick={() => router.push(`/portal/designer-collection?id=${col.id}`)}>
                       <div className="flex items-center justify-between">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-semibold text-white">{col.name}</p>
-                            {col.season && <span className="text-[10px] text-white/30">{col.season} {col.year}</span>}
+                            <p className="text-sm font-semibold text-text-primary">{col.name}</p>
+                            {col.season && <span className="text-[10px] text-text-muted">{col.season} {col.year}</span>}
                           </div>
-                          <p className="text-[11px] text-white/40">{colProducts.length} products</p>
+                          <p className="text-[11px] text-text-secondary">{colProducts.length} products</p>
                         </div>
                         <div className="flex items-center gap-2">
                           {actionRequired > 0 && (
@@ -585,7 +586,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                               {updatesMade} updates
                             </span>
                           )}
-                          <ChevronRight size={16} className="text-white/20" />
+                          <ChevronRight size={16} className="text-text-muted" />
                         </div>
                       </div>
                     </div>
@@ -598,17 +599,17 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
           /* Prioritization Tab */
           <div className="space-y-6">
             {prioFactories.length === 0 && !prioLoading ? (
-              <div className="text-center py-20"><p className="text-white/30 text-sm">No factories found.</p></div>
+              <div className="text-center py-20"><p className="text-text-muted text-sm">No factories found.</p></div>
             ) : prioLoading ? (
               <div className="flex items-center justify-center py-20"><div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" /></div>
             ) : (
               <>
-                <div className="flex gap-2 border-b border-white/[0.06] pb-3 flex-wrap">
+                <div className="flex gap-2 border-b border-bg-border pb-3 flex-wrap">
                   {prioFactories.map((f: any) => {
                     const factorySamples = prioSamples.filter((s: any) => s.factory_id === f.id);
                     return (
                       <button key={f.id} onClick={() => setPrioActiveFactory(f.id)}
-                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 ${prioActiveFactory === f.id ? "bg-white text-black" : "text-white/40 hover:text-white/70 border border-white/[0.06]"}`}>
+                        className={`px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 ${prioActiveFactory === f.id ? "bg-white text-black" : "text-text-secondary hover:text-text-secondary border border-bg-border"}`}>
                         {f.name}
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${prioActiveFactory === f.id ? "bg-black/10" : "bg-white/[0.06]"}`}>
                           {factorySamples.length} pending
@@ -627,7 +628,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${prioritizedCount >= max ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-white/[0.03] border-white/[0.08] text-white/60"}`}>
+                          <div className={`px-3 py-1.5 rounded-xl border text-xs font-semibold ${prioritizedCount >= max ? "bg-red-500/10 border-red-500/30 text-red-400" : "bg-bg-elevated border-bg-border text-text-secondary"}`}>
                             {prioritizedCount} / {max} samples
                           </div>
                         </div>
@@ -639,10 +640,10 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                           </button>
                         </div>
                       </div>
-                      <p className="text-[11px] text-white/25">Drag samples to reorder priority. Top = highest priority.</p>
+                      <p className="text-[11px] text-text-muted">Drag samples to reorder priority. Top = highest priority.</p>
                       {orderedSamples.length === 0 ? (
-                        <div className="text-center py-16 border border-white/[0.06] rounded-2xl">
-                          <p className="text-white/20 text-sm">No pending samples for this factory</p>
+                        <div className="text-center py-16 border border-bg-border rounded-2xl">
+                          <p className="text-text-muted text-sm">No pending samples for this factory</p>
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -655,15 +656,15 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                                 onDragOver={e => { e.preventDefault(); setDragOver(sample.id); }}
                                 onDragLeave={() => setDragOver(null)}
                                 onDrop={e => { e.preventDefault(); setDragOver(null); const fromIdx = parseInt(e.dataTransfer.getData("text/plain")); moveSample(prioActiveFactory, fromIdx, idx); }}
-                                className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition cursor-grab active:cursor-grabbing ${dragOver === sample.id ? "border-blue-500/40 bg-blue-500/5" : isPrioritized ? "border-white/[0.08] bg-white/[0.02]" : "border-white/[0.04] opacity-50"}`}>
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${isPrioritized ? "bg-blue-500/20 border border-blue-500/30 text-blue-400" : "bg-white/[0.04] border border-white/[0.06] text-white/20"}`}>
+                                className={`flex items-center gap-4 px-4 py-3 rounded-xl border transition cursor-grab active:cursor-grabbing ${dragOver === sample.id ? "border-blue-500/40 bg-blue-500/5" : isPrioritized ? "border-bg-border bg-bg-surface" : "border-white/[0.04] opacity-50"}`}>
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 ${isPrioritized ? "bg-blue-500/20 border border-blue-500/30 text-blue-400" : "bg-bg-elevated border border-bg-border text-text-muted"}`}>
                                   {isPrioritized ? idx + 1 : "—"}
                                 </div>
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
                                   {product?.images?.[0] && <img src={product.images[0]} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />}
                                   <div className="min-w-0">
-                                    <p className="text-sm text-white/80 font-medium truncate">{product?.name}</p>
-                                    {product?.sku && <p className="text-[10px] text-white/30 font-mono">{product.sku}</p>}
+                                    <p className="text-sm text-text-primary font-medium truncate">{product?.name}</p>
+                                    {product?.sku && <p className="text-[10px] text-text-muted font-mono">{product.sku}</p>}
                                   </div>
                                 </div>
                                 <span className={`text-xs px-3 py-1 rounded-full border font-semibold ${sample.label === "revision" ? "bg-amber-500/20 border-amber-500/40 text-amber-300" : "bg-blue-500/20 border-blue-500/40 text-blue-300"}`}>
@@ -695,16 +696,16 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       {/* Request Assignment Modal */}
       {requestAssignmentProduct && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#111] border border-white/10 rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="flex items-center gap-3">
               {requestAssignmentProduct.images?.[0] ? (
-                <img src={requestAssignmentProduct.images[0]} className="w-12 h-12 rounded-xl object-cover border border-white/[0.06]" />
+                <img src={requestAssignmentProduct.images[0]} className="w-12 h-12 rounded-xl object-cover border border-bg-border" />
               ) : (
-                <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+                <div className="w-12 h-12 rounded-xl bg-bg-elevated border border-bg-border" />
               )}
               <div>
                 <p className="text-sm font-semibold">{requestAssignmentProduct.name}</p>
-                {requestAssignmentProduct.sku && <p className="text-[10px] text-white/30 font-mono">{requestAssignmentProduct.sku}</p>}
+                {requestAssignmentProduct.sku && <p className="text-[10px] text-text-muted font-mono">{requestAssignmentProduct.sku}</p>}
               </div>
             </div>
             {assignmentRequested.has(requestAssignmentProduct.id) ? (
@@ -713,7 +714,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                 <p className="text-xs text-emerald-400">Assignment requested! Admin will be notified.</p>
               </div>
             ) : (
-              <p className="text-xs text-white/50">Request to be assigned to this product. Admin will review and assign you.</p>
+              <p className="text-xs text-text-secondary">Request to be assigned to this product. Admin will review and assign you.</p>
             )}
             <div className="flex gap-2">
               {!assignmentRequested.has(requestAssignmentProduct.id) && (
@@ -730,7 +731,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                 </button>
               )}
               <button onClick={() => setRequestAssignmentProduct(null)}
-                className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">
+                className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">
                 {assignmentRequested.has(requestAssignmentProduct.id) ? "Close" : "Cancel"}
               </button>
             </div>

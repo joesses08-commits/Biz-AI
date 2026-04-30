@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Package, ArrowLeft, Factory, Check, Loader2, X } from "lucide-react";
+import PortalThemeToggle from "@/components/PortalThemeToggle";
 
 const SAMPLE_STAGES = [
   { key: "sample_production", label: "Sample Production", color: "#f59e0b" },
@@ -149,14 +150,14 @@ export default function PortalProductPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <Loader2 size={20} className="animate-spin text-white/20" />
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
+      <Loader2 size={20} className="animate-spin text-text-muted" />
     </div>
   );
 
   if (!product) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <p className="text-white/30 text-sm">Product not found</p>
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
+      <p className="text-text-muted text-sm">Product not found</p>
     </div>
   );
 
@@ -171,45 +172,46 @@ export default function PortalProductPage() {
 
   if (isDisqualified) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-white flex items-center justify-center p-8">
+      <div className="min-h-screen bg-bg-base text-white flex items-center justify-center p-8">
         <div className="text-center space-y-4 max-w-sm">
           <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
             <span className="text-2xl">✕</span>
           </div>
           <p className="text-white font-semibold">Sample Disqualified</p>
-          <p className="text-white/40 text-sm">
+          <p className="text-text-secondary text-sm">
             {disqualifyReason === "price" ? "This factory was not selected due to pricing for this order."
               : disqualifyReason === "speed" ? "This factory was not selected due to lead time requirements."
               : disqualifyReason === "quality" ? "This factory was not selected due to quality requirements."
               : "This factory was not selected for this product."}
           </p>
-          <p className="text-white/25 text-xs">Please disregard any further sample production for this item. You will be considered for future opportunities.</p>
-          <button onClick={() => router.back()} className="px-4 py-2 rounded-xl border border-white/10 text-white/40 text-sm">← Back</button>
+          <p className="text-text-muted text-xs">Please disregard any further sample production for this item. You will be considered for future opportunities.</p>
+          <button onClick={() => router.back()} className="px-4 py-2 rounded-xl border border-bg-border text-text-secondary text-sm">← Back</button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-bg-base text-text-primary">
       {/* Header */}
-      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-bg-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => router.push("/portal/dashboard")}
-            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition">
+            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition">
             <ArrowLeft size={12} /> Back
           </button>
           <div className="w-px h-4 bg-white/10" />
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-              <Factory size={13} className="text-white/60" />
+            <div className="w-7 h-7 rounded-lg bg-white/5 border border-bg-border flex items-center justify-center">
+              <Factory size={13} className="text-text-secondary" />
             </div>
             <div>
               <p className="text-sm font-semibold">Factory Portal</p>
-              {portalUser && <p className="text-[10px] text-white/30">{portalUser.factory_name || portalUser.name}</p>}
+              {portalUser && <p className="text-[10px] text-text-muted">{portalUser.factory_name || portalUser.name}</p>}
             </div>
           </div>
         </div>
+        <PortalThemeToggle />
       </div>
 
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
@@ -220,22 +222,22 @@ export default function PortalProductPage() {
         )}
 
         {/* Product Info */}
-        <div className="border border-white/[0.06] rounded-2xl p-6 bg-white/[0.01] space-y-4">
+        <div className="border border-bg-border rounded-2xl p-6 bg-bg-surface space-y-4">
           <div className="flex items-start gap-4">
             {product.images?.[0] ? (
-              <img src={product.images[0]} alt={product.name} className="w-20 h-20 rounded-xl object-cover border border-white/[0.06] flex-shrink-0" />
+              <img src={product.images[0]} alt={product.name} className="w-20 h-20 rounded-xl object-cover border border-bg-border flex-shrink-0" />
             ) : (
-              <div className="w-20 h-20 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                <Package size={24} className="text-white/20" />
+              <div className="w-20 h-20 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+                <Package size={24} className="text-text-muted" />
               </div>
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-lg font-bold">{product.name}</h1>
-                {product.sku && <span className="text-xs font-mono text-white/30 bg-white/[0.04] px-2 py-0.5 rounded-lg">{product.sku}</span>}
+                {product.sku && <span className="text-xs font-mono text-text-muted bg-bg-elevated px-2 py-0.5 rounded-lg">{product.sku}</span>}
               </div>
-              {product.plm_collections && <p className="text-xs text-white/30 mb-2">{product.plm_collections.name}</p>}
-              {product.description && <p className="text-sm text-white/50">{product.description}</p>}
+              {product.plm_collections && <p className="text-xs text-text-muted mb-2">{product.plm_collections.name}</p>}
+              {product.description && <p className="text-sm text-text-secondary">{product.description}</p>}
             </div>
           </div>
 
@@ -243,7 +245,7 @@ export default function PortalProductPage() {
           {(product.images || []).length > 1 && (
             <div className="grid grid-cols-4 gap-2">
               {(product.images || []).map((url: string) => (
-                <img key={url} src={url} alt="" className="w-full aspect-square rounded-lg object-cover border border-white/[0.06]" />
+                <img key={url} src={url} alt="" className="w-full aspect-square rounded-lg object-cover border border-bg-border" />
               ))}
             </div>
           )}
@@ -251,15 +253,15 @@ export default function PortalProductPage() {
           {/* Specs + Notes */}
           {product.specs && (
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Specs</p>
-              <p className="text-sm text-white/60 whitespace-pre-wrap">{product.specs}</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Specs</p>
+              <p className="text-sm text-text-secondary whitespace-pre-wrap">{product.specs}</p>
             </div>
           )}
 
 
           {product.reference_url && (
             <div>
-              <p className="text-[10px] text-white/30 uppercase tracking-widest mb-1">Reference / Dropbox</p>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Reference / Dropbox</p>
               <a href={product.reference_url} target="_blank" rel="noopener noreferrer"
                 className="text-sm text-blue-400 hover:text-blue-300 underline break-all">{product.reference_url}</a>
             </div>
@@ -271,12 +273,12 @@ export default function PortalProductPage() {
             ).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
             return allBatchNotes.length > 0 ? (
               <div>
-                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-2">Notes from Factory</p>
+                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-2">Notes from Factory</p>
                 <div className="space-y-1.5">
                   {allBatchNotes.map((n: any, i: number) => (
                     <div key={i} className="flex items-start gap-2">
                       <div className="w-1 h-1 rounded-full bg-white/20 flex-shrink-0 mt-1.5" />
-                      <p className="text-xs text-white/60">{n.note}</p>
+                      <p className="text-xs text-text-secondary">{n.note}</p>
                     </div>
                   ))}
                 </div>
@@ -287,7 +289,7 @@ export default function PortalProductPage() {
 
         {/* Messages Section */}
         {product.track_id && (
-          <div className="border border-white/[0.06] rounded-2xl overflow-hidden">
+          <div className="border border-bg-border rounded-2xl overflow-hidden">
             <button onClick={async () => {
               const fetchMsgs = async (isFirst?: boolean) => {
                 const res = await fetch("/api/portal/product", { method: "POST",
@@ -318,17 +320,17 @@ export default function PortalProductPage() {
               setShowMessages(!showMessages);
             }} className="w-full px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold text-white/60">Messages</p>
-                {totalMessages > 0 && <span className="text-[10px] text-white/30">{totalMessages}</span>}
+                <p className="text-xs font-semibold text-text-secondary">Messages</p>
+                {totalMessages > 0 && <span className="text-[10px] text-text-muted">{totalMessages}</span>}
                 {unreadCount > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">{unreadCount} new</span>}
               </div>
-              <span className="text-white/30 text-xs">{showMessages ? "▲" : "▼"}</span>
+              <span className="text-text-muted text-xs">{showMessages ? "▲" : "▼"}</span>
             </button>
             {showMessages && (
-              <div className="border-t border-white/[0.06]">
+              <div className="border-t border-bg-border">
                 <div ref={msgContainerRef} className="p-4 space-y-3 max-h-64 overflow-y-auto">
                   {trackMessages.length === 0 ? (
-                    <p className="text-xs text-white/20 text-center py-4">No messages yet.</p>
+                    <p className="text-xs text-text-muted text-center py-4">No messages yet.</p>
                   ) : trackMessages.map((msg: any, idx: number) => (
                     <div key={msg.id}>
                       {idx === firstUnreadIdx && firstUnreadIdx > 0 && (
@@ -343,16 +345,16 @@ export default function PortalProductPage() {
                       <div className={msg.sender_role === "factory" ? "flex justify-end" : "flex justify-start"}>
                         <div className={msg.sender_role === "factory"
                           ? "bg-white/10 rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%]"
-                          : "bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
-                          <p className="text-[10px] font-semibold text-white/50 mb-0.5">{msg.sender_name}</p>
-                          <p className="text-xs text-white/80">{msg.message}</p>
-                          <p className="text-[9px] text-white/20 mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+                          : "bg-bg-elevated border border-bg-border rounded-2xl rounded-tl-sm px-3 py-2 max-w-[80%]"}>
+                          <p className="text-[10px] font-semibold text-text-secondary mb-0.5">{msg.sender_name}</p>
+                          <p className="text-xs text-text-primary">{msg.message}</p>
+                          <p className="text-[9px] text-text-muted mt-1">{new Date(msg.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="px-4 py-3 border-t border-white/[0.06] flex gap-2">
+                <div className="px-4 py-3 border-t border-bg-border flex gap-2">
                   <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
                     onKeyDown={async e => {
                       if (e.key !== "Enter" || !newMessage.trim()) return;
@@ -370,7 +372,7 @@ export default function PortalProductPage() {
                       setSendingMsg(false);
                     }}
                     placeholder="Reply... (Enter to send)"
-                    className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-white text-xs focus:outline-none" />
+                    className="flex-1 bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white text-xs focus:outline-none" />
                   <button onClick={async () => {
                     if (!newMessage.trim()) return;
                     setSendingMsg(true);
@@ -403,10 +405,10 @@ export default function PortalProductPage() {
           const activeRound = sortedRounds.find((r: any) => r.status === "requested");
 
           return (
-            <div className="border border-white/[0.07] rounded-2xl overflow-hidden bg-white/[0.01]">
+            <div className="border border-white/[0.07] rounded-2xl overflow-hidden bg-bg-surface">
               <div className="px-5 py-4 border-b border-white/[0.05]">
-                <p className="text-sm font-semibold text-white">Sample Requests</p>
-                <p className="text-xs text-white/30 mt-0.5">{sortedRounds.length} round{sortedRounds.length > 1 ? "s" : ""}</p>
+                <p className="text-sm font-semibold text-text-primary">Sample Requests</p>
+                <p className="text-xs text-text-muted mt-0.5">{sortedRounds.length} round{sortedRounds.length > 1 ? "s" : ""}</p>
               </div>
 
               <div className="px-5 py-4 space-y-3">
@@ -430,10 +432,10 @@ export default function PortalProductPage() {
                   const current = SAMPLE_STAGES[currentIdx] || SAMPLE_STAGES[0];
 
                   return (
-                    <div key={sr.id} className={`border rounded-2xl overflow-hidden ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-white/[0.08] bg-white/[0.01]"}`}>
+                    <div key={sr.id} className={`border rounded-2xl overflow-hidden ${isKilled ? "border-red-500/15 bg-red-500/[0.02] opacity-60" : isApproved ? "border-emerald-500/20 bg-emerald-500/[0.02]" : isRevision ? "border-amber-500/15 bg-amber-500/[0.02]" : "border-bg-border bg-bg-surface"}`}>
                       <div className="px-4 py-2.5 border-b border-white/[0.05] flex items-center justify-between">
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-white/25">{roundLabel}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{roundLabel}</p>
                           {roundSubtitle && <p className="text-[10px] text-amber-300/60 mt-0.5">{roundSubtitle}</p>}
                         </div>
                         {isApproved && <span className="text-[10px] text-emerald-400">✓ Approved</span>}
@@ -483,21 +485,21 @@ export default function PortalProductPage() {
                           <div className="border-t border-white/[0.05] pt-3 space-y-3">
                             {isOnHold && <p className="text-[10px] text-amber-400/60 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-1.5">Product is on hold — stage updates paused</p>}
                             {/* Progress bar */}
-                            <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                            <div className="h-1 rounded-full bg-bg-elevated overflow-hidden">
                               <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / SAMPLE_STAGES.length) * 100}%`, background: current.color }} />
                             </div>
                             {/* Arrows */}
                             <div className="flex items-center justify-between gap-4">
                               <button onClick={() => prev && setPendingSampleStage({ stage: prev.key, srId: sr.id })} disabled={!prev || updatingSample || isOnHold}
-                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
+                                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-bg-border text-text-secondary hover:text-text-secondary transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
                                 ← {prev ? prev.label : "Start"}
                               </button>
                               <div className="text-center">
                                 <div className="flex items-center gap-2 justify-center">
                                   <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
-                                  <span className="text-sm font-semibold text-white">{current.label}</span>
+                                  <span className="text-sm font-semibold text-text-primary">{current.label}</span>
                                 </div>
-                                <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {SAMPLE_STAGES.length}</p>
+                                <p className="text-[10px] text-text-muted mt-0.5">{currentIdx + 1} of {SAMPLE_STAGES.length}</p>
                               </div>
                               <button onClick={() => next && setPendingSampleStage({ stage: next.key, srId: sr.id })} disabled={!next || updatingSample || isOnHold}
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
@@ -517,19 +519,19 @@ export default function PortalProductPage() {
                                       {isPast ? <Check size={9} className="text-emerald-400" /> : isCur ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage.color }} /> : null}
                                     </div>
                                     <span className="text-xs" style={{ color: isPast ? "#10b981" : isCur ? stage.color : "rgba(255,255,255,0.2)" }}>{stage.label}</span>
-                                    {isCur && <span className="text-[10px] text-white/20 ml-auto">Current</span>}
+                                    {isCur && <span className="text-[10px] text-text-muted ml-auto">Current</span>}
                                   </div>
                                 );
                               })}
                             </div>
                             {/* Confirm pending */}
                             {pendingSampleStage && pendingSampleStage.srId === sr.id && (
-                              <div className="border border-white/10 rounded-xl p-4 space-y-3 bg-white/[0.02]">
-                                <p className="text-xs text-white/60 font-medium">Moving to: <span className="text-white">{SAMPLE_STAGES.find(s => s.key === pendingSampleStage.stage)?.label}</span></p>
+                              <div className="border border-bg-border rounded-xl p-4 space-y-3 bg-bg-surface">
+                                <p className="text-xs text-text-secondary font-medium">Moving to: <span className="text-text-primary">{SAMPLE_STAGES.find(s => s.key === pendingSampleStage.stage)?.label}</span></p>
                                 <textarea value={sampleNote} onChange={e => setSampleNote(e.target.value)}
                                   placeholder="Add a note (optional)"
                                   rows={2} autoFocus
-                                  className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                                  className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary placeholder-white/15 text-xs focus:outline-none resize-none" />
                                 <div className="flex gap-2">
                                   <button onClick={async () => {
                                     setUpdatingSample(true);
@@ -542,7 +544,7 @@ export default function PortalProductPage() {
                                     {updatingSample ? "Saving..." : "Confirm"}
                                   </button>
                                   <button onClick={() => { setPendingSampleStage(null); setSampleNote(""); }}
-                                    className="px-4 rounded-xl border border-white/[0.08] text-white/30 text-xs">Cancel</button>
+                                    className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                                 </div>
                               </div>
                             )}
@@ -559,10 +561,10 @@ export default function PortalProductPage() {
 
                 {/* Production Orders Section */}
         {orders.length > 0 && (
-          <div className="border border-white/[0.06] rounded-2xl overflow-hidden bg-white/[0.01]">
+          <div className="border border-bg-border rounded-2xl overflow-hidden bg-bg-surface">
             <div className="px-6 py-4 border-b border-white/[0.04]">
               <p className="text-sm font-semibold">Production Orders</p>
-              <p className="text-xs text-white/30 mt-0.5">Update production progress for each order</p>
+              <p className="text-xs text-text-muted mt-0.5">Update production progress for each order</p>
             </div>
             <div className="divide-y divide-white/[0.04]">
               {orders.map((order: any) => {
@@ -574,7 +576,7 @@ export default function PortalProductPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-bold">Order #{order.batch_number}</p>
-                        {order.linked_po_number && <p className="text-[10px] text-white/25 font-mono">PO: {order.linked_po_number}</p>}
+                        {order.linked_po_number && <p className="text-[10px] text-text-muted font-mono">PO: {order.linked_po_number}</p>}
                       </div>
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${stage.color}20`, color: stage.color, border: `1px solid ${stage.color}30` }}>
                         {stage.label}
@@ -584,9 +586,9 @@ export default function PortalProductPage() {
                     {/* Order financials */}
                     {(order.order_quantity || order.target_elc) && (
                       <div className="flex gap-4">
-                        {order.order_quantity && <div><p className="text-[10px] text-white/25">Quantity</p><p className="text-xs text-white/60 font-semibold">{order.order_quantity.toLocaleString()} units</p></div>}
-                        {order.target_elc && <div><p className="text-[10px] text-white/25">ELC</p><p className="text-xs text-white/60 font-semibold">${order.target_elc}</p></div>}
-                        {margin !== null && <div><p className="text-[10px] text-white/25">Margin</p><p className="text-xs text-emerald-400 font-semibold">{margin}%</p></div>}
+                        {order.order_quantity && <div><p className="text-[10px] text-text-muted">Quantity</p><p className="text-xs text-text-secondary font-semibold">{order.order_quantity.toLocaleString()} units</p></div>}
+                        {order.target_elc && <div><p className="text-[10px] text-text-muted">ELC</p><p className="text-xs text-text-secondary font-semibold">${order.target_elc}</p></div>}
+                        {margin !== null && <div><p className="text-[10px] text-text-muted">Margin</p><p className="text-xs text-emerald-400 font-semibold">{margin}%</p></div>}
                       </div>
                     )}
 
@@ -599,22 +601,22 @@ export default function PortalProductPage() {
                       return (
                         <div className="space-y-3">
                           {/* Progress bar */}
-                          <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                          <div className="h-1 rounded-full bg-bg-elevated overflow-hidden">
                             <div className="h-1 rounded-full transition-all" style={{ width: `${((currentIdx + 1) / PRODUCTION_STAGES.length) * 100}%`, background: current.color }} />
                           </div>
 
                           {/* Arrow nav */}
                           <div className="flex items-center justify-between gap-4">
                             <button onClick={() => prev && updateOrderStage(order.id, prev.key)} disabled={!prev || updatingOrder === order.id}
-                              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
+                              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-bg-border text-text-secondary hover:text-text-secondary hover:border-white/20 transition text-xs font-medium disabled:opacity-20 disabled:cursor-not-allowed">
                               ← {prev ? prev.label : "Start"}
                             </button>
                             <div className="text-center">
                               <div className="flex items-center gap-2 justify-center">
                                 <div className="w-2 h-2 rounded-full" style={{ background: current.color }} />
-                                <span className="text-sm font-semibold text-white">{current.label}</span>
+                                <span className="text-sm font-semibold text-text-primary">{current.label}</span>
                               </div>
-                              <p className="text-[10px] text-white/25 mt-0.5">{currentIdx + 1} of {PRODUCTION_STAGES.length}</p>
+                              <p className="text-[10px] text-text-muted mt-0.5">{currentIdx + 1} of {PRODUCTION_STAGES.length}</p>
                             </div>
                             <button onClick={() => next && setOrderPending({ batchId: order.id, stage: next.key, label: next.label })} disabled={!next || updatingOrder === order.id}
                               className="flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-medium transition disabled:opacity-20 disabled:cursor-not-allowed"
@@ -636,7 +638,7 @@ export default function PortalProductPage() {
                                       {isPast ? <Check size={9} className="text-emerald-400" /> : isCurrent ? <div className="w-1.5 h-1.5 rounded-full" style={{ background: stage.color }} /> : null}
                                     </div>
                                     <span className="text-xs" style={{ color: isPast ? "#10b981" : isCurrent ? stage.color : "rgba(255,255,255,0.2)" }}>{stage.label}</span>
-                                    {isCurrent && <span className="text-[10px] text-white/20 ml-auto">Current</span>}
+                                    {isCurrent && <span className="text-[10px] text-text-muted ml-auto">Current</span>}
                                   </div>
                                 );
                               })}
@@ -645,11 +647,11 @@ export default function PortalProductPage() {
 
                           {/* Confirm pending */}
                           {orderPending?.batchId === order.id && (
-                            <div className="border border-white/[0.08] rounded-xl p-3 space-y-2 bg-white/[0.02]">
-                              <p className="text-[10px] text-white/40">Moving to: <span className="text-white/70 font-semibold">{orderPending?.label}</span></p>
+                            <div className="border border-bg-border rounded-xl p-3 space-y-2 bg-bg-surface">
+                              <p className="text-[10px] text-text-secondary">Moving to: <span className="text-text-secondary font-semibold">{orderPending?.label}</span></p>
                               <textarea value={orderNotes[order.id] || ""} onChange={e => setOrderNotes(prev => ({ ...prev, [order.id]: e.target.value }))}
                                 placeholder="Add a note (optional)"
-                                rows={2} className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/70 placeholder-white/15 text-xs focus:outline-none resize-none" />
+                                rows={2} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary placeholder-white/15 text-xs focus:outline-none resize-none" />
                               <div className="flex gap-2">
                                 <button onClick={async () => { if (orderPending) { await updateOrderStage(order.id, orderPending.stage); setOrderPending(null); } }}
                                   disabled={updatingOrder === order.id}
@@ -657,7 +659,7 @@ export default function PortalProductPage() {
                                   {updatingOrder === order.id ? "Saving..." : "Confirm"}
                                 </button>
                                 <button onClick={() => { setOrderPending(null); setOrderNotes(prev => ({ ...prev, [order.id]: "" })); }}
-                                  className="px-4 rounded-xl border border-white/[0.06] text-white/30 text-xs">Cancel</button>
+                                  className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
                               </div>
                             </div>
                           )}
@@ -665,7 +667,7 @@ export default function PortalProductPage() {
                       );
                     })()}
 
-                    {updatingOrder === order.id && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-white/30" /></div>}
+                    {updatingOrder === order.id && <div className="flex justify-center"><Loader2 size={12} className="animate-spin text-text-muted" /></div>}
                   </div>
                 );
               })}
@@ -675,9 +677,9 @@ export default function PortalProductPage() {
 
         {/* Nothing to update */}
         {sampleRequests.length === 0 && orders.length === 0 && (
-          <div className="text-center py-16 border border-dashed border-white/[0.06] rounded-2xl">
+          <div className="text-center py-16 border border-dashed border-bg-border rounded-2xl">
             <Package size={28} className="text-white/10 mx-auto mb-3" />
-            <p className="text-white/30 text-sm">No active sample or orders for this product</p>
+            <p className="text-text-muted text-sm">No active sample or orders for this product</p>
           </div>
         )}
       </div>

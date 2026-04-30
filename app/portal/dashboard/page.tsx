@@ -1,4 +1,5 @@
 "use client";
+import PortalThemeToggle from "@/components/PortalThemeToggle";
 import DesignerViewExternal from "../designer-view";
 
 import { useState, useEffect } from "react";
@@ -40,8 +41,8 @@ const FACTORY_STAGES = PRODUCTION_STAGES.map(s => s.key);
 const MILESTONES = [{ key: "design_brief", label: "Design Brief" },{ key: "sampling", label: "Sampling" }];
 const SEASONS = ["Spring","Summer","Fall","Winter","Holiday","Resort","Pre-Fall"];
 
-const ic = "w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white/80 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition";
-const lc = "text-[10px] text-white/30 mb-1.5 block uppercase tracking-widest";
+const ic = "w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2.5 text-text-primary placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition";
+const lc = "text-[10px] text-text-muted mb-1.5 block uppercase tracking-widest";
 
 // ── FACTORY VIEW ──────────────────────────────────────────────
 function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
@@ -156,22 +157,22 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
     const stageLabel = stageLabelMap[currentStage] || (currentStage || "").replace(/_/g, " ");
 
     return (
-      <div key={product.id} className={`border rounded-2xl overflow-hidden ${isUpcoming ? "border-amber-500/10 bg-amber-500/[0.02]" : anyApproved ? "border-emerald-500/10 bg-emerald-500/[0.01]" : allKilled || isProductKilled ? "border-red-500/10 bg-red-500/[0.01]" : "border-white/[0.07] bg-white/[0.01]"}`}>
+      <div key={product.id} className={`border rounded-2xl overflow-hidden ${isUpcoming ? "border-amber-500/10 bg-amber-500/[0.02]" : anyApproved ? "border-emerald-500/10 bg-emerald-500/[0.01]" : allKilled || isProductKilled ? "border-red-500/10 bg-red-500/[0.01]" : "border-white/[0.07] bg-bg-surface"}`}>
         {/* Product header */}
         <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
           {product.images?.[0] ? (
-            <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+            <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-bg-border" />
           ) : (
-            <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-              <Package size={16} className="text-white/20" />
+            <div className="w-12 h-12 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+              <Package size={16} className="text-text-muted" />
             </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-0.5">
               <p className="text-sm font-semibold">{product.name}</p>
-              {product.sku && <span className="text-[10px] font-mono text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">{product.sku}</span>}
+              {product.sku && <span className="text-[10px] font-mono text-text-muted bg-bg-elevated px-1.5 py-0.5 rounded">{product.sku}</span>}
             </div>
-            {product.plm_collections && <p className="text-[10px] text-white/25">{product.plm_collections.name}</p>}
+            {product.plm_collections && <p className="text-[10px] text-text-muted">{product.plm_collections.name}</p>}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
             {product._unread_messages > 0 && (
@@ -188,7 +189,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <span className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
                 product._sample_label === "revision" ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
                 product._sample_label === "additional" ? "bg-purple-500/10 border-purple-500/20 text-purple-400" :
-                "bg-white/[0.04] border-white/[0.06] text-white/40"
+                "bg-bg-elevated border-bg-border text-text-secondary"
               }`}>
                 {product._sample_label === "revision" ? "Revision" : product._sample_label === "additional" ? "Additional" : "First Sample"}
               </span>
@@ -231,14 +232,14 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <div key={sr.id} className={`p-4 space-y-3 ${isKilledRound ? "opacity-50" : ""}`}>
                 <div className="flex items-center justify-between cursor-pointer" onClick={() => setCollapsed(prev => ({ ...prev, [collapseKey]: !isCollapsed }))}>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/30">{roundLabel}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{roundLabel}</span>
                     {isApprovedRound && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">Approved</span>}
                     {isKilledRound && <span className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full border border-red-500/20">Ended</span>}
                     {isRevisionRound && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full border border-amber-500/20">Revision Requested</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-white/20">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                    {isCollapsed ? <ChevronDown size={12} className="text-white/20" /> : <ChevronUp size={12} className="text-white/20" />}
+                    <span className="text-[10px] text-text-muted">{new Date(sr.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                    {isCollapsed ? <ChevronDown size={12} className="text-text-muted" /> : <ChevronUp size={12} className="text-text-muted" />}
                   </div>
                 </div>
                 {!isCollapsed && isRevisionRound && sr.notes && (
@@ -264,10 +265,10 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                           <div className="flex-1 min-w-0 pb-1">
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-xs font-medium" style={{ color: isLast ? sc : "rgba(255,255,255,0.5)" }}>{sl}</span>
-                              <span className="text-[10px] text-white/20 flex-shrink-0">{new Date(stage.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                              <span className="text-[10px] text-text-muted flex-shrink-0">{new Date(stage.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                             </div>
-                            {stage.notes && stage.notes !== "Sample requested" && <p className="text-[11px] text-white/30 mt-0.5">{stage.notes}</p>}
-                            <span className="text-[10px] text-white/20">{stage.updated_by_role === "factory" ? "You" : "Admin"}</span>
+                            {stage.notes && stage.notes !== "Sample requested" && <p className="text-[11px] text-text-muted mt-0.5">{stage.notes}</p>}
+                            <span className="text-[10px] text-text-muted">{stage.updated_by_role === "factory" ? "You" : "Admin"}</span>
                           </div>
                         </div>
                       );
@@ -276,7 +277,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                 )}
                 {isActive && !isCollapsed && (
                   <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/[0.08] text-xs text-white/50 hover:text-white hover:border-white/20 transition font-medium">
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-bg-border text-xs text-text-secondary hover:text-white hover:border-white/20 transition font-medium">
                     Update Sample Status →
                   </button>
                 )}
@@ -295,38 +296,39 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-bg-base text-text-primary">
       {/* Header */}
-      <div className="border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-bg-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <Factory size={15} className="text-white/60" />
+          <div className="w-8 h-8 rounded-xl bg-white/5 border border-bg-border flex items-center justify-center">
+            <Factory size={15} className="text-text-secondary" />
           </div>
           <div>
             <p className="text-sm font-semibold">Factory Portal</p>
-            <p className="text-[10px] text-white/30">{portalUser?.name || portalUser?.email}</p>
+            <p className="text-[10px] text-text-muted">{portalUser?.name || portalUser?.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <PortalNotificationBell token={localStorage.getItem("portal_token") || ""} onNavigate={(link) => router.push(link)} />
           <button onClick={() => router.push("/portal/messages")}
-            className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 border border-white/[0.06] hover:border-white/20 px-3 py-1.5 rounded-xl transition">
+            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-xl transition">
             💬 Messages
           </button>
-          <button onClick={logout} className="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition">
+          <PortalThemeToggle />
+          <button onClick={logout} className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition">
             <LogOut size={12} />Sign out
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-white/[0.06] px-6">
+      <div className="border-b border-bg-border px-6">
         <div className="flex gap-0 max-w-2xl mx-auto">
           {[["samples","Samples", sampleProducts.length],["orders","Bulk Orders", orderProducts.length]].map(([key, label, count]) => (
             <button key={key} onClick={() => setActiveTab(key as any)}
-              className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${activeTab === key ? "border-white text-white" : "border-transparent text-white/30 hover:text-white/60"}`}>
+              className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition flex items-center gap-2 ${activeTab === key ? "border-white text-text-primary" : "border-transparent text-text-muted hover:text-text-secondary"}`}>
               {label}
-              {(count as number) > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === key ? "bg-white/10 text-white/60" : "bg-white/[0.04] text-white/20"}`}>{count}</span>}
+              {(count as number) > 0 && <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${activeTab === key ? "bg-white/10 text-text-secondary" : "bg-bg-elevated text-text-muted"}`}>{count}</span>}
             </button>
           ))}
         </div>
@@ -334,51 +336,51 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
 
       <div className="max-w-2xl mx-auto px-6 py-6">
         {loading ? (
-          <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-white/20" /></div>
+          <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-text-muted" /></div>
         ) : activeTab === "samples" ? (
           <div className="space-y-6">
             {/* Capacity bar */}
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-4">
+            <div className="bg-bg-surface border border-bg-border rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <p className="text-xs font-semibold text-white/70">Active Sample Capacity</p>
-                  <p className="text-[10px] text-white/30 mt-0.5">Samples you can actively work on at once</p>
+                  <p className="text-xs font-semibold text-text-secondary">Active Sample Capacity</p>
+                  <p className="text-[10px] text-text-muted mt-0.5">Samples you can actively work on at once</p>
                 </div>
                 {editingMax ? (
                   <div className="flex items-center gap-2">
                     <input type="number" value={maxInput} onChange={e => setMaxInput(e.target.value)}
-                      className="w-16 bg-white/[0.03] border border-white/[0.08] rounded-lg px-2 py-1 text-white/70 text-xs focus:outline-none text-center" />
+                      className="w-16 bg-bg-elevated border border-bg-border rounded-lg px-2 py-1 text-text-secondary text-xs focus:outline-none text-center" />
                     <button onClick={saveMax} disabled={savingMax} className="text-xs px-3 py-1 rounded-lg bg-white text-black font-semibold disabled:opacity-40">
                       {savingMax ? "..." : "Save"}
                     </button>
-                    <button onClick={() => setEditingMax(false)} className="text-xs px-2 py-1 rounded-lg border border-white/[0.06] text-white/30">Cancel</button>
+                    <button onClick={() => setEditingMax(false)} className="text-xs px-2 py-1 rounded-lg border border-bg-border text-text-muted">Cancel</button>
                   </div>
                 ) : (
-                  <button onClick={() => setEditingMax(true)} className="text-xs text-white/30 hover:text-white/60 border border-white/[0.06] px-3 py-1 rounded-lg transition">
+                  <button onClick={() => setEditingMax(true)} className="text-xs text-text-muted hover:text-text-secondary border border-bg-border px-3 py-1 rounded-lg transition">
                     Adjust limit ({maxSamples})
                   </button>
                 )}
               </div>
-              <div className="w-full bg-white/[0.05] rounded-full h-1.5">
+              <div className="w-full bg-bg-elevated rounded-full h-1.5">
                 <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min((activeSamples.length / maxSamples) * 100, 100)}%`, background: activeSamples.length >= maxSamples ? "#ef4444" : "#3b82f6" }} />
               </div>
-              <p className="text-[10px] text-white/30 mt-1.5">{activeSamples.length} / {maxSamples} active · {upcomingSamples.length} upcoming</p>
+              <p className="text-[10px] text-text-muted mt-1.5">{activeSamples.length} / {maxSamples} active · {upcomingSamples.length} upcoming</p>
             </div>
 
             {/* Search bar */}
             <div className="relative">
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-2.5 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition" />
+                className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-2.5 text-text-secondary placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition" />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">×</button>
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary">×</button>
               )}
             </div>
 
             {allSampleProducts.length === 0 ? (
               <div className="text-center py-20">
                 <Package size={28} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No sample requests yet</p>
+                <p className="text-text-muted text-sm">No sample requests yet</p>
                 <p className="text-white/15 text-xs mt-1">Sample requests will appear here when admin sends them</p>
               </div>
             ) : null}
@@ -388,7 +390,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-blue-400" />
-                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Active Priority · {activeSamples.length}</p>
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">Active Priority · {activeSamples.length}</p>
                 </div>
                 <div className="space-y-4">
                 {activeSamples.map((product, idx) => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples, idx + 1))}
@@ -401,7 +403,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-amber-400" />
-                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Upcoming · {upcomingSamples.length}</p>
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">Upcoming · {upcomingSamples.length}</p>
                 </div>
                 <div className="space-y-4">
                 {upcomingSamples.map(product => renderSampleProduct(product, true, collapsedSamples, setCollapsedSamples))}
@@ -414,7 +416,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-blue-400" />
-                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">In Transit · {transitSamples.length}</p>
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">In Transit · {transitSamples.length}</p>
                 </div>
                 <div className="space-y-4">
                 {transitSamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
@@ -427,7 +429,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-purple-400" />
-                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">Awaiting Review · {awaitingReviewSamples.length}</p>
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">Awaiting Review · {awaitingReviewSamples.length}</p>
                 </div>
                 <div className="space-y-4">
                   {awaitingReviewSamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
@@ -440,7 +442,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 rounded-full bg-white/20" />
-                  <p className="text-xs font-semibold text-white/60 uppercase tracking-widest">History · {historySamples.length}</p>
+                  <p className="text-xs font-semibold text-text-secondary uppercase tracking-widest">History · {historySamples.length}</p>
                 </div>
                 <div className="space-y-4">
                 {historySamples.map(product => renderSampleProduct(product, false, collapsedSamples, setCollapsedSamples))}
@@ -454,7 +456,7 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
             {orderProducts.length === 0 ? (
               <div className="text-center py-20">
                 <Package size={28} className="text-white/10 mx-auto mb-3" />
-                <p className="text-white/30 text-sm">No bulk orders yet</p>
+                <p className="text-text-muted text-sm">No bulk orders yet</p>
                 <p className="text-white/15 text-xs mt-1">Production orders will appear here</p>
               </div>
             ) : (() => {
@@ -470,23 +472,23 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
               const renderOrderProduct = (product: any, isPast: boolean) => {
                 const batches = product.plm_batches || [];
                 return (
-                  <div key={product.id} className={`border rounded-2xl overflow-hidden bg-white/[0.01] ${isPast ? "border-white/[0.04] opacity-70" : "border-white/[0.07]"}`}>
+                  <div key={product.id} className={`border rounded-2xl overflow-hidden bg-bg-surface ${isPast ? "border-white/[0.04] opacity-70" : "border-white/[0.07]"}`}>
                     <div className="p-4 flex items-center gap-3 border-b border-white/[0.05]">
                       {product.images?.[0] ? (
-                        <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-white/[0.06]" />
+                        <img src={product.images[0]} alt={product.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border border-bg-border" />
                       ) : (
-                        <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center flex-shrink-0">
-                          <Package size={16} className="text-white/20" />
+                        <div className="w-12 h-12 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center flex-shrink-0">
+                          <Package size={16} className="text-text-muted" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold">{product.name}</p>
-                        {product.sku && <p className="text-[10px] font-mono text-white/25">{product.sku}</p>}
-                        <p className="text-[10px] text-white/25 mt-0.5">{batches.length} order{batches.length !== 1 ? "s" : ""}</p>
+                        {product.sku && <p className="text-[10px] font-mono text-text-muted">{product.sku}</p>}
+                        <p className="text-[10px] text-text-muted mt-0.5">{batches.length} order{batches.length !== 1 ? "s" : ""}</p>
                       </div>
                       {!isPast && (
                         <button onClick={() => router.push(`/portal/product?id=${product.id}`)}
-                          className="text-xs text-white/40 hover:text-white border border-white/[0.06] hover:border-white/20 px-3 py-2 rounded-xl transition flex-shrink-0">
+                          className="text-xs text-text-secondary hover:text-white border border-bg-border hover:border-white/20 px-3 py-2 rounded-xl transition flex-shrink-0">
                           Update →
                         </button>
                       )}
@@ -499,8 +501,8 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                         return (
                           <div key={batch.id} className="px-4 py-3 flex items-center justify-between gap-3">
                             <div>
-                              <p className="text-xs text-white/60 font-medium">Order #{batch.batch_number}</p>
-                              {batch.order_quantity && <p className="text-[11px] text-white/30">{batch.order_quantity} units</p>}
+                              <p className="text-xs text-text-secondary font-medium">Order #{batch.batch_number}</p>
+                              {batch.order_quantity && <p className="text-[11px] text-text-muted">{batch.order_quantity} units</p>}
                             </div>
                             <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: `${stageColor}20`, color: stageColor, border: `1px solid ${stageColor}30` }}>
                               {isComplete ? "Completed" : stageLabel}
@@ -517,13 +519,13 @@ function FactoryView({ portalUser, router }: { portalUser: any; router: any }) {
                 <>
                   {activeOrders.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-[10px] text-white/25 uppercase tracking-widest">Active Orders</p>
+                      <p className="text-[10px] text-text-muted uppercase tracking-widest">Active Orders</p>
                       {activeOrders.map(p => renderOrderProduct(p, false))}
                     </div>
                   )}
                   {pastOrders.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-[10px] text-white/25 uppercase tracking-widest">Past Orders</p>
+                      <p className="text-[10px] text-text-muted uppercase tracking-widest">Past Orders</p>
                       {pastOrders.map(p => renderOrderProduct(p, true))}
                     </div>
                   )}
@@ -552,8 +554,8 @@ export default function PortalDashboard() {
   }, []);
 
   if (loading || !portalUser) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <Loader2 size={20} className="animate-spin text-white/20" />
+    <div className="min-h-screen bg-bg-base flex items-center justify-center">
+      <Loader2 size={20} className="animate-spin text-text-muted" />
     </div>
   );
 

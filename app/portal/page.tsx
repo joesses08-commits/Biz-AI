@@ -43,31 +43,31 @@ export default function PortalLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-bg-base flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-            <Factory size={22} className="text-white/60" />
+          <div className="w-12 h-12 rounded-2xl bg-white/5 border border-bg-border flex items-center justify-center mb-4">
+            <Factory size={22} className="text-text-secondary" />
           </div>
-          <h1 className="text-xl font-bold text-white">Jimmy Portal</h1>
-          <p className="text-sm text-white/30 mt-1">Factory, Team & Warehouse Access</p>
+          <h1 className="text-xl font-bold text-text-primary">Jimmy Portal</h1>
+          <p className="text-sm text-text-muted mt-1">Factory, Team & Warehouse Access</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="text-[11px] text-white/30 mb-1.5 block">Email</label>
+            <label className="text-[11px] text-text-muted mb-1.5 block">Email</label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="factory@example.com"
               required
-              className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/20 transition"
+              className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/20 transition"
             />
           </div>
           <div>
-            <label className="text-[11px] text-white/30 mb-1.5 block">Password</label>
+            <label className="text-[11px] text-text-muted mb-1.5 block">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -75,10 +75,10 @@ export default function PortalLogin() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/20 transition pr-10"
+                className="w-full bg-bg-elevated border border-bg-border rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/20 transition pr-10"
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary">
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
@@ -93,7 +93,7 @@ export default function PortalLogin() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-white/20 mt-6">
+        <p className="text-center text-xs text-text-muted mt-6">
           Contact your account manager if you need access
         </p>
       </div>
