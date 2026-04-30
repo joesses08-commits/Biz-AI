@@ -369,10 +369,14 @@ export default function CollectionPage() {
                   if (data.success) anyCreated = true;
                   if (data.success) {
                     const tracksData = await fetch("/api/plm/tracks?product_id=" + pid).then(r => r.json());
-                    const allTracks = tracksData.tracks || [];
-                    alert("tracks for " + pid + ": " + allTracks.length + " | factoryIds: " + JSON.stringify(factoryIds));
+                    let allTracks = tracksData.tracks || [];
                     for (const fid of factoryIds) {
-                      const track = allTracks.find((t: any) => t.factory_id === fid);
+                      let track = allTracks.find((t: any) => t.factory_id === fid);
+                      if (!track) {
+                        const cr = await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "create_track", product_id: pid, factory_id: fid }) });
+                        const cd = await cr.json();
+                        if (cd.track) { track = { ...cd.track, plm_track_stages: [] }; allTracks = [...allTracks, track]; }
+                      }
                       if (track) {
                         const revNum = (track.plm_track_stages || []).filter((s: any) => s.stage === "revision_requested").length;
                         await fetch("/api/plm/tracks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update_stage", track_id: track.id, product_id: pid, factory_id: fid, stage: "sample_requested", status: "done", revision_number: revNum, actual_date: new Date().toISOString().split("T")[0], notes: sampleNote || null }) });
