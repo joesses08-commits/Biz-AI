@@ -161,7 +161,11 @@ export default function CollectionPage() {
 
   const openRfq = () => { setRfqProductIds(products.map((p: any) => p.id)); setRfqDone(false); setShowRfqModal(true); };
   const openSamples = () => {
-    const ids = products.map((p: any) => p.id);
+    const ids = products.filter((p: any) => {
+      // Exclude products that already have an active (non-killed) sample request
+      const activeReq = (p.plm_sample_requests || []).find((r: any) => r.status === "requested");
+      return !activeReq;
+    }).map((p: any) => p.id);
     setSampleProductIds(ids);
     const sel: Record<string, string[]> = {};
     ids.forEach((pid: string) => {

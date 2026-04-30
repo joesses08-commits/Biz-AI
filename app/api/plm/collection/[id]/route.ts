@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   const { data: collection } = await supabaseAdmin
     .from("plm_collections")
-    .select("*, plm_products(id, name, sku, images, action_status, action_note, status, killed, notes, factory_notes, plm_factory_tracks(id, factory_id, status, approved_price, factory_catalog(id, name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number)))")
+    .select("*, plm_products(id, name, sku, images, action_status, action_note, status, killed, notes, factory_notes, plm_factory_tracks(id, factory_id, status, approved_price, factory_catalog(id, name), plm_track_stages(stage, status, actual_date, expected_date, quoted_price, revision_number)), plm_sample_requests(id, factory_id, status))")
     .eq("id", params.id)
     .eq("user_id", user.id)
     .single();
