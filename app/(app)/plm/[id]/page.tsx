@@ -1169,10 +1169,18 @@ ${entry}` : entry;
                 return (
                   <div key={revNum}>
                     {revNum > 0 && (
-                      <div className="flex items-center gap-2 mt-2 mb-1">
-                        <div className="h-px flex-1 bg-amber-500/20" />
-                        <span className="text-[10px] text-amber-400/70 font-semibold">↻ Revision {revNum}</span>
-                        <div className="h-px flex-1 bg-amber-500/20" />
+                      <div className="mt-3 mb-2">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <div className="h-px flex-1 bg-amber-500/20" />
+                          <span className="text-xs text-amber-500 font-bold">↻ Revision {revNum}</span>
+                          <div className="h-px flex-1 bg-amber-500/20" />
+                        </div>
+                        {revisionStage?.notes && revisionStage.notes !== "Revision requested" && (
+                          <div className="mx-1 px-3 py-2 rounded-xl text-xs leading-relaxed" style={{ background: "var(--bg-elevated)", border: "1px solid var(--bg-border)", color: "var(--text-secondary)" }}>
+                            <span className="font-semibold" style={{ color: "var(--text-muted)" }}>Revision note: </span>
+                            {revisionStage.notes}
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="space-y-0.5">
