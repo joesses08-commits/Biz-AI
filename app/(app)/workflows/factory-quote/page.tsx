@@ -929,7 +929,7 @@ Best regards,
                           );
                           const isProcessing = processing === job.id + factory.name;
                           return (
-                            <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${received ? "border-emerald-500/20 bg-emerald-500/[0.03]" : "border-white/[0.05] bg-bg-surface"}`}>
+                            <div key={i} className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition ${received ? "border-emerald-500/20 bg-emerald-500/[0.03]" : "border-white/[0.12] bg-white/[0.04]"}`}>
                               <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${received ? "bg-emerald-400" : job.status === "rfq_sent" || job.status === "ready" || job.status === "complete" ? "bg-blue-400/40" : "bg-white/15"}`} />
                               <span className="text-[11px] text-text-secondary flex-1">{factory.name}</span>
                               {received ? (
