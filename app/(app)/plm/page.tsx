@@ -1141,6 +1141,18 @@ export default function PLMPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition w-44" />
+                <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
+                  <option value="">All Stages</option>
+                  <option value="concept">Concept</option>
+                  <option value="artwork_sent">Artwork Sent</option>
+                  <option value="quotes_received">Quotes Received</option>
+                  <option value="samples_requested">Samples Requested</option>
+                  <option value="sample_approved">Sample Approved</option>
+                  <option value="po_issued">PO Issued</option>
+                  <option value="production_started">In Production</option>
+                  <option value="production_complete">Production Complete</option>
+                  <option value="shipped">Shipped</option>
+                </select>
                 <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
                   <option value="">All Collections</option>
                   {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1150,25 +1162,6 @@ export default function PLMPage() {
                     <X size={10} />Clear
                   </button>
                 )}
-              </div>
-              <div className="flex flex-wrap gap-1.5 px-1 mb-2">
-                {[
-                  { key: "", label: "All" },
-                  { key: "concept", label: "Concept" },
-                  { key: "artwork_sent", label: "Artwork Sent" },
-                  { key: "quotes_received", label: "Quotes Received" },
-                  { key: "samples_requested", label: "Samples Requested" },
-                  { key: "sample_approved", label: "Sample Approved" },
-                  { key: "po_issued", label: "PO Issued" },
-                  { key: "production_started", label: "In Production" },
-                  { key: "production_complete", label: "Production Complete" },
-                  { key: "shipped", label: "Shipped" },
-                ].map(({ key, label }) => (
-                  <button key={key} onClick={() => setFilterStage(key)}
-                    className={"text-[11px] px-3 py-1 rounded-full border transition font-medium " + (filterStage === key ? "bg-accent-primary text-white border-accent-primary" : "bg-bg-elevated border-bg-border text-text-muted hover:text-text-primary hover:border-text-muted")}>
-                    {label}
-                  </button>
-                ))}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => {
