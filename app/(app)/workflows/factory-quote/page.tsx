@@ -772,7 +772,7 @@ Best regards,
                   <div className="space-y-1.5">
                     {factories.map(f => (
                       <button key={f.id} onClick={() => toggleFactory(f.id)}
-                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition ${newJob.factory_ids.includes(f.id) ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" : "border-bg-border bg-bg-surface text-text-secondary hover:border-bg-border"}`}>
+                        className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs transition ${newJob.factory_ids.includes(f.id) ? "border-emerald-600/60 bg-emerald-600/15 text-emerald-700 dark:text-emerald-400" : "border-bg-border bg-bg-surface text-text-secondary hover:border-bg-border"}`}>
                         <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${newJob.factory_ids.includes(f.id) ? "border-emerald-400 bg-emerald-500" : "border-white/20"}`}>
                           {newJob.factory_ids.includes(f.id) && <Check size={9} className="text-black" />}
                         </div>
