@@ -611,7 +611,7 @@ Best regards,
                         emailBody: buildDraftBody(jobs.find(j => j.id === draftModal.jobId)?.job_name || "", newFields),
                       });
                     }}
-                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-bg-border bg-bg-elevated text-text-muted"}`}>
+                      className={`text-[11px] px-2.5 py-1 rounded-lg border transition ${active ? "border-blue-700 bg-blue-600/20 text-blue-700 dark:text-blue-300" : "border-bg-border bg-bg-elevated text-text-muted"}`}>
                       {field}
                     </button>
                   );
