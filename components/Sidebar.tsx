@@ -120,69 +120,9 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void } = {}
         <NavItem href="/messages" icon={MessageSquare} label="Messages" description="Factory & team chats" />
         <NavItem href="/coming-soon" icon={Sparkles} label="Coming Soon" description="What's next" />
 
-        <div className="text-[10px] font-semibold text-text-muted uppercase tracking-widest px-3 mt-4 mb-2">Integrations</div>
 
-        {/* Microsoft 365 */}
-        <div>
-          <button
-            onClick={() => setMicrosoftOpen(!microsoftOpen)}
-            className={cn("nav-item w-full group", isActive("/microsoft") && "active")}
-          >
-            <svg width="16" height="16" viewBox="0 0 23 23" className="flex-shrink-0">
-              <path fill="#f3f3f3" d="M0 0h23v23H0z"/>
-              <path fill="#f35325" d="M1 1h10v10H1z"/>
-              <path fill="#81bc06" d="M12 1h10v10H12z"/>
-              <path fill="#05a6f0" d="M1 12h10v10H1z"/>
-              <path fill="#ffba08" d="M12 12h10v10H12z"/>
-            </svg>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-medium leading-none text-left">Microsoft 365</div>
-              <div className="text-[10px] text-text-muted mt-0.5 leading-none">Outlook, Excel, OneDrive</div>
-            </div>
-            {microsoftOpen ? <ChevronDown size={12} className="text-text-muted" /> : <ChevronRight size={12} className="text-text-muted" />}
-          </button>
-          {microsoftOpen && (
-            <div className="mt-1 space-y-0.5">
-              <SubItem href="/microsoft/outlook" icon={Mail} label="Outlook" />
-              <SubItem href="/microsoft/calendar" icon={Calendar} label="Calendar" />
-              <SubItem href="/microsoft/excel" icon={FileSpreadsheet} label="Excel" />
-              <SubItem href="/microsoft/drive" icon={HardDrive} label="OneDrive" />
-            </div>
-          )}
-        </div>
 
-        {/* Stripe */}
-        <div>
-          <Link href="/stripe">
-            <div className={cn("nav-item group", isActive("/stripe") && "active")}>
-              <svg width="16" height="16" viewBox="0 0 24 24" className="flex-shrink-0">
-                <path fill="#635BFF" d="M13.976 9.15c-2.172-.806-3.361-1.426-3.361-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
-              </svg>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium leading-none">Stripe</div>
-                <div className="text-[10px] text-text-muted mt-0.5 leading-none">Revenue & payments</div>
-              </div>
-              {isActive("/stripe") && <div className="w-1 h-1 rounded-full bg-accent flex-shrink-0" />}
-            </div>
-          </Link>
-        </div>
 
-        {/* QuickBooks */}
-        <div>
-          <Link href="/quickbooks">
-            <div className={cn("nav-item group", isActive("/quickbooks") && "active")}>
-              <svg width="16" height="16" viewBox="0 0 24 24" className="flex-shrink-0">
-                <circle cx="12" cy="12" r="12" fill="#2CA01C"/>
-                <path fill="white" d="M12 4.5a7.5 7.5 0 100 15 7.5 7.5 0 000-15zm0 12a4.5 4.5 0 110-9 4.5 4.5 0 010 9zm0-7.5a3 3 0 100 6 3 3 0 000-6z"/>
-              </svg>
-              <div className="flex-1 min-w-0">
-                <div className="text-[13px] font-medium leading-none">QuickBooks</div>
-                <div className="text-[10px] text-text-muted mt-0.5 leading-none">Invoices & financials</div>
-              </div>
-              {isActive("/quickbooks") && <div className="w-1 h-1 rounded-full bg-accent flex-shrink-0" />}
-            </div>
-          </Link>
-        </div>
 
       </nav>
 
