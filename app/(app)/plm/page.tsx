@@ -377,13 +377,13 @@ export default function PLMPage() {
     }
     if (filterCollection && p.collection_id !== filterCollection) return false;
     if (filterStage) {
-      const status = getProductStatus(p);
-      if (DEV_STAGE_LABELS[filterStage]) {
-        // Dev stage filter — match current_stage and no production batches
-        return p.current_stage === filterStage && !status;
+      const batchStages = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
+      if (batchStages.includes(filterStage)) {
+        const status = getProductStatus(p);
+        if (status !== filterStage) return false;
+      } else {
+        if (p.current_stage !== filterStage) return false;
       }
-      if (filterStage === "no_batches" && (p.plm_batches || []).length > 0) return false;
-      if (filterStage !== "no_batches" && status !== filterStage) return false;
     }
     return true;
   });
@@ -397,7 +397,9 @@ export default function PLMPage() {
     if (a.status !== "hold" && b.status === "hold") return -1;
     const aScore = ACTION_SORT[a.action_status || "up_to_date"] ?? 2;
     const bScore = ACTION_SORT[b.action_status || "up_to_date"] ?? 2;
-    return aScore - bScore;
+    if (aScore !== bScore) return aScore - bScore;
+    // Last updated first
+    return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
   });
 
   const hasActionRequired = filteredProducts.some(p => p.action_status === "action_required");
@@ -1139,15 +1141,6 @@ export default function PLMPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search products..." className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none focus:border-white/20 transition w-44" />
-                <select value={filterStage} onChange={e => setFilterStage(e.target.value)} className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
-                  <option value="">All Stages</option>
-                  <optgroup label="Development">
-                    {Object.entries(DEV_STAGE_LABELS).filter(([key]) => !["sample_production","sample_complete","sample_shipped","sample_arrived"].includes(key)).map(([key, label]) => <option key={key} value={key}>{label as string}</option>)}
-                  </optgroup>
-                  <optgroup label="Production">
-                    {BATCH_STAGE_ORDER.map(s => <option key={s} value={s}>{BATCH_STAGE_LABELS[s]}</option>)}
-                  </optgroup>
-                </select>
                 <select value={filterCollection} onChange={e => setFilterCollection(e.target.value)} className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
                   <option value="">All Collections</option>
                   {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1157,6 +1150,25 @@ export default function PLMPage() {
                     <X size={10} />Clear
                   </button>
                 )}
+              </div>
+              <div className="flex flex-wrap gap-1.5 px-1 mb-2">
+                {[
+                  { key: "", label: "All" },
+                  { key: "concept", label: "Concept" },
+                  { key: "artwork_sent", label: "Artwork Sent" },
+                  { key: "quotes_received", label: "Quotes Received" },
+                  { key: "samples_requested", label: "Samples Requested" },
+                  { key: "sample_approved", label: "Sample Approved" },
+                  { key: "po_issued", label: "PO Issued" },
+                  { key: "production_started", label: "In Production" },
+                  { key: "production_complete", label: "Production Complete" },
+                  { key: "shipped", label: "Shipped" },
+                ].map(({ key, label }) => (
+                  <button key={key} onClick={() => setFilterStage(key)}
+                    className={"text-[11px] px-3 py-1 rounded-full border transition font-medium " + (filterStage === key ? "bg-accent-primary text-white border-accent-primary" : "bg-bg-elevated border-bg-border text-text-muted hover:text-text-primary hover:border-text-muted")}>
+                    {label}
+                  </button>
+                ))}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => {
