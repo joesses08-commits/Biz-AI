@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import * as XLSX from "xlsx";
+import mammoth from "mammoth";
 import JSZip from "jszip";
 import { trackUsage } from "@/lib/track-usage";
 
@@ -71,6 +72,14 @@ export async function POST(req: NextRequest) {
     let fileContent = "";
     if (file_type?.includes("sheet") || file_name?.match(/\.xlsx?$/i)) {
       fileContent = extractExcelText(file_base64).slice(0, 5000);
+    } else if (file_type?.includes("wordprocessingml") || file_name?.match(/\.docx?$/i)) {
+      try {
+        const buffer = Buffer.from(file_base64, "base64");
+        const result = await mammoth.extractRawText({ buffer });
+        fileContent = result.value.slice(0, 6000);
+      } catch {
+        fileContent = "DOCX could not be parsed";
+      }
     } else if (file_type?.includes("pdf") || file_name?.match(/\.pdf$/i)) {
       try {
         const visionRes = await anthropic.messages.create({
@@ -129,11 +138,22 @@ Respond ONLY with valid JSON (no markdown, no explanation):
 For product_import: extract ALL available fields per product including description, specs, category, notes. Extract collection name from sheet header or title row.`;
 
     const isPdf = file_type?.includes("pdf") || file_name?.match(/\.pdf$/i);
+    const isDocx = file_type?.includes("wordprocessingml") || file_name?.match(/\.docx?$/i);
+    let docxText = "";
+    if (isDocx) {
+      try {
+        const buf = Buffer.from(file_base64, "base64");
+        const res = await mammoth.extractRawText({ buffer: buf });
+        docxText = res.value.slice(0, 6000);
+      } catch { docxText = ""; }
+    }
     const messageContent: any[] = isPdf
       ? [
           { type: "document", source: { type: "base64", media_type: "application/pdf", data: file_base64 } } as any,
           { type: "text", text: prompt }
         ]
+      : isDocx
+      ? [{ type: "text", text: prompt + "\n\nDOCUMENT CONTENT:\n" + docxText }]
       : [{ type: "text", text: prompt }];
 
     const response = await anthropic.messages.create({
