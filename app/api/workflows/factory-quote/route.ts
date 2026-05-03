@@ -25,7 +25,7 @@ async function getUser(req?: NextRequest) {
       return { id: userId } as any;
     }
   }
-  return getEffectiveUser();
+  return getEffectiveUser(req);
 }
 
 async function refreshGmailToken(conn: any, userId: string) {
@@ -51,9 +51,9 @@ async function refreshGmailToken(conn: any, userId: string) {
   return conn.access_token;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const user = await getEffectiveUser();
+    const user = await getEffectiveUser(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const { data: jobs } = await supabaseAdmin
       .from("factory_quote_jobs")

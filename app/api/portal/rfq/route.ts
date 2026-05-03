@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const { data: jobs } = await supabaseAdmin
     .from("factory_quote_jobs")
-    .select("*, factory_quote_responses(*)")
+    .select("*, factory_quotes(*)")
     .eq("user_id", portalUser.user_id)
     .order("created_at", { ascending: false });
 
