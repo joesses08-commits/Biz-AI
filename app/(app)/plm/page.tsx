@@ -78,6 +78,7 @@ export default function PLMPage() {
   const [deletingPortalUser, setDeletingPortalUser] = useState<string|null>(null);
   const [filterStage, setFilterStage] = useState("");
   const [filterCollection, setFilterCollection] = useState("");
+  const [filterFactory, setFilterFactory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [selectMode, setSelectMode] = useState(false);
@@ -376,7 +377,11 @@ export default function PLMPage() {
       if (!matchName && !matchSku && !matchCollection) return false;
     }
     if (filterCollection && p.collection_id !== filterCollection) return false;
-
+    if (filterFactory) {
+      const tracks: any[] = p.plm_factory_tracks || [];
+      const hasActive = tracks.some((t: any) => t.factory_id === filterFactory && t.status === "active");
+      if (!hasActive) return false;
+    }
     return true;
   });
 
@@ -1137,8 +1142,12 @@ export default function PLMPage() {
                   <option value="">All Collections</option>
                   {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-                {(filterStage || filterCollection) && (
-                  <button onClick={() => { setFilterStage(""); setFilterCollection(""); setSearchQuery(""); }} className="text-[11px] text-text-muted hover:text-text-secondary flex items-center gap-1">
+                <select value={filterFactory} onChange={e => setFilterFactory(e.target.value)} className="bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-text-secondary text-xs focus:outline-none">
+                  <option value="">All Factories</option>
+                  {factories.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+                {(filterStage || filterCollection || filterFactory) && (
+                  <button onClick={() => { setFilterStage(""); setFilterCollection(""); setFilterFactory(""); setSearchQuery(""); }} className="text-[11px] text-text-muted hover:text-text-secondary flex items-center gap-1">
                     <X size={10} />Clear
                   </button>
                 )}
