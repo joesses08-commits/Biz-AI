@@ -69,19 +69,12 @@ export default function PortalDocumentDrop({ token }: { token: string }) {
 
     setIdentified(data.identified);
     setDropState("confirming");
-    // Fetch factories for dropdown
     try {
-      const fr = await fetch("/api/plm?type=factories");
+      const fr = await fetch("/api/plm?type=factories", { headers: { Authorization: "Bearer " + token } });
       const fd = await fr.json();
       setFactories(fd.factories || []);
     } catch {}
-    // Fetch factories for dropdown
-    try {
-      const fr = await fetch("/api/plm?type=factories");
-      const fd = await fr.json();
-      setFactories(fd.factories || []);
-    } catch {}
-  }, [userHint]);
+  }, [userHint, token]);
 
   const execute = async () => {
     if (!identified || !fileDataRef.current) return;

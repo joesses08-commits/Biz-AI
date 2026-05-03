@@ -60,7 +60,7 @@ async function getUser(req?: NextRequest) {
 
 
 export async function GET(req: NextRequest) {
-  const user = await getUser();
+  const user = await getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const type = req.nextUrl.searchParams.get("type");
 

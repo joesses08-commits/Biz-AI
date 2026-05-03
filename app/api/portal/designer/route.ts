@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createNotification } from "@/lib/notify";
 import { createClient } from "@supabase/supabase-js";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -540,6 +540,31 @@ export async function POST(req: NextRequest) {
       importance: "normal",
       action_required: true,
       recommended_action: "Assign " + (portalUser.name || portalUser.email) + " to this product in PLM",
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  if (action === "reset_pin_email") {
+    const token = randomBytes(32).toString("hex");
+    const expires = new Date(Date.now() + 1000 * 60 * 60).toISOString(); // 1 hour
+    await supabaseAdmin.from("factory_portal_users")
+      .update({ pin_reset_token: token, pin_reset_expires_at: expires })
+      .eq("id", portalUser.id);
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/portal/reset-pin?token=${token}`;
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: "Jimmy AI <noreply@myjimmy.ai>",
+        to: portalUser.email,
+        subject: "Reset your Jimmy AI portal PIN",
+        html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px">
+          <h2 style="font-size:20px;font-weight:700;margin-bottom:8px">Reset your Portal PIN</h2>
+          <p style="color:#666;font-size:14px;margin-bottom:24px">Click the button below to set a new PIN for your Jimmy AI designer portal. This link expires in 1 hour.</p>
+          <a href="${resetUrl}" style="display:inline-block;background:#000;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">Reset PIN →</a>
+          <p style="color:#999;font-size:12px;margin-top:24px">If you didn't request this, you can safely ignore this email.</p>
+        </div>`,
+      }),
     });
     return NextResponse.json({ success: true });
   }
