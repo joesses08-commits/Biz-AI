@@ -49,7 +49,6 @@ function PinPrompt({ onConfirm, onCancel, error }: { onConfirm: (pin: string) =>
           <button onClick={onCancel} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
         </div>
       </div>
-      <PortalDocumentDrop token={tok()} />
     </div>
   );
 }
