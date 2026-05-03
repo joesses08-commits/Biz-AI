@@ -3,7 +3,7 @@ import PortalNotificationBell from "../../components/PortalNotificationBell";
 import PortalThemeToggle from "@/components/PortalThemeToggle";
 
 import { useState, useEffect } from "react";
-import { Package, Plus, Loader2, Check, X, ChevronDown, ChevronRight, LogOut, Layers, Users, Factory, Search, MessageSquare, ListOrdered } from "lucide-react";
+import { Package, Plus, Loader2, Check, X, ChevronDown, ChevronRight, LogOut, Layers, Users, Factory, Search, MessageSquare, ListOrdered, LayoutDashboard, FileUp, FileSpreadsheet, Settings } from "lucide-react";
 
 const BATCH_STAGE_ORDER = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
 const BATCH_STAGE_LABELS: Record<string,string> = { po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", ready_to_ship:"Ready to Ship", shipped:"Shipped" };
@@ -317,10 +317,14 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
           </div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {([["products","Products",Package,products.length],["collections","Collections",Layers,collections.length],["messages","Messages",MessageSquare,null],["prioritization","Prioritization",ListOrdered,null]] as any[]).map(([key,label,Icon,count]) => (
-            <button key={key}
+          {([["products","Products",Package,products.length],["collections","Collections",Layers,collections.length],["messages","Messages",MessageSquare,null],["prioritization","Prioritization",ListOrdered,null],["divider","",null,null],["rfq","RFQ Workflow",FileSpreadsheet,null],["doc-dropper","Doc Dropper",FileUp,null],["settings","Settings",Settings,null]] as any[]).map(([key,label,Icon,count]) => {
+            if (key === "divider") return <div key="divider" className="my-2 border-t border-bg-border" />;
+            return (<button key={key}
               onClick={() => {
                 if (key === "messages") { router.push("/portal/designer-messages"); return; }
+                if (key === "rfq") { router.push("/portal/rfq"); return; }
+                if (key === "doc-dropper") { router.push("/portal/doc-dropper"); return; }
+                if (key === "settings") { router.push("/portal/settings"); return; }
                 setActiveTab(key);
                 if (key === "prioritization" && prioFactories.length === 0) loadPrioritization();
               }}
@@ -329,7 +333,8 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
               <span className="flex-1">{label}</span>
               {count !== null && count > 0 && <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded-md">{count}</span>}
             </button>
-          ))}
+          );
+          })}
         </nav>
         <div className="px-3 py-4 border-t border-bg-border space-y-1">
           <div className="flex items-center gap-2 px-3 py-2">
