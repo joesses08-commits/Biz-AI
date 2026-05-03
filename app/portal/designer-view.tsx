@@ -48,8 +48,8 @@ function PinPrompt({ onConfirm, onCancel, error }: { onConfirm: (pin: string) =>
             className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Confirm</button>
           <button onClick={onCancel} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
         </div>
-      <PortalDocumentDrop token={tok()} />
       </div>
+      <PortalDocumentDrop token={tok()} />
     </div>
   );
 }
