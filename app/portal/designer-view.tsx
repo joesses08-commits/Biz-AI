@@ -1,5 +1,6 @@
 "use client";
 import PortalNotificationBell from "../../components/PortalNotificationBell";
+import PortalDocumentDrop from "@/components/PortalDocumentDrop";
 import PortalThemeToggle from "@/components/PortalThemeToggle";
 
 import { useState, useEffect } from "react";
@@ -47,6 +48,7 @@ function PinPrompt({ onConfirm, onCancel, error }: { onConfirm: (pin: string) =>
             className="flex-1 py-2.5 rounded-xl bg-white text-black text-xs font-semibold disabled:opacity-40">Confirm</button>
           <button onClick={onCancel} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
         </div>
+      <PortalDocumentDrop token={tok()} />
       </div>
     </div>
   );
@@ -317,7 +319,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
           </div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {([["products","Products",Package,products.length],["collections","Collections",Layers,collections.length],["messages","Messages",MessageSquare,null],["prioritization","Prioritization",ListOrdered,null],["divider","",null,null],["rfq","RFQ Workflow",FileSpreadsheet,null],["doc-dropper","Doc Dropper",FileUp,null],["settings","Settings",Settings,null]] as any[]).map(([key,label,Icon,count]) => {
+          {([["products","Products",Package,products.length],["collections","Collections",Layers,collections.length],["messages","Messages",MessageSquare,null],["prioritization","Prioritization",ListOrdered,null],["divider","",null,null],["rfq","RFQ Workflow",FileSpreadsheet,null],["settings","Settings",Settings,null]] as any[]).map(([key,label,Icon,count]) => {
             if (key === "divider") return <div key="divider" className="my-2 border-t border-bg-border" />;
             return (<button key={key}
               onClick={() => {
