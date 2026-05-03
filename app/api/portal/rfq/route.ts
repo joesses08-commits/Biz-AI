@@ -21,11 +21,17 @@ export async function GET(req: NextRequest) {
   const portalUser = await getPortalUser(req);
   if (!portalUser) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const { data: allJobs } = await supabaseAdmin
+    .from("factory_quote_jobs")
+    .select("id, job_name, user_id, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
   const { data: jobs } = await supabaseAdmin
     .from("factory_quote_jobs")
     .select("*, factory_quote_responses(*)")
     .eq("user_id", portalUser.user_id)
     .order("created_at", { ascending: false });
 
-  return NextResponse.json({ jobs: jobs || [] });
+  return NextResponse.json({ jobs: jobs || [], debug: { portal_user_id: portalUser.user_id, all_jobs_sample: allJobs } });
 }
