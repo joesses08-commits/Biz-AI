@@ -15,6 +15,16 @@ export async function getEffectiveUser(req?: import("next/server").NextRequest) 
     if (userId && secret === process.env.CRON_SECRET) {
       return { id: userId, email: "" } as any;
     }
+    // Support portal Bearer token auth
+    const authToken = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (authToken) {
+      const { data: portalUser } = await supabaseAdmin
+        .from("factory_portal_users")
+        .select("user_id")
+        .eq("session_token", authToken)
+        .maybeSingle();
+      if (portalUser?.user_id) return { id: portalUser.user_id, email: "" } as any;
+    }
   }
   const cookieStore = await cookies();
   const supabase = createServerClient(

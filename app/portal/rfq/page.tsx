@@ -9,7 +9,7 @@ export default function PortalRFQPage() {
   const [loading, setLoading] = useState(true);
   const [portalUser, setPortalUser] = useState<any>(null);
 
-  const token = () => localStorage.getItem("portal_token") || localStorage.getItem("portal_token_designer") || "";
+  const token = () => localStorage.getItem("portal_token_designer") || localStorage.getItem("portal_token") || "";
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("portal_user") || localStorage.getItem("portal_user_designer") || "{}");

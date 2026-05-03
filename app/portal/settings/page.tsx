@@ -12,7 +12,7 @@ export default function PortalSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const token = () => localStorage.getItem("portal_token") || "";
+  const token = () => localStorage.getItem("portal_token_designer") || localStorage.getItem("portal_token") || "";
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("portal_user") || "{}");

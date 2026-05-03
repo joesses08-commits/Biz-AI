@@ -118,6 +118,17 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStage, setFilterStage] = useState("");
   const [filterCollection, setFilterCollection] = useState("");
+  const [showRfqModal, setShowRfqModal] = useState(false);
+  const [rfqSelectedProducts, setRfqSelectedProducts] = useState<string[]>([]);
+  const [rfqInclude, setRfqInclude] = useState<string[]>(["name","sku","description","specs","images"]);
+  const [rfqAskFor, setRfqAskFor] = useState<string[]>(["price","moq","lead_time","sample_lead_time","payment_terms"]);
+  const [creatingRfq, setCreatingRfq] = useState(false);
+  const [rfqJobId, setRfqJobId] = useState<string|null>(null);
+  const [showSampleRequestModal, setShowSampleRequestModal] = useState(false);
+  const [bulkSampleProductIds, setBulkSampleProductIds] = useState<string[]>([]);
+  const [bulkSampleSelections, setBulkSampleSelections] = useState<Record<string, any>>({});
+  const [bulkSampleNote, setBulkSampleNote] = useState("");
+  const [submittingBulkSample, setSubmittingBulkSample] = useState(false);
 
   const tok = () => localStorage.getItem("portal_token_designer") || localStorage.getItem("portal_token") || "";
 
@@ -378,6 +389,14 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
                 </select>
               </div>
               <div className="flex items-center gap-2">
+                <button onClick={() => { setShowRfqModal(true); setRfqJobId(null); }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-400 transition">
+                  <FileSpreadsheet size={11} />RFQ
+                </button>
+                <button onClick={() => { setBulkSampleProductIds([]); setBulkSampleSelections({}); setShowSampleRequestModal(true); }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-amber-500 text-black font-semibold hover:bg-amber-400 transition">
+                  <Plus size={11} />Request Samples
+                </button>
                 <button onClick={() => setShowNewCollection(!showNewCollection)}
                   className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-bg-border text-text-secondary hover:text-text-secondary transition">
                   <Plus size={11} />Collection
@@ -704,6 +723,279 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
             )}
           </div>
         )}
+      {/* RFQ Modal */}
+      {showRfqModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Create RFQ</p>
+                <p className="text-xs text-text-muted mt-0.5">Select products, choose what to include and ask for, then export to Workflows</p>
+              </div>
+              <button onClick={() => setShowRfqModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] text-text-muted uppercase tracking-widest">Products to Include</p>
+                <div className="flex gap-2">
+                  <button onClick={() => setRfqSelectedProducts(products.map(p => p.id))}
+                    className="text-[11px] text-text-muted hover:text-text-secondary transition">Select All</button>
+                  <button onClick={() => setRfqSelectedProducts([])}
+                    className="text-[11px] text-text-muted hover:text-text-secondary transition">Clear</button>
+                </div>
+              </div>
+              <div className="max-h-48 overflow-y-auto space-y-1.5 border border-bg-border rounded-xl p-3">
+                {products.map(p => (
+                  <label key={p.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-bg-surface px-2 py-1.5 rounded-lg transition">
+                    <input type="checkbox" checked={rfqSelectedProducts.includes(p.id)}
+                      onChange={e => setRfqSelectedProducts(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id))}
+                      className="rounded" />
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {p.images?.[0] && <img src={p.images[0]} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                      <span className="text-xs text-white/70 truncate">{p.name}</span>
+                      {p.sku && <span className="text-[10px] text-text-muted font-mono flex-shrink-0">{p.sku}</span>}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] text-white/25 mt-1.5">{rfqSelectedProducts.length} products selected</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-text-muted uppercase tracking-widest mb-2">Include in Sheet</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[["name","Product Name"],["sku","SKU"],["description","Description"],["specs","Specifications"],["weight","Weight"],["dimensions","Dimensions"],["images","Image URLs"],["reference_url","Dropbox Link"],["category","Category"],["collection","Collection"],["notes","Notes"]].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={rfqInclude.includes(key)}
+                      onChange={e => setRfqInclude(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}
+                      className="rounded" />
+                    <span className="text-xs text-text-secondary">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] text-text-muted uppercase tracking-widest mb-2">Ask Factories to Fill In</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[["price","Unit Price"],["sample_lead_time","Sample Lead Time"],["moq","MOQ"],["lead_time","Production Lead Time"],["sample_price","Sample Price"],["payment_terms","Payment Terms"],["packaging","Packaging Details"],["notes","Notes/Comments"]].map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={rfqAskFor.includes(key)}
+                      onChange={e => setRfqAskFor(prev => e.target.checked ? [...prev, key] : prev.filter(k => k !== key))}
+                      className="rounded" />
+                    <span className="text-xs text-text-secondary">{label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {rfqJobId && (
+              <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
+                <Check size={14} className="text-emerald-400" />
+                <p className="text-xs text-emerald-700">RFQ job created! <button onClick={() => { setShowRfqModal(false); router.push("/portal/rfq"); }} className="underline ml-1 font-semibold">Open in RFQ Workflow →</button></p>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                if (rfqSelectedProducts.length === 0) return;
+                setCreatingRfq(true);
+                try {
+                  const res = await fetch("/api/plm/rfq", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok() },
+                    body: JSON.stringify({ product_ids: rfqSelectedProducts, include: rfqInclude, ask_for: rfqAskFor }),
+                  });
+                  const data = await res.json();
+                  if (data.job_id) {
+                    setRfqJobId(data.job_id);
+                    if (data.file_base64) {
+                      const bytes = Uint8Array.from(atob(data.file_base64), c => c.charCodeAt(0));
+                      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url; a.download = data.file_name || "RFQ.xlsx"; a.click();
+                      URL.revokeObjectURL(url);
+                    }
+                    load();
+                  }
+                } finally { setCreatingRfq(false); }
+              }} disabled={creatingRfq || rfqSelectedProducts.length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-pink-500 text-white text-xs font-semibold hover:bg-pink-400 transition disabled:opacity-40">
+                {creatingRfq ? <Loader2 size={11} className="animate-spin" /> : <FileSpreadsheet size={11} />}
+                {creatingRfq ? "Creating RFQ..." : `Create RFQ for ${rfqSelectedProducts.length} Products`}
+              </button>
+              <button onClick={() => { setShowRfqModal(false); setRfqJobId(null); }} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Sample Request Modal */}
+      {showSampleRequestModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-bg-elevated border border-bg-border rounded-2xl w-full max-w-2xl p-6 space-y-5 my-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Request Samples</p>
+                <p className="text-xs text-text-muted mt-0.5">Select products and pick which factories to request from</p>
+              </div>
+              <button onClick={() => setShowSampleRequestModal(false)} className="text-text-muted hover:text-text-secondary"><X size={14} /></button>
+            </div>
+            {collections.length > 0 && (
+              <div className="border border-bg-border rounded-xl p-3 space-y-2 bg-bg-surface">
+                <p className="text-[10px] text-text-muted uppercase tracking-widest">Quick-select by collection</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {collections.map((c: any) => {
+                    const collectionProductIds = products.filter((p: any) => p.collection_id === c.id && !p.killed).map((p: any) => p.id);
+                    const allSelected = collectionProductIds.every((id: string) => bulkSampleProductIds.includes(id));
+                    return (
+                      <button key={c.id} onClick={() => {
+                        if (allSelected) {
+                          setBulkSampleProductIds(prev => prev.filter((id: string) => !collectionProductIds.includes(id)));
+                        } else {
+                          setBulkSampleProductIds(prev => Array.from(new Set([...prev, ...collectionProductIds])));
+                          const newSelections: Record<string, any> = { ...bulkSampleSelections };
+                          collectionProductIds.forEach((pid: string) => { if (!newSelections[pid]) newSelections[pid] = factories.map((f: any) => f.id); });
+                          setBulkSampleSelections(newSelections);
+                        }
+                      }} className={`text-[10px] px-3 py-1.5 rounded-lg border transition font-medium ${allSelected ? "border-amber-500/60 bg-transparent text-text-primary font-bold" : "border-bg-border text-text-secondary hover:text-text-primary"}`}>
+                        {c.name} ({collectionProductIds.length})
+                      </button>
+                    );
+                  })}
+                  <button onClick={() => {
+                    const allIds = products.filter((p: any) => !p.killed).map((p: any) => p.id);
+                    setBulkSampleProductIds(allIds);
+                    const newSelections: Record<string, any> = {};
+                    allIds.forEach((pid: string) => { newSelections[pid] = factories.map((f: any) => f.id); });
+                    setBulkSampleSelections(newSelections);
+                  }} className="text-[10px] px-3 py-1.5 rounded-lg border border-bg-border text-text-muted hover:text-text-secondary transition">Select All</button>
+                  <button onClick={() => { setBulkSampleProductIds([]); setBulkSampleSelections({}); }}
+                    className="text-[10px] px-3 py-1.5 rounded-lg border border-bg-border text-text-muted hover:text-text-secondary transition">Clear</button>
+                </div>
+              </div>
+            )}
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {products.filter(p => {
+                if (p.killed) return false;
+                const activeRequest = (p.plm_sample_requests || []).find((r: any) => r.status === "requested");
+                if (activeRequest) return false;
+                return true;
+              }).map((p: any) => {
+                const isSelected = bulkSampleProductIds.includes(p.id);
+                const selectedFactories = bulkSampleSelections[p.id] || [];
+                const approvedReq = (p.plm_sample_requests || []).find((r: any) => r.status === "approved");
+                const isAdditional = !!approvedReq;
+                const approvedFactory = isAdditional ? factories.find((f: any) => f.id === approvedReq.factory_id) : null;
+                return (
+                  <div key={p.id} className={`border rounded-xl p-3 space-y-2 transition ${isSelected ? "border-amber-500/30 bg-amber-500/[0.03]" : "border-bg-border"}`}>
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                      <input type="checkbox" checked={isSelected}
+                        onChange={e => {
+                          setBulkSampleProductIds(prev => e.target.checked ? [...prev, p.id] : prev.filter(id => id !== p.id));
+                          if (e.target.checked && isAdditional && approvedFactory) {
+                            setBulkSampleSelections(prev => ({ ...prev, [p.id]: [approvedFactory.id] }));
+                          }
+                        }} className="rounded" />
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {p.images?.[0] && <img src={p.images[0]} alt="" className="w-7 h-7 rounded object-cover flex-shrink-0" />}
+                        <span className="text-xs text-white/70 font-medium truncate">{p.name}</span>
+                        {p.sku && <span className="text-[10px] text-text-muted font-mono flex-shrink-0">{p.sku}</span>}
+                        {isAdditional && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/20 flex-shrink-0">Additional</span>}
+                      </div>
+                    </label>
+                    {isSelected && (
+                      <div className="pl-6 space-y-2">
+                        {isAdditional ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-xs text-text-secondary">
+                              <span className="text-[10px] text-text-muted uppercase tracking-widest">Factory:</span>
+                              <span className="px-2 py-0.5 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-700">{approvedFactory?.name || "Approved factory"}</span>
+                              <span className="text-[10px] text-text-muted">(locked)</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Quantity *</p>
+                                <input type="number" placeholder="e.g. 3"
+                                  value={bulkSampleSelections[`${p.id}_qty`] || ""}
+                                  onChange={e => setBulkSampleSelections(prev => ({ ...prev, [`${p.id}_qty`]: e.target.value }))}
+                                  className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Reason *</p>
+                                <input type="text" placeholder="e.g. Color change"
+                                  value={bulkSampleSelections[`${p.id}_reason`] || ""}
+                                  onChange={e => setBulkSampleSelections(prev => ({ ...prev, [`${p.id}_reason`]: e.target.value }))}
+                                  className="w-full bg-bg-elevated border border-bg-border rounded-lg px-2 py-1.5 text-white/70 text-xs focus:outline-none" />
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1">Request from:</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {factories.map((f: any) => (
+                                <button key={f.id} onClick={() => setBulkSampleSelections(prev => ({
+                                  ...prev,
+                                  [p.id]: selectedFactories.includes(f.id) ? selectedFactories.filter((id: string) => id !== f.id) : [...selectedFactories, f.id]
+                                }))} className={`text-xs px-2.5 py-1 rounded-lg border transition ${selectedFactories.includes(f.id) ? "border-amber-500/60 bg-transparent text-text-primary font-bold" : "border-bg-border text-text-muted hover:text-text-secondary"}`}>
+                                  {f.name}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <p className="text-[10px] text-text-muted uppercase tracking-widest mb-1.5">Note to factories (optional)</p>
+              <textarea value={bulkSampleNote} onChange={e => setBulkSampleNote(e.target.value)}
+                placeholder="e.g. Priority samples needed by May 1st"
+                rows={2} className="w-full bg-bg-elevated border border-bg-border rounded-xl px-3 py-2 text-white/70 placeholder-white/20 text-xs focus:outline-none resize-none" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                const toRequest = bulkSampleProductIds.filter(id => Array.isArray(bulkSampleSelections[id]) && bulkSampleSelections[id].length > 0);
+                if (!toRequest.length) return;
+                setSubmittingBulkSample(true);
+                await fetch("/api/plm", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", Authorization: "Bearer " + tok() },
+                  body: JSON.stringify({
+                    action: "bulk_sample_requests",
+                    items: toRequest.map(productId => {
+                      const p = products.find((pr: any) => pr.id === productId);
+                      const isAdditional = (p?.plm_sample_requests || []).some((r: any) => r.status === "approved");
+                      return {
+                        product_id: productId,
+                        factory_ids: bulkSampleSelections[productId],
+                        note: isAdditional ? bulkSampleSelections[`${productId}_reason`] : bulkSampleNote,
+                        force: isAdditional,
+                        label: isAdditional ? "additional" : undefined,
+                        qty: isAdditional ? parseInt(bulkSampleSelections[`${productId}_qty`]) || undefined : undefined,
+                      };
+                    }),
+                    note: bulkSampleNote,
+                    provider: "gmail",
+                  }),
+                });
+                setSubmittingBulkSample(false);
+                setShowSampleRequestModal(false);
+                setBulkSampleSelections({});
+                setBulkSampleNote("");
+                load();
+              }} disabled={submittingBulkSample || bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0).length === 0}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 transition disabled:opacity-40">
+                {submittingBulkSample ? <Loader2 size={11} className="animate-spin" /> : <Check size={11} />}
+                Request Samples for {bulkSampleProductIds.filter(id => (bulkSampleSelections[id] || []).length > 0).length} Products
+              </button>
+              <button onClick={() => setShowSampleRequestModal(false)} className="px-4 rounded-xl border border-bg-border text-text-muted text-xs">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Request Assignment Modal */}
       {requestAssignmentProduct && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
@@ -751,6 +1043,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       )}
       </div>
       </div>
+      <PortalDocumentDrop token={tok()} />
     </div>
   );
 }

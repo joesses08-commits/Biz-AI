@@ -30,6 +30,16 @@ async function getUser(req?: NextRequest) {
   if (req) {
     const userId = req.headers.get("x-user-id");
     if (userId) return { id: userId, email: "" } as any;
+    // Support portal Bearer token auth
+    const authToken = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (authToken) {
+      const { data: portalUser } = await supabaseAdmin
+        .from("factory_portal_users")
+        .select("user_id")
+        .eq("session_token", authToken)
+        .maybeSingle();
+      if (portalUser?.user_id) return { id: portalUser.user_id, email: "" } as any;
+    }
   }
   const cookieStore = await cookies();
   const supabase = createServerClient(

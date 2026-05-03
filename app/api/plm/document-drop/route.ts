@@ -30,7 +30,19 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function getUser() {
+async function getUser(req?: NextRequest): Promise<{ id: string } | null> {
+  // Support portal Bearer token auth
+  if (req) {
+    const authToken = req.headers.get("Authorization")?.replace("Bearer ", "");
+    if (authToken) {
+      const { data: portalUser } = await supabaseAdmin
+        .from("factory_portal_users")
+        .select("user_id")
+        .eq("session_token", authToken)
+        .maybeSingle();
+      if (portalUser?.user_id) return { id: portalUser.user_id };
+    }
+  }
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +65,7 @@ function extractExcelText(base64: string): string {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUser();
+  const user = await getUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
