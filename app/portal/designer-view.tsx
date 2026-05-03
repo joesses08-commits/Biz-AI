@@ -3,7 +3,7 @@ import PortalNotificationBell from "../../components/PortalNotificationBell";
 import PortalThemeToggle from "@/components/PortalThemeToggle";
 
 import { useState, useEffect } from "react";
-import { Package, Plus, Loader2, Check, X, ChevronDown, ChevronRight, LogOut, Layers, Users, Factory, Search } from "lucide-react";
+import { Package, Plus, Loader2, Check, X, ChevronDown, ChevronRight, LogOut, Layers, Users, Factory, Search, MessageSquare, ListOrdered } from "lucide-react";
 
 const BATCH_STAGE_ORDER = ["po_issued","production_started","production_complete","qc_inspection","ready_to_ship","shipped"];
 const BATCH_STAGE_LABELS: Record<string,string> = { po_issued:"PO Issued", production_started:"Production Started", production_complete:"Production Complete", qc_inspection:"QC Inspection", ready_to_ship:"Ready to Ship", shipped:"Shipped" };
@@ -303,50 +303,54 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
       {showSetPin && <SetPinModal token={tok()} onDone={() => { setShowSetPin(false); setHasPinSet(true); load(); }} />}
       {pinPrompt && <PinPrompt error={pinError} onConfirm={pin => pinPrompt.resolve(pin)} onCancel={() => { setPinPrompt(null); setPinError(""); }} />}
 
-      {/* Header */}
-      <div className="border-b border-bg-border px-6 py-4 flex items-center justify-between sticky top-0 bg-bg-base z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-white/5 border border-bg-border flex items-center justify-center">
-            <Layers size={15} className="text-text-secondary" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Designer Portal</p>
-            <p className="text-[10px] text-text-muted">{portalUser?.name || portalUser?.email}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] text-text-muted bg-bg-elevated px-2 py-1 rounded-lg">{products.length} SKUs</span>
-          <PortalThemeToggle />
-          {hasPinSet !== null && (
-            <button onClick={() => setShowSetPin(true)} className={`text-xs px-3 py-1.5 rounded-lg border transition ${hasPinSet ? "text-text-muted border-bg-border hover:text-text-secondary" : "text-amber-400 border-amber-500/30 bg-amber-500/10"}`}>
-              {hasPinSet ? "Change PIN" : "Set PIN"}
-            </button>
-          )}
-          <div className="flex items-center gap-3">
-            <PortalNotificationBell token={tok()} onNavigate={(link) => router.push(link)} />
-            <button onClick={() => router.push("/portal/designer-messages")}
-              className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary border border-bg-border hover:border-white/20 px-3 py-1.5 rounded-xl transition">
-              💬 Messages
-            </button>
-            <button onClick={logout} className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition">
-              <LogOut size={12} />Sign out
-            </button>
+      {/* Sidebar */}
+      <div className="w-60 flex-shrink-0 border-r border-bg-border bg-bg-surface flex flex-col h-screen sticky top-0 overflow-y-auto">
+        <div className="px-4 py-5 border-b border-bg-border">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-white/5 border border-bg-border flex items-center justify-center flex-shrink-0">
+              <Layers size={15} className="text-text-secondary" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">Jimmy AI</p>
+              <p className="text-[10px] text-text-muted truncate">{portalUser?.name || portalUser?.email}</p>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-bg-border px-6 sticky top-[57px] bg-bg-base z-10">
-        <div className="flex gap-0">
-          {([["products", "Products"], ["collections", "Collections"], ["prioritization", "Prioritization"]] as const).map(([key, label]) => (
-            <button key={key} onClick={() => { setActiveTab(key); if (key === "prioritization" && prioFactories.length === 0) loadPrioritization(); }}
-              className={`px-4 py-3.5 text-xs font-semibold border-b-2 transition ${activeTab === key ? "border-white text-text-primary" : "border-transparent text-text-muted hover:text-text-secondary"}`}>
-              {label}
+        <nav className="flex-1 px-3 py-4 space-y-0.5">
+          {([["products","Products",Package,products.length],["collections","Collections",Layers,collections.length],["messages","Messages",MessageSquare,null],["prioritization","Prioritization",ListOrdered,null]] as any[]).map(([key,label,Icon,count]) => (
+            <button key={key}
+              onClick={() => {
+                if (key === "messages") { router.push("/portal/designer-messages"); return; }
+                setActiveTab(key);
+                if (key === "prioritization" && prioFactories.length === 0) loadPrioritization();
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition text-left ${activeTab === key ? "bg-white/10 text-text-primary" : "text-text-muted hover:text-text-secondary hover:bg-white/5"}`}>
+              <Icon size={14} className="flex-shrink-0" />
+              <span className="flex-1">{label}</span>
+              {count !== null && count > 0 && <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded-md">{count}</span>}
             </button>
           ))}
+        </nav>
+        <div className="px-3 py-4 border-t border-bg-border space-y-1">
+          <div className="flex items-center gap-2 px-3 py-2">
+            <PortalNotificationBell token={tok()} onNavigate={(link) => router.push(link)} />
+            <PortalThemeToggle />
+            {hasPinSet !== null && (
+              <button onClick={() => setShowSetPin(true)}
+                className={`flex-1 text-[10px] px-2 py-1 rounded-lg border transition text-left ${hasPinSet ? "text-text-muted border-bg-border hover:text-text-secondary" : "text-amber-400 border-amber-500/30 bg-amber-500/10"}`}>
+                {hasPinSet ? "PIN ✓" : "Set PIN"}
+              </button>
+            )}
+          </div>
+          <button onClick={logout}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs text-text-muted hover:text-text-secondary hover:bg-white/5 transition">
+            <LogOut size={14} />Sign out
+          </button>
         </div>
       </div>
 
+      {/* Main content */}
+      <div className="flex-1 min-w-0">
       <div className="max-w-5xl mx-auto px-6 py-6">
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 size={20} className="animate-spin text-text-muted" /></div>
@@ -739,6 +743,7 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
           </div>
         </div>
       )}
+      </div>
       </div>
     </div>
   );
