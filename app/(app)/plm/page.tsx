@@ -379,8 +379,7 @@ export default function PLMPage() {
     if (filterCollection && p.collection_id !== filterCollection) return false;
     if (filterFactory) {
       const tracks: any[] = p.plm_factory_tracks || [];
-      const hasActive = tracks.some((t: any) => t.factory_id === filterFactory && t.status === "active");
-      if (!hasActive) return false;
+      if (!tracks.some((t: any) => t.factory_id === filterFactory)) return false;
     }
     return true;
   });
