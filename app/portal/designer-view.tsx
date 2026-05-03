@@ -322,8 +322,8 @@ export default function DesignerView({ portalUser, router }: { portalUser: any; 
             return (<button key={key}
               onClick={() => {
                 if (key === "messages") { router.push("/portal/designer-messages"); return; }
-                if (key === "rfq") { router.push("/portal/rfq"); return; }
-                if (key === "doc-dropper") { router.push("/portal/doc-dropper"); return; }
+                if (key === "rfq") { window.open("/workflows/factory-quote", "_blank"); return; }
+                if (key === "doc-dropper") { window.open("/plm", "_blank"); return; }
                 if (key === "settings") { router.push("/portal/settings"); return; }
                 setActiveTab(key);
                 if (key === "prioritization" && prioFactories.length === 0) loadPrioritization();

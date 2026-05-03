@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 export default function PortalRFQPage() {
   const router = useRouter();
   useEffect(() => {
-    // RFQ workflow is admin-only for now, redirect back
-    router.push("/portal/dashboard?role=designer");
+    router.replace("/workflows/factory-quote");
   }, []);
   return null;
 }
